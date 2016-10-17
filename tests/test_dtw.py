@@ -23,6 +23,13 @@ def test_distance1_c():
     assert(d3) == 2
 
 
+def test_distance1_d():
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.float64)
+    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.float64)
+    d = dtw_c.distance_nogil(s1, s2)
+    assert(d) == 2
+
+
 def test_distance_matrix1_a():
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
          [0, 1, 2, 0, 0, 0, 0, 0, 0]]

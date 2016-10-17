@@ -34,9 +34,9 @@ except ImportError:
     dtw_c = None
 
 
-def lowerbound(s1, s2, window=None, max_dist=None,
+def lb_keogh(s1, s2, window=None, max_dist=None,
                max_step=None, max_length_diff=None):
-    """LB_KEOGH"""
+    """Lowerbound LB_KEOGH"""
     # TODO: This implementation slower than distance() itself
     if window is None:
         window = max(len(s1), len(s2))
@@ -81,7 +81,6 @@ def distance(s1, s2, window=None, max_dist=None,
     dtw[0, 0] = 0
     last_under_max_dist = 0
     skip = 0
-    skipp = 0
     i0 = 1
     i1 = 0
     for i in range(r):
@@ -103,7 +102,7 @@ def distance(s1, s2, window=None, max_dist=None,
                 continue
             dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
             if dtw[i1, j + 1 - skip] <= max_dist:
-                last_under_max_dist= j
+                last_under_max_dist = j
             else:
                 dtw[i1, j + 1 - skip] = np.inf
                 if prev_last_under_max_dist < j + 1:
@@ -208,8 +207,8 @@ def distances(s1, s2, window=None, max_dist=None,
     return dtw[i1, min(c, c + window - 1) - skip], dtw
 
 
-def distance_matrix(s, max_dist=None, max_diff_length=5,
-                    window=None, max_point_dist=None, parallel=True,
+def distance_matrix(s, max_dist=None, max_length_diff=5,
+                    window=None, max_step=None, parallel=True,
                     use_c=False):
     """Distance matrix for all sequences in s.
     """
@@ -224,12 +223,12 @@ def distance_matrix(s, max_dist=None, max_diff_length=5,
         mp = None
     dist_opts = {
         'max_dist': max_dist,
-        'max_step': max_point_dist,
+        'max_step': max_step,
         'window': window,
-        'max_length_diff': max_diff_length
+        'max_length_diff': max_length_diff
     }
-    if max_diff_length is None:
-        max_diff_length = np.inf
+    if max_length_diff is None:
+        max_length_diff = np.inf
     large_value = np.inf
     logger.info('Computing distances')
     if not parallel and use_c:
@@ -244,7 +243,7 @@ def distance_matrix(s, max_dist=None, max_diff_length=5,
         dists = np.zeros((len(s), len(s))) + large_value
         for r in range(len(s)):
             for c in range(r + 1, len(s)):
-                if abs(len(s[r]) - len(s[c])) <= max_diff_length:
+                if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                     dists[r, c] = distance(s[r], s[c], **dist_opts)
     else:
         logger.info("Compute distances in Python")
