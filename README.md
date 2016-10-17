@@ -1,9 +1,23 @@
 # Time Series Distances
 
-## Contents
+## Usage
 
-- Dynamic Time Warping
-- Euclidian
+Only the distance:
+
+    from dtaidistance import dtw
+    s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
+    s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
+    distance = dtw.distance(s1, s2)
+    print(distance)
+
+The distance and the full distance matrix:
+
+    from dtaidistance import dtw
+    s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
+    s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
+    distance, matrix = dtw.distances(s1, s2)
+    print(distance)
+    print(matrix)
 
 
 ## Dependencies
