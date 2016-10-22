@@ -209,8 +209,12 @@ def distances(s1, s2, window=None, max_dist=None,
 
 def distance_matrix(s, max_dist=None, max_length_diff=5,
                     window=None, max_step=None, parallel=True,
-                    use_c=False):
+                    use_c=False, use_nogil=False):
     """Distance matrix for all sequences in s.
+
+    :param parallel: Use parallel operations
+    :param use_c: Use c compiled Python functions
+    :param use_nogil: Use pure c functions
     """
     if parallel:
         try:
@@ -231,33 +235,52 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
         max_length_diff = np.inf
     large_value = np.inf
     logger.info('Computing distances')
-    if not parallel and use_c:
-        logger.info("Compute distances in C")
+    if use_c:
         for k, v in dist_opts.items():
             if v is None:
                 dist_opts[k] = 0.0
-        print(dist_opts)
-        dists = dtw_c.distance_matrix(s, **dist_opts)
-    elif not parallel:
-        logger.info("Compute distances in Python+parallel")
-        dists = np.zeros((len(s), len(s))) + large_value
-        for r in range(len(s)):
-            for c in range(r + 1, len(s)):
-                if abs(len(s[r]) - len(s[c])) <= max_length_diff:
-                    dists[r, c] = distance(s[r], s[c], **dist_opts)
-    else:
-        logger.info("Compute distances in Python")
-        dists = np.zeros((len(s), len(s))) + large_value
-        if use_c:
-            cur_distance = distance_c_with_params
+    if use_c and use_nogil:
+        logger.info("Compute distances in pure C")
+        if parallel:
+            logger.info("Use parallel computation")
+            dists = dtw_c.distance_matrix_nogil_p(s, **dist_opts)
         else:
-            cur_distance = distance_with_params
-        idxs = np.triu_indices(len(s), k=1)
-        with mp.Pool() as p:
-            dists[idxs] = p.map(cur_distance, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
-            # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
-            # for r in range(len(s)):
-            #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
-            #     pbar.update(len(s) - r - 1)
-            # pbar.close()
+            logger.info("Use serial computation")
+            dists = dtw_c.distance_matrix_nogil(s, **dist_opts)
+    if use_c and not use_nogil:
+        logger.info("Compute distances in Python compiled C")
+        if parallel:
+            logger.info("Use parallel computation")
+            dists = np.zeros((len(s), len(s))) + large_value
+            idxs = np.triu_indices(len(s), k=1)
+            with mp.Pool() as p:
+                dists[idxs] = p.map(distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+                # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
+                # for r in range(len(s)):
+                #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
+                #     pbar.update(len(s) - r - 1)
+                # pbar.close()
+        else:
+            logger.info("Use serial computation")
+            dists = dtw_c.distance_matrix(s, **dist_opts)
+    if not use_c:
+        logger.info("Compute distances in Python")
+        if parallel:
+            logger.info("Use parallel computation")
+            dists = np.zeros((len(s), len(s))) + large_value
+            idxs = np.triu_indices(len(s), k=1)
+            with mp.Pool() as p:
+                dists[idxs] = p.map(distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+                # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
+                # for r in range(len(s)):
+                #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
+                #     pbar.update(len(s) - r - 1)
+                # pbar.close()
+        else:
+            logger.info("Use serial computation")
+            dists = np.zeros((len(s), len(s))) + large_value
+            for r in range(len(s)):
+                for c in range(r + 1, len(s)):
+                    if abs(len(s[r]) - len(s[c])) <= max_length_diff:
+                        dists[r, c] = distance(s[r], s[c], **dist_opts)
     return dists

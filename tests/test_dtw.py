@@ -52,4 +52,23 @@ def test_distance_matrix1_c():
     s = [np.array(si, dtype=np.float64) for si in s]
     m3 = dtw.distance_matrix(s, parallel=False, use_c=True)
     assert m3[0, 1] == 2
-    print(m3)
+
+
+def test_distance_matrix1_d():
+    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
+         [0, 1, 2, 0, 0, 0, 0, 0, 0],
+         [1, 2, 0, 0, 0, 0, 0, 1]]
+    s = [np.array(si, dtype=np.float64) for si in s]
+    m = dtw_c.distance_matrix_nogil(s)
+    assert m[0, 1] == 2
+
+
+def test_distance_matrix1_e():
+    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
+         [0, 1, 2, 0, 0, 0, 0, 0, 0],
+         [1, 2, 0, 0, 0, 0, 0, 1]]
+    s = [np.array(si, dtype=np.float64) for si in s]
+    m = dtw_c.distance_matrix_nogil_p(s)
+    assert m[0, 1] == 2
+
+test_distance_matrix1_e()

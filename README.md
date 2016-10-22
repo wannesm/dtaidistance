@@ -2,6 +2,8 @@
 
 ## Usage
 
+### DTW Distance
+
 Only the distance:
 
     from dtaidistance import dtw
@@ -34,6 +36,11 @@ Or you can use a numpy array:
     d = dtw_c.distance_nogil(s1, s2)
 
 You have to run `make build` before you can use the `dtw_c` module.
+
+
+### DTW Distance Matrix
+
+Use the method `dtw.distance_matrix`. You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution (`parallel`).
 
 
 ## Dependencies
