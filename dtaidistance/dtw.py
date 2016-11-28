@@ -92,6 +92,7 @@ def distance(s1, s2, window=None, max_dist=None,
     i0 = 1
     i1 = 0
     for i in range(r):
+        # print("i={}".format(i))
         # print(dtw)
         if last_under_max_dist == -1:
             prev_last_under_max_dist = np.inf
@@ -121,8 +122,10 @@ def distance(s1, s2, window=None, max_dist=None,
             if dtw[i1, j + 1 - skip] <= max_dist:
                 last_under_max_dist = j
             else:
+                # print('above max_dist', dtw[i1, j + 1 - skip], i1, j + 1 - skip)
                 dtw[i1, j + 1 - skip] = np.inf
-                if prev_last_under_max_dist < j + 1:
+                if prev_last_under_max_dist + 1 - skipp < j + 1 - skip:
+                    # print("break")
                     break
         if last_under_max_dist == -1:
             # print('early stop')

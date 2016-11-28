@@ -14,6 +14,7 @@ def test_distance1_a():
     assert d1 == d2
     assert d1 == pytest.approx(0.0004)
 
+
 def test_distance1_b():
     dist_opts = {}
     s1 = np.array([ 0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.])
@@ -23,4 +24,62 @@ def test_distance1_b():
     assert d1 == d2
     assert d1 == pytest.approx(0.0004)
 
-test_distance1_a()
+
+def test_distance2_a():
+    dist_opts = {'max_dist': 1.1}
+    s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
+    s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    d1 = dtw.distance(s1, s2, **dist_opts)
+    d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
+    print(d1, d2)
+    assert d1 == d2
+    assert d1 == pytest.approx(1.0)
+
+
+def test_distance2_aa():
+    dist_opts = {'max_dist': 0.1}
+    s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
+    s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    d1 = dtw.distance(s1, s2, **dist_opts)
+    d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
+    print(d1, d2)
+    assert d1 == d2
+    assert d1 == pytest.approx(np.inf)
+
+
+def test_distance2_b():
+    dist_opts = {'max_step': 1.1}
+    s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
+    s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    d1 = dtw.distance(s1, s2, **dist_opts)
+    d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
+    print(d1, d2)
+    assert d1 == d2
+    assert d1 == pytest.approx(1.0)
+
+
+def test_distance2_bb():
+    dist_opts = {'max_step': 0.1}
+    s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
+    s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    d1 = dtw.distance(s1, s2, **dist_opts)
+    d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
+    print(d1, d2)
+    assert d1 == d2
+    assert d1 == pytest.approx(np.inf)
+
+
+def test_distance2_c():
+    dist_opts = {}
+    s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
+    s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+    d1 = dtw.distance(s1, s2, **dist_opts)
+    d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
+    print(d1, d2)
+    assert d1 == d2
+    assert d1 == pytest.approx(1.0)
+
+
+# test_distance2_a()
+# test_distance2_b()
+# test_distance2_c()

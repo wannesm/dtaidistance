@@ -72,7 +72,7 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
                 last_under_max_dist = j
             else:
                 dtw[i1, j + 1 - skip] = inf
-                if prev_last_under_max_dist < j + 1:
+                if prev_last_under_max_dist + 1 - skipp < j + 1 - skip:
                     break
         if last_under_max_dist == -1:
             # print('early stop')
@@ -192,7 +192,7 @@ cdef double distance_nogil_c(
                 last_under_max_dist = j
             else:
                 dtw[i1*length + j + 1 - skip] = inf
-                if prev_last_under_max_dist < j + 1:
+                if prev_last_under_max_dist + 1 - skipp < j + 1 - skip:
                     break
         if last_under_max_dist == -1:
             # print('early stop')
