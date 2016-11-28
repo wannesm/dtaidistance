@@ -33,6 +33,12 @@ except ImportError:
     logger.info('C library not available')
     dtw_c = None
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    logger.info('tqdm library not available')
+    tqdm = None
+
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
                max_step=None, max_length_diff=None):
@@ -218,9 +224,17 @@ def distances(s1, s2, window=None, max_dist=None,
     return dtw[i1, min(c, c + window - 1) - skip], dtw
 
 
+def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_progress=False):
+    def distance_matrix_wrapper(seqs, **kwargs):
+        return distance_matrix(seqs, parallel=parallel, use_c=use_c,
+                               use_nogil=use_nogil,
+                               show_progress=show_progress, **kwargs)
+    return distance_matrix_wrapper
+
+
 def distance_matrix(s, max_dist=None, max_length_diff=5,
                     window=None, max_step=None, parallel=True,
-                    use_c=False, use_nogil=False):
+                    use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
     :param parallel: Use parallel operations
@@ -290,7 +304,10 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
         else:
             logger.info("Use serial computation")
             dists = np.zeros((len(s), len(s))) + large_value
-            for r in range(len(s)):
+            it_r = range(len(s))
+            if show_progress:
+                it_r = tqdm(it_r)
+            for r in it_r:
                 for c in range(r + 1, len(s)):
                     if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                         dists[r, c] = distance(s[r], s[c], **dist_opts)

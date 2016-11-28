@@ -233,7 +233,9 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_diff_length=5,
     if max_diff_length == 0:
         max_diff_length = 999999
     cdef double large_value = inf
-    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = np.zeros((len(cur), len(cur))) + large_value
+    dists_py = np.zeros((len(cur), len(cur))) + large_value
+    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
+    #print('dists: {}, {}'.format(dists_py.shape, dists_py.shape[0]*dists_py.shape[1]))
     cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
     cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
     cdef long ptr;
@@ -246,7 +248,7 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_diff_length=5,
     distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_diff_length, window, max_point_dist)
     free(cur2)
     free(cur2_len)
-    return dists
+    return dists_py
 
 
 def distance_matrix_nogil_p(cur, double max_dist=inf, int max_diff_length=5,
@@ -256,7 +258,8 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_diff_length=5,
     if max_diff_length == 0:
         max_diff_length = 999999
     cdef double large_value = inf
-    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = np.zeros((len(cur), len(cur))) + large_value
+    dists_py = np.zeros((len(cur), len(cur))) + large_value
+    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
     cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
     cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
     cdef long ptr;
@@ -269,7 +272,7 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_diff_length=5,
     distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_diff_length, window, max_point_dist)
     free(cur2)
     free(cur2_len)
-    return dists
+    return dists_py
 
 
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,
