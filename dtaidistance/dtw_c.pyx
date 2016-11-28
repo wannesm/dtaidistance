@@ -209,29 +209,29 @@ cdef double distance_nogil_c(
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-def distance_matrix(cur, double max_dist=inf, int max_diff_length=5,
-                    int window=0, double max_point_dist=0, **kwargs):
+def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
+                    int window=0, double max_step=0, **kwargs):
     """Merge sequences.
     """
-    if max_diff_length == 0:
-        max_diff_length = 999999
+    if max_length_diff == 0:
+        max_length_diff = 999999
     cdef double large_value = inf
     cdef np.ndarray[DTYPE_t, ndim=2] dists = np.zeros((len(cur), len(cur))) + large_value
     for r in range(len(cur)):
         for c in range(r + 1, len(cur)):
-            if abs(len(cur[r]) - len(cur[c])) <= max_diff_length:
+            if abs(len(cur[r]) - len(cur[c])) <= max_length_diff:
                 dists[r, c] = distance(cur[r], cur[c], window=window,
-                                       max_dist=max_dist, max_step=max_point_dist,
-                                       max_length_diff=max_diff_length)
+                                       max_dist=max_dist, max_step=max_step,
+                                       max_length_diff=max_length_diff)
     return dists
 
 
-def distance_matrix_nogil(cur, double max_dist=inf, int max_diff_length=5,
-                          int window=0, double max_point_dist=0, **kwargs):
+def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
+                          int window=0, double max_step=0, **kwargs):
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
-    if max_diff_length == 0:
-        max_diff_length = 999999
+    if max_length_diff == 0:
+        max_length_diff = 999999
     cdef double large_value = inf
     dists_py = np.zeros((len(cur), len(cur))) + large_value
     cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
@@ -245,18 +245,18 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_diff_length=5,
         ptr = cur[i].ctypes.data
         cur2[i] = <double *> ptr
         cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_diff_length, window, max_point_dist)
+    distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step)
     free(cur2)
     free(cur2_len)
     return dists_py
 
 
-def distance_matrix_nogil_p(cur, double max_dist=inf, int max_diff_length=5,
-                          int window=0, double max_point_dist=0, **kwargs):
+def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
+                          int window=0, double max_step=0, **kwargs):
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
-    if max_diff_length == 0:
-        max_diff_length = 999999
+    if max_length_diff == 0:
+        max_length_diff = 999999
     cdef double large_value = inf
     dists_py = np.zeros((len(cur), len(cur))) + large_value
     cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
@@ -269,15 +269,15 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_diff_length=5,
         ptr = cur[i].ctypes.data
         cur2[i] = <double *> ptr
         cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_diff_length, window, max_point_dist)
+    distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step)
     free(cur2)
     free(cur2_len)
     return dists_py
 
 
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,
-                             double max_dist=0, int max_diff_length=0,
-                             int window=0, double max_point_dist=0):
+                             double max_dist=0, int max_length_diff=0,
+                             int window=0, double max_step=0):
     #for i in range(len_cur):
     #    print(i)
     #    print(cur_len[i])
@@ -291,7 +291,7 @@ cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* ou
         for c in range(r + 1, len_cur):
             output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                                      window=window, max_dist=max_dist,
-                                                     max_step=max_point_dist, max_length_diff=max_diff_length)
+                                                     max_step=max_step, max_length_diff=max_length_diff)
             #for i in range(len_cur):
             #    for j in range(len_cur):
             #        printf("%f ", output[i*len_cur+j])
@@ -300,8 +300,8 @@ cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* ou
 
 
 cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* output,
-                             double max_dist=0, int max_diff_length=0,
-                             int window=0, double max_point_dist=0):
+                             double max_dist=0, int max_length_diff=0,
+                             int window=0, double max_step=0):
     # Requires openmp which is not supported for clang on mac
     cdef Py_ssize_t r
     cdef Py_ssize_t c
@@ -311,4 +311,4 @@ cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* 
             for c in range(r + 1, len_cur):
                 output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                                          window=window, max_dist=max_dist,
-                                                         max_step=max_point_dist, max_length_diff=max_diff_length)
+                                                         max_step=max_step, max_length_diff=max_length_diff)
