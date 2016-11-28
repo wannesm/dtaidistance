@@ -7,7 +7,7 @@ from cython import parallel
 from cython.parallel import parallel, prange
 from libc.stdlib cimport abort, malloc, free, abs
 from libc.stdio cimport printf
-from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI
+from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, pow
 
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
@@ -64,7 +64,7 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
         if dtw.shape[1] == c+ 1:
             skip = 0
         for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
-            d = abs(s1[i] - s2[j])
+            d = (s1[i] - s2[j])**2
             if d > max_step:
                 continue
             dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
@@ -92,14 +92,14 @@ def distance_nogil(double[:] s1, double[:] s2,
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.infer_types(False)
 cdef double distance_nogil_c(
              #double[:] s1, double[:] s2,
              double *s1, double *s2,
-             int len_s1, int len_s2,
+             int r, # len_s1
+             int c, # len_s2
              int window=0, double max_dist=0,
              double max_step=0, int max_length_diff=0) nogil:
-    cdef int r = len_s1
-    cdef int c = len_s2
     if max_length_diff != 0 and abs(r-c) > max_length_diff:
         return inf
     if window == 0:
@@ -108,7 +108,8 @@ cdef double distance_nogil_c(
         max_step = inf
     if max_dist == 0:
         max_dist = inf
-    cdef int length = min(c+1,abs(r-c) + 2*(window-1) + 1 + 1 +1)
+    cdef int length = min(c+1,abs(r-c) + 2*(window-1) + 1 + 1 + 1)
+    #printf("length (c) = %i\n", length)
     #cdef array.array dtw_tpl = array.array('d', [])
     #cdef array.array dtw
     #dtw = array.clone(dtw_tpl, length*2, zero=False)
@@ -129,26 +130,36 @@ cdef double distance_nogil_c(
     cdef int maxj
     cdef double minv
     cdef DTYPE_t d
+    #cdef int iii
     for i in range(r):
+        #
+        #printf("[ ")
+        #for iii in range(length):
+        #    printf("%f ", dtw[iii])
+        #printf("\n")
+        #for iii in range(length,length*2):
+        #    printf("%f ", dtw[iii])
+        #printf("]\n")
+        #
         if last_under_max_dist == -1:
             prev_last_under_max_dist = inf
         else:
             prev_last_under_max_dist = last_under_max_dist
         last_under_max_dist = -1
-        skipp = skip
-        skip = max(0, i - window + 1)
-        i0 = 1 - i0
-        i1 = 1 - i1
-        for j in range(length):
-            dtw[length * i1 + j] = inf
-        if length == c + 1:
-            skip = 0
         maxj = r - c
         if maxj < 0:
             maxj = 0
         maxj = i - maxj - window + 1
         if maxj < 0:
             maxj = 0
+        skipp = skip
+        skip = maxj
+        i0 = 1 - i0
+        i1 = 1 - i1
+        for j in range(length):
+            dtw[length * i1 + j] = inf
+        if length == c + 1:
+            skip = 0
         minj = c - r
         if minj < 0:
             minj = 0
@@ -156,7 +167,7 @@ cdef double distance_nogil_c(
         if minj > c:
             minj = c
         for j in range(maxj, minj):
-            d = fabs(s1[i] - s2[j])
+            d = pow(s1[i] - s2[j], 2)
             if d > max_step:
                 continue
             minv = dtw[i0*length + j - skipp]
@@ -164,8 +175,19 @@ cdef double distance_nogil_c(
                 minv = dtw[i0*length + j + 1 - skipp]
             if dtw[i1*length + j - skip] < minv:
                 minv = dtw[i1*length + j - skip]
-
             dtw[i1 * length + j + 1 - skip] = d + minv
+            #
+            #printf('%i, %i, %i\n',i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip)
+            #printf('%f, %f, %f\n',dtw[i0*length + j - skipp],dtw[i0*length + j + 1 - skipp],dtw[i1*length + j - skip])
+            #printf('i=%i, j=%i, d=%f, skip=%i, skipp=%i\n',i,j,d,skip,skipp)
+            #printf("[ ")
+            #for iii in range(length):
+            #    printf("%f ", dtw[iii])
+            #printf("\n")
+            #for iii in range(length,length*2):
+            #    printf("%f ", dtw[iii])
+            #printf("]\n")
+            #
             if dtw[i1*length + j + 1 - skip] <= max_dist:
                 last_under_max_dist = j
             else:

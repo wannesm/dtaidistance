@@ -77,30 +77,41 @@ def distance(s1, s2, window=None, max_dist=None,
         max_step = np.inf
     if max_dist is None:
         max_dist = np.inf
-    dtw = np.full((2, min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)), np.inf)
+    length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
+    # print("length (py) = {}".format(length))
+    dtw = np.full((2, length), np.inf)
     dtw[0, 0] = 0
     last_under_max_dist = 0
     skip = 0
     i0 = 1
     i1 = 0
     for i in range(r):
+        # print(dtw)
         if last_under_max_dist == -1:
             prev_last_under_max_dist = np.inf
         else:
             prev_last_under_max_dist = last_under_max_dist
         last_under_max_dist = -1
         skipp = skip
-        skip = max(0, i - window + 1)
+        skip = max(0, i - max(0, r - c) - window + 1)
         i0 = 1 - i0
         i1 = 1 - i1
         dtw[i1, :] = np.inf
         if dtw.shape[1] == c + 1:
             skip = 0
         for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
-            d = abs(s1[i] - s2[j])
+            d = (s1[i] - s2[j])**2
             if d > max_step:
                 continue
+            assert j + 1 - skip >= 0
+            assert j - skipp >= 0
+            assert j + 1 - skipp >= 0
+            assert j - skip >= 0
             dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
+            # print('({},{}), ({},{}), ({},{})'.format(i0, j - skipp, i0, j + 1 - skipp, i1, j - skip))
+            # print('{}, {}, {}'.format(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip]))
+            # print('i={}, j={}, d={}, skip={}, skipp={}'.format(i,j,d,skip,skipp))
+            # print(dtw)
             if dtw[i1, j + 1 - skip] <= max_dist:
                 last_under_max_dist = j
             else:
@@ -183,7 +194,7 @@ def distances(s1, s2, window=None, max_dist=None,
         #                                                y)
         for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
             # print('j =', j, 'max=',min(c, c - r + i + window))
-            d = abs(s1[i] - s2[j])
+            d = (s1[i] - s2[j])**2
             if max_step is not None and d > max_step:
                 continue
             # print(i, j + 1 - skip, j - skipp, j + 1 - skipp, j - skip)
