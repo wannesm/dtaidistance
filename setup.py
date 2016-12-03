@@ -23,7 +23,7 @@ if platform.system() == 'Darwin':
 
 extensions = [
     Extension(
-        "dtw_c", ["dtw_c.pyx"],
+        "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
         include_dirs=[numpy.get_include()],
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
