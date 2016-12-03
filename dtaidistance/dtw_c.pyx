@@ -17,7 +17,7 @@ cdef double inf = np.inf
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0):
+             double max_step=0, int max_length_diff=0, double penalty=0):
     """
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence
@@ -67,7 +67,9 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
             d = (s1[i] - s2[j])**2
             if d > max_step:
                 continue
-            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
+            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp],
+                                            dtw[i0, j + 1 - skipp] + penalty,
+                                            dtw[i1, j - skip] + penalty)
             if dtw[i1, j + 1 - skip] <= max_dist:
                 last_under_max_dist = j
             else:
@@ -84,10 +86,10 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
 
 def distance_nogil(double[:] s1, double[:] s2,
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0):
+             double max_step=0, int max_length_diff=0, double penalty=0):
     #return distance_nogil_c(s1, s2, len(s1), len(s2),
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
-                            window, max_dist, max_step, max_length_diff)
+                            window, max_dist, max_step, max_length_diff, penalty)
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -99,7 +101,7 @@ cdef double distance_nogil_c(
              int r, # len_s1
              int c, # len_s2
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0) nogil:
+             double max_step=0, int max_length_diff=0, double penalty=0) nogil:
     if max_length_diff != 0 and abs(r-c) > max_length_diff:
         return inf
     if window == 0:
@@ -130,6 +132,7 @@ cdef double distance_nogil_c(
     cdef int maxj
     cdef double minv
     cdef DTYPE_t d
+    cdef double tempv
     #cdef int iii
     for i in range(r):
         #
@@ -171,10 +174,12 @@ cdef double distance_nogil_c(
             if d > max_step:
                 continue
             minv = dtw[i0*length + j - skipp]
-            if dtw[i0*length + j + 1 - skipp] < minv:
-                minv = dtw[i0*length + j + 1 - skipp]
-            if dtw[i1*length + j - skip] < minv:
-                minv = dtw[i1*length + j - skip]
+            tempv = dtw[i0*length + j + 1 - skipp] + penalty
+            if tempv < minv:
+                minv = tempv
+            tempv = dtw[i1*length + j - skip] + penalty
+            if tempv < minv:
+                minv = tempv
             dtw[i1 * length + j + 1 - skip] = d + minv
             #
             #printf('%i, %i, %i\n',i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip)
@@ -210,7 +215,7 @@ cdef double distance_nogil_c(
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
-                    int window=0, double max_step=0, **kwargs):
+                    int window=0, double max_step=0, double penalty=0, **kwargs):
     """Merge sequences.
     """
     if max_length_diff == 0:
@@ -222,12 +227,13 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
             if abs(len(cur[r]) - len(cur[c])) <= max_length_diff:
                 dists[r, c] = distance(cur[r], cur[c], window=window,
                                        max_dist=max_dist, max_step=max_step,
-                                       max_length_diff=max_length_diff)
+                                       max_length_diff=max_length_diff,
+                                       penalty=penalty)
     return dists
 
 
 def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
-                          int window=0, double max_step=0, **kwargs):
+                          int window=0, double max_step=0, penalty=0, **kwargs):
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
     if max_length_diff == 0:
@@ -245,14 +251,14 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
         ptr = cur[i].ctypes.data
         cur2[i] = <double *> ptr
         cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step)
+    distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
     free(cur2)
     free(cur2_len)
     return dists_py
 
 
 def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
-                          int window=0, double max_step=0, **kwargs):
+                          int window=0, double max_step=0, double penalty=0, **kwargs):
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
     if max_length_diff == 0:
@@ -269,7 +275,7 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
         ptr = cur[i].ctypes.data
         cur2[i] = <double *> ptr
         cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step)
+    distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
     free(cur2)
     free(cur2_len)
     return dists_py
@@ -277,7 +283,7 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
 
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,
                              double max_dist=0, int max_length_diff=0,
-                             int window=0, double max_step=0):
+                             int window=0, double max_step=0, double penalty=0):
     #for i in range(len_cur):
     #    print(i)
     #    print(cur_len[i])
@@ -291,7 +297,8 @@ cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* ou
         for c in range(r + 1, len_cur):
             output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                                      window=window, max_dist=max_dist,
-                                                     max_step=max_step, max_length_diff=max_length_diff)
+                                                     max_step=max_step, max_length_diff=max_length_diff,
+                                                     penalty=penalty)
             #for i in range(len_cur):
             #    for j in range(len_cur):
             #        printf("%f ", output[i*len_cur+j])
@@ -301,7 +308,7 @@ cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* ou
 
 cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* output,
                              double max_dist=0, int max_length_diff=0,
-                             int window=0, double max_step=0):
+                             int window=0, double max_step=0, double penalty=0):
     # Requires openmp which is not supported for clang on mac
     cdef Py_ssize_t r
     cdef Py_ssize_t c
@@ -311,4 +318,5 @@ cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* 
             for c in range(r + 1, len_cur):
                 output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                                          window=window, max_dist=max_dist,
-                                                         max_step=max_step, max_length_diff=max_length_diff)
+                                                         max_step=max_step, max_length_diff=max_length_diff,
+                                                         penalty=penalty)

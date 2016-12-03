@@ -62,7 +62,7 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
 
 
 def distance(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None):
+             max_step=None, max_length_diff=None, penalty=None):
     """
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence
@@ -71,6 +71,7 @@ def distance(s1, s2, window=None, max_dist=None,
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
+    :param penalty: Penalty to add if compression or expansion is applied
 
     Returns: DTW distance
     """
@@ -114,7 +115,9 @@ def distance(s1, s2, window=None, max_dist=None,
             assert j - skipp >= 0
             assert j + 1 - skipp >= 0
             assert j - skip >= 0
-            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
+            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp],
+                                            dtw[i0, j + 1 - skipp] + penalty,
+                                            dtw[i1, j - skip] + penalty)
             # print('({},{}), ({},{}), ({},{})'.format(i0, j - skipp, i0, j + 1 - skipp, i1, j - skip))
             # print('{}, {}, {}'.format(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip]))
             # print('i={}, j={}, d={}, skip={}, skipp={}'.format(i,j,d,skip,skipp))
@@ -143,7 +146,7 @@ def distance_c_with_params(t):
 
 
 def distances(s1, s2, window=None, max_dist=None,
-              max_step=None, max_length_diff=None):
+              max_step=None, max_length_diff=None, penalty=None):
     """
     Dynamic Time Warping (keep full matrix)
     :param s1: First sequence
@@ -152,27 +155,23 @@ def distances(s1, s2, window=None, max_dist=None,
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
+    :param penalty: Penalty to add if compression or expansion is applied
 
     Returns: DTW distance, DTW matrix
     """
-    compact = False
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
     if window is None:
         window = max(r, c)
     # if self.dtw is None:
-    if compact:
-        dtw = np.full((2, min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)), np.inf)
-    else:
-        dtw = np.full((r + 1, c + 1), np.inf)
+    dtw = np.full((r + 1, c + 1), np.inf)
     # print('dtw shape', dtw.shape)
     # else:
     #     self.dtw = np.resize(self.dtw, (r + 1, c + 1))
     #     self.dtw.fill(np.inf)
     dtw[0, 0] = 0
     last_under_max_dist = 0
-    skip = 0
     i0 = 1
     i1 = 0
     for i in range(r):
@@ -181,17 +180,8 @@ def distances(s1, s2, window=None, max_dist=None,
         else:
             prev_last_under_max_dist = last_under_max_dist
         last_under_max_dist = -1
-        skipp = skip
-        if compact:
-            skip = max(0, i - window + 1)
-            i0 = 1 - i0
-            i1 = 1 - i1
-            dtw[i1, :] = np.inf
-        else:
-            i0 = i
-            i1 = i + 1
-        if dtw.shape[1] == c + 1:
-            skip = 0
+        i0 = i
+        i1 = i + 1
         # print('i =', i, 'skip =',skip, 'skipp =', skipp)
         # jmin = max(0, i - max(0, r - c) - window + 1)
         # jmax = min(c, i + max(0, c - r) + window)
@@ -207,13 +197,15 @@ def distances(s1, s2, window=None, max_dist=None,
             if max_step is not None and d > max_step:
                 continue
             # print(i, j + 1 - skip, j - skipp, j + 1 - skipp, j - skip)
-            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip])
+            dtw[i1, j + 1] = d + min(dtw[i0, j],
+                                     dtw[i0, j + 1] + penalty,
+                                     dtw[i1, j] + penalty)
             # dtw[i + 1, j + 1 - skip] = d + min(dtw[i + 1, j + 1 - skip], dtw[i + 1, j - skip])
             if max_dist is not None:
-                if dtw[i1, j + 1 - skip] <= max_dist:
+                if dtw[i1, j + 1] <= max_dist:
                     last_under_max_dist = j
                 else:
-                    dtw[i1, j + 1 - skip] = np.inf
+                    dtw[i1, j + 1] = np.inf
                     if prev_last_under_max_dist < j + 1:
                         break
         if max_dist is not None and last_under_max_dist == -1:
@@ -224,7 +216,7 @@ def distances(s1, s2, window=None, max_dist=None,
     # print(c,c-skip+window-1)
     # if skip > 0:
     #     return dtw[-1, min(c,window)]  # / (sum(self.dtw.shape)-2)
-    return dtw[i1, min(c, c + window - 1) - skip], dtw
+    return dtw[i1, min(c, c + window - 1)], dtw
 
 
 def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_progress=False):
@@ -236,7 +228,8 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
 
 
 def distance_matrix(s, max_dist=None, max_length_diff=5,
-                    window=None, max_step=None, parallel=True,
+                    window=None, max_step=None, penalty=None,
+                    parallel=True,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
@@ -257,7 +250,8 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
         'max_dist': max_dist,
         'max_step': max_step,
         'window': window,
-        'max_length_diff': max_length_diff
+        'max_length_diff': max_length_diff,
+        'penalty': penalty
     }
     if max_length_diff is None:
         max_length_diff = np.inf
