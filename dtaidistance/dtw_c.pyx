@@ -120,6 +120,7 @@ cdef double distance_nogil_c(
         max_dist = inf
     else:
         max_dist = pow(max_dist, 2)
+    penalty = pow(penalty, 2)
     cdef int length = min(c+1,abs(r-c) + 2*(window-1) + 1 + 1 + 1)
     #printf("length (c) = %i\n", length)
     #cdef array.array dtw_tpl = array.array('d', [])
