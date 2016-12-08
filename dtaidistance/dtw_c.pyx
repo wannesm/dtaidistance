@@ -1,3 +1,4 @@
+import math
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -39,8 +40,13 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
         window = max(r, c)
     if max_step == 0:
         max_step = inf
+    else:
+        max_step *= max_step
     if max_dist == 0:
         max_dist = inf
+    else:
+        max_dist *= max_dist
+    penalty *= penalty
     cdef np.ndarray[DTYPE_t, ndim=2] dtw = np.full((2, min( c +1 ,abs( r -c ) + 2 *( window -1 ) + 1 + 1 +1)), inf)
     dtw[0, 0] = 0
     cdef double last_under_max_dist = 0
@@ -81,7 +87,7 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
             # print(dtw)
             return inf
     # print(dtw)
-    return dtw[i1, min(c, c + window - 1) - skip]
+    return math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
 
 
 def distance_nogil(double[:] s1, double[:] s2,
@@ -108,8 +114,12 @@ cdef double distance_nogil_c(
         window = max(r, c)
     if max_step == 0:
         max_step = inf
+    else:
+        max_step = pow(max_step, 2)
     if max_dist == 0:
         max_dist = inf
+    else:
+        max_dist = pow(max_dist, 2)
     cdef int length = min(c+1,abs(r-c) + 2*(window-1) + 1 + 1 + 1)
     #printf("length (c) = %i\n", length)
     #cdef array.array dtw_tpl = array.array('d', [])
@@ -206,7 +216,7 @@ cdef double distance_nogil_c(
     # print(dtw)
     if window - 1 < 0:
         c = c + window - 1
-    cdef double result = dtw[length * i1 + c - skip]
+    cdef double result = sqrt(dtw[length * i1 + c - skip])
     free(dtw)
     return result
 

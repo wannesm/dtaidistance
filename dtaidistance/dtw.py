@@ -23,6 +23,7 @@ __license__ = "APL"
     limitations under the License.
 """
 import logging
+import math
 import numpy as np
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -80,10 +81,15 @@ def distance(s1, s2, window=None, max_dist=None,
         return np.inf
     if window is None:
         window = max(r, c)
-    if max_step is None:
+    if not max_step:
         max_step = np.inf
-    if max_dist is None:
+    else:
+        max_step *= max_step
+    if not max_dist:
         max_dist = np.inf
+    else:
+        max_dist *= max_dist
+    penalty *= penalty
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
     dtw = np.full((2, length), np.inf)
@@ -134,7 +140,7 @@ def distance(s1, s2, window=None, max_dist=None,
             # print('early stop')
             # print(dtw)
             return np.inf
-    return dtw[i1, min(c, c + window - 1) - skip]
+    return math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
 
 
 def distance_with_params(t):
