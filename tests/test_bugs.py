@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-import sys
-sys.path.append(".")
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 from dtaidistance import dtw, dtw_c
 
 def test_distance1_a():
@@ -80,6 +80,14 @@ def test_distance2_c():
     assert d1 == pytest.approx(1.0)
 
 
+def test_distance3_a():
+    dist_opts = {"penalty": 0.005, "max_step": 0.011, "window": 3}
+    s = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    p = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    d = dtw_c.distance_nogil(s, p, **dist_opts)
+    print(d)
+
 # test_distance2_a()
 # test_distance2_b()
 # test_distance2_c()
+test_distance3_a()
