@@ -89,7 +89,10 @@ def distance(s1, s2, window=None, max_dist=None,
         max_dist = np.inf
     else:
         max_dist *= max_dist
-    penalty *= penalty
+    if not penalty:
+        penalty = 0
+    else:
+        penalty *= penalty
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
     dtw = np.full((2, length), np.inf)
@@ -170,6 +173,18 @@ def distances(s1, s2, window=None, max_dist=None,
         return np.inf
     if window is None:
         window = max(r, c)
+    if not max_step:
+        max_step = np.inf
+    else:
+        max_step *= max_step
+    if not max_dist:
+        max_dist = np.inf
+    else:
+        max_dist *= max_dist
+    if not penalty:
+        penalty = 0
+    else:
+        penalty *= penalty
     # if self.dtw is None:
     dtw = np.full((r + 1, c + 1), np.inf)
     # print('dtw shape', dtw.shape)
@@ -222,6 +237,7 @@ def distances(s1, s2, window=None, max_dist=None,
     # print(c,c-skip+window-1)
     # if skip > 0:
     #     return dtw[-1, min(c,window)]  # / (sum(self.dtw.shape)-2)
+    dtw = np.sqrt(dtw)
     return dtw[i1, min(c, c + window - 1)], dtw
 
 

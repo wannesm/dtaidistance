@@ -3,13 +3,18 @@ default:
 	@echo "Possible actions:"
 	@echo "- analyze_build"
 	@echo "- benchmark"
-	@echo "- clean"
 	@echo "- build"
+	@echo "- clean"
 	@echo "- test"
+	@echo "- testall"
 
 .PHONY: test
 test:
 	export PYTHONPATH=.;py.test --ignore=venv --benchmark-skip -vv
+
+.PHONY: testall
+testall:
+	export PYTHONPATH=.;py.test --ignore=venv -vv
 
 .PHONY: benchmark
 benchmark:

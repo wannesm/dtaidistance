@@ -12,7 +12,7 @@ def test_distance1_a():
     d1 = dtw.distance(s1, s2, **dist_opts)
     d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
     assert d1 == d2
-    assert d1 == pytest.approx(0.0004)
+    assert d1 == pytest.approx(0.02)
 
 
 def test_distance1_b():
@@ -22,7 +22,7 @@ def test_distance1_b():
     d1 = dtw.distance(s1, s2, **dist_opts)
     d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
     assert d1 == d2
-    assert d1 == pytest.approx(0.0004)
+    assert d1 == pytest.approx(0.02)
 
 
 def test_distance2_a():

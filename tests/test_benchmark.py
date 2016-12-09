@@ -2,6 +2,7 @@ import numpy as np
 from dtaidistance import dtw, dtw_c
 import array
 import pytest
+import math
 
 n=10
 
@@ -15,7 +16,7 @@ def test_distance1_python_compress(benchmark):
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]*n
     def d():
         return dtw.distance(s1, s2)
-    assert benchmark(d) == 2*n
+    assert benchmark(d) == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="distance1")
@@ -25,7 +26,7 @@ def test_distance1_python_matrix(benchmark):
     def d():
         dd, _ = dtw.distances(s1, s2)
         return dd
-    assert benchmark(d) == 2*n
+    assert benchmark(d) == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="distance1")
@@ -34,7 +35,7 @@ def test_distance1_cpython(benchmark):
     s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n, dtype=np.float64)
     def d():
         return dtw_c.distance(s1, s2)
-    assert benchmark(d) == 2*n
+    assert benchmark(d) == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="distance1")
@@ -43,7 +44,7 @@ def test_distance1_c_array(benchmark):
     s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n, dtype=np.float64)
     def d():
         return dtw_c.distance_nogil(s1, s2)
-    assert benchmark(d) == 2*n
+    assert benchmark(d) == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="distance1")
@@ -52,7 +53,7 @@ def test_distance1_c_numpy(benchmark):
     s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0]*n)
     def d():
         return dtw_c.distance_nogil(s1, s2)
-    assert benchmark(d) == 2*n
+    assert benchmark(d) == math.sqrt(2)*n
 
 
 ## DISTANCE MATRIX 1 ##
@@ -69,7 +70,7 @@ def test_distance_matrix1_serialpython(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=False, use_nogil=False)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="matrix1")
@@ -81,7 +82,7 @@ def test_distance_matrix1_parallelpython(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=False, use_nogil=False)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="matrix1")
@@ -93,7 +94,7 @@ def test_distance_matrix1_serialpythonc(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=True, use_nogil=False)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="matrix1")
@@ -105,7 +106,7 @@ def test_distance_matrix1_parallelpythonc(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=True, use_nogil=False)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="matrix1")
@@ -117,7 +118,7 @@ def test_distance_matrix1_serialpurec(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=True, use_nogil=True)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
 
 
 @pytest.mark.benchmark(group="matrix1")
@@ -129,4 +130,4 @@ def test_distance_matrix1_parallelpurec(benchmark):
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=True, use_nogil=True)
     m = benchmark(d)
-    assert m[0,1] == 2*n
+    assert m[0,1] == math.sqrt(2)*n
