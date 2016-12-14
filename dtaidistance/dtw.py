@@ -6,7 +6,7 @@ __copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"
 __license__ = "APL"
 
 ..
-    Part of the DTAI experimenter code.
+    Part of the DTAI distance code.
 
     Copyright 2016 KU Leuven, DTAI Research Group
 
