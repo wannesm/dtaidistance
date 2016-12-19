@@ -6,8 +6,11 @@ from Cython.Build import cythonize
 import numpy
 import platform
 import os
+import sys
 
-print(numpy.get_include())
+if sys.argv[-1] == "build":
+    os.system("python3 setup.py build_ext --inplace")
+    sys.exit()
 
 extra_compile_args = []
 extra_link_args = []
@@ -30,7 +33,22 @@ extensions = [
     ),
 ]
 
+required = [
+    'numpy',
+    'cython'
+]
+
 setup(
+    name='dtaidistance',
+    version='0.1.0',
+    description='Distance measures for time series',
+    long_descrption=open('README.md').read(),
+    author='Wannes Meert',
+    author_email='wannes.meert@cs.kuleuven.be',
+    url='https://dtai.cs.kuleuven.be',
+    my_modules=['dtaidistance'],
+    install_requires=required,
+    license='APL',
+    classifiers=(),
     ext_modules=cythonize(extensions),
 )
-

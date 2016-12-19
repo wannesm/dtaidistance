@@ -63,7 +63,8 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
 
 
 def distance(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None, penalty=None):
+             max_step=None, max_length_diff=None, penalty=None,
+             use_nogil=False):
     """
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence
@@ -73,9 +74,16 @@ def distance(s1, s2, window=None, max_dist=None,
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
+    :param use_nogil: Use fast pure c compiled functions
 
     Returns: DTW distance
     """
+    if use_nogil:
+        return distance_fast(s1, s2, window,
+                             max_dist=max_dist,
+                             max_step=max_step,
+                             max_length_diff=max_length_diff,
+                             penalty=penalty)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
@@ -144,6 +152,20 @@ def distance(s1, s2, window=None, max_dist=None,
             # print(dtw)
             return np.inf
     return math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+
+
+def distance_fast(s1, s2, window=None, max_dist=None,
+               max_step=None, max_length_diff=None, penalty=None):
+    """Fast C version of distance()"""
+    if dtw_c is None:
+        logger.error("The compiled dtaidistance library is not available (run `make build`).")
+        return None
+    d = dtw_c.distance_nogil(s1, s2, window,
+                             max_dist=max_dist,
+                             max_step=max_step,
+                             max_length_diff=max_length_diff,
+                             penalty=penalty)
+    return d
 
 
 def distance_with_params(t):
@@ -259,7 +281,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
     :param use_c: Use c compiled Python functions
     :param use_nogil: Use pure c functions
     """
-    if parallel:
+    if parallel and (not use_c or not use_nogil):
         try:
             import multiprocessing as mp
             logger.info('Using multiprocessing')

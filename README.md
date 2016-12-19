@@ -1,5 +1,10 @@
 # Time Series Distances
 
+## Installation
+
+Run `make build` to use the fast c-based versions of the algorithms.
+
+
 ## Usage
 
 ### DTW Distance
@@ -23,19 +28,17 @@ The distance and the full distance matrix:
 
 The fastest version (30-300 times) uses c directly but requires an array as input:
 
-    from dtaidistance import dtw_c
+    from dtaidistance import dtw
     s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
     s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw_c.distance_nogil(s1, s2)
+    d = dtw.distance_fast(s1, s2)
 
 Or you can use a numpy array:
 
-    from dtaidistance import dtw_c
+    from dtaidistance import dtw
     s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.float64)
     s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.float64)
-    d = dtw_c.distance_nogil(s1, s2)
-
-You have to run `make build` before you can use the `dtw_c` module.
+    d = dtw.distance_fast(s1, s2)
 
 
 ### DTW Distance Matrix

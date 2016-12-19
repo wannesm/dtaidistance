@@ -45,13 +45,13 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
              double max_step=0, int max_length_diff=0, double penalty=0):
     """
     Dynamic Time Warping (keep compact matrix)
-    :param s1: First sequence
+    :param s1: First sequence (np.array(np.float64))
     :param s2: Second sequence
-    :param dist_func: Point-wise distance
     :param window: Only allow for shifts up to this amount away from the two diagonals
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
-    :param compact: Use compact storage (2 by abs(r-c)*2*(window-1)+3)
+    :param max_length_diff: Max length difference between the two sequences
+    :param penalty: Cost incurrend when performing compression or expansion
 
     Returns: DTW distance
     """
@@ -117,6 +117,12 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
 def distance_nogil(double[:] s1, double[:] s2,
              int window=0, double max_dist=0,
              double max_step=0, int max_length_diff=0, double penalty=0):
+    """DTW distance.
+
+    See distance(). This calls a pure c dtw computation that avoids the GIL.
+    :param s1: First sequence (buffer of doubles)
+    :param s2: Second sequence (buffer of doubles)
+    """
     #return distance_nogil_c(s1, s2, len(s1), len(s2),
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
                             window, max_dist, max_step, max_length_diff, penalty)
@@ -126,12 +132,15 @@ def distance_nogil(double[:] s1, double[:] s2,
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.infer_types(False)
 cdef double distance_nogil_c(
-             #double[:] s1, double[:] s2,
              double *s1, double *s2,
              int r, # len_s1
              int c, # len_s2
              int window=0, double max_dist=0,
              double max_step=0, int max_length_diff=0, double penalty=0) nogil:
+    """DTW distance.
+
+    See distance(). This is a pure c dtw computation that avoid the GIL.
+    """
     if max_length_diff != 0 and abs(r-c) > max_length_diff:
         return inf
     if window == 0:
@@ -246,12 +255,11 @@ cdef double distance_nogil_c(
     return result
 
 
-
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
                     int window=0, double max_step=0, double penalty=0, **kwargs):
-    """Merge sequences.
+    """Compute a distance matrix between all sequences given in `cur`.
     """
     if max_length_diff == 0:
         max_length_diff = 999999
@@ -269,6 +277,10 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
 
 def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
                           int window=0, double max_step=0, penalty=0, **kwargs):
+    """Compute a distance matrix between all sequences given in `cur`.
+    This method calls a pure c implementation of the dtw computation that
+    avoids the GIL.
+    """
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
     if max_length_diff == 0:
@@ -294,6 +306,10 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
 
 def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
                           int window=0, double max_step=0, double penalty=0, **kwargs):
+    """Compute a distance matrix between all sequences given in `cur`.
+    This method calls a pure c implementation of the dtw computation that
+    avoids the GIL and executes them in parallel.
+    """
     # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
     # Prepare for only c datastructures
     if max_length_diff == 0:
