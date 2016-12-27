@@ -2,7 +2,7 @@
 
 ## Installation
 
-Run `make build` to use the fast c-based versions of the algorithms.
+Run `make build` or `python setup.py build_ext --inplace` to be able to use the fast c-based versions of the algorithms.
 
 
 ## Usage

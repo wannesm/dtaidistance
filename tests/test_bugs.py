@@ -4,6 +4,10 @@ import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 from dtaidistance import dtw, dtw_c
 
+if dtw_c is None:
+    print('ERROR: dtw_c is not build')
+    sys.exit(1)
+
 def test_distance1_a():
     # dist_opts = {'max_dist': 0.201, 'max_step': 0.011, 'max_length_diff': 8, 'window': 3}
     dist_opts = {'window': 3}
