@@ -9,7 +9,7 @@ Run `make build` or `python setup.py build_ext --inplace` to be able to use the 
 
 ### DTW Distance
 
-Only the distance:
+Only the distance based on two sequences of numbers:
 
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
@@ -17,7 +17,11 @@ Only the distance:
     distance = dtw.distance(s1, s2)
     print(distance)
 
-The distance and the full distance matrix:
+Check the `__doc__` for information about the available arguments:
+
+    print(dtw.distance.__doc__)
+
+If, next to the distance, you also want the full distance matrix:
 
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
@@ -43,7 +47,7 @@ Or you can use a numpy array:
 
 ### DTW Distance Matrix
 
-Use the method `dtw.distance_matrix`. You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution (`parallel`).
+To compute the DTW distances between all sequences in a list of sequences, use the method `dtw.distance_matrix`. You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution (`parallel`).
 
 
 ## Dependencies
@@ -52,6 +56,7 @@ Use the method `dtw.distance_matrix`. You can set variables to use more or less 
 
 Optional:
 - [Cython](http://cython.org)
+- [tqdm](https://github.com/tqdm/tqdm)
 
 Development:
 - [pytest](http://doc.pytest.org)

@@ -168,11 +168,11 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     return d
 
 
-def distance_with_params(t):
+def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])
 
 
-def distance_c_with_params(t):
+def _distance_c_with_params(t):
     return dtw_c.distance(t[0], t[1], **t[2])
 
 
@@ -207,12 +207,7 @@ def distances(s1, s2, window=None, max_dist=None,
         penalty = 0
     else:
         penalty *= penalty
-    # if self.dtw is None:
     dtw = np.full((r + 1, c + 1), np.inf)
-    # print('dtw shape', dtw.shape)
-    # else:
-    #     self.dtw = np.resize(self.dtw, (r + 1, c + 1))
-    #     self.dtw.fill(np.inf)
     dtw[0, 0] = 0
     last_under_max_dist = 0
     i0 = 1
@@ -255,10 +250,6 @@ def distances(s1, s2, window=None, max_dist=None,
             # print('early stop')
             # print(dtw)
             return np.inf, dtw
-    # print(dtw)
-    # print(c,c-skip+window-1)
-    # if skip > 0:
-    #     return dtw[-1, min(c,window)]  # / (sum(self.dtw.shape)-2)
     dtw = np.sqrt(dtw)
     return dtw[i1, min(c, c + window - 1)], dtw
 
@@ -277,6 +268,11 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
+    :param window: Only allow for shifts up to this amount away from the two diagonals
+    :param max_dist: Stop if the returned values will be larger than this value
+    :param max_step: Do not allow steps larger than this value
+    :param max_length_diff: Return infinity if length of two series is larger
+    :param penalty: Penalty to add if compression or expansion is applied
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
     :param use_nogil: Use pure c functions
@@ -320,7 +316,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
             dists = np.zeros((len(s), len(s))) + large_value
             idxs = np.triu_indices(len(s), k=1)
             with mp.Pool() as p:
-                dists[idxs] = p.map(distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+                dists[idxs] = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
                 # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
                 # for r in range(len(s)):
                 #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
@@ -336,7 +332,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
             dists = np.zeros((len(s), len(s))) + large_value
             idxs = np.triu_indices(len(s), k=1)
             with mp.Pool() as p:
-                dists[idxs] = p.map(distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+                dists[idxs] = p.map(_distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
                 # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
                 # for r in range(len(s)):
                 #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
