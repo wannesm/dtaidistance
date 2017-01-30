@@ -42,7 +42,7 @@ except ImportError:
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
-               max_step=None, max_length_diff=None):
+             max_step=None, max_length_diff=None):
     """Lowerbound LB_KEOGH"""
     # TODO: This implementation slower than distance() itself
     if window is None:
@@ -155,7 +155,7 @@ def distance(s1, s2, window=None, max_dist=None,
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-               max_step=None, max_length_diff=None, penalty=None):
+                  max_step=None, max_length_diff=None, penalty=None):
     """Fast C version of distance()"""
     if dtw_c is None:
         logger.error("The compiled dtaidistance library is not available (run `make build`).")
@@ -268,6 +268,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
+    :param s: Iterable of series
     :param window: Only allow for shifts up to this amount away from the two diagonals
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
@@ -276,6 +277,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
     :param use_nogil: Use pure c functions
+    :param show_progress: Show progress using the tqdm library
     """
     if parallel and (not use_c or not use_nogil):
         try:
@@ -293,6 +295,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
         'max_length_diff': max_length_diff,
         'penalty': penalty
     }
+    dists = None
     if max_length_diff is None:
         max_length_diff = np.inf
     large_value = np.inf
@@ -349,3 +352,16 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
                     if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                         dists[r, c] = distance(s[r], s[c], **dist_opts)
     return dists
+
+
+def distance_matrix_fast(s, max_dist=None, max_length_diff=5,
+                         window=None, max_step=None, penalty=None,
+                         parallel=True, show_progress=False):
+    """Fast C version of distance_matrix()"""
+    if dtw_c is None:
+        logger.error("The compiled dtaidistance library is not available (run `make build`).")
+        return None
+    return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
+                           window=window, max_step=max_step, penalty=penalty,
+                           parallel=parallel,
+                           use_c=True, use_nogil=True, show_progress=show_progress)

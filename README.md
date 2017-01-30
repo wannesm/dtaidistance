@@ -1,5 +1,7 @@
 # Time Series Distances
 
+Experimental library for time series distances used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
+
 ## Installation
 
 Run `make build` or `python setup.py build_ext --inplace` to be able to use the fast c-based versions of the algorithms.
@@ -7,7 +9,9 @@ Run `make build` or `python setup.py build_ext --inplace` to be able to use the 
 
 ## Usage
 
-### DTW Distance
+### Dynamic Time Warping (DTW) Distance
+
+#### DTW Distance Between Two Series
 
 Only the distance based on two sequences of numbers:
 
@@ -45,7 +49,7 @@ Or you can use a numpy array:
     d = dtw.distance_fast(s1, s2)
 
 
-### DTW Distance Matrix
+#### DTW Distances Between Set of Series
 
 To compute the DTW distances between all sequences in a list of sequences, use the method `dtw.distance_matrix`. You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution (`parallel`).
 
