@@ -160,6 +160,16 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     if dtw_c is None:
         logger.error("The compiled dtaidistance library is not available (run `make build`).")
         return None
+    if window is None:
+        window = 0
+    if max_dist is None:
+        max_dist = 0
+    if max_step is None:
+        max_step = 0
+    if max_length_diff is None:
+        max_length_diff = 0
+    if penalty is None:
+        penalty = 0
     d = dtw_c.distance_nogil(s1, s2, window,
                              max_dist=max_dist,
                              max_step=max_step,
