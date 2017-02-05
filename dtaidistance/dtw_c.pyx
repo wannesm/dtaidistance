@@ -301,6 +301,8 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
             cur2[i] = <double *> ptr
             cur2_len[i] = len(cur[i])
     elif isinstance(cur, np.ndarray):
+        if not cur.flags.c_contiguous:
+            cur = cur.copy(order='C')
         cur_np = cur
         for i in range(len(cur)):
             cur2[i] = &cur_np[i,0]
