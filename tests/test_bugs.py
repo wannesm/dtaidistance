@@ -91,8 +91,8 @@ def test_distance3_a():
     d2 = dtw_c.distance_nogil(s, p, **dist_opts)
     assert d1 == pytest.approx(d2)
 
-
-# test_distance2_a()
-# test_distance2_b()
-# test_distance2_c()
-test_distance3_a()
+if __name__ == "__main__":
+    # test_distance2_a()
+    # test_distance2_b()
+    # test_distance2_c()
+    test_distance3_a()

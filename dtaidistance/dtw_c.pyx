@@ -27,15 +27,15 @@ import numpy as np
 cimport numpy as np
 cimport cython
 import ctypes
-from cpython cimport array
+from cpython cimport array, bool
 from cython import parallel
 from cython.parallel import parallel, prange
 from libc.stdlib cimport abort, malloc, free, abs
 from libc.stdio cimport printf
 from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, pow
 
-DTYPE = np.float64
-ctypedef np.float64_t DTYPE_t
+DTYPE = np.double
+ctypedef np.double_t DTYPE_t
 cdef double inf = np.inf
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -276,7 +276,7 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
 
 
 def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
-                          int window=0, double max_step=0, penalty=0, **kwargs):
+                          int window=0, double max_step=0, double penalty=0, bool is_parallel=False, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     This method calls a pure c implementation of the dtw computation that
     avoids the GIL.
@@ -292,13 +292,25 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
     cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
     cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
     cdef long ptr;
+    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] cur_np;
     #for i in range(len(cur)):
     #    print(cur[i])
-    for i in range(len(cur)):
-        ptr = cur[i].ctypes.data
-        cur2[i] = <double *> ptr
-        cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
+    if type(cur) in [list, set]:
+        for i in range(len(cur)):
+            ptr = cur[i].ctypes.data
+            cur2[i] = <double *> ptr
+            cur2_len[i] = len(cur[i])
+    elif isinstance(cur, np.ndarray):
+        cur_np = cur
+        for i in range(len(cur)):
+            cur2[i] = &cur_np[i,0]
+            cur2_len[i] = cur_np.shape[1]
+    else:
+        return None
+    if is_parallel:
+        distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
+    else:
+        distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
     free(cur2)
     free(cur2_len)
     return dists_py
@@ -310,26 +322,9 @@ def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
     This method calls a pure c implementation of the dtw computation that
     avoids the GIL and executes them in parallel.
     """
-    # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
-    # Prepare for only c datastructures
-    if max_length_diff == 0:
-        max_length_diff = 999999
-    cdef double large_value = inf
-    dists_py = np.zeros((len(cur), len(cur))) + large_value
-    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
-    cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
-    cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
-    cdef long ptr;
-    #for i in range(len(cur)):
-    #    print(cur[i])
-    for i in range(len(cur)):
-        ptr = cur[i].ctypes.data
-        cur2[i] = <double *> ptr
-        cur2_len[i] = len(cur[i])
-    distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty)
-    free(cur2)
-    free(cur2_len)
-    return dists_py
+    return distance_matrix_nogil(cur, max_dist=max_dist, max_length_diff=max_length_diff,
+                                 window=window, max_step=max_step, penalty=penalty,
+                                 is_parallel=True, **kwargs)
 
 
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,

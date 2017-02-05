@@ -34,24 +34,42 @@ If, next to the distance, you also want the full distance matrix:
     print(distance)
     print(matrix)
 
-The fastest version (30-300 times) uses c directly but requires an array as input:
+The fastest version (30-300 times) uses c directly but requires an array as input (with the double type):
 
     from dtaidistance import dtw
     s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
     s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
     d = dtw.distance_fast(s1, s2)
 
-Or you can use a numpy array:
+Or you can use a numpy array (with dtype double or float):
 
     from dtaidistance import dtw
-    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.float64)
-    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.float64)
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
+    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
     d = dtw.distance_fast(s1, s2)
 
 
 #### DTW Distances Between Set of Series
 
-To compute the DTW distances between all sequences in a list of sequences, use the method `dtw.distance_matrix`. You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution (`parallel`).
+To compute the DTW distances between all sequences in a list of sequences, use the method `dtw.distance_matrix`.
+You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution
+(`parallel`).
+
+The `distance_matrix` method expects a list of lists/arrays or a matrix (in case all series have the same length).
+
+    from dtaidistance import dtw
+    series = [
+        np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
+        np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
+        np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
+    ds = dtw.distance_matrix_fast(s)
+
+    from dtaidistance import dtw
+    series = np.matrix([
+        [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
+        [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
+        [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
+    ds = dtw.distance_matrix_fast(s)
 
 
 ## Dependencies

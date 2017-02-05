@@ -274,7 +274,7 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
 
 def distance_matrix(s, max_dist=None, max_length_diff=5,
                     window=None, max_step=None, penalty=None,
-                    parallel=True,
+                    parallel=False,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
@@ -340,6 +340,9 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
             dists = dtw_c.distance_matrix(s, **dist_opts)
     if not use_c:
         logger.info("Compute distances in Python")
+        if isinstance(s, np.matrix):
+            ss = [np.asarray(s[i]).reshape(-1) for i in range(s.shape[0])]
+            s = ss
         if parallel:
             logger.info("Use parallel computation")
             dists = np.zeros((len(s), len(s))) + large_value

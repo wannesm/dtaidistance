@@ -31,8 +31,8 @@ def test_distance1_python_matrix(benchmark):
 
 @pytest.mark.benchmark(group="distance1")
 def test_distance1_cpython(benchmark):
-    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0]*n, dtype=np.float64)
-    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n, dtype=np.float64)
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0]*n)
+    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n)
     def d():
         return dtw_c.distance(s1, s2)
     assert benchmark(d) == math.sqrt(2)*n
@@ -40,8 +40,8 @@ def test_distance1_cpython(benchmark):
 
 @pytest.mark.benchmark(group="distance1")
 def test_distance1_c_array(benchmark):
-    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0]*n, dtype=np.float64)
-    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n, dtype=np.float64)
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0]*n)
+    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0]*n)
     def d():
         return dtw_c.distance_nogil(s1, s2)
     assert benchmark(d) == math.sqrt(2)*n
@@ -66,7 +66,7 @@ def test_distance_matrix1_serialpython(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
          [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=False, use_nogil=False)
     m = benchmark(d)
@@ -78,7 +78,7 @@ def test_distance_matrix1_parallelpython(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
          [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=False, use_nogil=False)
     m = benchmark(d)
@@ -90,7 +90,7 @@ def test_distance_matrix1_serialpythonc(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
          [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=True, use_nogil=False)
     m = benchmark(d)
@@ -102,7 +102,7 @@ def test_distance_matrix1_parallelpythonc(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
          [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=True, use_nogil=False)
     m = benchmark(d)
@@ -114,7 +114,7 @@ def test_distance_matrix1_serialpurec(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0]*n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0]*n,
          [1, 2, 0, 0, 0, 0, 0, 1]*n]*nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=False, use_c=True, use_nogil=True)
     m = benchmark(d)
@@ -126,7 +126,7 @@ def test_distance_matrix1_parallelpurec(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
          [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
          [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si, dtype=np.float64) for si in s]
+    s = [np.array(si) for si in s]
     def d():
         return dtw.distance_matrix(s, parallel=True, use_c=True, use_nogil=True)
     m = benchmark(d)
