@@ -46,4 +46,4 @@ deploy: prepare_dist
 	@echo "Add tag"
 	git tag "v$$(python3 setup.py --version)"
 	@echo "Start uploading"
-	#twine upload dist/*
+	twine upload dist/*
