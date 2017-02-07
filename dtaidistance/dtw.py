@@ -382,3 +382,87 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=5,
                            window=window, max_step=max_step, penalty=penalty,
                            parallel=parallel,
                            use_c=True, use_nogil=True, show_progress=show_progress)
+
+
+def warp_path(from_s, to_s, **kwargs):
+    dists = distances(from_s, to_s, **kwargs)
+    m = dists[1]
+    path = []
+    r, c = m.shape
+    r -= 1
+    c -= 1
+    v = m[r, c]
+    path.append((r - 1, c - 1))
+    while r > 1 and c > 1:
+        r_c, c_c = r, c
+        if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
+            r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
+        if r >= 1 and m[r - 1, c] <= v:
+            r_c, c_c, v = r - 1, c, m[r - 1, c]
+        if c >= 1 and m[r, c - 1] <= v:
+            r_c, c_c, v = r, c - 1, m[r, c - 1]
+        path.append((r_c - 1, c_c - 1))
+        r, c = r_c, c_c
+    path.reverse()
+    return path
+
+
+def warp(from_s, to_s, plot=False, **kwargs):
+    """Warp a function to optimally match a second function.
+    Same options as distances().
+    """
+    path = warp_path(from_s, to_s, **kwargs)
+    from_s2 = np.zeros(len(to_s))
+    from_s2_cnt = np.zeros(len(to_s))
+    for r_c, c_c in path:
+        from_s2[c_c] += from_s[r_c]
+        from_s2_cnt[c_c] += 1
+    from_s2 /= from_s2_cnt
+
+    if plot:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
+        ax[0].plot(from_s, label="From")
+        ax[0].legend()
+        ax[1].plot(to_s, label="To")
+        ax[1].legend()
+        transFigure = fig.transFigure.inverted()
+        lines = []
+        line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+        for r_c, c_c in path:
+            coord1 = transFigure.transform(ax[0].transData.transform([r_c, from_s[r_c]]))
+            coord2 = transFigure.transform(ax[1].transData.transform([c_c, to_s[c_c]]))
+            lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                          transform=fig.transFigure, **line_options))
+        ax[2].plot(from_s2, label="From-warped")
+        ax[2].legend()
+        for i in range(len(to_s)):
+            coord1 = transFigure.transform(ax[1].transData.transform([i, to_s[i]]))
+            coord2 = transFigure.transform(ax[2].transData.transform([i, from_s2[i]]))
+            lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                          transform=fig.transFigure, **line_options))
+        fig.lines = lines
+        plt.show(block=True)
+
+    return from_s2
+
+
+def plot_warping(s1, s2, **kwargs):
+    path = warp_path(s1, s2, **kwargs)
+
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
+    ax[0].plot(s1)
+    ax[1].plot(s2)
+    transFigure = fig.transFigure.inverted()
+    lines = []
+    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    for r_c, c_c in path:
+        coord1 = transFigure.transform(ax[0].transData.transform([r_c, s1[r_c]]))
+        coord2 = transFigure.transform(ax[1].transData.transform([c_c, s2[c_c]]))
+        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                      transform=fig.transFigure, **line_options))
+    fig.lines = lines
+    plt.show(block=True)
