@@ -37,6 +37,7 @@ analyze_build:
 
 .PHONY: prepare_dist
 prepare_dist:
+	rm -rf dist/*
 	python3 setup.py sdist bdist_wheel
 
 .PHONY: deploy
