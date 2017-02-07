@@ -22,16 +22,18 @@ __license__ = "APL"
     See the License for the specific language governing permissions and
     limitations under the License.
 """
+import os
 import logging
 import math
 import numpy as np
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
 
 try:
     from . import dtw_c
 except ImportError:
-    logger.info('C library not available')
+    # logger.info('C library not available')
     dtw_c = None
 
 try:
@@ -158,7 +160,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None):
     """Fast C version of distance()"""
     if dtw_c is None:
-        logger.error("The compiled dtaidistance library is not available (run `make build`).")
+        logger.error("The compiled dtaidistance c library is not available.\n" +
+                     "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
         return None
     if window is None:
         window = 0
@@ -372,7 +375,8 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=5,
                          parallel=True, show_progress=False):
     """Fast C version of distance_matrix()"""
     if dtw_c is None:
-        logger.error("The compiled dtaidistance library is not available (run `make build`).")
+        logger.error("The compiled dtaidistance c library is not available.\n" +
+                     "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
         return None
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty,
