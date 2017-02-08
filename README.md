@@ -4,7 +4,7 @@ Experimental library for time series distances used in the [DTAI Research Group]
 
 ## Installation
 
-Run `make build` or `python setup.py build_ext --inplace` to be able to use the fast c-based versions of the algorithms.
+The library can be used as a pure Python implementation. If you need a faster version of the algorithms you can make use of the included C algorithms. You might need to run `make build` or `python setup.py build_ext --inplace` to compile the included library first.
 
 
 ## Usage
