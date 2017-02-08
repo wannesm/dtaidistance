@@ -393,7 +393,7 @@ def warp_path(from_s, to_s, **kwargs):
     c -= 1
     v = m[r, c]
     path.append((r - 1, c - 1))
-    while r > 1 and c > 1:
+    while r > 1 or c > 1:
         r_c, c_c = r, c
         if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
             r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
