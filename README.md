@@ -16,7 +16,7 @@ Run `make build` or `python setup.py build_ext --inplace` to be able to use the 
     s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
     dtw.plot_warping(s1, s2)
 
-![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png)
+![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=2)
 
 
 #### DTW Distance Between Two Series
