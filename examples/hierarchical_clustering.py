@@ -49,7 +49,16 @@ def size_cond(size):
     return int(f(n) / f(r) / f(n-r))
 
 
-def example1():
+def example_naivehierarchicalclustering():
+    """Naive hierarchical clustering algorithm using DTW and based on .
+
+    For a more efficient approach, check:
+    Mueen, A and Keogh, E, Extracting Optimal Performance from Dynamic Time Warping,
+    Tutorial, KDD 2016
+    http://www.cs.unm.edu/~mueen/DTW.pdf
+
+    :return: None
+    """
     series = [
         np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0]),
         np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0]),
@@ -89,7 +98,7 @@ def main(argv=None):
     logger.setLevel(logging.ERROR - 10 * (0 if args.verbose is None else args.verbose))
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    example1()
+    example_naivehierarchicalclustering()
 
 
 if __name__ == "__main__":

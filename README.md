@@ -99,6 +99,13 @@ Development:
   [Wannes.Meert@cs.kuleuven.be](mailto:Wannes.Meert@cs.kuleuven.be)
 
 
+## References
+
+1. Mueen, A and Keogh, E, 
+   [Extracting Optimal Performance from Dynamic Time Warping](http://www.cs.unm.edu/~mueen/DTW.pdf),
+   Tutorial, KDD 2016
+
+
 ## License
 
     DTAI distance code.

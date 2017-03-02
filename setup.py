@@ -23,10 +23,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 class MySDistCommand(SDistCommand):
     def run(self):
-        # How do we call another command?
-        import subprocess as sp
-        print("prepare README file")
-        sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
+        PrepReadme.run()
         super().run()
 
 
@@ -41,6 +38,10 @@ class PrepReadme(Command):
         pass
 
     def run(self):
+        PrepReadme.run_pandoc()
+
+    @staticmethod
+    def run_pandoc():
         import subprocess as sp
         sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
 
