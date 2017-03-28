@@ -91,8 +91,28 @@ def test_distance3_a():
     d2 = dtw_c.distance_nogil(s, p, **dist_opts)
     assert d1 == pytest.approx(d2)
 
+
+def test_distance4():
+    try:
+        import pandas as pd
+    except ImportError:
+        # If no pandas, ignore test (not a required dependency)
+        return
+    s = [[0.,    0.,   0.,    0.,   0.,   0., 0., 0., 0., 0., 0., 0., 0.],
+         [0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0.],
+         [0.,    0.,   0.,    0.,   0.,   0., 0., 0., 0., 0., 0., 0., 0.]]
+    p = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
+    df = pd.DataFrame(data=s)
+    s = df.values
+    for i in range(s.shape[0]):
+        ss = s[i]  # ss will not be C contiguous memory layout
+        d = dtw_c.distance_nogil(ss, p)
+        print(d)
+
+
 if __name__ == "__main__":
     # test_distance2_a()
     # test_distance2_b()
     # test_distance2_c()
-    test_distance3_a()
+    # test_distance3_a()
+    test_distance4()

@@ -124,6 +124,11 @@ def distance_nogil(double[:] s1, double[:] s2,
     :param s2: Second sequence (buffer of doubles)
     """
     #return distance_nogil_c(s1, s2, len(s1), len(s2),
+    # If the arrays (memoryviews) are not C contiguous, the pointer will not point to the correct array
+    if not s1.base.flags.c_contiguous:
+        s1 = s1.copy()
+    if not s2.base.flags.c_contiguous:
+        s2 = s2.copy()
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
                             window, max_dist, max_step, max_length_diff, penalty)
 
@@ -141,6 +146,7 @@ cdef double distance_nogil_c(
 
     See distance(). This is a pure c dtw computation that avoid the GIL.
     """
+    #printf("%i, %i\n", r, c)
     if max_length_diff != 0 and abs(r-c) > max_length_diff:
         return inf
     if window == 0:
@@ -214,6 +220,7 @@ cdef double distance_nogil_c(
         if minj > c:
             minj = c
         for j in range(maxj, minj):
+            #printf('s1[i] = s1[%i] = %f , s2[j] = s2[%i] = %f\n', i, s1[i], j, s2[j])
             d = pow(s1[i] - s2[j], 2)
             if d > max_step:
                 continue
@@ -224,6 +231,7 @@ cdef double distance_nogil_c(
             tempv = dtw[i1*length + j - skip] + penalty
             if tempv < minv:
                 minv = tempv
+            #printf('d = %f, minv = %f\n', d, minv)
             dtw[i1 * length + j + 1 - skip] = d + minv
             #
             #printf('%i, %i, %i\n',i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip)

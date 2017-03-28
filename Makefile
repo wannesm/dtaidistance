@@ -8,6 +8,10 @@ default:
 	@echo "- test"
 	@echo "- testall"
 
+.PHONY: runtest
+runtest:
+	export PYTHONPATH=.;python3 tests/test_bugs.py
+
 .PHONY: test
 test:
 	export PYTHONPATH=.;py.test --ignore=venv --benchmark-skip -vv
