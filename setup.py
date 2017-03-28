@@ -23,7 +23,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 class MySDistCommand(SDistCommand):
     def run(self):
-        PrepReadme.run()
+        PrepReadme.run_pandoc()
         super().run()
 
 
