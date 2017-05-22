@@ -98,11 +98,12 @@ if cythonize:
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args)])
 else:
-    ext_modules = [
-        Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
-                  include_dirs=[numpy.get_include()],
-                  extra_compile_args=extra_compile_args,
-                  extra_link_args=extra_link_args)]
+    ext_modules = []
+    # ext_modules = [
+    #     Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
+    #               include_dirs=[numpy.get_include()],
+    #               extra_compile_args=extra_compile_args,
+    #               extra_link_args=extra_link_args)]
 
 install_requires = ['numpy']
 tests_require = ['pytest', 'cython']
