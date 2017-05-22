@@ -113,8 +113,18 @@ with open('dtaidistance/__init__.py', 'r') as fd:
 if not version:
     raise RuntimeError('Cannot find version information')
 
-with open(os.path.join(here, 'README'), 'r') as f:
-    long_description = f.read()
+readme_path = os.path.join(here, 'README')
+if not os.path.exists(readme_path):
+    try:
+        PrepReadme.run_pandoc()
+    except:
+        pass
+if os.path.exists(readme_path):
+    with open(readme_path, 'r') as f:
+        long_description = f.read()
+else:
+    with open(os.path.join(here, 'README.md'), 'r') as f:
+        long_description = f.read()
 
 setup(
     name='dtaidistance',
