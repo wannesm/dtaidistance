@@ -2,3 +2,8 @@
 dtw_c.c
 dtw_c.*.so
 .cache
+.benchmarks
+.eggs
+.ipynb_checkpoints
+build
+dtaidistance.egg-info
