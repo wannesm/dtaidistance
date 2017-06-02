@@ -125,10 +125,12 @@ def distance_nogil(double[:] s1, double[:] s2,
     """
     #return distance_nogil_c(s1, s2, len(s1), len(s2),
     # If the arrays (memoryviews) are not C contiguous, the pointer will not point to the correct array
-    if not s1.base.flags.c_contiguous:
-        s1 = s1.copy()
-    if not s2.base.flags.c_contiguous:
-        s2 = s2.copy()
+    if isinstance(s1, (np.ndarray, np.generic)):
+        if not s1.base.flags.c_contiguous:
+            s1 = s1.copy()
+    if isinstance(s2, (np.ndarray, np.generic)):
+        if not s2.base.flags.c_contiguous:
+            s2 = s2.copy()
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
                             window, max_dist, max_step, max_length_diff, penalty)
 
