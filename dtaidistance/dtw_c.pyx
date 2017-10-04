@@ -26,6 +26,7 @@ import math
 import numpy as np
 cimport numpy as np
 cimport cython
+import cython
 import ctypes
 from cpython cimport array, bool
 from cython import parallel
@@ -267,7 +268,7 @@ cdef double distance_nogil_c(
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
-def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
+def distance_matrix(cur, double max_dist=inf, int max_length_diff=0,
                     int window=0, double max_step=0, double penalty=0, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     """
@@ -285,7 +286,7 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=5,
     return dists
 
 
-def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
+def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
                           int window=0, double max_step=0, double penalty=0, bool is_parallel=False, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     This method calls a pure c implementation of the dtw computation that
@@ -328,7 +329,7 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=5,
     return dists_py
 
 
-def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=5,
+def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=0,
                           int window=0, double max_step=0, double penalty=0, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     This method calls a pure c implementation of the dtw computation that

@@ -275,7 +275,7 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
     return distance_matrix_wrapper
 
 
-def distance_matrix(s, max_dist=None, max_length_diff=5,
+def distance_matrix(s, max_dist=None, max_length_diff=None,
                     window=None, max_step=None, penalty=None,
                     parallel=False,
                     use_c=False, use_nogil=False, show_progress=False):
@@ -370,7 +370,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=5,
     return dists
 
 
-def distance_matrix_fast(s, max_dist=None, max_length_diff=5,
+def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None,
                          parallel=True, show_progress=False):
     """Fast C version of distance_matrix()"""
