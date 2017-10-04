@@ -160,8 +160,7 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None):
     """Fast C version of distance()"""
     if dtw_c is None:
-        logger.error("The compiled dtaidistance c library is not available.\n" +
-                     "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
+        _print_library_missing()
         return None
     if window is None:
         window = 0
@@ -375,8 +374,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          parallel=True, show_progress=False):
     """Fast C version of distance_matrix()"""
     if dtw_c is None:
-        logger.error("The compiled dtaidistance c library is not available.\n" +
-                     "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
+        _print_library_missing()
         return None
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty,
@@ -466,3 +464,8 @@ def plot_warping(s1, s2, **kwargs):
                                       transform=fig.transFigure, **line_options))
     fig.lines = lines
     plt.show(block=True)
+
+
+def _print_library_missing():
+    logger.error("The compiled dtaidistance c library is not available.\n" +
+                 "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
