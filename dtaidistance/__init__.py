@@ -19,4 +19,4 @@ except ImportError:
                    "then run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
     dtw_c = None
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
