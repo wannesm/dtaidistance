@@ -82,7 +82,7 @@ extra_compile_args = []
 extra_link_args = []
 if platform.system() == 'Darwin':
     if os.path.exists("/usr/local/opt/llvm/bin/clang"):
-        # We have a recent version of LLVM that probably supports openmp to compile parallel C-code (installed using
+        # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
         # `brew install llvm`).
         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
         os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
@@ -105,8 +105,8 @@ else:
     #               extra_compile_args=extra_compile_args,
     #               extra_link_args=extra_link_args)]
 
-install_requires = ['numpy']
-tests_require = ['pytest', 'cython']
+install_requires = ['numpy', 'cython']
+tests_require = ['pytest']
 
 with open('dtaidistance/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',

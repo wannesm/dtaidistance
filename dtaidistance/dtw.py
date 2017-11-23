@@ -275,7 +275,7 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
 
 
 def distance_matrix(s, max_dist=None, max_length_diff=None,
-                    window=None, max_step=None, penalty=None,
+                    window=None, max_step=None, penalty=None, block=None,
                     parallel=False,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
@@ -286,6 +286,8 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
+    :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
+        only compare rows 0:10 with rows 20:25.
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
     :param use_nogil: Use pure c functions
@@ -318,6 +320,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
                 dist_opts[k] = 0.0
     if use_c and use_nogil:
         logger.info("Compute distances in pure C")
+        dist_opts['block'] = block
         if parallel:
             logger.info("Use parallel computation")
             dists = dtw_c.distance_matrix_nogil_p(s, **dist_opts)
@@ -329,7 +332,16 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         if parallel:
             logger.info("Use parallel computation")
             dists = np.zeros((len(s), len(s))) + large_value
-            idxs = np.triu_indices(len(s), k=1)
+            if block is None:
+                idxs = np.triu_indices(len(s), k=1)
+            else:
+                idxsl_r = []
+                idxsl_c = []
+                for r in range(block[0][0], block[0][1]):
+                    for c in range(max(r + 1, block[1][0]), min(len(s), block[1][1])):
+                        idxsl_r.append(r)
+                        idxsl_c.append(c)
+                idxs = (np.array(idxsl_r), np.array(idxsl_c))
             with mp.Pool() as p:
                 dists[idxs] = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
                 # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
@@ -339,6 +351,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
                 # pbar.close()
         else:
             logger.info("Use serial computation")
+            dist_opts['block'] = block
             dists = dtw_c.distance_matrix(s, **dist_opts)
     if not use_c:
         logger.info("Compute distances in Python")
@@ -348,7 +361,16 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         if parallel:
             logger.info("Use parallel computation")
             dists = np.zeros((len(s), len(s))) + large_value
-            idxs = np.triu_indices(len(s), k=1)
+            if block is None:
+                idxs = np.triu_indices(len(s), k=1)
+            else:
+                idxsl_r = []
+                idxsl_c = []
+                for r in range(block[0][0], block[0][1]):
+                    for c in range(max(r + 1, block[1][0]), min(len(s), block[1][1])):
+                        idxsl_r.append(r)
+                        idxsl_c.append(c)
+                idxs = (np.array(idxsl_r), np.array(idxsl_c))
             with mp.Pool() as p:
                 dists[idxs] = p.map(_distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
                 # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
@@ -359,11 +381,18 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         else:
             logger.info("Use serial computation")
             dists = np.zeros((len(s), len(s))) + large_value
-            it_r = range(len(s))
+            if block is None:
+                it_r = range(len(s))
+            else:
+                it_r = range(block[0][0], block[0][1])
             if show_progress:
                 it_r = tqdm(it_r)
             for r in it_r:
-                for c in range(r + 1, len(s)):
+                if block is None:
+                    it_c = range(r + 1, len(s))
+                else:
+                    it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
+                for c in it_c:
                     if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                         dists[r, c] = distance(s[r], s[c], **dist_opts)
     return dists
@@ -377,7 +406,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
         _print_library_missing()
         return None
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
-                           window=window, max_step=max_step, penalty=penalty,
+                           window=window, max_step=max_step, penalty=penalty, block=None,
                            parallel=parallel,
                            use_c=True, use_nogil=True, show_progress=show_progress)
 

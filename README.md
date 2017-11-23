@@ -80,6 +80,32 @@ The `distance_matrix` method expects a list of lists/arrays or a matrix (in case
     ds = dtw.distance_matrix_fast(s)
 
 
+#### Distribute DTW Distance computations over blocks
+
+You can instruct the computation to only fill part of the distances matrix.
+For example to distribute the computations over multiple nodes.
+
+    from dtaidistance import dtw
+    series = np.matrix([
+         [0., 0, 1, 2, 1, 0, 1, 0, 0],
+         [0., 1, 2, 0, 0, 0, 0, 0, 0],
+         [1., 2, 0, 0, 0, 0, 0, 1, 1],
+         [0., 0, 1, 2, 1, 0, 1, 0, 0],
+         [0., 1, 2, 0, 0, 0, 0, 0, 0],
+         [1., 2, 0, 0, 0, 0, 0, 1, 1]])
+    ds = dtw.distance_matrix_fast(s, block=((1, 4), (3, 5)))
+
+The output will be:
+
+    #  0     1    2    3           4           5
+    [[ inf   inf  inf     inf     inf  inf]    # 0
+     [ inf   inf  inf  1.4142  0.0000  inf]    # 1
+     [ inf   inf  inf  2.2360  1.7320  inf]    # 2
+     [ inf   inf  inf     inf  1.4142  inf]    # 3
+     [ inf   inf  inf     inf     inf  inf]    # 4
+     [ inf   inf  inf     inf     inf  inf]]   # 5
+
+
 ## Dependencies
 
 - [Numpy](http://www.numpy.org)
