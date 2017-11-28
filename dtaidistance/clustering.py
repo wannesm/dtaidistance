@@ -37,7 +37,7 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 class Hierarchical:
-    def __init__(self, dists_fun, dists_options, max_dist, weights=None, merge_hook=None):
+    def __init__(self, dists_fun, dists_options, max_dist, weights=None, merge_hook=None, show_progress=True):
         """
 
         :param dists_fun: Function to compute pairwise distance matrix between set of series.
@@ -47,12 +47,14 @@ class Hierarchical:
             The clustering will try to group such that the prototypes have a high as possible summed weight.
         :param merge_hook: Function that is called when two series are clustered.
             The function definition is `def merge_hook(from_idx, to_idx)`, where idx is the index of the series.
+        :param show_progress: Use a tqdm progress bar
         """
         self.dists_fun = dists_fun
         self.dists_options = dists_options
         self.weights = weights
         self.max_dist = max_dist
         self.merge_hook = merge_hook
+        self.show_progress = show_progress
 
     def fit(self, series):
         """Merge sequences.
@@ -78,7 +80,7 @@ class Hierarchical:
         deleted = set()
         cnt_merge = 0
         logger.info('Merging patterns')
-        if tqdm:
+        if self.show_progress and tqdm:
             pbar = tqdm(total=dists.shape[0])
         else:
             pbar = None
@@ -93,9 +95,10 @@ class Hierarchical:
                 w2 = self.weights[i2]
                 if w1 < w2 or (w1 == w2 and len(p1) > len(p2)):
                     i1, w1, i2, w2 = i2, w2, i1, w1
+                self.weights[i1] = w1 + w2
             logger.debug("Merge {} <- {} ({:.3f})".format(i1, i2, min_value))
             if i1 not in cluster_idx:
-                cluster_idx[i1] = set([i1])
+                cluster_idx[i1] = {i1}
             if i2 in cluster_idx:
                 cluster_idx[i1].update(cluster_idx[i2])
                 del cluster_idx[i2]
