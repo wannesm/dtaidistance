@@ -1,10 +1,19 @@
 # Time Series Distances
 
-Experimental library for time series distances used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
+Library for time series distances (e.g. Dynamic Time Warping) used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
+The library offers a pure Python implementation and a faster implementation in C.
+
 
 ## Installation
 
-The library can be used as a pure Python implementation. If you need a faster version of the algorithms you can make use of the included C algorithms. You might need to run `make build` or `python setup.py build_ext --inplace` to compile the included library first.
+This packages is available on PyPI:
+
+    $ pip install dtaidistance
+
+In case the C based version is not available, you might need to run `make build` or
+`python setup.py build_ext --inplace` to compile the included library first.
+
+The source code is available at [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
 
 ## Usage
@@ -12,6 +21,7 @@ The library can be used as a pure Python implementation. If you need a faster ve
 ### Dynamic Time Warping (DTW) Distance
 
     from dtaidistance import dtw
+    import numpy as np
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
     s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
     dtw.plot_warping(s1, s2)
@@ -29,11 +39,40 @@ Only the distance based on two sequences of numbers:
     distance = dtw.distance(s1, s2)
     print(distance)
 
+The fastest version (30-300 times) uses c directly but requires an array as input (with the double type):
+
+    from dtaidistance import dtw
+    import array
+    s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
+    s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
+    d = dtw.distance_fast(s1, s2)
+
+Or you can use a numpy array (with dtype double or float):
+
+    from dtaidistance import dtw
+    import numpy as np
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
+    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
+    d = dtw.distance_fast(s1, s2)
+
+
 Check the `__doc__` for information about the available arguments:
 
     print(dtw.distance.__doc__)
 
-If, next to the distance, you also want the full distance matrix:
+A number of options are foreseen to early stop some paths the dynamic programming algorithm is exploring or tune
+the distance computation:
+
+- `window`: Only allow for shifts up to this amount away from the two diagonals.
+- `max_dist`: Stop if the returned distance will be larger than this value.
+- `max_step`: Do not allow steps larger than this value.
+- `max_length_diff`: Return infinity if difference in length of two series is larger.
+- `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
+
+
+#### DTW Distance all paths
+
+If, next to the distance, you also want the full distance matrix to see all possible paths:
 
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
@@ -42,20 +81,6 @@ If, next to the distance, you also want the full distance matrix:
     print(distance)
     print(matrix)
 
-The fastest version (30-300 times) uses c directly but requires an array as input (with the double type):
-
-    from dtaidistance import dtw
-    s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
-    s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
-
-Or you can use a numpy array (with dtype double or float):
-
-    from dtaidistance import dtw
-    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
-    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
-
 
 #### DTW Distances Between Set of Series
 
@@ -63,16 +88,20 @@ To compute the DTW distances between all sequences in a list of sequences, use t
 You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution
 (`parallel`).
 
-The `distance_matrix` method expects a list of lists/arrays or a matrix (in case all series have the same length).
+The `distance_matrix` method expects a list of lists/arrays:
 
     from dtaidistance import dtw
+    import numpy as np
     series = [
         np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
         np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
         np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
     ds = dtw.distance_matrix_fast(s)
 
+or a matrix (in case all series have the same length):
+
     from dtaidistance import dtw
+    import numpy as np
     series = np.matrix([
         [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
         [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
@@ -80,12 +109,14 @@ The `distance_matrix` method expects a list of lists/arrays or a matrix (in case
     ds = dtw.distance_matrix_fast(s)
 
 
-#### Distribute DTW Distance computations over blocks
+#### DTW Distances Between Set of Series, limited to block
 
 You can instruct the computation to only fill part of the distances matrix.
-For example to distribute the computations over multiple nodes.
+For example to distribute the computations over multiple nodes, or to only 
+compare source series to target series.
 
     from dtaidistance import dtw
+    import numpy as np
     series = np.matrix([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -95,9 +126,9 @@ For example to distribute the computations over multiple nodes.
          [1., 2, 0, 0, 0, 0, 0, 1, 1]])
     ds = dtw.distance_matrix_fast(s, block=((1, 4), (3, 5)))
 
-The output will be:
+The output in this case will be:
 
-    #  0     1    2    3           4           5
+    #  0     1    2    3       4       5
     [[ inf   inf  inf     inf     inf  inf]    # 0
      [ inf   inf  inf  1.4142  0.0000  inf]    # 1
      [ inf   inf  inf  2.2360  1.7320  inf]    # 2
@@ -108,6 +139,7 @@ The output will be:
 
 ## Dependencies
 
+- [Python 3](http://www.python.org)
 - [Numpy](http://www.numpy.org)
 
 Optional:
@@ -136,7 +168,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016 KU Leuven, DTAI Research Group
+    Copyright 2016-2017 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
