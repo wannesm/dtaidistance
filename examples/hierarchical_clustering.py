@@ -77,6 +77,7 @@ def example_naivehierarchicalclustering():
         idx += len(series)-r-1
 
     z = linkage(dists_cond, method='complete', metric='euclidean')
+    print(z)
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 3))
     for idx, serie in enumerate(series):
@@ -87,7 +88,7 @@ def example_naivehierarchicalclustering():
                                 linewidth=1, color='gray'))
     axes[0].legend(loc=1)
     dendrogram(z, ax=axes[1])
-    plt.show()
+    plt.show(block=True)
 
 
 def main(argv=None):

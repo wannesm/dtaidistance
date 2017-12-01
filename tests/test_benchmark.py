@@ -1,5 +1,5 @@
 import numpy as np
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw, dtw_c, clustering
 import array
 import pytest
 import math
@@ -133,5 +133,36 @@ def test_distance_matrix1_parallelpurec(benchmark):
     assert m[0,1] == math.sqrt(2)*n
 
 
+## CLUSTER MATRIX 1 ##
+
+n = 1
+nn = 100
+
+
+@pytest.mark.benchmark(group="cluster1")
+def test_cluster1_hierarchical(benchmark):
+    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
+         [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
+         [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
+    s = [np.array(si) for si in s]
+    def d():
+        c = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+        return c.fit(s)
+    m = benchmark(d)
+
+
+@pytest.mark.benchmark(group="cluster1")
+def test_cluster1_linkage(benchmark):
+    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
+         [0, 1, 2, 0, 0, 0, 0, 0, 0] * n,
+         [1, 2, 0, 0, 0, 0, 0, 1] * n] * nn
+    s = [np.array(si) for si in s]
+    def d():
+        c = clustering.LinkageTree(dtw.distance_matrix_fast, {})
+        return c.fit(s)
+    m = benchmark(d)
+
+
 if __name__ == "__main__":
-    test_distance1_c_numpy(lambda x: x())
+    # test_distance1_c_numpy(lambda x: x())
+    test_cluster1_linkage(lambda x: x())

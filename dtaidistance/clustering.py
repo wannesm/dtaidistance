@@ -23,6 +23,7 @@ __license__ = "APL"
     limitations under the License.
 """
 import logging
+import math
 from collections import defaultdict, namedtuple, deque
 import numpy as np
 from matplotlib import pyplot as plt
@@ -40,7 +41,7 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 class Hierarchical:
     def __init__(self, dists_fun, dists_options, max_dist=np.inf, weights=None, merge_hook=None, show_progress=True):
-        """
+        """Hierarchical clustering.
 
         :param dists_fun: Function to compute pairwise distance matrix between set of series.
         :param dists_options: Arguments to pass to dists_fun.
@@ -151,67 +152,29 @@ class Hierarchical:
         return cluster_idx
 
 
-class HierarchicalTree(Hierarchical):
-    def __init__(self, *args, **kwargs):
-        """Keep track of the full tree that represents the hierarchical clustering."""
-        super().__init__(*args, **kwargs)
-        self.max_dist = np.inf
-        self.children_left = None
-        self.children_right = None
+class BaseTree:
+
+    def __init__(self):
+        """
+
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html:
+        A (n-1) by 4 matrix Z is returned. At the i-th iteration, clusters with indices Z[i, 0] and Z[i, 1] are
+        combined to form cluster n + i. A cluster with an index less than n corresponds to one of the original
+        observations. The distance between clusters Z[i, 0] and Z[i, 1] is given by Z[i, 2]. The fourth value
+        Z[i, 3] represents the number of original observations in the newly formed cluster.
+        """
+        self.linkage = None
         self.series = None
-        self.node_props = None
 
-    def fit(self, series, *args, **kwargs):
-        self.series = series
-        self.children_left = [-1 for i in range(len(series) + 1)]
-        self.children_right = [-1 for i in range(len(series) + 1)]
-        self.node_props = dict()
-        new_nodes = {i: i+1 for i in range(len(series))}
-        if self.merge_hook:
-            old_merge_hook = self.merge_hook
-        else:
-            old_merge_hook = None
+    @property
+    def maxnode(self):
+        return len(self.series) - 1 + len(self.linkage)
 
-        def merge_hook(from_idx, to_idx, distance):
-            self.children_left.append(new_nodes[from_idx])
-            self.children_right.append(new_nodes[to_idx])
-            new_idx = len(self.children_left) - 1
-            self.node_props[new_idx] = distance
-            new_nodes[to_idx] = new_idx
-            new_nodes[from_idx] = None
-            if old_merge_hook:
-                old_merge_hook(from_idx, to_idx, distance)
-
-        self.merge_hook = merge_hook
-
-        result = super().fit(series, *args, **kwargs)
-        self.node_props[0] = self.node_props[len(self.children_left) - 1]
-        self.children_left[0] = self.children_left[-1]
-        self.children_left.pop()
-        self.children_right[0] = self.children_right[-1]
-        self.children_right.pop()
-
-        # print(self.children_left)
-        # print(self.children_right)
-        return result
-
-    def to_dot(self):
-        node_deque = deque([(0, self.children_left[0]), (0,self.children_right[0])])
-        s = ["digraph tree {"]
-        while len(node_deque) > 0:
-            from_node, to_node = node_deque.popleft()
-            s.append("  {} -> {};".format(from_node, to_node))
-            if self.children_left[to_node] < 0:
-                pass
-            else:
-                node_deque.append((to_node, self.children_left[to_node]))
-            if self.children_right[to_node] < 0:
-                pass
-            else:
-                node_deque.append((to_node, self.children_right[to_node]))
-            # print(node_deque)
-        s.append("}")
-        return "\n".join(s)
+    def get_linkage(self, node):
+        if node < len(self.series):
+            return None
+        idx = int(node - len(self.series))
+        return self.linkage[idx]
 
     def plot(self, filename=None):
         ts_height = 10
@@ -225,28 +188,30 @@ class HierarchicalTree(Hierarchical):
         ts_height_factor = ts_height / max_y
 
         def count(node, height):
+            # print('count({},{})'.format(node, height))
             maxheight = None
             curdepth = None
             cnt = 0
             left_cnt = None
             right_cnt = None
-            if self.children_left[node] < 0:
+            if node < len(self.series):
+                # Leaf
                 cnt += 1
                 maxheight = height
                 curdepth = 0
                 left_cnt = 0
                 right_cnt = 0
             else:
-                nc, nmh, ncd = count(self.children_left[node], height + 1)
+                # Inner node
+                child_left, child_right, dist, cnt = self.get_linkage(node)
+                # Left
+                nc, nmh, ncd = count(child_left, height + 1)
                 cnt += nc
                 maxheight = nmh
                 curdepth = ncd + 1
                 left_cnt = nc
-            if self.children_right[node] < 0:
-                # c += 1
-                pass
-            else:
-                nc, nmh, ncd = count(self.children_right[node], height + 1)
+                # Right
+                nc, nmh, ncd = count(child_right, height + 1)
                 cnt += nc
                 maxheight = max(maxheight, nmh)
                 curdepth = max(curdepth, ncd + 1)
@@ -255,7 +220,7 @@ class HierarchicalTree(Hierarchical):
             node_props[node] = (cnt, curdepth, left_cnt, right_cnt)
             return cnt, maxheight, curdepth
 
-        cnt, maxheight, curdepth = count(0, 0)
+        cnt, maxheight, curdepth = count(self.maxnode, 0)
 
         fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
         ax[0].set_axis_off()
@@ -275,15 +240,18 @@ class HierarchicalTree(Hierarchical):
             pcnt, pdepth, plcnt, prcnt = node_props[node]
             px = maxheight - pdepth
             py = prev_lcnt * tr_unit
-            if node in self.node_props:
-                ax[0].text(px, py + tr_unit/10, self.node_props[node])
-            if self.children_left[node] < 0:
+            if node < len(self.series):
                 # Plot series
                 # print('plot series')
-                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + ts_height_factor * self.series[node - 1])
+                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + ts_height_factor * self.series[int(node)])
                 cnt_ts += 1
+
             else:
-                ccnt, cdepth, clcntl, crcntl = node_props[self.children_left[node]]
+                child_left, child_right, dist, cnt = self.get_linkage(node)
+                ax[0].text(px, py + tr_unit / 10, dist)
+
+                # Left
+                ccnt, cdepth, clcntl, crcntl = node_props[child_left]
                 # print('left', ccnt, cdepth, clcntl, crcntl)
                 cx = maxheight - cdepth
                 cy = (prev_lcnt - crcntl) * tr_unit
@@ -291,13 +259,10 @@ class HierarchicalTree(Hierarchical):
                     cy -= 1/2*tr_unit
                 # print('plot line', (px, cx), (py, cy))
                 ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
-                cnt_ts = plot_i(self.children_left[node], depth + 1, cnt_ts, prev_lcnt - crcntl, ax)
-            if self.children_right[node] < 0:
-                # print('plot ', node - 1)
-                # ax[1].plot(tsheight * (1 + cnt_ts) + self.series[node - 1])
-                pass
-            else:
-                ccnt, cdepth, clcntr, crcntr = node_props[self.children_right[node]]
+                cnt_ts = plot_i(child_left, depth + 1, cnt_ts, prev_lcnt - crcntl, ax)
+
+                # Right
+                ccnt, cdepth, clcntr, crcntr = node_props[child_right]
                 # print('right', ccnt, cdepth, clcntr, crcntr)
                 cx = maxheight - cdepth
                 cy = (prev_lcnt + clcntr) * tr_unit
@@ -305,12 +270,91 @@ class HierarchicalTree(Hierarchical):
                     cy += 1/2*tr_unit
                 # print('plot line', (px, cx), (py, cy))
                 ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
-                cnt_ts = plot_i(self.children_right[node], depth + 1, cnt_ts, prev_lcnt + clcntr, ax)
+                cnt_ts = plot_i(child_right, depth + 1, cnt_ts, prev_lcnt + clcntr, ax)
             return cnt_ts
 
-        plot_i(0, 0, 0, node_props[0][2], ax)
+        plot_i(self.maxnode, 0, 0, node_props[self.maxnode][2], ax)
 
         if filename:
             plt.savefig(filename, bbox_inches='tight', pad_inches=0)
         else:
             plt.show(block=True)
+
+    def to_dot(self):
+        child_left, child_right, dist, cnt = self.get_linkage(self.maxnode)
+        node_deque = deque([(self.maxnode, child_left), (self.maxnode, child_right)])
+        # print(node_deque)
+        s = ["digraph tree {"]
+        while len(node_deque) > 0:
+            from_node, to_node = node_deque.popleft()
+            s.append("  {} -> {};".format(from_node, to_node))
+            if to_node >= len(self.series):
+                child_left, child_right, dist, cnt = self.get_linkage(to_node)
+                node_deque.append((to_node, child_left))
+                node_deque.append((to_node, child_right))
+            # print(node_deque)
+        s.append("}")
+        return "\n".join(s)
+
+
+class HierarchicalTree(Hierarchical, BaseTree):
+    def __init__(self, *args, **kwargs):
+        """Keep track of the full tree that represents the hierarchical clustering."""
+        super().__init__(*args, **kwargs)
+        self.max_dist = np.inf
+
+    def fit(self, series, *args, **kwargs):
+        self.series = series
+        self.linkage = []
+        new_nodes = {i: i for i in range(len(series))}
+        if self.merge_hook:
+            old_merge_hook = self.merge_hook
+        else:
+            old_merge_hook = None
+
+        def merge_hook(from_idx, to_idx, distance):
+            new_idx = len(self.series) + len(self.linkage)
+            self.linkage.append((new_nodes[from_idx], new_nodes[to_idx], distance, 0))
+            new_nodes[to_idx] = new_idx
+            new_nodes[from_idx] = None
+            if old_merge_hook:
+                old_merge_hook(from_idx, to_idx, distance)
+
+        self.merge_hook = merge_hook
+
+        result = super().fit(series, *args, **kwargs)
+
+        print(self.linkage)
+        return result
+
+
+class LinkageTree(BaseTree):
+    def __init__(self, dists_fun, dists_options):
+        """Hierarchical clustering using the Scipy linkage function.
+
+        This is the same but faster algorithm as available in Hierarchical (~10 times faster). But with less
+        options to steer the clustering (e.g. no possibility to give weights).
+        """
+        super().__init__()
+        self.dists_fun = dists_fun
+        self.dists_options = dists_options
+
+    def fit(self, series):
+        from scipy.cluster.hierarchy import linkage
+
+        self.series = series
+        dists = self.dists_fun(series, **self.dists_options)
+        dists_cond = np.zeros(self._size_cond(len(series)))
+        idx = 0
+        for r in range(len(series) - 1):
+            dists_cond[idx:idx + len(series) - r - 1] = dists[r, r + 1:]
+            idx += len(series) - r - 1
+
+        self.linkage = linkage(dists_cond, method='complete', metric='euclidean')
+
+    def _size_cond(self, size):
+        n = int(size)
+        # r = 2
+        # f = math.factorial
+        # return int(f(n) / f(r) / f(n - r))
+        return int((n * (n - 1)) / 2)
