@@ -43,6 +43,9 @@ class Hierarchical:
     def __init__(self, dists_fun, dists_options, max_dist=np.inf, weights=None, merge_hook=None, show_progress=True):
         """Hierarchical clustering.
 
+        Note: This method first computes the entire distance matrix. This is not ideal for extremely large
+        data sets.
+
         :param dists_fun: Function to compute pairwise distance matrix between set of series.
         :param dists_options: Arguments to pass to dists_fun.
         :param max_dist: Do not merge or cluster series that are further apart than this.
@@ -333,7 +336,8 @@ class LinkageTree(BaseTree):
         """Hierarchical clustering using the Scipy linkage function.
 
         This is the same but faster algorithm as available in Hierarchical (~10 times faster). But with less
-        options to steer the clustering (e.g. no possibility to give weights).
+        options to steer the clustering (e.g. no possibility to give weights). It still computes the entire
+        distance matrix first and is thus not ideal for extremely large data sets.
         """
         super().__init__()
         self.dists_fun = dists_fun
