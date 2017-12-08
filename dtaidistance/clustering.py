@@ -257,7 +257,7 @@ class BaseTree:
             if node < len(self.series):
                 # Plot series
                 # print('plot series')
-                self._series_y[node] = ts_bottom_margin + ts_height * cnt_ts
+                self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
                 ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, node)
                 ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * self.series[int(node)])
                 cnt_ts += 1

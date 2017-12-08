@@ -412,8 +412,8 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
 
 
 def warping_path(from_s, to_s, **kwargs):
-    dists = warping_paths(from_s, to_s, **kwargs)
-    path = best_path2(dists)
+    dist, paths = warping_paths(from_s, to_s, **kwargs)
+    path = best_path2(paths)
     return path
 
 

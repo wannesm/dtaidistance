@@ -36,9 +36,10 @@ def test_clustering_tree(directory=None):
 
     def test_hook(from_idx, to_idx, distance):
         assert (from_idx, to_idx) in [(3, 0), (4, 1), (5, 2), (6, 2), (1, 0), (2, 0)]
-    model = clustering.HierarchicalTree(dtw.distance_matrix_fast, {}, merge_hook=test_hook,
-                                        show_progress=False)
-    cluster_idx = model.fit(s)
+    model = clustering.Hierarchical(dtw.distance_matrix_fast, {}, merge_hook=test_hook,
+                                    show_progress=False)
+    modelw = clustering.HierarchicalTree(model)
+    cluster_idx = modelw.fit(s)
     assert cluster_idx[0] == {0, 1, 2, 3, 4, 5, 6}
 
     if directory:
@@ -48,10 +49,10 @@ def test_clustering_tree(directory=None):
         file = tempfile.NamedTemporaryFile()
         hierarchy_fn = file.name + "_hierarchy.png"
         graphviz_fn = file.name + "_hierarchy.dot"
-    model.plot(hierarchy_fn)
+    modelw.plot(hierarchy_fn)
     print("Figure saved to", hierarchy_fn)
     with open(graphviz_fn, "w") as ofile:
-        print(model.to_dot(), file=ofile)
+        print(modelw.to_dot(), file=ofile)
     print("Dot saved to", graphviz_fn)
 
 
