@@ -40,7 +40,8 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 class Hierarchical:
-    def __init__(self, dists_fun, dists_options, max_dist=np.inf, weights=None, merge_hook=None, show_progress=True):
+    def __init__(self, dists_fun, dists_options, max_dist=np.inf,
+                 merge_hook=None, order_hook=None, show_progress=True):
         """Hierarchical clustering.
 
         Note: This method first computes the entire distance matrix. This is not ideal for extremely large
@@ -49,17 +50,16 @@ class Hierarchical:
         :param dists_fun: Function to compute pairwise distance matrix between set of series.
         :param dists_options: Arguments to pass to dists_fun.
         :param max_dist: Do not merge or cluster series that are further apart than this.
-        :param weights: Weight per series. Used to pick the prototype that defines a cluster.
-            The clustering will try to group such that the prototypes have a high as possible summed weight.
         :param merge_hook: Function that is called when two series are clustered.
             The function definition is `def merge_hook(from_idx, to_idx, distance)`, where idx is the index of the series.
+        :param order_hook: Function that is called to decide on the next idx out of all shortest distances
         :param show_progress: Use a tqdm progress bar
         """
         self.dists_fun = dists_fun
         self.dists_options = dists_options
-        self.weights = weights
         self.max_dist = max_dist
         self.merge_hook = merge_hook
+        self.order_hook = order_hook
         self.show_progress = show_progress
 
     def fit(self, series):
@@ -69,18 +69,13 @@ class Hierarchical:
         :return: Dictionary with as keys the prototype indicices and as values all the indicides of the series in
             that cluster.
         """
+        nb_series = len(series)
         cluster_idx = dict()
         dists = self.dists_fun(series, **self.dists_options)
         min_value = np.min(dists)
         min_idxs = np.argwhere(dists == min_value)
-        min_idx = -1
-        max_cnt = 0
-        if self.weights:
-            for r, c in [min_idxs[ii, :] for ii in range(min_idxs.shape[0])]:
-                total = self.weights[r] + self.weights[c]
-                if total > max_cnt:
-                    max_cnt = total
-                    min_idx = (r, c)
+        if self.order_hook:
+            min_idx = self.order_hook(min_idxs)
         else:
             min_idx = min_idxs[0, :]
         deleted = set()
@@ -94,14 +89,10 @@ class Hierarchical:
         while min_value <= self.max_dist:
             cnt_merge += 1
             i1, i2 = int(min_idx[0]), int(min_idx[1])
-            p1 = series[i1]
-            p2 = series[i2]
-            if self.weights:
-                w1 = self.weights[i1]
-                w2 = self.weights[i2]
-                if w1 < w2 or (w1 == w2 and len(p1) > len(p2)):
-                    i1, w1, i2, w2 = i2, w2, i1, w1
-                self.weights[i1] = w1 + w2
+            if self.merge_hook:
+                result = self.merge_hook(i2, i1, min_value)
+                if result:
+                    i1, i2 = result
             logger.debug("Merge {} <- {} ({:.3f})".format(i1, i2, min_value))
             if i1 not in cluster_idx:
                 cluster_idx[i1] = {i1}
@@ -110,9 +101,6 @@ class Hierarchical:
                 del cluster_idx[i2]
             else:
                 cluster_idx[i1].add(i2)
-
-            if self.merge_hook:
-                self.merge_hook(i2, i1, min_value)
             # if recompute:
             #     for r in range(i1):
             #         if r not in deleted and abs(len(cur_seqs[r]) - len(cur_seqs[i1])) <= max_length_diff:
@@ -125,22 +113,18 @@ class Hierarchical:
             for c in range(i2 + 1, len(series)):
                 dists[i2, c] = np.inf
             deleted.add(i2)
+            if len(deleted) == nb_series - 1:
+                break
             if pbar:
                 pbar.update(1)
             # min_idx = np.unravel_index(np.argmin(dists), dists.shape)
             # min_value = dists[min_idx]
             min_value = np.min(dists)
-            if np.isinf(min_value):
-                break
+            # if np.isinf(min_value):
+            #     break
             min_idxs = np.argwhere(dists == min_value)
-            min_idx = -1
-            max_cnt = 0
-            if self.weights:
-                for r, c in [min_idxs[ii, :] for ii in range(min_idxs.shape[0])]:
-                    total = self.weights[r] + self.weights[c]
-                    if total > max_cnt:
-                        max_cnt = total
-                        min_idx = (r, c)
+            if self.order_hook:
+                min_idx = self.order_hook(min_idxs)
             else:
                 min_idx = min_idxs[0, :]
         if pbar:
@@ -168,6 +152,8 @@ class BaseTree:
         """
         self.linkage = None
         self.series = None
+        self._series_y = None
+        self.ts_height_factor = None
 
     @property
     def maxnode(self):
@@ -179,20 +165,34 @@ class BaseTree:
         idx = int(node - len(self.series))
         return self.linkage[idx]
 
-    def plot(self, filename=None):
+    def plot(self, filename=None, axes=None):
+        """Plot the hierarchy and time series.
+
+        :param filename: If a filename is passed, the image is written to this file.
+        :param axes: If a axes array is passed the image is added to this figure.
+            Expects axes[0] and axes[1] to be present.
+        """
+        self._series_y = [0] * len(self.series)
         ts_height = 10
         ts_bottom_margin = 2
         ts_top_margin = 2
         tr_unit = 1
 
+        max_dist = 0
+        for _, _, d, _ in self.linkage:
+            if not np.isinf(d):
+                max_dist = max(max_dist, d)
+        print('max_dist', max_dist)
+
         node_props = dict()
 
         max_y = max(np.max(self.series), abs(np.min(self.series)))
-        ts_height_factor = ts_height / max_y
+        self.ts_height_factor = (ts_height / max_y) * 0.9
 
         def count(node, height):
             # print('count({},{})'.format(node, height))
             maxheight = None
+            maxcumdist = None
             curdepth = None
             cnt = 0
             left_cnt = None
@@ -201,33 +201,43 @@ class BaseTree:
                 # Leaf
                 cnt += 1
                 maxheight = height
+                maxcumdist = 0
                 curdepth = 0
                 left_cnt = 0
                 right_cnt = 0
             else:
                 # Inner node
                 child_left, child_right, dist, cnt = self.get_linkage(node)
+                if np.isinf(dist):
+                    dist = 1.5*max_dist
                 # Left
-                nc, nmh, ncd = count(child_left, height + 1)
+                nc, nmh, ncd, nmd = count(child_left, height + 1)
                 cnt += nc
                 maxheight = nmh
+                maxcumdist = nmd + dist
                 curdepth = ncd + 1
                 left_cnt = nc
                 # Right
-                nc, nmh, ncd = count(child_right, height + 1)
+                nc, nmh, ncd, nmd = count(child_right, height + 1)
                 cnt += nc
                 maxheight = max(maxheight, nmh)
+                maxcumdist = max(maxcumdist, nmd + dist)
                 curdepth = max(curdepth, ncd + 1)
                 right_cnt = nc
             # print('c', node, c)
-            node_props[node] = (cnt, curdepth, left_cnt, right_cnt)
-            return cnt, maxheight, curdepth
+            node_props[node] = (cnt, curdepth, left_cnt, right_cnt, maxcumdist)
+            return cnt, maxheight, curdepth, maxcumdist
 
-        cnt, maxheight, curdepth = count(self.maxnode, 0)
+        cnt, maxheight, curdepth, maxcumdist = count(self.maxnode, 0)
+        print('maxcumdist', maxcumdist)
 
-        fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
+        if axes is None:
+            fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
+        else:
+            ax = axes
         ax[0].set_axis_off()
-        ax[0].set_xlim(left=0, right=maxheight)
+        # ax[0].set_xlim(left=0, right=curdept)
+        ax[0].set_xlim(left=0, right=maxcumdist + 0.05)
         ax[0].set_ylim(bottom=0, top=tr_unit * len(self.series))
         # ax[0].plot([0,1],[1,2])
         # ax[0].add_line(Line2D((0,1),(2,2), lw=2, color='black', axes=ax[0]))
@@ -240,39 +250,48 @@ class BaseTree:
 
         def plot_i(node, depth, cnt_ts, prev_lcnt, ax):
             # print('plot_i', node, depth, cnt_ts, prev_lcnt)
-            pcnt, pdepth, plcnt, prcnt = node_props[node]
-            px = maxheight - pdepth
+            pcnt, pdepth, plcnt, prcnt, pcdist = node_props[node]
+            # px = maxheight - pdepth
+            px = maxcumdist - pcdist
             py = prev_lcnt * tr_unit
             if node < len(self.series):
                 # Plot series
                 # print('plot series')
-                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + ts_height_factor * self.series[int(node)])
+                self._series_y[node] = ts_bottom_margin + ts_height * cnt_ts
+                ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, node)
+                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * self.series[int(node)])
                 cnt_ts += 1
 
             else:
                 child_left, child_right, dist, cnt = self.get_linkage(node)
-                ax[0].text(px, py + tr_unit / 10, dist)
+                ax[0].text(px + 0.05, py + tr_unit / 10, "{:.2f}".format(dist))
 
                 # Left
-                ccnt, cdepth, clcntl, crcntl = node_props[child_left]
+                ccnt, cdepth, clcntl, crcntl, clcdist = node_props[child_left]
                 # print('left', ccnt, cdepth, clcntl, crcntl)
-                cx = maxheight - cdepth
+                # cx = maxheight - cdepth
+                cx = maxcumdist - clcdist
                 cy = (prev_lcnt - crcntl) * tr_unit
                 if py == cy:
                     cy -= 1/2*tr_unit
                 # print('plot line', (px, cx), (py, cy))
-                ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
+                # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
+                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
+                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color='black', axes=ax[0]))
                 cnt_ts = plot_i(child_left, depth + 1, cnt_ts, prev_lcnt - crcntl, ax)
 
                 # Right
-                ccnt, cdepth, clcntr, crcntr = node_props[child_right]
+                ccnt, cdepth, clcntr, crcntr, crcdist = node_props[child_right]
                 # print('right', ccnt, cdepth, clcntr, crcntr)
-                cx = maxheight - cdepth
+                # cx = maxheight - cdepth
+                cx = maxcumdist - crcdist
                 cy = (prev_lcnt + clcntr) * tr_unit
                 if py == cy:
                     cy += 1/2*tr_unit
                 # print('plot line', (px, cx), (py, cy))
-                ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
+                # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
+                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
+                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color='black', axes=ax[0]))
                 cnt_ts = plot_i(child_right, depth + 1, cnt_ts, prev_lcnt + clcntr, ax)
             return cnt_ts
 
@@ -280,8 +299,8 @@ class BaseTree:
 
         if filename:
             plt.savefig(filename, bbox_inches='tight', pad_inches=0)
-        else:
-            plt.show(block=True)
+
+        return ax
 
     def to_dot(self):
         child_left, child_right, dist, cnt = self.get_linkage(self.maxnode)
@@ -300,18 +319,22 @@ class BaseTree:
         return "\n".join(s)
 
 
-class HierarchicalTree(Hierarchical, BaseTree):
-    def __init__(self, *args, **kwargs):
-        """Keep track of the full tree that represents the hierarchical clustering."""
+class HierarchicalTree(BaseTree):
+    def __init__(self, model, *args, **kwargs):
+        """Wrapper to keep track of the full tree that represents the hierarchical clustering.
+
+        :param model: Clustering object. For example of type `Hierarchical`.
+        """
+        self._model = model
         super().__init__(*args, **kwargs)
-        self.max_dist = np.inf
+        self._model.max_dist = np.inf
 
     def fit(self, series, *args, **kwargs):
         self.series = series
         self.linkage = []
         new_nodes = {i: i for i in range(len(series))}
-        if self.merge_hook:
-            old_merge_hook = self.merge_hook
+        if self._model.merge_hook:
+            old_merge_hook = self._model.merge_hook
         else:
             old_merge_hook = None
 
@@ -323,9 +346,9 @@ class HierarchicalTree(Hierarchical, BaseTree):
             if old_merge_hook:
                 old_merge_hook(from_idx, to_idx, distance)
 
-        self.merge_hook = merge_hook
+        self._model.merge_hook = merge_hook
 
-        result = super().fit(series, *args, **kwargs)
+        result = self._model.fit(series, *args, **kwargs)
 
         print(self.linkage)
         return result
@@ -362,3 +385,31 @@ class LinkageTree(BaseTree):
         # f = math.factorial
         # return int(f(n) / f(r) / f(n - r))
         return int((n * (n - 1)) / 2)
+
+
+class Hooks:
+    @staticmethod
+    def create_weighthook(weights, series):
+        def newhook(i1, i2, dist):
+            w1 = weights[i1]
+            w2 = weights[i2]
+            p1 = series[i1]
+            p2 = series[i2]
+            if w1 < w2 or (w1 == w2 and len(p1) > len(p2)):
+                i1, i2 = i2, i1
+            weights[i1] = w1 + w2
+            return i1, i2
+        return newhook
+
+    @staticmethod
+    def create_orderhook(weights):
+        def newhook(idxs):
+            min_idx = -1
+            max_weight = -1
+            for r, c in [idxs[ii, :] for ii in range(idxs.shape[0])]:
+                total = weights[r] + weights[c]
+                if total > max_weight:
+                    max_weight = total
+                    min_idx = (r, c)
+            return min_idx
+        return newhook

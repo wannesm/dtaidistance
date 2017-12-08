@@ -188,8 +188,8 @@ def _distance_c_with_params(t):
     return dtw_c.distance(t[0], t[1], **t[2])
 
 
-def distances(s1, s2, window=None, max_dist=None,
-              max_step=None, max_length_diff=None, penalty=None):
+def warping_paths(s1, s2, window=None, max_dist=None,
+                  max_step=None, max_length_diff=None, penalty=None):
     """
     Dynamic Time Warping (keep full matrix)
     :param s1: First sequence
@@ -411,34 +411,17 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                            use_c=True, use_nogil=True, show_progress=show_progress)
 
 
-def warp_path(from_s, to_s, **kwargs):
-    dists = distances(from_s, to_s, **kwargs)
-    m = dists[1]
-    path = []
-    r, c = m.shape
-    r -= 1
-    c -= 1
-    v = m[r, c]
-    path.append((r - 1, c - 1))
-    while r > 1 or c > 1:
-        r_c, c_c = r, c
-        if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
-            r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
-        if r >= 1 and m[r - 1, c] <= v:
-            r_c, c_c, v = r - 1, c, m[r - 1, c]
-        if c >= 1 and m[r, c - 1] <= v:
-            r_c, c_c, v = r, c - 1, m[r, c - 1]
-        path.append((r_c - 1, c_c - 1))
-        r, c = r_c, c_c
-    path.reverse()
+def warping_path(from_s, to_s, **kwargs):
+    dists = warping_paths(from_s, to_s, **kwargs)
+    path = best_path2(dists)
     return path
 
 
 def warp(from_s, to_s, plot=False, **kwargs):
     """Warp a function to optimally match a second function.
-    Same options as distances().
+    Same options as warping_paths().
     """
-    path = warp_path(from_s, to_s, **kwargs)
+    path = warping_path(from_s, to_s, **kwargs)
     from_s2 = np.zeros(len(to_s))
     from_s2_cnt = np.zeros(len(to_s))
     for r_c, c_c in path:
@@ -476,7 +459,7 @@ def warp(from_s, to_s, plot=False, **kwargs):
 
 
 def plot_warping(s1, s2, **kwargs):
-    path = warp_path(s1, s2, **kwargs)
+    path = warping_path(s1, s2, **kwargs)
 
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -498,3 +481,120 @@ def plot_warping(s1, s2, **kwargs):
 def _print_library_missing():
     logger.error("The compiled dtaidistance c library is not available.\n" +
                  "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
+
+
+def best_path(dist):
+    """Compute the optimal path from the nxm dists matrix."""
+    i, j = int(dist.shape[0] - 1), int(dist.shape[1] - 1)
+    p = [(i, j)]
+    while i > 0 and j > 0:
+        c = np.argmin([dist[i - 1, j - 1], dist[i - 1, j], dist[i, j - 1]])
+        if c == 0:
+            i, j = i - 1, j - 1
+        elif c == 1:
+            i = i - 1
+        elif c == 2:
+            j = j - 1
+        p.append((i, j))
+    p.pop()
+    return p
+
+
+def best_path2(dists):
+    """Compute the optimal path from the nxm dists matrix."""
+    m = dists
+    path = []
+    r, c = m.shape
+    r -= 1
+    c -= 1
+    v = m[r, c]
+    path.append((r - 1, c - 1))
+    while r > 1 or c > 1:
+        r_c, c_c = r, c
+        if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
+            r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
+        if r >= 1 and m[r - 1, c] <= v:
+            r_c, c_c, v = r - 1, c, m[r - 1, c]
+        if c >= 1 and m[r, c - 1] <= v:
+            r_c, c_c, v = r, c - 1, m[r, c - 1]
+        path.append((r_c - 1, c_c - 1))
+        r, c = r_c, c_c
+    path.reverse()
+    return path
+
+
+def plot(s1, s2, dist, filename=None):
+    """Plot the series and the optimal path.
+
+    :param s1: Series 1
+    :param s2: Series 2
+    :param dist: Distances matrix
+    :param filename: Filename to write the image to
+    """
+    from matplotlib import pyplot as plt
+    from matplotlib import gridspec
+    from matplotlib.ticker import FuncFormatter
+
+    ratio = max(len(s1), len(s2))
+    min_y = min(np.min(s1), np.min(s2))
+    max_y = max(np.max(s1), np.max(s2))
+
+    fig = plt.figure(figsize=(7.5, 10), frameon=True)
+    gs = gridspec.GridSpec(2, 2, wspace=1, hspace=1,
+                           left=0, right=1.0, bottom=0, top=1.0,
+                           height_ratios=[1, 6],
+                           width_ratios=[1, 6])
+    max_s2_x = np.max(s2)
+    max_s2_y = len(s2)
+    max_s1_x = np.max(s1)
+    max_s1_y = len(s1)
+
+    def format_fn2_x(tick_val, tick_pos):
+        return max_s2_x - tick_val
+
+    def format_fn2_y(tick_val, tick_pos):
+        return int(max_s2_y - tick_val)
+
+    ax0 = fig.add_subplot(gs[0, 0])
+    ax0.set_axis_off()
+    ax0.text(0, 0, "Dist = {:.4f}".format(dist[-1, -1]))
+    ax0.xaxis.set_major_locator(plt.NullLocator())
+    ax0.yaxis.set_major_locator(plt.NullLocator())
+
+    ax1 = fig.add_subplot(gs[0, 1:])
+    ax1.set_ylim([min_y, max_y])
+    ax1.set_axis_off()
+    ax1.xaxis.tick_top()
+    # ax1.set_aspect(0.454)
+    ax1.plot(range(len(s2)), s2, ".-")
+    ax1.xaxis.set_major_locator(plt.NullLocator())
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+
+    ax2 = fig.add_subplot(gs[1:, 0])
+    ax2.set_xlim([min_y, max_y])
+    ax2.set_axis_off()
+    # ax2.set_aspect(0.8)
+    # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
+    # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+    ax2.plot(max_s1_x - s1, range(max_s1_y, 0, -1), ".-")
+
+    ax3 = fig.add_subplot(gs[1:, 1:])
+    # ax3.set_aspect(1)
+    ax3.matshow(dist[1:, 1:])
+    # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
+    # ax3.set_axis_off()
+    p = best_path(dist)
+    py, px = zip(*p)
+    ax3.plot([x - 1 for x in px], [y - 1 for y in py], ".-", color="red")
+    # ax3.xaxis.set_major_locator(plt.NullLocator())
+    # ax3.yaxis.set_major_locator(plt.NullLocator())
+
+    gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
+    # fig.subplots_adjust(hspace=0, wspace=0)
+
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show(block=True)

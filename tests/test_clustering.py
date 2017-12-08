@@ -17,7 +17,7 @@ def test_clustering():
 
     def test_hook(from_idx, to_idx, distance):
         assert (from_idx, to_idx) in [(3, 0), (4, 1), (5, 2), (1, 0)]
-    model = clustering.Hierarchical(dtw.distance_matrix_fast, {}, 2, weights=None, merge_hook=test_hook,
+    model = clustering.Hierarchical(dtw.distance_matrix_fast, {}, 2, merge_hook=test_hook,
                                     show_progress=False)
     cluster_idx = model.fit(s)
     assert cluster_idx[0] == {0, 1, 3, 4}
@@ -36,7 +36,7 @@ def test_clustering_tree(directory=None):
 
     def test_hook(from_idx, to_idx, distance):
         assert (from_idx, to_idx) in [(3, 0), (4, 1), (5, 2), (6, 2), (1, 0), (2, 0)]
-    model = clustering.HierarchicalTree(dtw.distance_matrix_fast, {}, weights=None, merge_hook=test_hook,
+    model = clustering.HierarchicalTree(dtw.distance_matrix_fast, {}, merge_hook=test_hook,
                                         show_progress=False)
     cluster_idx = model.fit(s)
     assert cluster_idx[0] == {0, 1, 2, 3, 4, 5, 6}

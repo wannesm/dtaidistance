@@ -24,7 +24,7 @@ def test_distance1_python_matrix(benchmark):
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]*n
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]*n
     def d():
-        dd, _ = dtw.distances(s1, s2)
+        dd, _ = dtw.warping_paths(s1, s2)
         return dd
     assert benchmark(d) == math.sqrt(2)*n
 

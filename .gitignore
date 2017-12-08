@@ -7,3 +7,10 @@ dtw_c.*.so
 .ipynb_checkpoints
 build
 dtaidistance.egg-info
+dist
+dtaidistance/*html
+dtaidistance/*so
+README
+README.rst
+benchmark*.svg
+MANIFEST

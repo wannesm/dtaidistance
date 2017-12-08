@@ -18,7 +18,7 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
 
 ## Usage
 
-### Dynamic Time Warping (DTW) Distance
+### Dynamic Time Warping (DTW) Distance Measure
 
     from dtaidistance import dtw
     import numpy as np
@@ -29,9 +29,9 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
 ![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=2)
 
 
-#### DTW Distance Between Two Series
+#### DTW Distance Measure Between Two Series
 
-Only the distance based on two sequences of numbers:
+Only the distance measure based on two sequences of numbers:
 
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
@@ -61,30 +61,30 @@ Check the `__doc__` for information about the available arguments:
     print(dtw.distance.__doc__)
 
 A number of options are foreseen to early stop some paths the dynamic programming algorithm is exploring or tune
-the distance computation:
+the distance measure computation:
 
 - `window`: Only allow for shifts up to this amount away from the two diagonals.
-- `max_dist`: Stop if the returned distance will be larger than this value.
+- `max_dist`: Stop if the returned distance measure will be larger than this value.
 - `max_step`: Do not allow steps larger than this value.
 - `max_length_diff`: Return infinity if difference in length of two series is larger.
 - `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
 
 
-#### DTW Distance all paths
+#### DTW Distance Measure all warping paths
 
-If, next to the distance, you also want the full distance matrix to see all possible paths:
+If, next to the distance, you also want the full matrix to see all possible warping paths:
 
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
-    distance, matrix = dtw.distances(s1, s2)
+    distance, matrix = dtw.warping_paths(s1, s2)
     print(distance)
     print(matrix)
 
 
-#### DTW Distances Between Set of Series
+#### DTW Distance Measures Between Set of Series
 
-To compute the DTW distances between all sequences in a list of sequences, use the method `dtw.distance_matrix`.
+To compute the DTW distance measures between all sequences in a list of sequences, use the method `dtw.distance_matrix`.
 You can set variables to use more or less c code (`use_c` and `use_nogil`) and parallel or serial execution
 (`parallel`).
 
@@ -109,9 +109,9 @@ or a matrix (in case all series have the same length):
     ds = dtw.distance_matrix_fast(s)
 
 
-#### DTW Distances Between Set of Series, limited to block
+#### DTW Distance Measures Between Set of Series, limited to block
 
-You can instruct the computation to only fill part of the distances matrix.
+You can instruct the computation to only fill part of the distance measures matrix.
 For example to distribute the computations over multiple nodes, or to only 
 compare source series to target series.
 

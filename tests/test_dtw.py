@@ -14,7 +14,7 @@ def test_distance1_a():
 def test_distance1_b():
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
-    d2, _ = dtw.distances(s1, s2)
+    d2, _ = dtw.warping_paths(s1, s2)
     assert d2 == pytest.approx(math.sqrt(2))
 
 

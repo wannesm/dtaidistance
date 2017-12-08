@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw, dtw_c, ssdtw
 
 if dtw_c is None:
     print('ERROR: dtw_c is not build')
@@ -110,9 +110,51 @@ def test_distance4():
         print(d)
 
 
+def test_distance5():
+    healthy = np.array([-0.01014404, 0.01240234, -0.00549316, 0.01905518, 0.02086182,
+                     0.02155762, 0.02252197, -0.0015625, 0.0194458, -0.00305176,
+                     0.01724854, 0.01274414, 0.01470947, 0.01373291, -0.00751953,
+                     0.01088867, -0.01018066, 0.01325684, 0.00531006, 0.01184082,
+                     0.01030273, -0.00766602, 0.00996094, -0.01044922, 0.00991211,
+                     0.00155029, 0.01335449, 0.0135498, -0.00367432, 0.00953369,
+                     -0.01192627, 0.01107178, -0.00112305, 0.01309814, 0.01253662,
+                     -0.00327148, 0.00714111, -0.01375732, 0.00942383, -0.00631104,
+                     0.015271, 0.01461182, 0.00447998, 0.01408691, -0.00461426,
+                     0.01923828, -0.00228271, 0.01993408, 0.0177124, 0.01256104])
+
+    faulty = np.array([0.51872559, 0.51743164, 0.51727295, 0.51866455, 0.512146,
+                    0.5309082, 0.52078857, 0.52185059, 0.52429199, 0.52486572,
+                    0.53078613, 0.50743408, 0.52678223, 0.52731934, 0.52879639,
+                    0.53051758, 0.51055908, 0.54437256, 0.5453125, 0.54205322,
+                    0.54060059, 0.53500977, 0.54443359, 0.52835693, 0.53216553,
+                    0.53133545, 0.53546143, 0.53426514, 0.50535889, 0.53413086,
+                    0.53583984, 0.53778076, 0.53405762, 0.51973877, 0.54488525,
+                    0.53464355, 0.5338501, 0.53098145, 0.528479, 0.53360596,
+                    0.50834961, 0.52283936, 0.52408447, 0.53001709, 0.5282959,
+                    0.50821533, 0.5369873, 0.53790283, 0.53980713, 0.53851318])
+    # d = dtw.distance_fast(healthy, faulty)
+    # print(d)
+    # dp, dsp = ssdtw.warping_paths(healthy, faulty, None)
+    # print(dp)
+    # d, ds = dtw.warping_paths(healthy, faulty)
+    # print(d)
+    # print(ds)
+    # dtw.plot(healthy, faulty, ds, "/Users/wannes/Desktop/test1.png")
+    # dtw.plot(healthy, faulty, dsp, "/Users/wannes/Desktop/test2.png")
+    # np.savetxt("/Users/wannes/Desktop/matrix1.txt", ds)
+    # np.savetxt("/Users/wannes/Desktop/matrix2.txt", dsp)
+    # print('healthy', np.mean(healthy), np.std(healthy))
+    # print('faulty', np.mean(faulty), np.std(faulty))
+    #
+    # Conclusion: Constant difference between to series will always have the diagonal as best solution and is thus
+    #             equal to Euclidean distance. This is one of the reasons why normalisation is important for
+    #             clustering.
+
+
 if __name__ == "__main__":
     # test_distance2_a()
     # test_distance2_b()
     # test_distance2_c()
     # test_distance3_a()
-    test_distance4()
+    # test_distance4()
+    test_distance5()
