@@ -189,7 +189,7 @@ def _distance_c_with_params(t):
 
 
 def warping_paths(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None,):
     """
     Dynamic Time Warping (keep full matrix)
     :param s1: First sequence
@@ -199,6 +199,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
+    :param psi: Psi relaxation parameter (ignore start and end of matching).
+        Usefull for cyclical series.
 
     Returns: DTW distance, DTW matrix
     """
@@ -219,8 +221,13 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         penalty = 0
     else:
         penalty *= penalty
+    if psi is None:
+        psi = 0
     dtw = np.full((r + 1, c + 1), np.inf)
-    dtw[0, 0] = 0
+    # dtw[0, 0] = 0
+    for i in range(psi + 1):
+        dtw[0, i] = 0
+        dtw[i, 0] = 0
     last_under_max_dist = 0
     i0 = 1
     i1 = 0
@@ -263,7 +270,19 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             # print(dtw)
             return np.inf, dtw
     dtw = np.sqrt(dtw)
-    return dtw[i1, min(c, c + window - 1)], dtw
+    if psi is not None:
+        ir = i1
+        ic = min(c, c + window - 1)
+        vr = dtw[ir-psi:ir+1, ic]
+        vc = dtw[ir, ic-psi:ic+1]
+        mir = np.argmin(vr)
+        mic = np.argmin(vc)
+        if vr[mir] < vc[mic]:
+            dtw[ir-psi+mir+1:ir+1, ic] = -1
+        else:
+            dtw[ir, ic - psi + mic + 1:ic+1] = -1
+    d = dtw[i1, min(c, c + window - 1)]
+    return d, dtw
 
 
 def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_progress=False):
@@ -413,7 +432,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
 
 def warping_path(from_s, to_s, **kwargs):
     dist, paths = warping_paths(from_s, to_s, **kwargs)
-    path = best_path2(paths)
+    path = best_path(paths)
     return path
 
 
@@ -470,6 +489,8 @@ def plot_warping(s1, s2, **kwargs):
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
+        if r_c < 0 or c_c < 0:
+            continue
         coord1 = transFigure.transform(ax[0].transData.transform([r_c, s1[r_c]]))
         coord2 = transFigure.transform(ax[1].transData.transform([c_c, s2[c_c]]))
         lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
@@ -486,7 +507,9 @@ def _print_library_missing():
 def best_path(dist):
     """Compute the optimal path from the nxm dists matrix."""
     i, j = int(dist.shape[0] - 1), int(dist.shape[1] - 1)
-    p = [(i, j)]
+    p = []
+    if dist[i, j] != -1:
+        p.append((i - 1, j - 1))
     while i > 0 and j > 0:
         c = np.argmin([dist[i - 1, j - 1], dist[i - 1, j], dist[i, j - 1]])
         if c == 0:
@@ -495,8 +518,10 @@ def best_path(dist):
             i = i - 1
         elif c == 2:
             j = j - 1
-        p.append((i, j))
+        if dist[i, j] != -1:
+            p.append((i - 1, j - 1))
     p.pop()
+    p.reverse()
     return p
 
 
