@@ -97,4 +97,4 @@ def test_distance_matrix_block():
 
 
 if __name__ == "__main__":
-    test_distance_matrix_block()
+    test_distance1_a()

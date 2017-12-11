@@ -65,8 +65,8 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
 
 
 def distance(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None, penalty=None,
-             use_nogil=False):
+             max_step=None, max_length_diff=None, penalty=None, psi=None,
+             use_c=False):
     """
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence
@@ -76,16 +76,19 @@ def distance(s1, s2, window=None, max_dist=None,
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
-    :param use_nogil: Use fast pure c compiled functions
+    :param psi: Psi relaxation parameter (ignore start and end of matching).
+        Useful for cyclical series.
+    :param use_c: Use fast pure c compiled functions
 
     Returns: DTW distance
     """
-    if use_nogil:
+    if use_c:
         return distance_fast(s1, s2, window,
                              max_dist=max_dist,
                              max_step=max_step,
                              max_length_diff=max_length_diff,
-                             penalty=penalty)
+                             penalty=penalty,
+                             psi=psi)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
@@ -103,14 +106,19 @@ def distance(s1, s2, window=None, max_dist=None,
         penalty = 0
     else:
         penalty *= penalty
+    if psi is None:
+        psi = 0
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
     dtw = np.full((2, length), np.inf)
-    dtw[0, 0] = 0
+    # dtw[0, 0] = 0
+    for i in range(psi + 1):
+        dtw[0, i] = 0
     last_under_max_dist = 0
     skip = 0
     i0 = 1
     i1 = 0
+    psi_shortest = np.inf
     for i in range(r):
         # print("i={}".format(i))
         # print(dtw)
@@ -124,9 +132,13 @@ def distance(s1, s2, window=None, max_dist=None,
         i0 = 1 - i0
         i1 = 1 - i1
         dtw[i1, :] = np.inf
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
         if dtw.shape[1] == c + 1:
             skip = 0
-        for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
+        if psi != 0 and j_start == 0 and i < psi:
+            dtw[i1, 0] = 0
+        for j in range(j_start, j_end):
             d = (s1[i] - s2[j])**2
             if d > max_step:
                 continue
@@ -153,11 +165,20 @@ def distance(s1, s2, window=None, max_dist=None,
             # print('early stop')
             # print(dtw)
             return np.inf
-    return math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+        if psi != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi:
+            psi_shortest = min(psi_shortest, dtw[i1, length - 1])
+    if psi == 0:
+        d = math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+    else:
+        ic = min(c, c + window - 1) - skip
+        vc = dtw[i1, ic - psi:ic + 1]
+        d = min(np.min(vc), psi_shortest)
+        d = math.sqrt(d)
+    return d
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None):
     """Fast C version of distance()"""
     if dtw_c is None:
         _print_library_missing()
@@ -172,11 +193,14 @@ def distance_fast(s1, s2, window=None, max_dist=None,
         max_length_diff = 0
     if penalty is None:
         penalty = 0
+    if psi is None:
+        psi = 0
     d = dtw_c.distance_nogil(s1, s2, window,
                              max_dist=max_dist,
                              max_step=max_step,
                              max_length_diff=max_length_diff,
-                             penalty=penalty)
+                             penalty=penalty,
+                             psi=psi)
     return d
 
 
@@ -200,7 +224,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
     :param psi: Psi relaxation parameter (ignore start and end of matching).
-        Usefull for cyclical series.
+        Useful for cyclical series.
 
     Returns: DTW distance, DTW matrix
     """
@@ -270,7 +294,9 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             # print(dtw)
             return np.inf, dtw
     dtw = np.sqrt(dtw)
-    if psi is not None:
+    if psi is None:
+        d = dtw[i1, min(c, c + window - 1)]
+    else:
         ir = i1
         ic = min(c, c + window - 1)
         vr = dtw[ir-psi:ir+1, ic]
@@ -279,9 +305,10 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         mic = np.argmin(vc)
         if vr[mir] < vc[mic]:
             dtw[ir-psi+mir+1:ir+1, ic] = -1
+            d = vr[mir]
         else:
             dtw[ir, ic - psi + mic + 1:ic+1] = -1
-    d = dtw[i1, min(c, c + window - 1)]
+            d = vc[mic]
     return d, dtw
 
 
@@ -436,7 +463,7 @@ def warping_path(from_s, to_s, **kwargs):
     return path
 
 
-def warp(from_s, to_s, plot=False, **kwargs):
+def warp(from_s, to_s, **kwargs):
     """Warp a function to optimally match a second function.
     Same options as warping_paths().
     """
@@ -447,39 +474,41 @@ def warp(from_s, to_s, plot=False, **kwargs):
         from_s2[c_c] += from_s[r_c]
         from_s2_cnt[c_c] += 1
     from_s2 /= from_s2_cnt
-
-    if plot:
-        import matplotlib.pyplot as plt
-        import matplotlib as mpl
-        fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
-        ax[0].plot(from_s, label="From")
-        ax[0].legend()
-        ax[1].plot(to_s, label="To")
-        ax[1].legend()
-        transFigure = fig.transFigure.inverted()
-        lines = []
-        line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
-        for r_c, c_c in path:
-            coord1 = transFigure.transform(ax[0].transData.transform([r_c, from_s[r_c]]))
-            coord2 = transFigure.transform(ax[1].transData.transform([c_c, to_s[c_c]]))
-            lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                          transform=fig.transFigure, **line_options))
-        ax[2].plot(from_s2, label="From-warped")
-        ax[2].legend()
-        for i in range(len(to_s)):
-            coord1 = transFigure.transform(ax[1].transData.transform([i, to_s[i]]))
-            coord2 = transFigure.transform(ax[2].transData.transform([i, from_s2[i]]))
-            lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                          transform=fig.transFigure, **line_options))
-        fig.lines = lines
-        plt.show(block=True)
-
-    return from_s2
+    return from_s2, path
 
 
-def plot_warping(s1, s2, **kwargs):
-    path = warping_path(s1, s2, **kwargs)
+def plot_warp(from_s, to_s, new_s, path, filename=None):
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
+    ax[0].plot(from_s, label="From")
+    ax[0].legend()
+    ax[1].plot(to_s, label="To")
+    ax[1].legend()
+    transFigure = fig.transFigure.inverted()
+    lines = []
+    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    for r_c, c_c in path:
+        if r_c < 0 or c_c < 0:
+            continue
+        coord1 = transFigure.transform(ax[0].transData.transform([r_c, from_s[r_c]]))
+        coord2 = transFigure.transform(ax[1].transData.transform([c_c, to_s[c_c]]))
+        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                      transform=fig.transFigure, **line_options))
+    ax[2].plot(new_s, label="From-warped")
+    ax[2].legend()
+    for i in range(len(to_s)):
+        coord1 = transFigure.transform(ax[1].transData.transform([i, to_s[i]]))
+        coord2 = transFigure.transform(ax[2].transData.transform([i, new_s[i]]))
+        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                      transform=fig.transFigure, **line_options))
+    fig.lines = lines
+    if filename:
+        plt.savefig(filename)
+    return fig, ax
 
+
+def plot_warping(s1, s2, path, filename=None):
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
@@ -496,7 +525,9 @@ def plot_warping(s1, s2, **kwargs):
         lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
                                       transform=fig.transFigure, **line_options))
     fig.lines = lines
-    plt.show(block=True)
+    if filename:
+        plt.savefig(filename)
+    return fig, ax
 
 
 def _print_library_missing():
@@ -548,12 +579,12 @@ def best_path2(dists):
     return path
 
 
-def plot(s1, s2, dist, filename=None):
+def plot_warpingpaths(s1, s2, paths, filename=None):
     """Plot the series and the optimal path.
 
     :param s1: Series 1
     :param s2: Series 2
-    :param dist: Distances matrix
+    :param paths: Warping paths matrix
     :param filename: Filename to write the image to
     """
     from matplotlib import pyplot as plt
@@ -572,7 +603,10 @@ def plot(s1, s2, dist, filename=None):
     max_s2_x = np.max(s2)
     max_s2_y = len(s2)
     max_s1_x = np.max(s1)
+    min_s1_x = np.min(s1)
     max_s1_y = len(s1)
+
+    p = best_path(paths)
 
     def format_fn2_x(tick_val, tick_pos):
         return max_s2_x - tick_val
@@ -582,7 +616,7 @@ def plot(s1, s2, dist, filename=None):
 
     ax0 = fig.add_subplot(gs[0, 0])
     ax0.set_axis_off()
-    ax0.text(0, 0, "Dist = {:.4f}".format(dist[-1, -1]))
+    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0], p[-1][1]]))
     ax0.xaxis.set_major_locator(plt.NullLocator())
     ax0.yaxis.set_major_locator(plt.NullLocator())
 
@@ -596,23 +630,22 @@ def plot(s1, s2, dist, filename=None):
     ax1.yaxis.set_major_locator(plt.NullLocator())
 
     ax2 = fig.add_subplot(gs[1:, 0])
-    ax2.set_xlim([min_y, max_y])
+    ax2.set_xlim([-max_y, -min_y])
     ax2.set_axis_off()
     # ax2.set_aspect(0.8)
     # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
     # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
     ax2.xaxis.set_major_locator(plt.NullLocator())
     ax2.yaxis.set_major_locator(plt.NullLocator())
-    ax2.plot(max_s1_x - s1, range(max_s1_y, 0, -1), ".-")
+    ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
 
     ax3 = fig.add_subplot(gs[1:, 1:])
     # ax3.set_aspect(1)
-    ax3.matshow(dist[1:, 1:])
+    ax3.matshow(paths[1:, 1:])
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
-    p = best_path(dist)
     py, px = zip(*p)
-    ax3.plot([x - 1 for x in px], [y - 1 for y in py], ".-", color="red")
+    ax3.plot(px, py, ".-", color="red")
     # ax3.xaxis.set_major_locator(plt.NullLocator())
     # ax3.yaxis.set_major_locator(plt.NullLocator())
 

@@ -117,7 +117,7 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
 
 def distance_nogil(double[:] s1, double[:] s2,
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0, double penalty=0):
+             double max_step=0, int max_length_diff=0, double penalty=0, int psi=0):
     """DTW distance.
 
     See distance(). This calls a pure c dtw computation that avoids the GIL.
@@ -133,7 +133,7 @@ def distance_nogil(double[:] s1, double[:] s2,
         if not s2.base.flags.c_contiguous:
             s2 = s2.copy()
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
-                            window, max_dist, max_step, max_length_diff, penalty)
+                            window, max_dist, max_step, max_length_diff, penalty, psi)
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -144,7 +144,7 @@ cdef double distance_nogil_c(
              int r, # len_s1
              int c, # len_s2
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0, double penalty=0) nogil:
+             double max_step=0, int max_length_diff=0, double penalty=0, int psi=0) nogil:
     """DTW distance.
 
     See distance(). This is a pure c dtw computation that avoid the GIL.
@@ -174,7 +174,9 @@ cdef double distance_nogil_c(
     cdef int j
     for j in range(length*2):
         dtw[j] = inf
-    dtw[0] = 0
+    # dtw[0] = 0
+    for i in range(psi + 1):
+        dtw[i] = 0
     cdef double last_under_max_dist = 0
     cdef double prev_last_under_max_dist = inf
     cdef int skip = 0
@@ -186,7 +188,8 @@ cdef double distance_nogil_c(
     cdef double minv
     cdef DTYPE_t d
     cdef double tempv
-    #cdef int iii
+    cdef double psi_shortest = inf
+    cdef int iii
     for i in range(r):
         #
         #printf("[ ")
@@ -222,6 +225,8 @@ cdef double distance_nogil_c(
         minj = i + minj + window
         if minj > c:
             minj = c
+        if psi != 0 and maxj == 0 and i < psi:
+            dtw[i1*length + 0] = 0
         for j in range(maxj, minj):
             #printf('s1[i] = s1[%i] = %f , s2[j] = s2[%i] = %f\n', i, s1[i], j, s2[j])
             d = pow(s1[i] - s2[j], 2)
@@ -258,10 +263,25 @@ cdef double distance_nogil_c(
             # print('early stop')
             # print(dtw)
             return inf
+
+        if psi != 0 and minj == c and r - 1 - i <= psi:
+            if dtw[i1*length + length - 1] < psi_shortest:
+                psi_shortest = dtw[i1*length + length - 1]
+
+        # printf("[ ")
+        # for iii in range(i1*length,i1*length + length):
+        #    printf("%f ", dtw[iii])
+        # printf("]\n")
+
     # print(dtw)
     if window - 1 < 0:
         c = c + window - 1
     cdef double result = sqrt(dtw[length * i1 + c - skip])
+    if psi != 0:
+        for i in range(c - skip - psi, c - skip + 1):  # iterate over vci
+            if dtw[i1*length + i] < psi_shortest:
+                psi_shortest = dtw[i1*length + i]
+        result = sqrt(psi_shortest)
     free(dtw)
     return result
 

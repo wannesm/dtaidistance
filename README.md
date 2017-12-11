@@ -162,6 +162,9 @@ Development:
 1. Mueen, A and Keogh, E, 
    [Extracting Optimal Performance from Dynamic Time Warping](http://www.cs.unm.edu/~mueen/DTW.pdf),
    Tutorial, KDD 2016
+2. D. F. Silva, G. E. d. A. P. A. Batista, and E. Keogh.
+   [On the effect of endpoints on dynamic time warping](http://www-bcf.usc.edu/~liu32/milets16/paper/MiLeTS_2016_paper_7.pdf),
+   In SIGKDD Workshop on Mining and Learning from Time Series, II. Association for Computing Machinery-ACM, 2016.
 
 
 ## License
