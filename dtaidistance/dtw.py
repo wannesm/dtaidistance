@@ -294,7 +294,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             # print(dtw)
             return np.inf, dtw
     dtw = np.sqrt(dtw)
-    if psi is None:
+    if psi == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
         ir = i1
