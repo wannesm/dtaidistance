@@ -24,9 +24,10 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
     import numpy as np
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
     s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
-    dtw.plot_warping(s1, s2)
+    path = dtw.warping_path(s1, s2)
+    dtw.plot_warping(s1, s2, path, filename="warp.png")
 
-![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=2)
+![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=3)
 
 
 #### DTW Distance Measure Between Two Series
@@ -68,6 +69,7 @@ the distance measure computation:
 - `max_step`: Do not allow steps larger than this value.
 - `max_length_diff`: Return infinity if difference in length of two series is larger.
 - `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
+- `psi`: Psi relaxation to ignore begin and/or end of sequences (for cylical sequencies) [2].
 
 
 #### DTW Distance Measure all warping paths
@@ -77,9 +79,23 @@ If, next to the distance, you also want the full matrix to see all possible warp
     from dtaidistance import dtw
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
-    distance, matrix = dtw.warping_paths(s1, s2)
+    distance, paths = dtw.warping_paths(s1, s2)
     print(distance)
-    print(matrix)
+    print(paths)
+
+The matrix with all warping paths can be visualised as follows:
+
+    from dtaidistance import dtw
+    x = np.arange(0, 20, .5)
+    s1 = np.sin(x)
+    s2 = np.sin(x - 1)
+    d, paths = dtw.warping_paths(s1, s2, psi=2)
+    dtw.plot_warpingpaths(s1, s2, paths)
+
+![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=1)
+
+Notice the `psi` parameter that relaxes the matching at the beginning and end.
+In this example this results in a perfect match even though the sine waves are slightly shifted.
 
 
 #### DTW Distance Measures Between Set of Series
@@ -145,6 +161,7 @@ The output in this case will be:
 Optional:
 - [Cython](http://cython.org)
 - [tqdm](https://github.com/tqdm/tqdm)
+- [matplotlib](https://matplotlib.org)
 
 Development:
 - [pytest](http://doc.pytest.org)
