@@ -43,7 +43,7 @@ cdef double inf = np.inf
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
              int window=0, double max_dist=0,
-             double max_step=0, int max_length_diff=0, double penalty=0):
+             double max_step=0, int max_length_diff=0, double penalty=0, int psi=0):
     """
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence (np.array(np.float64))
@@ -72,8 +72,12 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
     else:
         max_dist *= max_dist
     penalty *= penalty
-    cdef np.ndarray[DTYPE_t, ndim=2] dtw = np.full((2, min( c +1 ,abs( r -c ) + 2 *( window -1 ) + 1 + 1 +1)), inf)
-    dtw[0, 0] = 0
+    cdef int length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
+    cdef np.ndarray[DTYPE_t, ndim=2] dtw = np.full((2, length), inf)
+    # dtw[0, 0] = 0
+    cdef int i
+    for i in range(psi + 1):
+        dtw[0, i] = 0
     cdef double last_under_max_dist = 0
     cdef double prev_last_under_max_dist = inf
     cdef int skip = 0
@@ -92,9 +96,13 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
         i0 = 1 - i0
         i1 = 1 - i1
         dtw[i1 ,:] = inf
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
         if dtw.shape[1] == c+ 1:
             skip = 0
-        for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
+        if psi != 0 and j_start == 0 and i < psi:
+            dtw[i1, 0] = 0
+        for j in range(j_start, j_end):
             d = (s1[i] - s2[j])**2
             if d > max_step:
                 continue
@@ -111,8 +119,17 @@ def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
             # print('early stop')
             # print(dtw)
             return inf
+        if psi != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi:
+            psi_shortest = min(psi_shortest, dtw[i1, length - 1])
+    if psi == 0:
+        d = math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+    else:
+        ic = min(c, c + window - 1) - skip
+        vc = dtw[i1, ic - psi:ic + 1]
+        d = min(np.min(vc), psi_shortest)
+        d = math.sqrt(d)
     # print(dtw)
-    return math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+    return d
 
 
 def distance_nogil(double[:] s1, double[:] s2,
