@@ -321,8 +321,8 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
 
 
 def distance_matrix(s, max_dist=None, max_length_diff=None,
-                    window=None, max_step=None, penalty=None, block=None,
-                    parallel=False,
+                    window=None, max_step=None, penalty=None, psi=None,
+                    block=None, parallel=False,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
@@ -353,7 +353,8 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         'max_step': max_step,
         'window': window,
         'max_length_diff': max_length_diff,
-        'penalty': penalty
+        'penalty': penalty,
+        'psi': psi
     }
     dists = None
     if max_length_diff is None:
@@ -445,15 +446,15 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
 
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
-                         window=None, max_step=None, penalty=None,
-                         parallel=True, show_progress=False):
+                         window=None, max_step=None, penalty=None, psi=None,
+                         block=None, parallel=True, show_progress=False):
     """Fast C version of distance_matrix()"""
     if dtw_c is None:
         _print_library_missing()
         return None
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
-                           window=window, max_step=max_step, penalty=penalty, block=None,
-                           parallel=parallel,
+                           window=window, max_step=max_step, penalty=penalty, psi=psi,
+                           block=block, parallel=parallel,
                            use_c=True, use_nogil=True, show_progress=show_progress)
 
 
@@ -475,59 +476,6 @@ def warp(from_s, to_s, **kwargs):
         from_s2_cnt[c_c] += 1
     from_s2 /= from_s2_cnt
     return from_s2, path
-
-
-def plot_warp(from_s, to_s, new_s, path, filename=None):
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
-    ax[0].plot(from_s, label="From")
-    ax[0].legend()
-    ax[1].plot(to_s, label="To")
-    ax[1].legend()
-    transFigure = fig.transFigure.inverted()
-    lines = []
-    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
-    for r_c, c_c in path:
-        if r_c < 0 or c_c < 0:
-            continue
-        coord1 = transFigure.transform(ax[0].transData.transform([r_c, from_s[r_c]]))
-        coord2 = transFigure.transform(ax[1].transData.transform([c_c, to_s[c_c]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
-    ax[2].plot(new_s, label="From-warped")
-    ax[2].legend()
-    for i in range(len(to_s)):
-        coord1 = transFigure.transform(ax[1].transData.transform([i, to_s[i]]))
-        coord2 = transFigure.transform(ax[2].transData.transform([i, new_s[i]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
-    fig.lines = lines
-    if filename:
-        plt.savefig(filename)
-    return fig, ax
-
-
-def plot_warping(s1, s2, path, filename=None):
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
-    ax[0].plot(s1)
-    ax[1].plot(s2)
-    transFigure = fig.transFigure.inverted()
-    lines = []
-    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
-    for r_c, c_c in path:
-        if r_c < 0 or c_c < 0:
-            continue
-        coord1 = transFigure.transform(ax[0].transData.transform([r_c, s1[r_c]]))
-        coord2 = transFigure.transform(ax[1].transData.transform([c_c, s2[c_c]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
-    fig.lines = lines
-    if filename:
-        plt.savefig(filename)
-    return fig, ax
 
 
 def _print_library_missing():
@@ -577,82 +525,3 @@ def best_path2(dists):
         r, c = r_c, c_c
     path.reverse()
     return path
-
-
-def plot_warpingpaths(s1, s2, paths, filename=None):
-    """Plot the series and the optimal path.
-
-    :param s1: Series 1
-    :param s2: Series 2
-    :param paths: Warping paths matrix
-    :param filename: Filename to write the image to
-    """
-    from matplotlib import pyplot as plt
-    from matplotlib import gridspec
-    from matplotlib.ticker import FuncFormatter
-
-    ratio = max(len(s1), len(s2))
-    min_y = min(np.min(s1), np.min(s2))
-    max_y = max(np.max(s1), np.max(s2))
-
-    fig = plt.figure(figsize=(7.5, 10), frameon=True)
-    gs = gridspec.GridSpec(2, 2, wspace=1, hspace=1,
-                           left=0, right=1.0, bottom=0, top=1.0,
-                           height_ratios=[1, 6],
-                           width_ratios=[1, 6])
-    max_s2_x = np.max(s2)
-    max_s2_y = len(s2)
-    max_s1_x = np.max(s1)
-    min_s1_x = np.min(s1)
-    max_s1_y = len(s1)
-
-    p = best_path(paths)
-
-    def format_fn2_x(tick_val, tick_pos):
-        return max_s2_x - tick_val
-
-    def format_fn2_y(tick_val, tick_pos):
-        return int(max_s2_y - tick_val)
-
-    ax0 = fig.add_subplot(gs[0, 0])
-    ax0.set_axis_off()
-    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0], p[-1][1]]))
-    ax0.xaxis.set_major_locator(plt.NullLocator())
-    ax0.yaxis.set_major_locator(plt.NullLocator())
-
-    ax1 = fig.add_subplot(gs[0, 1:])
-    ax1.set_ylim([min_y, max_y])
-    ax1.set_axis_off()
-    ax1.xaxis.tick_top()
-    # ax1.set_aspect(0.454)
-    ax1.plot(range(len(s2)), s2, ".-")
-    ax1.xaxis.set_major_locator(plt.NullLocator())
-    ax1.yaxis.set_major_locator(plt.NullLocator())
-
-    ax2 = fig.add_subplot(gs[1:, 0])
-    ax2.set_xlim([-max_y, -min_y])
-    ax2.set_axis_off()
-    # ax2.set_aspect(0.8)
-    # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
-    # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
-    ax2.xaxis.set_major_locator(plt.NullLocator())
-    ax2.yaxis.set_major_locator(plt.NullLocator())
-    ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
-
-    ax3 = fig.add_subplot(gs[1:, 1:])
-    # ax3.set_aspect(1)
-    ax3.matshow(paths[1:, 1:])
-    # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
-    # ax3.set_axis_off()
-    py, px = zip(*p)
-    ax3.plot(px, py, ".-", color="red")
-    # ax3.xaxis.set_major_locator(plt.NullLocator())
-    # ax3.yaxis.set_major_locator(plt.NullLocator())
-
-    gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
-    # fig.subplots_adjust(hspace=0, wspace=0)
-
-    if filename:
-        plt.savefig(filename)
-    else:
-        plt.show(block=True)
