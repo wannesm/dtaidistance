@@ -169,7 +169,8 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None):
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
     # fig.subplots_adjust(hspace=0, wspace=0)
 
+    ax = fig.axes
+
     if filename:
         plt.savefig(filename)
-    else:
-        plt.show(block=True)
+    return fig, ax
