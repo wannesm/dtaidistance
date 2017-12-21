@@ -96,7 +96,7 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, best_path, filename=None):
+def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False):
     """Plot the series and the optimal path.
 
     :param s1: Series 1
@@ -165,6 +165,9 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None):
     ax3.plot(px, py, ".-", color="red")
     # ax3.xaxis.set_major_locator(plt.NullLocator())
     # ax3.yaxis.set_major_locator(plt.NullLocator())
+    for r in range(1, paths.shape[0]):
+        for c in range(1, paths.shape[1]):
+            ax3.text(c - 1, r - 1, "{:.2f}".format(paths[r, c]))
 
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
     # fig.subplots_adjust(hspace=0, wspace=0)

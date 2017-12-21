@@ -172,6 +172,9 @@ class BaseTree:
         :param axes: If a axes array is passed the image is added to this figure.
             Expects axes[0] and axes[1] to be present.
         """
+        # print('linkage')
+        # for l in self.linkage:
+        #     print(l)
         self._series_y = [0] * len(self.series)
         ts_height = 10
         ts_bottom_margin = 2
@@ -182,7 +185,6 @@ class BaseTree:
         for _, _, d, _ in self.linkage:
             if not np.isinf(d):
                 max_dist = max(max_dist, d)
-        print('max_dist', max_dist)
 
         node_props = dict()
 
@@ -207,7 +209,11 @@ class BaseTree:
                 right_cnt = 0
             else:
                 # Inner node
-                child_left, child_right, dist, cnt = self.get_linkage(node)
+                child_left, child_right, dist, cnt2 = self.get_linkage(int(node))
+                child_left, child_right, cnt2 = int(child_left), int(child_right), int(cnt2)
+                if child_left == child_right:
+                    raise Exception("Row in linkage contains same node as left and right child: {}-{}".
+                                    format(child_left, child_right))
                 if np.isinf(dist):
                     dist = 1.5*max_dist
                 # Left
@@ -224,12 +230,16 @@ class BaseTree:
                 maxcumdist = max(maxcumdist, nmd + dist)
                 curdepth = max(curdepth, ncd + 1)
                 right_cnt = nc
+                if cnt != cnt2:
+                    raise Exception("Count in linkage not correct")
             # print('c', node, c)
-            node_props[node] = (cnt, curdepth, left_cnt, right_cnt, maxcumdist)
+            node_props[int(node)] = (cnt, curdepth, left_cnt, right_cnt, maxcumdist)
+            # print('count({},{}) = {}, {}, {}, {}'.format(node, height, cnt, maxheight, curdepth, maxcumdist))
             return cnt, maxheight, curdepth, maxcumdist
 
         cnt, maxheight, curdepth, maxcumdist = count(self.maxnode, 0)
-        print('maxcumdist', maxcumdist)
+        # for node, props in node_props.items():
+        #     print("{:<3}: {}".format(node, props))
 
         if axes is None:
             fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
@@ -256,14 +266,14 @@ class BaseTree:
             py = prev_lcnt * tr_unit
             if node < len(self.series):
                 # Plot series
-                # print('plot series')
+                # print('plot series y={}'.format(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor))
                 self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
-                ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, node)
+                ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, int(node))
                 ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * self.series[int(node)])
                 cnt_ts += 1
 
             else:
-                child_left, child_right, dist, cnt = self.get_linkage(node)
+                child_left, child_right, dist, _ = self.get_linkage(node)
                 ax[0].text(px + 0.05, py + tr_unit / 10, "{:.2f}".format(dist))
 
                 # Left
@@ -349,8 +359,6 @@ class HierarchicalTree(BaseTree):
         self._model.merge_hook = merge_hook
 
         result = self._model.fit(series, *args, **kwargs)
-
-        print(self.linkage)
         return result
 
 
