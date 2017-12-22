@@ -230,8 +230,8 @@ class BaseTree:
                 maxcumdist = max(maxcumdist, nmd + dist)
                 curdepth = max(curdepth, ncd + 1)
                 right_cnt = nc
-                if cnt != cnt2:
-                    raise Exception("Count in linkage not correct")
+                # if cnt != cnt2:
+                #     raise Exception("Count in linkage not correct")
             # print('c', node, c)
             node_props[int(node)] = (cnt, curdepth, left_cnt, right_cnt, maxcumdist)
             # print('count({},{}) = {}, {}, {}, {}'.format(node, height, cnt, maxheight, curdepth, maxcumdist))
@@ -349,7 +349,11 @@ class HierarchicalTree(BaseTree):
             old_merge_hook = None
 
         def merge_hook(from_idx, to_idx, distance):
+            # print('merge_hook', from_idx, to_idx)
             new_idx = len(self.series) + len(self.linkage)
+            # print('adding to linkage: ', new_nodes[from_idx], new_nodes[to_idx], distance, 0)
+            if new_nodes[from_idx] is None:
+                raise Exception('Trying to merge series that is already merged')
             self.linkage.append((new_nodes[from_idx], new_nodes[to_idx], distance, 0))
             new_nodes[to_idx] = new_idx
             new_nodes[from_idx] = None
@@ -359,6 +363,7 @@ class HierarchicalTree(BaseTree):
         self._model.merge_hook = merge_hook
 
         result = self._model.fit(series, *args, **kwargs)
+        self._model.merge_hook = old_merge_hook
         return result
 
 
