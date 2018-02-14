@@ -112,7 +112,7 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
 
-    fig = plt.figure(figsize=(7.5, 10), frameon=True)
+    fig = plt.figure(figsize=(10, 10), frameon=True)
     gs = gridspec.GridSpec(2, 2, wspace=1, hspace=1,
                            left=0, right=1.0, bottom=0, top=1.0,
                            height_ratios=[1, 6],
