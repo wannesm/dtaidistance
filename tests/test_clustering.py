@@ -1,9 +1,14 @@
 import os
+import sys
 import math
 import tempfile
 import pytest
+import logging
 import numpy as np
 from dtaidistance import dtw, clustering
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 def test_clustering():
@@ -106,6 +111,12 @@ def test_controlchart(directory=None):
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    sh = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(message)s')
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    logger.propagate = 0
     # test_clustering_tree(directory="/Users/wannes/Desktop/")
     # test_linkage_tree(directory="/Users/wannes/Desktop/")
     test_controlchart(directory="/Users/wannes/Desktop/")

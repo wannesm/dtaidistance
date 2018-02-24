@@ -24,6 +24,7 @@ __license__ = "APL"
 """
 import logging
 import math
+from pathlib import Path
 from collections import defaultdict, namedtuple, deque
 import numpy as np
 from matplotlib import pyplot as plt
@@ -268,8 +269,9 @@ class BaseTree:
                 # Plot series
                 # print('plot series y={}'.format(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor))
                 self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
+                serie = self.series[int(node)]
                 ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, int(node))
-                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * self.series[int(node)])
+                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
                 cnt_ts += 1
 
             else:
@@ -308,6 +310,8 @@ class BaseTree:
         plot_i(self.maxnode, 0, 0, node_props[self.maxnode][2], ax)
 
         if filename:
+            if isinstance(filename, Path):
+                filename = str(filename)
             plt.savefig(filename, bbox_inches='tight', pad_inches=0)
 
         return ax
@@ -340,7 +344,10 @@ class HierarchicalTree(BaseTree):
         self._model.max_dist = np.inf
 
     def fit(self, series, *args, **kwargs):
-        self.series = series
+        if isinstance(series, np.matrix):
+            self.series = np.asarray(series)
+        else:
+            self.series = series
         self.linkage = []
         new_nodes = {i: i for i in range(len(series))}
         if self._model.merge_hook:
@@ -381,8 +388,10 @@ class LinkageTree(BaseTree):
 
     def fit(self, series):
         from scipy.cluster.hierarchy import linkage
-
-        self.series = series
+        if isinstance(series, np.matrix):
+            self.series = np.asarray(series)
+        else:
+            self.series = series
         dists = self.dists_fun(series, **self.dists_options)
         dists_cond = np.zeros(self._size_cond(len(series)))
         idx = 0
