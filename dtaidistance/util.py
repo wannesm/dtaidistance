@@ -35,11 +35,13 @@ class SeriesContainer:
     def __init__(self, series):
         """Container for a list of series.
 
-        This wrapper class knows how to deal with multiple types of datastructures:
+        This wrapper class knows how to deal with multiple types of datastructures to represent
+        a list of sequences:
         - List[array]
         - List[List]
         - np.array
         - np.matrix
+        When using the C-based extensions, the data is automatically verified and converted.
         """
         if isinstance(series, np.matrix):
             # self.series = [np.asarray(series[i]).reshape(-1) for i in range(series.shape[0])]
