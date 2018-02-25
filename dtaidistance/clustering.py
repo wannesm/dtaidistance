@@ -30,6 +30,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
+from .util import SeriesContainer
 
 try:
     from tqdm import tqdm
@@ -344,10 +345,7 @@ class HierarchicalTree(BaseTree):
         self._model.max_dist = np.inf
 
     def fit(self, series, *args, **kwargs):
-        if isinstance(series, np.matrix):
-            self.series = np.asarray(series)
-        else:
-            self.series = series
+        self.series = SeriesContainer.wrap(series)
         self.linkage = []
         new_nodes = {i: i for i in range(len(series))}
         if self._model.merge_hook:
@@ -388,11 +386,8 @@ class LinkageTree(BaseTree):
 
     def fit(self, series):
         from scipy.cluster.hierarchy import linkage
-        if isinstance(series, np.matrix):
-            self.series = np.asarray(series)
-        else:
-            self.series = series
-        dists = self.dists_fun(series, **self.dists_options)
+        self.series = SeriesContainer.wrap(series)
+        dists = self.dists_fun(self.series, **self.dists_options)
         dists_cond = np.zeros(self._size_cond(len(series)))
         idx = 0
         for r in range(len(series) - 1):

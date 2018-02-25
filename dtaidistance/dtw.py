@@ -27,6 +27,9 @@ import logging
 import math
 import numpy as np
 
+from .util import SeriesContainer
+
+
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
 
@@ -356,6 +359,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         'penalty': penalty,
         'psi': psi
     }
+    s = SeriesContainer.wrap(s)
     dists = None
     if max_length_diff is None:
         max_length_diff = np.inf
@@ -402,9 +406,6 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
             dists = dtw_c.distance_matrix(s, **dist_opts)
     if not use_c:
         logger.info("Compute distances in Python")
-        if isinstance(s, np.matrix):
-            ss = [np.asarray(s[i]).reshape(-1) for i in range(s.shape[0])]
-            s = ss
         if parallel:
             logger.info("Use parallel computation")
             dists = np.zeros((len(s), len(s))) + large_value
