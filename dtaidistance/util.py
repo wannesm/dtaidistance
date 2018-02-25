@@ -54,7 +54,7 @@ class SeriesContainer:
             for i in range(len(self.series)):
                 serie = self.series[i]
                 if isinstance(serie, np.ndarray):
-                    if not self.series.flags.c_contiguous:
+                    if not serie.flags.c_contiguous:
                         serie = np.asarray(serie, order='C')
                         self.series[i] = serie
                 elif isinstance(serie, array):
