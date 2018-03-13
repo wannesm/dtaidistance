@@ -37,13 +37,18 @@ class SeriesContainer:
 
         This wrapper class knows how to deal with multiple types of datastructures to represent
         a list of sequences:
-        - List[array]
+        - List[array.array]
+        - List[numpy.array]
         - List[List]
-        - np.array
-        - np.matrix
+        - numpy.array
+        - numpy.matrix
+
         When using the C-based extensions, the data is automatically verified and converted.
         """
         if isinstance(series, np.matrix):
+            # A matrix always returns a 2D array, also if you select one row (to be consistent
+            # and always be a matrix datastructure). The methods in this toolbox expect a
+            # 1D array thus we need to convert to a 1D or 2D array.
             # self.series = [np.asarray(series[i]).reshape(-1) for i in range(series.shape[0])]
             self.series = np.asarray(series, order='C')
         elif type(series) == set:
@@ -52,6 +57,13 @@ class SeriesContainer:
             self.series = series
 
     def c_data(self):
+        """Return a datastructure that the C-component knows how to handle.
+        The method tries to avoid copying or reallocating memory.
+
+        :return: Either a list of buffers or a two-dimensional buffer. The
+            buffers are guaranteed to be C-contiguous and can thus be used
+            as regular pointer-based arrays in C.
+        """
         if type(self.series) == list:
             for i in range(len(self.series)):
                 serie = self.series[i]
@@ -62,7 +74,8 @@ class SeriesContainer:
                 elif isinstance(serie, array):
                     pass
                 else:
-                    raise Exception("Type of series not supported, expected an numpy.array or array.array.")
+                    raise Exception("Type of series not supported, "
+                                    f"expected numpy.array or array.array but got {type(serie)}")
         elif isinstance(self.series, np.ndarray):
             if not self.series.flags.c_contiguous:
                 self.series = self.series.copy(order='C')
