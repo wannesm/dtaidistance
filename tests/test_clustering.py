@@ -1,9 +1,14 @@
 import os
+import sys
 import math
 import tempfile
 import pytest
+import logging
 import numpy as np
 from dtaidistance import dtw, clustering
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 def test_clustering():
@@ -83,6 +88,35 @@ def test_linkage_tree(directory=None):
     print("Dot saved to", graphviz_fn)
 
 
+def test_controlchart(directory=None):
+    series = np.zeros((600, 60))
+    rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'synthetic_control.data')
+    with open(rsrc_fn, 'r') as ifile:
+        for idx, line in enumerate(ifile.readlines()):
+            series[idx, :] = line.split()
+    s = []
+    for idx in range(0, 600, 20):
+        s.append(series[idx, :])
+
+    model = clustering.LinkageTree(dtw.distance_matrix_fast, {})
+    cluster_idx = model.fit(s)
+
+    if directory:
+        hierarchy_fn = os.path.join(directory, "hierarchy.png")
+    else:
+        file = tempfile.NamedTemporaryFile()
+        hierarchy_fn = file.name + "_hierarchy.png"
+    model.plot(hierarchy_fn)
+    print("Figure saved to", hierarchy_fn)
+
+
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    sh = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(message)s')
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+    logger.propagate = 0
     # test_clustering_tree(directory="/Users/wannes/Desktop/")
-    test_linkage_tree(directory="/Users/wannes/Desktop/")
+    # test_linkage_tree(directory="/Users/wannes/Desktop/")
+    test_controlchart(directory="/Users/wannes/Desktop/")

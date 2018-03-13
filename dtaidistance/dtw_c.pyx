@@ -355,6 +355,8 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
     cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] cur_np;
     #for i in range(len(cur)):
     #    print(cur[i])
+    if cur.__class__.__name__ == "SeriesContainer":
+        cur = cur.c_data()
     if type(cur) in [list, set]:
         for i in range(len(cur)):
             ptr = cur[i].ctypes.data
