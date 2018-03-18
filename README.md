@@ -199,13 +199,22 @@ Development:
 
 ## References
 
-1. Mueen, A and Keogh, E, 
+1. T. K. Vintsyuk,
+   Speech discrimination by dynamic programming.
+   Kibernetika, 4:81–88, 1968.
+2. H. Sakoe and S. Chiba,
+   Dynamic programming algorithm optimization for spoken word recognition.
+   IEEE Transactions on Acoustics, Speech and Signal Processing, 26(1):43–49, 1978.
+3. C. S. Myers and L. R. Rabiner,
+   A comparative study of several dynamic time-warping algorithms for connected-word recognition.
+   The Bell System Technical Journal, 60(7):1389–1409, Sept 1981.
+4. Mueen, A and Keogh, E, 
    [Extracting Optimal Performance from Dynamic Time Warping](http://www.cs.unm.edu/~mueen/DTW.pdf),
    Tutorial, KDD 2016
-2. D. F. Silva, G. E. d. A. P. A. Batista, and E. Keogh.
+5. D. F. Silva, G. E. A. P. A. Batista, and E. Keogh.
    [On the effect of endpoints on dynamic time warping](http://www-bcf.usc.edu/~liu32/milets16/paper/MiLeTS_2016_paper_7.pdf),
    In SIGKDD Workshop on Mining and Learning from Time Series, II. Association for Computing Machinery-ACM, 2016.
-3. C. Yanping, K. Eamonn, H. Bing, B. Nurjahan, B. Anthony, M. Abdullah and B. Gustavo.
+6. C. Yanping, K. Eamonn, H. Bing, B. Nurjahan, B. Anthony, M. Abdullah and B. Gustavo.
    [The UCR Time Series Classification Archive](www.cs.ucr.edu/~eamonn/time_series_data/), 2015.
 
 
