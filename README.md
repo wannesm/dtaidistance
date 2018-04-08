@@ -3,6 +3,8 @@
 Library for time series distances (e.g. Dynamic Time Warping) used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
 The library offers a pure Python implementation and a faster implementation in C.
 
+Documentation: http://dtaidistance.readthedocs.io
+
 Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
 
