@@ -44,6 +44,9 @@ except ImportError:
 
 
 def plot_warp(from_s, to_s, new_s, path, filename=None):
+    """Plot the warped sequence and its relation to the original sequence
+    and the target sequence.
+    """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
@@ -75,6 +78,13 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
 
 
 def plot_warping(s1, s2, path, filename=None):
+    """Plot the optimal warping between to sequences.
+
+    :param s1: From sequence.
+    :param s2: To sequence.
+    :param path: Optimal warping path.
+    :param filename: Filename path (optional).
+    """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
@@ -97,7 +107,7 @@ def plot_warping(s1, s2, path, filename=None):
 
 
 def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False):
-    """Plot the series and the optimal path.
+    """Plot the warping paths matrix.
 
     :param s1: Series 1
     :param s2: Series 2
@@ -175,5 +185,7 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False
     ax = fig.axes
 
     if filename:
+        if type(filename) != str:
+            filename = str(filename)
         plt.savefig(filename)
     return fig, ax

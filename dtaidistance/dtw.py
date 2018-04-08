@@ -74,7 +74,8 @@ def distance(s1, s2, window=None, max_dist=None,
     Dynamic Time Warping (keep compact matrix)
     :param s1: First sequence
     :param s2: Second sequence
-    :param window: Only allow for shifts up to this amount away from the two diagonals
+    :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
+        It includes the diagonal, meaning that an Euclidean distance is obtained by setting weight=1.
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
@@ -229,7 +230,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param psi: Psi relaxation parameter (ignore start and end of matching).
         Useful for cyclical series.
 
-    Returns: DTW distance, DTW matrix
+    Returns: (DTW distance, DTW matrix)
     """
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
@@ -484,30 +485,30 @@ def _print_library_missing():
                  "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
 
 
-def best_path(dist):
+def best_path(paths):
     """Compute the optimal path from the nxm dists matrix."""
-    i, j = int(dist.shape[0] - 1), int(dist.shape[1] - 1)
+    i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
     p = []
-    if dist[i, j] != -1:
+    if paths[i, j] != -1:
         p.append((i - 1, j - 1))
     while i > 0 and j > 0:
-        c = np.argmin([dist[i - 1, j - 1], dist[i - 1, j], dist[i, j - 1]])
+        c = np.argmin([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         if c == 0:
             i, j = i - 1, j - 1
         elif c == 1:
             i = i - 1
         elif c == 2:
             j = j - 1
-        if dist[i, j] != -1:
+        if paths[i, j] != -1:
             p.append((i - 1, j - 1))
     p.pop()
     p.reverse()
     return p
 
 
-def best_path2(dists):
+def best_path2(paths):
     """Compute the optimal path from the nxm dists matrix."""
-    m = dists
+    m = paths
     path = []
     r, c = m.shape
     r -= 1
