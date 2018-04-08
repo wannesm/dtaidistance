@@ -43,6 +43,7 @@ class PrepReadme(Command):
     @staticmethod
     def run_pandoc():
         import subprocess as sp
+        print("running pandoc")
         sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
 
 

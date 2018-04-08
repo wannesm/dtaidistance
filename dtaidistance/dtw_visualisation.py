@@ -1,5 +1,5 @@
 """
-dtaidistance.dtw - Dynamic Time Warping
+dtaidistance.dtw_visualization - Dynamic Time Warping Visualizations
 
 __author__ = "Wannes Meert"
 __copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"

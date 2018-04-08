@@ -57,3 +57,7 @@ deploy: prepare_dist
 	git tag "v$$(python3 setup.py --version)"
 	@echo "Start uploading"
 	twine upload dist/*
+
+.PHONY: docs
+docs:
+	export PYTHONPATH=..; cd docs; make html

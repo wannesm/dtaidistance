@@ -72,6 +72,7 @@ def distance(s1, s2, window=None, max_dist=None,
              use_c=False):
     """
     Dynamic Time Warping (keep compact matrix)
+
     :param s1: First sequence
     :param s2: Second sequence
     :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
@@ -219,7 +220,8 @@ def _distance_c_with_params(t):
 def warping_paths(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None,):
     """
-    Dynamic Time Warping (keep full matrix)
+    Dynamic Time Warping (keep full matrix).
+
     :param s1: First sequence
     :param s2: Second sequence
     :param window: Only allow for shifts up to this amount away from the two diagonals
@@ -229,8 +231,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param penalty: Penalty to add if compression or expansion is applied
     :param psi: Psi relaxation parameter (ignore start and end of matching).
         Useful for cyclical series.
-
-    Returns: (DTW distance, DTW matrix)
+    :returns: (DTW distance, DTW matrix)
     """
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
