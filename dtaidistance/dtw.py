@@ -1,37 +1,23 @@
 """
-dtaidistance.dtw - Dynamic Time Warping
+dtaidistance.dtw
+~~~~~~~~~~~~~~~~
 
-__author__ = "Wannes Meert"
-__copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"
-__license__ = "APL"
+Dynamic Time Warping (DTW)
 
-..
-    Part of the DTAI distance code.
+:author: Wannes Meert
+:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
 
-    Copyright 2016 KU Leuven, DTAI Research Group
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
 """
 import os
 import logging
 import math
 import numpy as np
 
-from .util import SeriesContainer
+from .util import SeriesContainer, dtaidistance_dir
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
-dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
 
 try:
     from . import dtw_c
@@ -49,7 +35,7 @@ except ImportError:
 def lb_keogh(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None):
     """Lowerbound LB_KEOGH"""
-    # TODO: This implementation slower than distance() itself
+    # TODO: This implementation slower than distance() in C
     if window is None:
         window = max(len(s1), len(s2))
 
@@ -71,7 +57,9 @@ def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
              use_c=False):
     """
-    Dynamic Time Warping (keep compact matrix)
+    Dynamic Time Warping.
+
+    This function keeps a compact matrix, not the full warping paths matrix.
 
     :param s1: First sequence
     :param s2: Second sequence
@@ -184,7 +172,7 @@ def distance(s1, s2, window=None, max_dist=None,
 
 def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None):
-    """Fast C version of distance()"""
+    """Fast C version of :meth:`distance`."""
     if dtw_c is None:
         _print_library_missing()
         return None
@@ -220,17 +208,18 @@ def _distance_c_with_params(t):
 def warping_paths(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None,):
     """
-    Dynamic Time Warping (keep full matrix).
+    Dynamic Time Warping.
+
+    The full matrix of all warping paths is build.
 
     :param s1: First sequence
     :param s2: Second sequence
-    :param window: Only allow for shifts up to this amount away from the two diagonals
-    :param max_dist: Stop if the returned values will be larger than this value
-    :param max_step: Do not allow steps larger than this value
-    :param max_length_diff: Return infinity if length of two series is larger
-    :param penalty: Penalty to add if compression or expansion is applied
-    :param psi: Psi relaxation parameter (ignore start and end of matching).
-        Useful for cyclical series.
+    :param window: see :meth:`distance`
+    :param max_dist: see :meth:`distance`
+    :param max_step: see :meth:`distance`
+    :param max_length_diff: see :meth:`distance`
+    :param penalty: see :meth:`distance`
+    :param psi: see :meth:`distance`
     :returns: (DTW distance, DTW matrix)
     """
     r, c = len(s1), len(s2)
@@ -332,11 +321,12 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
-    :param window: Only allow for shifts up to this amount away from the two diagonals
-    :param max_dist: Stop if the returned values will be larger than this value
-    :param max_step: Do not allow steps larger than this value
-    :param max_length_diff: Return infinity if length of two series is larger
-    :param penalty: Penalty to add if compression or expansion is applied
+    :param window: see :meth:`distance`
+    :param max_dist: see :meth:`distance`
+    :param max_step: see :meth:`distance`
+    :param max_length_diff: see :meth:`distance`
+    :param penalty: see :meth:`distance`
+    :param psi: see :meth:`distance`
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
         only compare rows 0:10 with rows 20:25.
     :param parallel: Use parallel operations
@@ -451,7 +441,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, parallel=True, show_progress=False):
-    """Fast C version of distance_matrix()"""
+    """Fast C version of :meth:`distance_matrix`."""
     if dtw_c is None:
         _print_library_missing()
         return None
@@ -462,6 +452,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
 
 
 def warping_path(from_s, to_s, **kwargs):
+    """Compute warping path between two sequences."""
     dist, paths = warping_paths(from_s, to_s, **kwargs)
     path = best_path(paths)
     return path
@@ -469,7 +460,8 @@ def warping_path(from_s, to_s, **kwargs):
 
 def warp(from_s, to_s, **kwargs):
     """Warp a function to optimally match a second function.
-    Same options as warping_paths().
+
+    Same options as :meth:`warping_paths`.
     """
     path = warping_path(from_s, to_s, **kwargs)
     from_s2 = np.zeros(len(to_s))
@@ -487,7 +479,7 @@ def _print_library_missing():
 
 
 def best_path(paths):
-    """Compute the optimal path from the nxm dists matrix."""
+    """Compute the optimal path from the nxm warping paths matrix."""
     i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
     p = []
     if paths[i, j] != -1:
@@ -508,7 +500,7 @@ def best_path(paths):
 
 
 def best_path2(paths):
-    """Compute the optimal path from the nxm dists matrix."""
+    """Compute the optimal path from the nxm warping paths matrix."""
     m = paths
     path = []
     r, c = m.shape

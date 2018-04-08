@@ -14,21 +14,24 @@ Citing this work: |DOI|
 
 Source available on https://github.com/wannesm/dtaidistance.
 
+
+
 .. toctree::
+   :caption: Usage
    :maxdepth: 2
-   :caption: Contents:
 
    usage/installation
    usage/dtw
    usage/clustering
 
 
-Modules
-=======
 
 .. toctree::
+   :caption: Modules
+
    modules/dtw
    modules/dtw_visualisation
+   modules/clustering
 
 
 Indices and tables

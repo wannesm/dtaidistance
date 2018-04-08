@@ -22,6 +22,7 @@ __license__ = "APL"
     See the License for the specific language governing permissions and
     limitations under the License.
 """
+import os
 import logging
 from array import array
 from pathlib import Path
@@ -29,6 +30,9 @@ import numpy as np
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+
+
+dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
 
 
 class SeriesContainer:

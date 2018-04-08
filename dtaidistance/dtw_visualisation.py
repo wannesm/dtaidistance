@@ -1,34 +1,22 @@
 """
-dtaidistance.dtw_visualization - Dynamic Time Warping Visualizations
+dtaidistance.dtw_visualisation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-__author__ = "Wannes Meert"
-__copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"
-__license__ = "APL"
+Dynamic Time Warping (DTW) visualisations.
 
-..
-    Part of the DTAI distance code.
+:author: Wannes Meert
+:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
 
-    Copyright 2016 KU Leuven, DTAI Research Group
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
 """
 import os
 import logging
 import math
 import numpy as np
 
+from .util import dtaidistance_dir
+
 logger = logging.getLogger("be.kuleuven.dtai.distance")
-dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
 
 try:
     from . import dtw_c
@@ -46,6 +34,12 @@ except ImportError:
 def plot_warp(from_s, to_s, new_s, path, filename=None):
     """Plot the warped sequence and its relation to the original sequence
     and the target sequence.
+
+    :param from_s: From sequence.
+    :param to_s: To sequence.
+    :param new_s: Warped version of from sequence.
+    :param path: Optimal warping path.
+    :param filename: Filename path (optional).
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -106,13 +100,15 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False):
+def plot_warpingpaths(s1, s2, paths, path, filename=None, shownumbers=False):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
     :param s2: Series 2
     :param paths: Warping paths matrix
-    :param filename: Filename to write the image to
+    :param path: Path to draw (typically this is the best path)
+    :param filename: Filename for the image (optional)
+    :param shownumbers: Show distances also as numbers
     """
     from matplotlib import pyplot as plt
     from matplotlib import gridspec
@@ -133,7 +129,7 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False
     min_s1_x = np.min(s1)
     max_s1_y = len(s1)
 
-    p = best_path
+    p = path
 
     def format_fn2_x(tick_val, tick_pos):
         return max_s2_x - tick_val
@@ -175,9 +171,10 @@ def plot_warpingpaths(s1, s2, paths, best_path, filename=None, shownumbers=False
     ax3.plot(px, py, ".-", color="red")
     # ax3.xaxis.set_major_locator(plt.NullLocator())
     # ax3.yaxis.set_major_locator(plt.NullLocator())
-    for r in range(1, paths.shape[0]):
-        for c in range(1, paths.shape[1]):
-            ax3.text(c - 1, r - 1, "{:.2f}".format(paths[r, c]))
+    if shownumbers:
+        for r in range(1, paths.shape[0]):
+            for c in range(1, paths.shape[1]):
+                ax3.text(c - 1, r - 1, "{:.2f}".format(paths[r, c]))
 
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
     # fig.subplots_adjust(hspace=0, wspace=0)

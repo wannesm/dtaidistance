@@ -1,26 +1,13 @@
 """
-dtaidistance.clustering - Clustering algorithms for Time Series
+dtaidistance.clustering
+~~~~~~~~~~~~~~~~~~~~~~~
 
-__author__ = "Wannes Meert"
-__copyright__ = "Copyright 2017 KU Leuven, DTAI Research Group"
-__license__ = "APL"
+Time series clustering.
 
-..
-    Part of the DTAI distance code.
+:author: Wannes Meert
+:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
 
-    Copyright 2017 KU Leuven, DTAI Research Group
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
 """
 import logging
 import math
@@ -42,21 +29,22 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 class Hierarchical:
+    """Hierarchical clustering.
+
+    Note: This method first computes the entire distance matrix. This is not ideal for extremely large
+    data sets.
+
+    :param dists_fun: Function to compute pairwise distance matrix between set of series.
+    :param dists_options: Arguments to pass to dists_fun.
+    :param max_dist: Do not merge or cluster series that are further apart than this.
+    :param merge_hook: Function that is called when two series are clustered.
+        The function definition is `def merge_hook(from_idx, to_idx, distance)`, where idx is the index of the series.
+    :param order_hook: Function that is called to decide on the next idx out of all shortest distances
+    :param show_progress: Use a tqdm progress bar
+    """
+
     def __init__(self, dists_fun, dists_options, max_dist=np.inf,
                  merge_hook=None, order_hook=None, show_progress=True):
-        """Hierarchical clustering.
-
-        Note: This method first computes the entire distance matrix. This is not ideal for extremely large
-        data sets.
-
-        :param dists_fun: Function to compute pairwise distance matrix between set of series.
-        :param dists_options: Arguments to pass to dists_fun.
-        :param max_dist: Do not merge or cluster series that are further apart than this.
-        :param merge_hook: Function that is called when two series are clustered.
-            The function definition is `def merge_hook(from_idx, to_idx, distance)`, where idx is the index of the series.
-        :param order_hook: Function that is called to decide on the next idx out of all shortest distances
-        :param show_progress: Use a tqdm progress bar
-        """
         self.dists_fun = dists_fun
         self.dists_options = dists_options
         self.max_dist = max_dist
@@ -142,16 +130,19 @@ class Hierarchical:
 
 
 class BaseTree:
+    """Base Tree abstract class.
 
-    def __init__(self):
-        """
+    Returns a datastructure compatible with the Scipy clustering methods:
 
-        https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html:
-        A (n-1) by 4 matrix Z is returned. At the i-th iteration, clusters with indices Z[i, 0] and Z[i, 1] are
-        combined to form cluster n + i. A cluster with an index less than n corresponds to one of the original
-        observations. The distance between clusters Z[i, 0] and Z[i, 1] is given by Z[i, 2]. The fourth value
-        Z[i, 3] represents the number of original observations in the newly formed cluster.
-        """
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+
+    A (n-1) by 4 matrix Z is returned. At the i-th iteration, clusters with indices Z[i, 0] and Z[i, 1] are
+    combined to form cluster n + i. A cluster with an index less than n corresponds to one of the original
+    observations. The distance between clusters Z[i, 0] and Z[i, 1] is given by Z[i, 2]. The fourth value
+    Z[i, 3] represents the number of original observations in the newly formed cluster.
+    """
+
+    def __init__(self, **kwargs):
         self.linkage = None
         self.series = None
         self._series_y = None
@@ -335,13 +326,18 @@ class BaseTree:
 
 
 class HierarchicalTree(BaseTree):
-    def __init__(self, model, *args, **kwargs):
-        """Wrapper to keep track of the full tree that represents the hierarchical clustering.
+    """Wrapper to keep track of the full tree that represents the hierarchical clustering.
 
-        :param model: Clustering object. For example of type `Hierarchical`.
-        """
-        self._model = model
-        super().__init__(*args, **kwargs)
+    :param model: Clustering object. For example of class :class:`Hierarchical`.
+        If no model is given, the arguments are identical to those of class :class:`Hierarchical`.
+    """
+
+    def __init__(self, model=None, **kwargs):
+        if model is None:
+            self._model = Hierarchical(**kwargs)
+        else:
+            self._model = model
+        super().__init__(**kwargs)
         self._model.max_dist = np.inf
 
     def fit(self, series, *args, **kwargs):
@@ -373,13 +369,14 @@ class HierarchicalTree(BaseTree):
 
 
 class LinkageTree(BaseTree):
-    def __init__(self, dists_fun, dists_options):
-        """Hierarchical clustering using the Scipy linkage function.
+    """Hierarchical clustering using the Scipy linkage function.
 
-        This is the same but faster algorithm as available in Hierarchical (~10 times faster). But with less
-        options to steer the clustering (e.g. no possibility to give weights). It still computes the entire
-        distance matrix first and is thus not ideal for extremely large data sets.
-        """
+    This is the same but faster algorithm as available in Hierarchical (~10 times faster). But with less
+    options to steer the clustering (e.g. no possibility to give weights). It still computes the entire
+    distance matrix first and is thus not ideal for extremely large data sets.
+    """
+
+    def __init__(self, dists_fun, dists_options):
         super().__init__()
         self.dists_fun = dists_fun
         self.dists_options = dists_options

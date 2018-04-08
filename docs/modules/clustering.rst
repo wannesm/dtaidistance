@@ -1,0 +1,4 @@
+
+
+.. automodule:: dtaidistance.clustering
+   :members:

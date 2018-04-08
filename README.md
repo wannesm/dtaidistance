@@ -90,13 +90,16 @@ If, next to the distance, you also want the full matrix to see all possible warp
 The matrix with all warping paths can be visualised as follows:
 
     from dtaidistance import dtw
+    import dtaidistance.dtw_visualisation as dtwvis
+    import numpy as np
     x = np.arange(0, 20, .5)
     s1 = np.sin(x)
     s2 = np.sin(x - 1)
-    d, paths = dtw.warping_paths(s1, s2, psi=2)
-    dtw.plot_warpingpaths(s1, s2, paths)
+    d, paths = dtw.warping_paths(s1, s2, window=25, psi=2)
+    best_path = dtw.best_path(paths)
+    dtwvis.plot_warpingpaths(s1, s2, paths, best_path)
 
-![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=1)
+![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=2)
 
 Notice the `psi` parameter that relaxes the matching at the beginning and end.
 In this example this results in a perfect match even though the sine waves are slightly shifted.
