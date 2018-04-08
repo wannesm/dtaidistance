@@ -161,10 +161,11 @@ A distance matrix can be used for time series clustering. You can use existing m
 `scipy.cluster.hierarchy.linkage` or one of two included clustering methods (the latter is a
 wrapper for the SciPy linkage method).
 
+    from dtaidistance import clustering
     # Custom Hierarchical clustering
     model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
-    # Keep track of full tree
-    model2 = clustering.HierarchicalTree(model)
+    # Augment Hierarchical object to keep track of the full tree
+    model2 = clustering.HierarchicalTree(model1)
     # SciPy linkage clustering
     model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
     cluster_idx = model3.fit(series)
