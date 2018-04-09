@@ -124,7 +124,7 @@ if os.path.exists(readme_path):
     with open(readme_path, 'r') as f:
         long_description = f.read()
 else:
-    with open(os.path.join(here, 'README.md'), 'r') as f:
+    with open(os.path.join(here, 'README.md'), 'r',encoding='utf-8') as f:
         long_description = f.read()
 
 setup(
