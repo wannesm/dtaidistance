@@ -24,7 +24,7 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
 
 ### Dynamic Time Warping (DTW) Distance Measure
 
-   from dtaidistance import dtw
+from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwv
 import numpy as np
 s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
