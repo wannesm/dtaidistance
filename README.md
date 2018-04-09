@@ -24,12 +24,13 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
 
 ### Dynamic Time Warping (DTW) Distance Measure
 
-    from dtaidistance import dtw
-    import numpy as np
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
-    s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
-    path = dtw.warping_path(s1, s2)
-    dtw.plot_warping(s1, s2, path, filename="warp.png")
+   from dtaidistance import dtw
+from dtaidistance import dtw_visualisation as dtwv
+import numpy as np
+s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
+path = dtw.warping_path(s1, s2)
+dtwv.plot_warping(s1, s2, path, filename="warp.png")
 
 ![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=3)
 
