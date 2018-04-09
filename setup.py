@@ -15,7 +15,7 @@ import re
 
 try:
     import numpy
-    np_include_dirs = numpy.get_include()
+    np_include_dirs = [numpy.get_include()]
 except ImportError:
     numpy = None
     np_include_dirs = []
