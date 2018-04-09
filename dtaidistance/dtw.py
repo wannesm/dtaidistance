@@ -474,8 +474,8 @@ def warp(from_s, to_s, **kwargs):
 
 
 def _print_library_missing():
-    logger.error("The compiled dtaidistance c library is not available.\n" +
-                 "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
+    logger.error("The compiled dtaidistance C library is not available.\n" +
+                 "See the documentation for alternative installation options.")
 
 
 def best_path(paths):

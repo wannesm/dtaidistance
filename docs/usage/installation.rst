@@ -10,9 +10,7 @@ This packages is available on PyPI:
 
     $ pip install dtaidistance
 
-In case the C based version is not available, you might need to run
-``make build`` or ``python3 setup.py build_ext --inplace`` to compile the
-included library first.
+In case the C based version is not available, you might need to install from source.
 
 
 From Github
