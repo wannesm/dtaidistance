@@ -8,11 +8,17 @@ from setuptools.extension import Extension
 from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
-import numpy
 import platform
 import os
 import sys
 import re
+
+try:
+    import numpy
+    np_include_dirs = numpy.get_include()
+except ImportError:
+    numpy = None
+    np_include_dirs = []
 
 try:
     from Cython.Build import cythonize
@@ -96,15 +102,17 @@ if platform.system() == 'Darwin':
         extra_compile_args += ['-fopenmp']
         extra_link_args += ['-fopenmp']
 
-if cythonize:
+if cythonize is not None and numpy is not None:
     ext_modules = cythonize([
         Extension(
             "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
-            include_dirs=[numpy.get_include()],
+            include_dirs=np_include_dirs,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args)])
+elif numpy is None:
+    print("Numpy was not found, preparing a pure Python version.")
 else:
-    print("Cython was not found, building a pure Python version.")
+    print("Cython was not found, preparing a pure Python version.")
     ext_modules = []
     # ext_modules = [
     #     Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
