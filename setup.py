@@ -111,6 +111,7 @@ if cythonize is not None and numpy is not None:
             extra_link_args=extra_link_args)])
 elif numpy is None:
     print("Numpy was not found, preparing a pure Python version.")
+    ext_modules = []
 else:
     print("Cython was not found, preparing a pure Python version.")
     ext_modules = []
