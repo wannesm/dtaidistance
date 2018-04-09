@@ -154,6 +154,9 @@ setup(
     packages=["dtaidistance"],
     install_requires=install_requires,
     tests_require=tests_require,
+    package_data={
+        '': ['*.pyx', '*.pxd'],
+    },
     cmdclass={
         'test': PyTest,
         'readme': PrepReadme,
