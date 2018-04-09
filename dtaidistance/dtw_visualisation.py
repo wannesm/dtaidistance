@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 dtaidistance.dtw_visualisation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,8 +42,12 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
     """
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+    except ImportError:
+        logger.error("The plot_warp function requires the matplotlib package to be installed.")
+        return
     fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
     ax[0].plot(from_s, label="From")
     ax[0].legend()

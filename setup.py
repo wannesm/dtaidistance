@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 """
  python3 setup.py build_ext --inplace
 """
@@ -44,7 +45,11 @@ class PrepReadme(Command):
     def run_pandoc():
         import subprocess as sp
         print("running pandoc")
-        sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
+        try:
+            sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
+        except sp.CalledProcessError as err:
+            print("Pandoc failed, Mardown format will be used.")
+            print(err)
 
 
 class PyTest(TestCommand):
@@ -99,6 +104,7 @@ if cythonize:
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args)])
 else:
+    print("Cython was not found, building a pure Python version.")
     ext_modules = []
     # ext_modules = [
     #     Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
@@ -125,7 +131,7 @@ if os.path.exists(readme_path):
     with open(readme_path, 'r') as f:
         long_description = f.read()
 else:
-    with open(os.path.join(here, 'README.md'), 'r') as f:
+    with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
         long_description = f.read()
 
 setup(
@@ -154,9 +160,4 @@ setup(
     ),
     keywords='dtw',
     ext_modules=ext_modules
-    # entry_points={
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #     ],
-    # },
 )

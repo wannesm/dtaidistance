@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 dtaidistance.clustering
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -10,9 +11,8 @@ Time series clustering.
 
 """
 import logging
-import math
 from pathlib import Path
-from collections import defaultdict, namedtuple, deque
+from collections import deque
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
@@ -382,8 +382,14 @@ class LinkageTree(BaseTree):
         self.dists_options = dists_options
 
     def fit(self, series):
-        from scipy.cluster.hierarchy import linkage
         self.series = SeriesContainer.wrap(series)
+        try:
+            from scipy.cluster.hierarchy import linkage
+        except ImportError:
+            logger.error("The LinkageTree class requires the scipy package to be installed.")
+            self.linkage = None
+            linkage = None
+            return
         dists = self.dists_fun(self.series, **self.dists_options)
         dists_cond = np.zeros(self._size_cond(len(series)))
         idx = 0
