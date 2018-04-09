@@ -122,7 +122,6 @@ else:
     #               extra_link_args=extra_link_args)]
 
 install_requires = ['numpy', 'cython']
-setup_requires = install_requires
 tests_require = ['pytest']
 
 with open('dtaidistance/__init__.py', 'r') as fd:
@@ -154,7 +153,6 @@ setup(
     url='https://dtai.cs.kuleuven.be',
     packages=["dtaidistance"],
     install_requires=install_requires,
-    setup_requires=setup_requires,
     tests_require=tests_require,
     cmdclass={
         'test': PyTest,
