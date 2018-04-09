@@ -1,5 +1,5 @@
-Dynamic Time Warping (DTW) Distance Measure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Dynamic Time Warping (DTW)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
@@ -71,8 +71,8 @@ computation:
 -  ``psi``: Psi relaxation to ignore begin and/or end of sequences (for
    cylical sequencies) [2].
 
-DTW Distance Measure all warping paths
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW and keep all warping paths
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If, next to the distance, you also want the full matrix to see all
 possible warping paths:
@@ -108,8 +108,8 @@ Notice the ``psi`` parameter that relaxes the matching at the beginning
 and end. In this example this results in a perfect match even though the
 sine waves are slightly shifted.
 
-DTW Distance Measures Between Set of Series
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW between set of series
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To compute the DTW distance measures between all sequences in a list of
 sequences, use the method ``dtw.distance_matrix``. You can set variables
@@ -140,8 +140,8 @@ or a matrix (in case all series have the same length):
         [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
     ds = dtw.distance_matrix_fast(s)
 
-DTW Distance Measures Between Set of Series, limited to block
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW between set of series, limited to block
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can instruct the computation to only fill part of the distance
 measures matrix. For example to distribute the computations over
