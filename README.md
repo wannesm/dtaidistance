@@ -14,8 +14,7 @@ This packages is available on PyPI:
 
     $ pip install dtaidistance
 
-In case the C based version is not available, you might need to run `make build` or
-`python setup.py build_ext --inplace` to compile the included library first.
+In case the C based version is not available, see the documentation for alternative installation options.
 
 The source code is available at [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
