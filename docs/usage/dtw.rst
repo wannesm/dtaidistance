@@ -126,7 +126,7 @@ The ``distance_matrix`` method expects a list of lists/arrays:
         np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
         np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
         np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
-    ds = dtw.distance_matrix_fast(s)
+    ds = dtw.distance_matrix_fast(series)
 
 or a matrix (in case all series have the same length):
 
@@ -138,7 +138,7 @@ or a matrix (in case all series have the same length):
         [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
         [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
         [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
-    ds = dtw.distance_matrix_fast(s)
+    ds = dtw.distance_matrix_fast(series)
 
 DTW between set of series, limited to block
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -158,7 +158,7 @@ multiple nodes, or to only compare source series to target series.
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1]])
-    ds = dtw.distance_matrix_fast(s, block=((1, 4), (3, 5)))
+    ds = dtw.distance_matrix_fast(series, block=((1, 4), (3, 5)))
 
 The output in this case will be:
 
