@@ -330,7 +330,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
         only compare rows 0:10 with rows 20:25.
     :param parallel: Use parallel operations
-    :param use_c: Use c compiled Python functions
+    :param use_c: Use c compiled Python functions (it is recommended to use use_nogil)
     :param use_nogil: Use pure c functions
     :param show_progress: Show progress using the tqdm library
     """
