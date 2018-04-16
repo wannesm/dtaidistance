@@ -3,6 +3,10 @@
 Library for time series distances (e.g. Dynamic Time Warping) used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
 The library offers a pure Python implementation and a faster implementation in C.
 
+Documentation: http://dtaidistance.readthedocs.io
+
+Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
+
 
 ## Installation
 
@@ -10,8 +14,7 @@ This packages is available on PyPI:
 
     $ pip install dtaidistance
 
-In case the C based version is not available, you might need to run `make build` or
-`python setup.py build_ext --inplace` to compile the included library first.
+In case the C based version is not available, see the documentation for alternative installation options.
 
 The source code is available at [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
@@ -21,11 +24,12 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
 ### Dynamic Time Warping (DTW) Distance Measure
 
     from dtaidistance import dtw
+    from dtaidistance import dtw_visualisation as dtwvis
     import numpy as np
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
     s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
     path = dtw.warping_path(s1, s2)
-    dtw.plot_warping(s1, s2, path, filename="warp.png")
+    dtwvis.plot_warping(s1, s2, path, filename="warp.png")
 
 ![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=3)
 
@@ -86,13 +90,16 @@ If, next to the distance, you also want the full matrix to see all possible warp
 The matrix with all warping paths can be visualised as follows:
 
     from dtaidistance import dtw
+    from dtaidistance import dtw_visualisation as dtwvis
+    import numpy as np
     x = np.arange(0, 20, .5)
     s1 = np.sin(x)
     s2 = np.sin(x - 1)
-    d, paths = dtw.warping_paths(s1, s2, psi=2)
-    dtw.plot_warpingpaths(s1, s2, paths)
+    d, paths = dtw.warping_paths(s1, s2, window=25, psi=2)
+    best_path = dtw.best_path(paths)
+    dtwvis.plot_warpingpaths(s1, s2, paths, best_path)
 
-![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=1)
+![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=2)
 
 Notice the `psi` parameter that relaxes the matching at the beginning and end.
 In this example this results in a perfect match even though the sine waves are slightly shifted.
@@ -112,7 +119,7 @@ The `distance_matrix` method expects a list of lists/arrays:
         np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
         np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
         np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
-    ds = dtw.distance_matrix_fast(s)
+    ds = dtw.distance_matrix_fast(series)
 
 or a matrix (in case all series have the same length):
 
@@ -122,7 +129,7 @@ or a matrix (in case all series have the same length):
         [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
         [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
         [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
-    ds = dtw.distance_matrix_fast(s)
+    ds = dtw.distance_matrix_fast(series)
 
 
 #### DTW Distance Measures Between Set of Series, limited to block
@@ -140,7 +147,7 @@ compare source series to target series.
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1]])
-    ds = dtw.distance_matrix_fast(s, block=((1, 4), (3, 5)))
+    ds = dtw.distance_matrix_fast(series, block=((1, 4), (3, 5)))
 
 The output in this case will be:
 
@@ -159,10 +166,11 @@ A distance matrix can be used for time series clustering. You can use existing m
 `scipy.cluster.hierarchy.linkage` or one of two included clustering methods (the latter is a
 wrapper for the SciPy linkage method).
 
+    from dtaidistance import clustering
     # Custom Hierarchical clustering
     model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
-    # Keep track of full tree
-    model2 = clustering.HierarchicalTree(model)
+    # Augment Hierarchical object to keep track of the full tree
+    model2 = clustering.HierarchicalTree(model1)
     # SciPy linkage clustering
     model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
     cluster_idx = model3.fit(series)
@@ -199,13 +207,22 @@ Development:
 
 ## References
 
-1. Mueen, A and Keogh, E, 
+1. T. K. Vintsyuk,
+   Speech discrimination by dynamic programming.
+   Kibernetika, 4:81–88, 1968.
+2. H. Sakoe and S. Chiba,
+   Dynamic programming algorithm optimization for spoken word recognition.
+   IEEE Transactions on Acoustics, Speech and Signal Processing, 26(1):43–49, 1978.
+3. C. S. Myers and L. R. Rabiner,
+   A comparative study of several dynamic time-warping algorithms for connected-word recognition.
+   The Bell System Technical Journal, 60(7):1389–1409, Sept 1981.
+4. Mueen, A and Keogh, E, 
    [Extracting Optimal Performance from Dynamic Time Warping](http://www.cs.unm.edu/~mueen/DTW.pdf),
    Tutorial, KDD 2016
-2. D. F. Silva, G. E. d. A. P. A. Batista, and E. Keogh.
+5. D. F. Silva, G. E. A. P. A. Batista, and E. Keogh.
    [On the effect of endpoints on dynamic time warping](http://www-bcf.usc.edu/~liu32/milets16/paper/MiLeTS_2016_paper_7.pdf),
    In SIGKDD Workshop on Mining and Learning from Time Series, II. Association for Computing Machinery-ACM, 2016.
-3. C. Yanping, K. Eamonn, H. Bing, B. Nurjahan, B. Anthony, M. Abdullah and B. Gustavo.
+6. C. Yanping, K. Eamonn, H. Bing, B. Nurjahan, B. Anthony, M. Abdullah and B. Gustavo.
    [The UCR Time Series Classification Archive](www.cs.ucr.edu/~eamonn/time_series_data/), 2015.
 
 
@@ -213,7 +230,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2017 KU Leuven, DTAI Research Group
+    Copyright 2016-2018 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

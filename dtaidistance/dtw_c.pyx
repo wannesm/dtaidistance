@@ -1,27 +1,16 @@
+# -*- coding: UTF-8 -*-
 """
-dtaidistance.dtw_c - Dynamic Time Warping
+dtaidistance.dtw_c
+~~~~~~~~~~~~~~~~~~
 
-__author__ = "Wannes Meert"
-__copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"
-__license__ = "APL"
+Dynamic Time Warping (DTW), C implementation.
 
-..
-    Part of the DTAI distance code.
+:author: Wannes Meert
+:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
 
-    Copyright 2016 KU Leuven, DTAI Research Group
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
 """
+import logging
 import math
 import numpy as np
 cimport numpy as np
@@ -31,9 +20,13 @@ import ctypes
 from cpython cimport array, bool
 from cython import parallel
 from cython.parallel import parallel, prange
-from libc.stdlib cimport abort, malloc, free, abs
+from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdio cimport printf
 from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, pow
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
+
 
 DTYPE = np.double
 ctypedef np.double_t DTYPE_t
@@ -145,9 +138,13 @@ def distance_nogil(double[:] s1, double[:] s2,
     # If the arrays (memoryviews) are not C contiguous, the pointer will not point to the correct array
     if isinstance(s1, (np.ndarray, np.generic)):
         if not s1.base.flags.c_contiguous:
+            logger.debug("Warning: Sequence 1 passed to method distance is not C-contiguous. " +
+                         "The sequence will be copied.")
             s1 = s1.copy()
     if isinstance(s2, (np.ndarray, np.generic)):
         if not s2.base.flags.c_contiguous:
+            logger.debug("Warning: Sequence 2 passed to method distance is not C-contiguous. " +
+                         "The sequence will be copied.")
             s2 = s2.copy()
     return distance_nogil_c(&s1[0], &s2[0], len(s1), len(s2),
                             window, max_dist, max_step, max_length_diff, penalty, psi)
@@ -317,7 +314,7 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=0,
     cdef np.ndarray[DTYPE_t, ndim=2] dists = np.zeros((len(cur), len(cur))) + large_value
     for r in range(block[0][0], block[0][1]):
         for c in range(max(r + 1, block[1][0]), block[1][1]):
-            if abs(len(cur[r]) - len(cur[c])) <= max_length_diff:
+            if labs(len(cur[r]) - len(cur[c])) <= max_length_diff:
                 dists[r, c] = distance(cur[r], cur[c], window=window,
                                        max_dist=max_dist, max_step=max_step,
                                        max_length_diff=max_length_diff,
@@ -364,6 +361,8 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
             cur2_len[i] = len(cur[i])
     elif isinstance(cur, np.ndarray):
         if not cur.flags.c_contiguous:
+            logger.debug("Warning: The numpy array or matrix passed to method distance_matrix is not C-contiguous. " +
+                         "The array will be copied.")
             cur = cur.copy(order='C')
         cur_np = cur
         for i in range(len(cur)):

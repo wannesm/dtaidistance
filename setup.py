@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 """
  python3 setup.py build_ext --inplace
 """
@@ -7,11 +8,17 @@ from setuptools.extension import Extension
 from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
-import numpy
 import platform
 import os
 import sys
 import re
+
+try:
+    import numpy
+    np_include_dirs = [numpy.get_include()]
+except ImportError:
+    numpy = None
+    np_include_dirs = []
 
 try:
     from Cython.Build import cythonize
@@ -43,7 +50,12 @@ class PrepReadme(Command):
     @staticmethod
     def run_pandoc():
         import subprocess as sp
-        sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
+        print("running pandoc")
+        try:
+            sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
+        except sp.CalledProcessError as err:
+            print("Pandoc failed, Mardown format will be used.")
+            print(err)
 
 
 class PyTest(TestCommand):
@@ -90,14 +102,18 @@ if platform.system() == 'Darwin':
         extra_compile_args += ['-fopenmp']
         extra_link_args += ['-fopenmp']
 
-if cythonize:
+if cythonize is not None and numpy is not None:
     ext_modules = cythonize([
         Extension(
             "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
-            include_dirs=[numpy.get_include()],
+            include_dirs=np_include_dirs,
             extra_compile_args=extra_compile_args,
             extra_link_args=extra_link_args)])
+elif numpy is None:
+    print("Numpy was not found, preparing a pure Python version.")
+    ext_modules = []
 else:
+    print("Cython was not found, preparing a pure Python version.")
     ext_modules = []
     # ext_modules = [
     #     Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
@@ -124,7 +140,7 @@ if os.path.exists(readme_path):
     with open(readme_path, 'r') as f:
         long_description = f.read()
 else:
-    with open(os.path.join(here, 'README.md'), 'r') as f:
+    with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
         long_description = f.read()
 
 setup(
@@ -138,6 +154,10 @@ setup(
     packages=["dtaidistance"],
     install_requires=install_requires,
     tests_require=tests_require,
+    include_package_data=True,
+    package_data={
+        '': ['*.pyx', '*.pxd'],
+    },
     cmdclass={
         'test': PyTest,
         'readme': PrepReadme,
@@ -153,9 +173,4 @@ setup(
     ),
     keywords='dtw',
     ext_modules=ext_modules
-    # entry_points={
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #     ],
-    # },
 )

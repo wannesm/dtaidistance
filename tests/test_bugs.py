@@ -146,9 +146,16 @@ def test_distance4():
     # print('healthy', np.mean(healthy), np.std(healthy))
     # print('faulty', np.mean(faulty), np.std(faulty))
     #
-    # Conclusion: Constant difference between to series will always have the diagonal as best solution and is thus
+    # Conclusion: Constant difference between two series will always have the diagonal as best solution and is thus
     #             equal to Euclidean distance. This is one of the reasons why normalisation is important for
     #             clustering.
+
+
+def test_distance6():
+    s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
+    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
+    d = dtw.distance_fast(s1, s2, window=2)
+    print(d)
 
 
 if __name__ == "__main__":
@@ -157,4 +164,4 @@ if __name__ == "__main__":
     # test_distance2_c()
     # test_distance3_a()
     # test_distance4()
-    test_distance5()
+    test_distance6()
