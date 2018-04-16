@@ -1,26 +1,14 @@
+# -*- coding: UTF-8 -*-
 """
-dtaidistance.dtw - Dynamic Time Warping
+dtaidistance.dtwndim
+~~~~~~~~~~~~~~~~~~~~
 
-__author__ = "Wannes Meert"
-__copyright__ = "Copyright 2016 KU Leuven, DTAI Research Group"
-__license__ = "APL"
+Dynamic Time Warping (DTW) for N-dimensional series.
 
-..
-    Part of the DTAI distance code.
+:author: Wannes Meert
+:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
 
-    Copyright 2016 KU Leuven, DTAI Research Group
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
 """
 import os
 import logging
@@ -43,52 +31,18 @@ except ImportError:
     tqdm = None
 
 
-def lb_keogh(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None):
-    """Lowerbound LB_KEOGH"""
-    # TODO: This implementation slower than distance() itself
-    if window is None:
-        window = max(len(s1), len(s2))
-
-    t = 0
-    for i in range(len(s1)):
-        imin = max(0, i - max(0, len(s1) - len(s2)) - window + 1)
-        imax = min(len(s2), i + max(0, len(s2) - len(s1)) + window)
-        ui = np.max(s2[imin:imax])
-        li = np.min(s2[imin:imax])
-        ci = s1[i]
-        if ci > ui:
-            t += abs(ci - ui)
-        else:
-            t += abs(ci - li)
-    return t
-
-
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
              use_c=False):
-    """
-    Dynamic Time Warping (keep compact matrix)
-    :param s1: First sequence
-    :param s2: Second sequence
-    :param window: Only allow for shifts up to this amount away from the two diagonals
-    :param max_dist: Stop if the returned values will be larger than this value
-    :param max_step: Do not allow steps larger than this value
-    :param max_length_diff: Return infinity if length of two series is larger
-    :param penalty: Penalty to add if compression or expansion is applied
-    :param psi: Psi relaxation parameter (ignore start and end of matching).
-        Useful for cyclical series.
-    :param use_c: Use fast pure c compiled functions
+    """Dynamic Time Warping (keep full matrix) using multidimensional sequences.
 
-    Returns: DTW distance
+    cost = EuclideanDistance(s1[i], s2[j])
+
+    See :method:`dtw.distance` for parameters.
     """
     if use_c:
-        return distance_fast(s1, s2, window,
-                             max_dist=max_dist,
-                             max_step=max_step,
-                             max_length_diff=max_length_diff,
-                             penalty=penalty,
-                             psi=psi)
+        logger.error("No C version implemented (yet)")
+        return
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
@@ -177,56 +131,18 @@ def distance(s1, s2, window=None, max_dist=None,
     return d
 
 
-def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None):
-    """Fast C version of distance()"""
-    if dtw_c is None:
-        _print_library_missing()
-        return None
-    if window is None:
-        window = 0
-    if max_dist is None:
-        max_dist = 0
-    if max_step is None:
-        max_step = 0
-    if max_length_diff is None:
-        max_length_diff = 0
-    if penalty is None:
-        penalty = 0
-    if psi is None:
-        psi = 0
-    d = dtw_c.distance_nogil(s1, s2, window,
-                             max_dist=max_dist,
-                             max_step=max_step,
-                             max_length_diff=max_length_diff,
-                             penalty=penalty,
-                             psi=psi)
-    return d
-
-
 def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])
-
-
-def _distance_c_with_params(t):
-    return dtw_c.distance(t[0], t[1], **t[2])
 
 
 def warping_paths(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None,):
     """
-    Dynamic Time Warping (keep full matrix)
-    :param s1: First sequence
-    :param s2: Second sequence
-    :param window: Only allow for shifts up to this amount away from the two diagonals
-    :param max_dist: Stop if the returned values will be larger than this value
-    :param max_step: Do not allow steps larger than this value
-    :param max_length_diff: Return infinity if length of two series is larger
-    :param penalty: Penalty to add if compression or expansion is applied
-    :param psi: Psi relaxation parameter (ignore start and end of matching).
-        Useful for cyclical series.
+    Dynamic Time Warping (keep full matrix) using multidimensional sequences.
 
-    Returns: DTW distance, DTW matrix
+    cost = EuclideanDistance(s1[i], s2[j])
+
+    See :method:`dtw.warping_paths` for parameters.
     """
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
@@ -312,34 +228,17 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     return d, dtw
 
 
-def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_progress=False):
-    def distance_matrix_wrapper(seqs, **kwargs):
-        return distance_matrix(seqs, parallel=parallel, use_c=use_c,
-                               use_nogil=use_nogil,
-                               show_progress=show_progress, **kwargs)
-    return distance_matrix_wrapper
-
-
 def distance_matrix(s, max_dist=None, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, parallel=False,
-                    use_c=False, use_nogil=False, show_progress=False):
-    """Distance matrix for all sequences in s.
+                    use_c=False, show_progress=False):
+    """Dynamic Time Warping (keep full matrix) using multidimensional sequences.
 
-    :param s: Iterable of series
-    :param window: Only allow for shifts up to this amount away from the two diagonals
-    :param max_dist: Stop if the returned values will be larger than this value
-    :param max_step: Do not allow steps larger than this value
-    :param max_length_diff: Return infinity if length of two series is larger
-    :param penalty: Penalty to add if compression or expansion is applied
-    :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
-        only compare rows 0:10 with rows 20:25.
-    :param parallel: Use parallel operations
-    :param use_c: Use c compiled Python functions
-    :param use_nogil: Use pure c functions
-    :param show_progress: Show progress using the tqdm library
+    cost = EuclideanDistance(s1[i], s2[j])
+
+    See :method:`dtw.distance_matrix` for parameters.
     """
-    if parallel and (not use_c or not use_nogil):
+    if parallel and not use_c:
         try:
             import multiprocessing as mp
             logger.info('Using multiprocessing')
@@ -362,44 +261,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     large_value = np.inf
     logger.info('Computing distances')
     if use_c:
-        for k, v in dist_opts.items():
-            if v is None:
-                dist_opts[k] = 0.0
-    if use_c and use_nogil:
-        logger.info("Compute distances in pure C")
-        dist_opts['block'] = block
-        if parallel:
-            logger.info("Use parallel computation")
-            dists = dtw_c.distance_matrix_nogil_p(s, **dist_opts)
-        else:
-            logger.info("Use serial computation")
-            dists = dtw_c.distance_matrix_nogil(s, **dist_opts)
-    if use_c and not use_nogil:
-        logger.info("Compute distances in Python compiled C")
-        if parallel:
-            logger.info("Use parallel computation")
-            dists = np.zeros((len(s), len(s))) + large_value
-            if block is None:
-                idxs = np.triu_indices(len(s), k=1)
-            else:
-                idxsl_r = []
-                idxsl_c = []
-                for r in range(block[0][0], block[0][1]):
-                    for c in range(max(r + 1, block[1][0]), min(len(s), block[1][1])):
-                        idxsl_r.append(r)
-                        idxsl_c.append(c)
-                idxs = (np.array(idxsl_r), np.array(idxsl_c))
-            with mp.Pool() as p:
-                dists[idxs] = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
-                # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
-                # for r in range(len(s)):
-                #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
-                #     pbar.update(len(s) - r - 1)
-                # pbar.close()
-        else:
-            logger.info("Use serial computation")
-            dist_opts['block'] = block
-            dists = dtw_c.distance_matrix(s, **dist_opts)
+        logger.error("No C version available (yet)")
     if not use_c:
         logger.info("Compute distances in Python")
         if isinstance(s, np.matrix):
@@ -443,71 +305,3 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
                     if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                         dists[r, c] = distance(s[r], s[c], **dist_opts)
     return dists
-
-
-def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
-                         window=None, max_step=None, penalty=None,
-                         parallel=True, show_progress=False):
-    """Fast C version of distance_matrix()"""
-    if dtw_c is None:
-        _print_library_missing()
-        return None
-    return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
-                           window=window, max_step=max_step, penalty=penalty, block=None,
-                           parallel=parallel,
-                           use_c=True, use_nogil=True, show_progress=show_progress)
-
-
-def warping_path(from_s, to_s, **kwargs):
-    dist, paths = warping_paths(from_s, to_s, **kwargs)
-    path = best_path(paths)
-    return path
-
-
-def _print_library_missing():
-    logger.error("The compiled dtaidistance c library is not available.\n" +
-                 "Run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
-
-
-def best_path(dist):
-    """Compute the optimal path from the nxm dists matrix."""
-    i, j = int(dist.shape[0] - 1), int(dist.shape[1] - 1)
-    p = []
-    if dist[i, j] != -1:
-        p.append((i - 1, j - 1))
-    while i > 0 and j > 0:
-        c = np.argmin([dist[i - 1, j - 1], dist[i - 1, j], dist[i, j - 1]])
-        if c == 0:
-            i, j = i - 1, j - 1
-        elif c == 1:
-            i = i - 1
-        elif c == 2:
-            j = j - 1
-        if dist[i, j] != -1:
-            p.append((i - 1, j - 1))
-    p.pop()
-    p.reverse()
-    return p
-
-
-def best_path2(dists):
-    """Compute the optimal path from the nxm dists matrix."""
-    m = dists
-    path = []
-    r, c = m.shape
-    r -= 1
-    c -= 1
-    v = m[r, c]
-    path.append((r - 1, c - 1))
-    while r > 1 or c > 1:
-        r_c, c_c = r, c
-        if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
-            r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
-        if r >= 1 and m[r - 1, c] <= v:
-            r_c, c_c, v = r - 1, c, m[r - 1, c]
-        if c >= 1 and m[r, c - 1] <= v:
-            r_c, c_c, v = r, c - 1, m[r, c - 1]
-        path.append((r_c - 1, c_c - 1))
-        r, c = r_c, c_c
-    path.reverse()
-    return path
