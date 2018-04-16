@@ -31,6 +31,7 @@ Source available on https://github.com/wannesm/dtaidistance.
 
    modules/dtw
    modules/dtw_visualisation
+   modules/dtw_ndim
    modules/clustering
 
 

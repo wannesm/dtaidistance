@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.dtwndim
-~~~~~~~~~~~~~~~~~~~~
+dtaidistance.dtw_ndim
+~~~~~~~~~~~~~~~~~~~~~
 
 Dynamic Time Warping (DTW) for N-dimensional series.
 
@@ -38,7 +38,7 @@ def distance(s1, s2, window=None, max_dist=None,
 
     cost = EuclideanDistance(s1[i], s2[j])
 
-    See :method:`dtw.distance` for parameters.
+    See :py:meth:`dtaidistance.dtw.distance` for parameters.
     """
     if use_c:
         logger.error("No C version implemented (yet)")
@@ -142,7 +142,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 
     cost = EuclideanDistance(s1[i], s2[j])
 
-    See :method:`dtw.warping_paths` for parameters.
+    See :py:meth:`dtaidistance.dtw.warping_paths` for parameters.
     """
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
@@ -236,7 +236,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
 
     cost = EuclideanDistance(s1[i], s2[j])
 
-    See :method:`dtw.distance_matrix` for parameters.
+    See :py:meth:`dtaidistance.dtw.distance_matrix` for parameters.
     """
     if parallel and not use_c:
         try:
