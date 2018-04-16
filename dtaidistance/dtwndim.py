@@ -34,7 +34,7 @@ except ImportError:
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
              use_c=False):
-    """Dynamic Time Warping (keep full matrix) using multidimensional sequences.
+    """Dynamic Time Warping using multidimensional sequences.
 
     cost = EuclideanDistance(s1[i], s2[j])
 
@@ -232,7 +232,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, parallel=False,
                     use_c=False, show_progress=False):
-    """Dynamic Time Warping (keep full matrix) using multidimensional sequences.
+    """Dynamic Time Warping distance matrix using multidimensional sequences.
 
     cost = EuclideanDistance(s1[i], s2[j])
 
