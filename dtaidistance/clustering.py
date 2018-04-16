@@ -14,8 +14,6 @@ import logging
 from pathlib import Path
 from collections import deque
 import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib.lines import Line2D
 
 from .util import SeriesContainer
 
@@ -168,6 +166,9 @@ class BaseTree:
         # print('linkage')
         # for l in self.linkage:
         #     print(l)
+        from matplotlib import pyplot as plt
+        from matplotlib.lines import Line2D
+
         self._series_y = [0] * len(self.series)
         ts_height = 10
         ts_bottom_margin = 2
