@@ -151,6 +151,10 @@ setup(
     author='Wannes Meert',
     author_email='wannes.meert@cs.kuleuven.be',
     url='https://dtai.cs.kuleuven.be',
+    project_urls={
+        'DTAIDistance documentation': 'http://dtaidistance.readthedocs.io/en/latest/',
+        'DTAIDistance source': 'https://github.com/wannesm/dtaidistance'
+    },
     packages=["dtaidistance"],
     install_requires=install_requires,
     tests_require=tests_require,
