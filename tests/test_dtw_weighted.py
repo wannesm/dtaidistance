@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import sys
 import logging
+import io
 import pytest
 import numpy as np
 try:
@@ -28,10 +29,15 @@ def plot_series(s, l):
     plt.savefig(str(directory / "series.png"))
 
 
-def plot_margins(serie, weights, clf):
+def plot_margins(serie, weights, clfs):
     from sklearn import tree
     feature_names = ["f{} ({})".format(i // 2, i) for i in range(2 * len(serie) + 1)]
-    tree.export_graphviz(clf, out_file=str(directory / "tree.dot"), feature_names=feature_names)
+    out_str = io.StringIO()
+    for clf in clfs:
+        tree.export_graphviz(clf, out_file=out_str, feature_names=feature_names)
+        print("\n\n", file=out_str)
+    with open(str(directory / "tree.dot"), "w") as ofile:
+        print(out_str.getvalue(), file=ofile)
     dtww.plot_margins(serie, weights, filename=str(directory / "margins.png"))
 
 
@@ -71,13 +77,13 @@ def test_distance2(directory=None):
         plot_series(s, l)
 
     prototypeidx = 0
-    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx)
+    ml_values, cl_values, clfs = dtww.series_to_dt(s, l, prototypeidx, max_clfs=5, savefig=str(directory / "dts.dot"))
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values, only_max=False, strict_cl=True)
 
     if directory:
-        plot_margins(s[prototypeidx], weights, clf)
+        plot_margins(s[prototypeidx], weights, clfs)
 
 
 def test_distance3(directory=None):

@@ -25,6 +25,7 @@ Weights are represented using a tuple (-x3, -x2, -x1, -x0, x0, x1, x2, x3)
 import logging
 import math
 from collections import defaultdict, deque
+import io
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -138,21 +139,22 @@ def distance_matrix(s, weights, window=None, show_progress=False, **kwargs):
 
 
 def compute_weights_using_dt(series, labels, prototypeidx, classifier=None, savefig=None, **kwargs):
-    ml_values, cl_values, clf = series_to_dt(series, labels, prototypeidx, classifier, savefig, **kwargs)
+    ml_values, cl_values, _clfs = series_to_dt(series, labels, prototypeidx, classifier, savefig, **kwargs)
 
     logger.debug("------")
     weights = compute_weights_from_mlclvalues(series, ml_values, cl_values, only_max=False, strict_cl=True)
     return weights
 
 
-def series_to_dt(series, labels, prototypeidx, classifier=None, savefig=None, **kwargs):
+def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, savefig=None, **kwargs):
     """Compute Decision Tree from series
 
     :param series:
     :param labels: 0 for cannot-link, 1 for must-link
     :param prototypeidx:
-    :param classifier: Classifier instance.
-        For example dtw_weighted.DecisionTreeClassifier() or tree.DecisionTreeClassifier().
+    :param classifier: Classifier class.
+        For example dtw_weighted.DecisionTreeClassifier or tree.DecisionTreeClassifier
+    :param max_clfs: Maximum number of classifiers to learn
     :param savefig: Path to filename to save tree Graphviz visualisation
     :param kwargs: Passed to warping_paths
     :return:
@@ -193,27 +195,50 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, savefig=None, **
             targets.append(0)  # Do cluster
 
     if classifier is None:
-        clf = DecisionTreeClassifier()
-    else:
-        clf = classifier
+        classifier = DecisionTreeClassifier
 
     features = np.array(features)
     targets = np.array(targets)
 
-    clf.fit(features, targets)
-
+    clfs = []
+    ignore_features = set()
+    not_empty = True
     if savefig is not None:
         try:
             from sklearn import tree
-            fn = savefig
-            feature_names = ["f{} ({})".format(i // 2, i) for i in range(len(series[prototypeidx]) + 1)]
-            tree.export_graphviz(clf, out_file=fn, feature_names=feature_names)
         except ImportError:
             logger.error("No figure generated, sklearn is not installed.")
+            savefig, tree, out_string, feature_names = None, None, None, None
+        out_string = io.StringIO()
+        feature_names = ["f{} ({})".format(i // 2, i) for i in range(2*len(series[prototypeidx]) + 1)]
+    else:
+        tree, out_string, feature_names = None, None, None
 
-    cl_values = decisiontree_to_clweights(clf)
+    while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
+        clf = classifier()
+        clf.fit(features, targets, ignore_features=ignore_features)
+        logger.debug(f"Learned classifier {len(clfs) + 1}: nb nodes = {clf.tree_.nb_nodes}")
+        if clf.tree_.nb_nodes <= 1:
+            not_empty = False
+            continue
+        clfs.append(clf)
+        ignore_features.update(clf.tree_.used_features)
+        # print(f"ignore_features: {ignore_features}")
+        if savefig is not None:
+            tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names)
+            print("\n\n", file=out_string)
 
-    return ml_values, cl_values, clf
+    if savefig is not None:
+        with open(savefig, "w") as ofile:
+            print(out_string.getvalue(), file=ofile)
+
+    cl_values = dict()
+    for clf in clfs:
+        new_cl_values = decisiontree_to_clweights(clf)
+        cl_values.update(new_cl_values)
+        # print(f"new_cl_values: {new_cl_values}")
+
+    return ml_values, cl_values, clfs
 
 
 def decisiontree_to_clweights(clf):
@@ -297,13 +322,13 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
     ml_maxmin_n = np.zeros((len(s1), 3))
     ml_maxmin_p = np.zeros((len(s1), 3))
     for idx in range(len(s1)):
-        try:
+        if idx in ml_values:
             mls = ml_values[idx][0]
-        except TypeError:
+        else:
             mls = []
-        try:
+        if idx in cl_values:
             cls = cl_values[idx][0]
-        except TypeError:
+        else:
             cls = []
         ml_max = _clean_max(mls, cls)
         cl_min = _clean_min(cls, mls, strict_cl)
@@ -313,13 +338,13 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
             diff = cl_min - ml_max
         ml_maxmin_n[idx, :] = [ml_max, cl_min, diff]
 
-        try:
+        if idx in ml_values:
             mls = ml_values[idx][1]
-        except TypeError:
+        else:
             mls = []
-        try:
+        if idx in cl_values:
             cls = cl_values[idx][1]
-        except TypeError:
+        else:
             cls = []
         ml_max = _clean_max(mls, cls)
         cl_min = _clean_min(cls, mls, strict_cl)
@@ -415,6 +440,9 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
         return
     if y_limit is None:
         y_limit = (np.min(serie), np.max(serie))
+        diff = y_limit[1] - y_limit[0]
+        y_limit = (y_limit[0] - diff * 0.2, y_limit[1] + diff * 0.2)
+    logger.debug(f"y_limit = {y_limit}")
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
@@ -439,49 +467,41 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
     # Green, between 0 and xn0
     upper_bound_0 = [origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn0)]
     lower_bound_0 = [origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp0)]
-    ax.fill_between(range(len(serie)), lower_bound_0, upper_bound_0, facecolor='green', alpha=0.1)
+    ax.fill_between(range(len(serie)), lower_bound_0, upper_bound_0, facecolor='green', alpha=0.2)
 
-    # Blue, between xn0 and xn1
-    upper_bound_1 = [origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn1)]
-    lower_bound_1 = [origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp1)]
-    upper_bound_1 = np.array(upper_bound_1)
-    lower_bound_1 = np.array(lower_bound_1)
+    # Dark Green, between x0 and x1
+    upper_bound_1 = np.array([origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn1)])
+    lower_bound_1 = np.array([origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp1)])
     lower_bound_1[lower_bound_1 < (origin[1] + y_limit[0])] = origin[1] + y_limit[0]
     upper_bound_1[upper_bound_1 > (origin[1] + y_limit[1])] = origin[1] + y_limit[1]
-    ax.fill_between(range(len(serie)), lower_bound_0, lower_bound_1, facecolor='blue', alpha=0.1)
-    ax.fill_between(range(len(serie)), upper_bound_0, upper_bound_1, facecolor='blue', alpha=0.1)
+    ax.fill_between(range(len(serie)), lower_bound_0, lower_bound_1, facecolor='green', alpha=0.1)
+    ax.fill_between(range(len(serie)), upper_bound_0, upper_bound_1, facecolor='green', alpha=0.1)
 
-    # Cyan , between xn1 and xn2
-    xn2[np.isinf(xn2)] = 0
-    np.maximum(xn1, xn2, xn2)
-    xp2[np.isinf(xp2)] = 0
-    np.maximum(xp1, xp2, xp2)
-    upper_bound_2 = [origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn2)]
-    lower_bound_2 = [origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp2)]
-    upper_bound_2 = np.array(upper_bound_2)
-    lower_bound_2 = np.array(lower_bound_2)
-    lower_bound_2[lower_bound_2 < (origin[1] + y_limit[0])] = origin[1] + y_limit[0]
+    # Cyan , between x1 and x2
+    # xn2[np.isinf(xn2)] = abs(y_limit[0])
+    # xp2[np.isinf(xp2)] = abs(y_limit[1])
+    upper_bound_2 = np.array([origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn2)])
+    lower_bound_2 = np.array([origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp2)])
     upper_bound_2[upper_bound_2 > (origin[1] + y_limit[1])] = origin[1] + y_limit[1]
-    ax.fill_between(range(len(serie)), lower_bound_1, lower_bound_2, facecolor='cyan', alpha=0.1)
-    ax.fill_between(range(len(serie)), upper_bound_1, upper_bound_2, facecolor='cyan', alpha=0.1)
+    lower_bound_2[lower_bound_2 < (origin[1] + y_limit[0])] = origin[1] + y_limit[0]
+    # ax.fill_between(range(len(serie)), lower_bound_1, lower_bound_2, facecolor='cyan', alpha=0.1)
+    # ax.fill_between(range(len(serie)), upper_bound_1, upper_bound_2, facecolor='cyan', alpha=0.1)
 
-    # Red, between xn2 and xn3
-    xn3 *= 100
-    xp3 *= 100
-    xn3[np.isinf(xn3)] = 0
-    xp3[np.isinf(xp3)] = 0
-    np.maximum(xn2, xn3, xn3)
-    np.maximum(xp2, xp3, xp3)
-    upper_bound_3 = [origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn3)]
-    lower_bound_3 = [origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp3)]
-    # print(upper_bound_3)
-    # print(self.ts_height)
-    upper_bound_3 = np.array(upper_bound_3)
-    lower_bound_3 = np.array(lower_bound_3)
-    lower_bound_3[lower_bound_3 < (origin[1] + y_limit[0])] = origin[1] + y_limit[0]
+    # Red, between x2 and x3
+    # xn3[np.isinf(xn3)] = abs(y_limit[1])
+    # xp3[np.isinf(xp3)] = abs(y_limit[0])
+    upper_bound_3 = np.array([origin[1] + scaling[1] * (y + w) for y, w in zip(serie, xn3)])
+    lower_bound_3 = np.array([origin[1] + scaling[1] * (y - w) for y, w in zip(serie, xp3)])
     upper_bound_3[upper_bound_3 > (origin[1] + y_limit[1])] = origin[1] + y_limit[1]
+    lower_bound_3[lower_bound_3 < (origin[1] + y_limit[0])] = origin[1] + y_limit[0]
     ax.fill_between(range(len(serie)), lower_bound_2, lower_bound_3, facecolor='red', alpha=0.1)
     ax.fill_between(range(len(serie)), upper_bound_2, upper_bound_3, facecolor='red', alpha=0.1)
+
+    # Dark Red, between x3 and limit
+    lower_bound_4 = np.array([origin[1] + y_limit[0] for y in serie])
+    upper_bound_4 = np.array([origin[1] + y_limit[1] for y in serie])
+    ax.fill_between(range(len(serie)), lower_bound_3, lower_bound_4, facecolor='red', alpha=0.2)
+    ax.fill_between(range(len(serie)), upper_bound_3, upper_bound_4, facecolor='red', alpha=0.2)
 
     # Plot series
     ax.plot(origin[1] + scaling[1] * serie)
@@ -574,12 +594,13 @@ class DecisionTreeClassifier:
         # dk = 1/k*sum([d**2 for d in dists])
         return dists[-1]
 
-    def fit(self, features, targets, use_feature_once=True):
+    def fit(self, features, targets, use_feature_once=True, ignore_features=None):
         """Learn decision tree.
 
         :param features: Array of dimension #instances x #features, type float
         :param targets: Array of dimension #instances, values 0 or 1
         :param use_feature_once: Use each feature only once in a path
+        :param ignore_features: Set of feature indices to ignore
         :return: None
 
         Fills the tree_ variable with a decision tree representation.
@@ -606,7 +627,7 @@ class DecisionTreeClassifier:
             curtargets = targets[idxs]
             best_gain, best_fi, best_thr = 0, None, None
             for fi in range(nb_features):
-                if use_feature_once and used_ftrs[fi]:
+                if (use_feature_once and used_ftrs[fi]) or (ignore_features is not None and fi in ignore_features):
                     continue
                 ig, thr = self.entropy_continuous(curtargets, curvalues[:, fi])
                 if thr is None:
@@ -674,3 +695,7 @@ class Tree:
     @property
     def nb_nodes(self):
         return len(self.threshold)
+
+    @property
+    def used_features(self):
+        return set(self.feature)
