@@ -19,6 +19,7 @@ from .util import dtaidistance_dir
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
+from . import dtw
 try:
     from . import dtw_c
 except ImportError:
@@ -105,7 +106,7 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, path, filename=None, shownumbers=False):
+def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -134,7 +135,10 @@ def plot_warpingpaths(s1, s2, paths, path, filename=None, shownumbers=False):
     min_s1_x = np.min(s1)
     max_s1_y = len(s1)
 
-    p = path
+    if path is None:
+        p = dtw.best_path(paths)
+    else:
+        p = path
 
     def format_fn2_x(tick_val, tick_pos):
         return max_s2_x - tick_val

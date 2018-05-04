@@ -13,6 +13,9 @@ Utility functions for DTAIDistance.
 import os
 import logging
 from array import array
+from pathlib import Path
+import tempfile
+
 import numpy as np
 
 
@@ -20,6 +23,21 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
+
+
+def prepare_directory(directory=None):
+    """Prepare the given directory, create it if necessary.
+    If no directory is given, a new directory will be created in the system's temp directory.
+    """
+    if directory is not None:
+        directory = Path(directory)
+        if not directory.exists():
+            directory.mkdir(parents=True)
+        logger.debug(f"Using directory: {directory}")
+        return Path(directory)
+    directory = tempfile.mkdtemp(prefix="dtaidistance_")
+    logger.debug(f"Using directory: {directory}")
+    return Path(directory)
 
 
 class SeriesContainer:

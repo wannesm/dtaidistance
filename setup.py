@@ -122,7 +122,7 @@ else:
     #               extra_link_args=extra_link_args)]
 
 install_requires = ['numpy', 'cython']
-tests_require = ['pytest']
+tests_require = ['pytest', 'matplotlib']
 
 with open('dtaidistance/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
@@ -158,6 +158,9 @@ setup(
     packages=["dtaidistance"],
     install_requires=install_requires,
     tests_require=tests_require,
+    extras_require={
+        'vis': ['matplotlib']
+    },
     include_package_data=True,
     package_data={
         '': ['*.pyx', '*.pxd'],
