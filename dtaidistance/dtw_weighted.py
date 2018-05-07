@@ -9,17 +9,21 @@ Dynamic Time Warping (DTW) with custom internal distance function.
 :copyright: Copyright 2018 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
-Weights are represented using a tuple (-x3, -x2, -x1, -x0, x0, x1, x2, x3)
+Weights are represented using a tuple (-x3, -x2, -x1, -x0, x0, x1, x2, x3).
+The distance d is multiplied with factor w(d):
 
 .. code-block::
+
+    ^
+w(d)|
     |             /
    3|            +
     |           /
     |          /
    1|      +--+
     |     /
-   0+----+
-    0   x0 x1 x2 x3
+   0+----+--------------->
+    0   x0 x1 x2 x3     d
 
 """
 import logging
@@ -140,13 +144,12 @@ def distance_matrix(s, weights, window=None, show_progress=False, **kwargs):
 
 def compute_weights_using_dt(series, labels, prototypeidx, classifier=None, savefig=None, **kwargs):
     ml_values, cl_values, _clfs = series_to_dt(series, labels, prototypeidx, classifier, savefig, **kwargs)
-
-    logger.debug("------")
     weights = compute_weights_from_mlclvalues(series, ml_values, cl_values, only_max=False, strict_cl=True)
     return weights
 
 
-def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, savefig=None, **kwargs):
+def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, min_ig=0,
+                 savefig=None, **kwargs):
     """Compute Decision Tree from series
 
     :param series:
@@ -155,6 +158,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, s
     :param classifier: Classifier class.
         For example dtw_weighted.DecisionTreeClassifier or tree.DecisionTreeClassifier
     :param max_clfs: Maximum number of classifiers to learn
+    :param min_ig: Minimum information gain
     :param savefig: Path to filename to save tree Graphviz visualisation
     :param kwargs: Passed to warping_paths
     :return:
@@ -216,7 +220,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, s
 
     while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
         clf = classifier()
-        clf.fit(features, targets, ignore_features=ignore_features)
+        clf.fit(features, targets, ignore_features=ignore_features, min_ig=min_ig)
         logger.debug(f"Learned classifier {len(clfs) + 1}: nb nodes = {clf.tree_.nb_nodes}")
         if clf.tree_.nb_nodes <= 1:
             not_empty = False
@@ -279,7 +283,7 @@ def decisiontree_to_clweights(clf):
 
 
 def clweights_updatefrompath(cl_values, path):
-    logger.debug(f"Path to CL")
+    logger.debug(f"Path to CL: {path}")
     for feature, threshold, leq in path:
         index = feature // 2
         dneg = ((feature % 2) == 0)
@@ -298,7 +302,7 @@ def clweights_updatefrompath(cl_values, path):
 
 
 def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False, strict_cl=True):
-    """Compute weights that represent a rectifier type of function.
+    """Compute weights that represent a rectifier type of function based on must-link values and cannot-link values.
 
          |             /
         3|            +
@@ -313,15 +317,14 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
     logger.debug('ml_values = ' + 'None' if ml_values is None else str(ml_values.items()))
     logger.debug('cl_values = ' + 'None' if cl_values is None else str(cl_values.items()))
 
-    s1 = serie
-    wn = np.zeros((len(s1), 8), dtype=np.double)  # xns, xn2, xn1, xn0, xp0, xp1, xp2, xps
+    wn = np.zeros((len(serie), 8), dtype=np.double)  # xns, xn2, xn1, xn0, xp0, xp1, xp2, xps
     wn[:, 0:2] = np.inf
     wn[:, 6:8] = np.inf
 
     # First find ml-max and cl-min values
-    ml_maxmin_n = np.zeros((len(s1), 3))
-    ml_maxmin_p = np.zeros((len(s1), 3))
-    for idx in range(len(s1)):
+    ml_maxmin_n = np.zeros((len(serie), 3))
+    ml_maxmin_p = np.zeros((len(serie), 3))
+    for idx in range(len(serie)):
         if idx in ml_values:
             mls = ml_values[idx][0]
         else:
@@ -374,7 +377,7 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
         ml_maxmin_p[:, 1] = np.inf
         ml_maxmin_p[:, 1][maxidx] = vals
 
-    for idx in range(len(s1)):
+    for idx in range(len(serie)):
         # vn3, vn2, vn1, vn0, vp0, vp1, vp2, vp3 = wn[idx]
         # Negative
         vn1 = 1.5 * ml_maxmin_n[idx, 0]
@@ -400,6 +403,7 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
 
 
 def _clean_max(mls, cls):
+    """Return the maximal value of mls that is smaller than all values in cls."""
     mls.sort()
     cls.sort()
     if cls is None or len(cls) == 0:
@@ -416,6 +420,7 @@ def _clean_max(mls, cls):
 
 
 def _clean_min(cls, mls, keep_largest=True):
+    """Return the minimal value of cls that is larger than all values in mls."""
     mls.sort()
     cls.sort()
     min_cls = np.inf
@@ -544,10 +549,13 @@ class DecisionTreeClassifier:
 
     @staticmethod
     def entropy_continuous(targets, values):
-        """Best split based on information gain"""
+        """Best split based on information gain.
+
+        :return: (information gain, threshold value)
+        """
         # print(f'entropy_continuous:\n{targets}\n{values}')
         h0 = DecisionTreeClassifier.entropy(targets)
-        # print(f'h0={h0}')
+        # print(f'h0={h0}, targets={targets}')
 
         thresholds = np.unique(values)
         thresholds = (thresholds[1:] + thresholds[:-1]) / 2
@@ -579,7 +587,10 @@ class DecisionTreeClassifier:
 
     @staticmethod
     def kdistance(values, threshold, k=5):
-        """k-distance. Can be used as a measure for density."""
+        """k-distance density measure .
+
+        :return: Distances to k nearest neighbours
+        """
         # print(f'kdistance({values}, {threshold})')
         dists = []
         for value in np.nditer(values):
@@ -594,14 +605,15 @@ class DecisionTreeClassifier:
         # dk = 1/k*sum([d**2 for d in dists])
         return dists[-1]
 
-    def fit(self, features, targets, use_feature_once=True, ignore_features=None):
+    def fit(self, features, targets, use_feature_once=True, ignore_features=None, min_ig=0):
         """Learn decision tree.
 
         :param features: Array of dimension #instances x #features, type float
         :param targets: Array of dimension #instances, values 0 or 1
         :param use_feature_once: Use each feature only once in a path
         :param ignore_features: Set of feature indices to ignore
-        :return: None
+        :param min_ig: Minimal information gain
+        :return: DecisionTreeClassifier object (self)
 
         Fills the tree_ variable with a decision tree representation.
         """
@@ -609,6 +621,7 @@ class DecisionTreeClassifier:
         # print(f'targets:\n{targets}')
         nb_features = features.shape[1]
         nb_instances = features.shape[0]
+        k = int(math.ceil(len(targets) * 0.05))
         self.tree_ = Tree()
         queue = deque([(self.tree_.last(),  # Leaf
                         np.zeros(nb_features, dtype=bool),  # Used features
@@ -630,12 +643,15 @@ class DecisionTreeClassifier:
                 if (use_feature_once and used_ftrs[fi]) or (ignore_features is not None and fi in ignore_features):
                     continue
                 ig, thr = self.entropy_continuous(curtargets, curvalues[:, fi])
-                if thr is None:
+                if thr is None or ig < min_ig:
                     kd = None
                     gain = 0.0
                 else:
-                    kd = self.kdistance(curvalues[:, fi], thr)  # Prefer values in low-density regions (thus large k dist)
+                    # Prefer values in low-density regions (thus large k dist)
+                    kd = self.kdistance(curvalues[:, fi], thr, k=k)
                     gain = ig * kd
+                    logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
+                                 f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
                 # print(f'fi={fi}, thr={thr}, ig={ig}, kd={kd}, gain={gain}')
                 if best_gain < gain:
                     best_gain = gain
@@ -657,6 +673,7 @@ class DecisionTreeClassifier:
                 self.tree_.children_right[node] = larger
                 # print('New queue:')
                 # print('\n'.join([str(elmt) for elmt in queue]))
+        return self
 
 
 class Tree:
@@ -664,7 +681,7 @@ class Tree:
         """Tree to represent a Decision Tree.
 
         This datastructure has the fields required to be compatible with scikit-learn and
-        its Graphvic DOT representation.
+        its Graphvis DOT representation.
         """
         self.threshold = []
         self.feature = []
@@ -678,7 +695,10 @@ class Tree:
         self.add()
 
     def add(self):
-        """Add a new node to the tree and return its index."""
+        """Add a new node to the tree.
+
+        :return: Index of new node
+        """
         self.threshold.append(-1)
         self.feature.append(-1)
         self.children_right.append(-1)
@@ -690,6 +710,10 @@ class Tree:
         return len(self.feature) - 1
 
     def last(self):
+        """Last node.
+
+        :return: Index of last added node
+        """
         return len(self.feature) - 1
 
     @property

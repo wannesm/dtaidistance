@@ -77,7 +77,7 @@ def test_distance2(directory=None):
         plot_series(s, l)
 
     prototypeidx = 0
-    ml_values, cl_values, clfs = dtww.series_to_dt(s, l, prototypeidx, max_clfs=5, savefig=str(directory / "dts.dot"))
+    ml_values, cl_values, clfs = dtww.series_to_dt(s, l, prototypeidx, max_clfs=50, savefig=str(directory / "dts.dot"))
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values, only_max=False, strict_cl=True)
@@ -126,7 +126,8 @@ def test_distance4(directory=None):
         plot_series(s, l)
 
     prototypeidx = 0
-    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=2)
+    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1,
+                                                  savefig=str(directory / "dts.dot"))
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
@@ -172,7 +173,7 @@ if __name__ == "__main__":
 
     # Functions
     # test_distance1(directory=directory)
-    test_distance2(directory=directory)
+    # test_distance2(directory=directory)
     # test_distance3(directory=directory)
-    # test_distance4(directory=directory)
+    test_distance4(directory=directory)
     # test_distance5(directory=directory)
