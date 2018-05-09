@@ -25,7 +25,15 @@ def plot_series(s, l):
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(nrows=len(s), ncols=1)
     for i, si in enumerate(s):
-        ax[i].plot(si, color="blue" if l[i] == 1 else "red")
+        if l[i] == 0:
+            color = "green"
+        elif l[i] == 1:
+            color = "blue"
+        elif l[i] == 2:
+            color = "red"
+        elif l[i] == 3:
+            color = "cyan"
+        ax[i].plot(si, color=color)
     plt.savefig(str(directory / "series.png"))
 
 
@@ -158,6 +166,52 @@ def test_distance5(directory=None):
         plot_margins(s[prototypeidx], weights, clf)
 
 
+def test_distance6(directory=None):
+    directory = prepare_directory(directory)
+    s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
+    l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
+
+    if directory:
+        plot_series(s, l)
+
+    prototypeidx = 3
+    labels = np.zeros(l.shape)
+    labels[l == l[prototypeidx]] = 1
+    ml_values, cl_values, clf = dtww.series_to_dt(s, labels, prototypeidx, window=2, min_ig=0.1,
+                                                  savefig=str(directory / "dts.dot"))
+    logger.debug(f"ml_values = {dict(ml_values)}")
+    logger.debug(f"cl_values = {dict(cl_values)}")
+    weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
+                                                   only_max=False, strict_cl=True)
+    if directory:
+        plot_margins(s[prototypeidx], weights, clf)
+
+
+def test_distance7(directory=None):
+    directory = prepare_directory(directory)
+    s = np.array([
+        [0.0, 0.3, 0.5, 0.8, 1.0, 0.1, 0.0, 0.1],
+        [0.0, 0.2, 0.3, 0.7, 1.1, 0.0, 0.1, 0.0],
+        [0.1, 0.0, 1.0, 1.0, 1.0, 0.9, 0.0, 0.0],
+        [0.0, 0.0, 1.1, 0.9, 1.0, 1.0, 0.0, 0.0],
+        [0.0, 0.1, 1.1, 1.0, 0.9, 0.9, 0.0, 0.0],
+        [0.0, 0.1, 1.0, 1.1, 0.9, 1.0, 0.0, 0.1]])
+    l = np.array([1, 1, 1, 0, 0, 0])
+
+    if directory:
+        plot_series(s, l)
+
+    prototypeidx = 0
+    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1,
+                                                  savefig=str(directory / "dts.dot"))
+    logger.debug(f"ml_values = {dict(ml_values)}")
+    logger.debug(f"cl_values = {dict(cl_values)}")
+    weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
+                                                   only_max=False, strict_cl=True)
+    if directory:
+        plot_margins(s[prototypeidx], weights, clf)
+
+
 if __name__ == "__main__":
     # Print options
     np.set_printoptions(precision=2)
@@ -175,5 +229,7 @@ if __name__ == "__main__":
     # test_distance1(directory=directory)
     # test_distance2(directory=directory)
     # test_distance3(directory=directory)
-    test_distance4(directory=directory)
+    # test_distance4(directory=directory)
     # test_distance5(directory=directory)
+    # test_distance6(directory=directory)
+    test_distance7(directory=directory)

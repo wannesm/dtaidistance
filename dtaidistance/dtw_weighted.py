@@ -197,6 +197,8 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             targets.append(1)  # Do not cluster
         elif label == 1:
             targets.append(0)  # Do cluster
+        else:
+            raise Exception(f"Encountered a label that is not 0 (cannot-link) or 1 (must-link): {label}")
 
     if classifier is None:
         classifier = DecisionTreeClassifier
@@ -218,6 +220,8 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     else:
         tree, out_string, feature_names = None, None, None
 
+    cl_values = dict()
+
     while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
         clf = classifier()
         clf.fit(features, targets, ignore_features=ignore_features, min_ig=min_ig)
@@ -226,8 +230,14 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             not_empty = False
             continue
         clfs.append(clf)
-        ignore_features.update(clf.tree_.used_features)
-        # print(f"ignore_features: {ignore_features}")
+
+        new_cl_values, used_features = decisiontree_to_clweights(clf)
+        cl_values.update(new_cl_values)
+        # print(f"new_cl_values: {new_cl_values}")
+
+        # ignore_features.update(clf.tree_.used_features)
+        ignore_features.update(used_features)
+        print(f"ignore_features: {ignore_features}")
         if savefig is not None:
             tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names)
             print("\n\n", file=out_string)
@@ -235,12 +245,6 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     if savefig is not None:
         with open(savefig, "w") as ofile:
             print(out_string.getvalue(), file=ofile)
-
-    cl_values = dict()
-    for clf in clfs:
-        new_cl_values = decisiontree_to_clweights(clf)
-        cl_values.update(new_cl_values)
-        # print(f"new_cl_values: {new_cl_values}")
 
     return ml_values, cl_values, clfs
 
@@ -258,6 +262,7 @@ def decisiontree_to_clweights(clf):
     """
     dtnodes = deque([(0, [])])
     cl_values = defaultdict(lambda: ([], []))
+    used_features = set()
 
     while len(dtnodes) > 0:
         curnode, path = dtnodes.popleft()
@@ -267,7 +272,8 @@ def decisiontree_to_clweights(clf):
             if value[0] == 0:
                 # Leaf that represents cannot-link
                 # logger.debug(f'CL leaf: {curnode}')
-                clweights_updatefrompath(cl_values, path)
+                cur_used_features = clweights_updatefrompath(cl_values, path)
+                used_features.update(cur_used_features)
             # elif value[1] == 0:
             #     logger.debug(f'ML leaf: {curnode}')
             # else:
@@ -279,11 +285,12 @@ def decisiontree_to_clweights(clf):
             dtnodes.append((clf.tree_.children_left[curnode], path_left))
             path_right = path + [(feature, threshold, False)]  # false branch (f > t)
             dtnodes.append((clf.tree_.children_right[curnode], path_right))
-    return cl_values
+    return cl_values, used_features
 
 
 def clweights_updatefrompath(cl_values, path):
     logger.debug(f"Path to CL: {path}")
+    used_features = set()
     for feature, threshold, leq in path:
         index = feature // 2
         dneg = ((feature % 2) == 0)
@@ -291,14 +298,17 @@ def clweights_updatefrompath(cl_values, path):
             if threshold < 0:
                 logger.debug(f"Accept: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
                 cl_values[index][0].append(-threshold)
+                used_features.add(feature)
             else:
                 logger.debug(f"Ignore: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
         else:  # f > t
             if threshold > 0:
                 logger.debug(f"Accept: CL with f{index} > {threshold} (d is negative={dneg}, feature={feature})")
                 cl_values[index][1].append(threshold)
+                used_features.add(feature)
             else:
                 logger.debug(f"Ignore: CL with f{index} > {threshold} (d is negative={dneg}, feature={feature})")
+    return used_features
 
 
 def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False, strict_cl=True):
@@ -621,6 +631,7 @@ class DecisionTreeClassifier:
         # print(f'targets:\n{targets}')
         nb_features = features.shape[1]
         nb_instances = features.shape[0]
+        # print(f'nb_instances: {nb_instances} (targets.shape = {targets.shape}')
         k = int(math.ceil(len(targets) * 0.05))
         self.tree_ = Tree()
         queue = deque([(self.tree_.last(),  # Leaf
@@ -631,7 +642,8 @@ class DecisionTreeClassifier:
             queue_it += 1
             node, used_ftrs, idxs = queue.popleft()
             # print(f'------ node ({queue_it})\n  {node}\n  {used_ftrs}\n  {idxs}')
-            self.tree_.value[node][0, 1] = np.sum(targets[idxs])
+            targetsum = np.sum(targets[idxs])
+            self.tree_.value[node][0, 1] = targetsum
             self.tree_.value[node][0, 0] = np.sum(idxs) - self.tree_.value[node][0, 1]
             if np.all(targets[idxs]) or not np.any(targets[idxs]):
                 # print('Pure leaf')
