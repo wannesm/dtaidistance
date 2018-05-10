@@ -21,25 +21,30 @@ from dtaidistance.util import prepare_directory
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-def plot_series(s, l):
+def plot_series(s, l, idx=None):
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(nrows=len(s), ncols=1)
+    fig1, ax1 = plt.subplots(nrows=len(s), ncols=1)
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1)
     for i, si in enumerate(s):
-        if l[i] == 0:
+        if i == idx:
+            color = "red"
+        elif l[i] == 0:
             color = "green"
         elif l[i] == 1:
             color = "blue"
         elif l[i] == 2:
-            color = "red"
-        elif l[i] == 3:
             color = "cyan"
-        ax[i].plot(si, color=color)
-    plt.savefig(str(directory / "series.png"))
+        elif l[i] == 3:
+            color = "black"
+        ax1[i].plot(si, color=color)
+        ax2.plot(si, color=color)
+    fig1.savefig(str(directory / "series1.png"))
+    fig2.savefig(str(directory / "series2.png"))
 
 
 def plot_margins(serie, weights, clfs):
     from sklearn import tree
-    feature_names = ["f{} ({})".format(i // 2, i) for i in range(2 * len(serie) + 1)]
+    feature_names = ["f{} ({}, {})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2 * len(serie) + 1)]
     out_str = io.StringIO()
     for clf in clfs:
         tree.export_graphviz(clf, out_file=out_str, feature_names=feature_names)
@@ -63,7 +68,6 @@ def test_distance1(directory=None):
     weights[4:7, 2:4] = 10.0
     weights[:, 4:6] = 0.0
     weights[4:7, 4:6] = 10.0
-    print(weights)
     d, paths = dtww.warping_paths(s1, s2, weights)
     # print(d, "\n", paths)
     dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp2.png")
@@ -177,14 +181,14 @@ def test_distance6(directory=None):
     prototypeidx = 3
     labels = np.zeros(l.shape)
     labels[l == l[prototypeidx]] = 1
-    ml_values, cl_values, clf = dtww.series_to_dt(s, labels, prototypeidx, window=2, min_ig=0.1,
+    ml_values, cl_values, clf = dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1,
                                                   savefig=str(directory / "dts.dot"))
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                    only_max=False, strict_cl=True)
     if directory:
-        plot_margins(s[prototypeidx], weights, clf)
+        plot_margins(s[prototypeidx], weights, clf, prototypeidx)
 
 
 def test_distance7(directory=None):
@@ -195,14 +199,16 @@ def test_distance7(directory=None):
         [0.1, 0.0, 1.0, 1.0, 1.0, 0.9, 0.0, 0.0],
         [0.0, 0.0, 1.1, 0.9, 1.0, 1.0, 0.0, 0.0],
         [0.0, 0.1, 1.1, 1.0, 0.9, 0.9, 0.0, 0.0],
-        [0.0, 0.1, 1.0, 1.1, 0.9, 1.0, 0.0, 0.1]])
-    l = np.array([1, 1, 1, 0, 0, 0])
+        [0.0, 0.1, 1.0, 1.1, 0.9, 1.0, 0.0, 0.1],
+        [0.0, 0.1, 0.4, 0.3, 0.2, 0.3, 0.0, 0.0],
+        [0.1, 0.0, 0.2, 0.1, 0.2, 0.2, 0.1, 0.1]])
+    l = np.array([1, 1, 0, 0, 0, 0, 0, 0])
+    prototypeidx = 0
 
     if directory:
-        plot_series(s, l)
+        plot_series(s, l, prototypeidx)
 
-    prototypeidx = 0
-    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1,
+    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=0, min_ig=0.1,
                                                   savefig=str(directory / "dts.dot"))
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")

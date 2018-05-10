@@ -174,6 +174,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         path = best_path(paths)
         for i_to, i_from in path:
             d = series[prototypeidx][i_to] - series[idx][i_from]
+            # print(f"d{idx}({i_to},{i_from}) = {d}")
             if label == 0:
                 # Cannot-link
                 pass
@@ -184,15 +185,15 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
                 elif d > 0:
                     ml_values[i_to][1].append(d)
             if d <= 0:
-                cur_features[i_to * 2] += series[idx][i_from]
+                cur_features[i_to * 2] += -d
                 cur_features_cnt[i_to * 2] += 1
             if d >= 0:
-                cur_features[i_to * 2 + 1] += series[idx][i_from]
+                cur_features[i_to * 2 + 1] += d
                 cur_features_cnt[i_to * 2 + 1] += 1
 
         cur_features_cnt[cur_features_cnt == 0] = 1
         cur_features = np.divide(cur_features, cur_features_cnt)
-        features.append([series[prototypeidx][i // 2] - cur_features[i] for i in range(len(cur_features))])
+        features.append(cur_features)
         if label == 0:
             targets.append(1)  # Do not cluster
         elif label == 1:
@@ -216,7 +217,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             logger.error("No figure generated, sklearn is not installed.")
             savefig, tree, out_string, feature_names = None, None, None, None
         out_string = io.StringIO()
-        feature_names = ["f{} ({})".format(i // 2, i) for i in range(2*len(series[prototypeidx]) + 1)]
+        feature_names = ["f{} ({},{})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2*len(series[prototypeidx]) + 1)]
     else:
         tree, out_string, feature_names = None, None, None
 
@@ -232,12 +233,16 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         clfs.append(clf)
 
         new_cl_values, used_features = decisiontree_to_clweights(clf)
-        cl_values.update(new_cl_values)
+        if len(used_features) == 0:
+            logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
+            used_features.update(clf.tree_.used_features)
+        update_cl_values(cl_values, new_cl_values)
         # print(f"new_cl_values: {new_cl_values}")
+        # print(f"cl_values: {cl_values}")
 
         # ignore_features.update(clf.tree_.used_features)
         ignore_features.update(used_features)
-        print(f"ignore_features: {ignore_features}")
+        # print(f"ignore_features: {ignore_features}")
         if savefig is not None:
             tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names)
             print("\n\n", file=out_string)
@@ -247,6 +252,15 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             print(out_string.getvalue(), file=ofile)
 
     return ml_values, cl_values, clfs
+
+
+def update_cl_values(cl_values, new_cl_values):
+    for idx, (n, p) in new_cl_values.items():
+        if idx not in cl_values:
+            cl_values[idx] = new_cl_values[idx]
+        else:
+            cl_values[idx][0].extend(new_cl_values[idx][0])
+            cl_values[idx][1].extend(new_cl_values[idx][1])
 
 
 def decisiontree_to_clweights(clf):
@@ -270,12 +284,12 @@ def decisiontree_to_clweights(clf):
             value = clf.tree_.value[curnode][0]
             # logger.debug(f"Leaf - values = {value}")
             if value[0] == 0:
-                # Leaf that represents cannot-link
-                # logger.debug(f'CL leaf: {curnode}')
+                # Leaf that represents pure cannot-link
+                # logger.debug(f'CL pure leaf: {curnode}')
                 cur_used_features = clweights_updatefrompath(cl_values, path)
                 used_features.update(cur_used_features)
             # elif value[1] == 0:
-            #     logger.debug(f'ML leaf: {curnode}')
+            #     logger.debug(f'ML pure leaf: {curnode}')
             # else:
             #     logger.debug(f'Non pure leaf: {curnode}')
         else:
@@ -295,19 +309,11 @@ def clweights_updatefrompath(cl_values, path):
         index = feature // 2
         dneg = ((feature % 2) == 0)
         if leq:  # f <= t
-            if threshold < 0:
-                logger.debug(f"Accept: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
-                cl_values[index][0].append(-threshold)
-                used_features.add(feature)
-            else:
-                logger.debug(f"Ignore: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
+            logger.debug(f"Ignore: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
         else:  # f > t
-            if threshold > 0:
-                logger.debug(f"Accept: CL with f{index} > {threshold} (d is negative={dneg}, feature={feature})")
-                cl_values[index][1].append(threshold)
-                used_features.add(feature)
-            else:
-                logger.debug(f"Ignore: CL with f{index} > {threshold} (d is negative={dneg}, feature={feature})")
+            logger.debug(f"Accept: CL with f{index} >  {threshold} (d is negative={dneg}, feature={feature})")
+            cl_values[index][0 if dneg else 1].append(threshold)
+            used_features.add(feature)
     return used_features
 
 
@@ -408,7 +414,7 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
         if vp2 < vp1:
             vp1 = vp2 = (vp1 + vp2) / 2
         wn[idx, :] = [vn3, vn2, vn1, vn0, vp0, vp1, vp2, vp3]
-    # logger.debug(f'prototype_weights[{si}]:\n{wn}')
+    logger.debug(f'weights:\n{wn}')
     return wn
 
 
