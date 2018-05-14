@@ -10,7 +10,7 @@ Dynamic Time Warping (DTW) with custom internal distance function.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 Weights are represented using a tuple (-x3, -x2, -x1, -x0, x0, x1, x2, x3).
-The distance d is multiplied with factor w(d):
+The distance d, used in DTW, is multiplied with factor w(d):
 
 .. code-block::
 
@@ -24,6 +24,10 @@ w(d)|
     |     /
    0+----+--------------->
     0   x0 x1 x2 x3     d
+
+The negative and positive values are used to make a distinction between negative
+and postive distances. Thus to differentiate between the case that the function
+compared with is higher or lower than the target function.
 
 """
 import logging
@@ -45,7 +49,7 @@ except ImportError:
     tqdm = None
 
 
-def warping_paths(s1, s2, weights, window=None, **kwargs):
+def warping_paths(s1, s2, weights=None, window=None, **_kwargs):
     """
     Input: s1 and s2 are time series of length n/l1 and m/l2
 
@@ -142,14 +146,23 @@ def distance_matrix(s, weights, window=None, show_progress=False, **kwargs):
     return dists
 
 
-def compute_weights_using_dt(series, labels, prototypeidx, classifier=None, savefig=None, **kwargs):
-    ml_values, cl_values, _clfs = series_to_dt(series, labels, prototypeidx, classifier, savefig, **kwargs)
-    weights = compute_weights_from_mlclvalues(series, ml_values, cl_values, only_max=False, strict_cl=True)
-    return weights
+def compute_weights_using_dt(series, labels, prototypeidx, **kwargs):
+    """Compute weight array by learning an ensemble of Decision Trees representing
+    the differences between the different labels.
+
+    :param series: List of sequences
+    :param labels: Labels for series
+    :param prototypeidx: The target sequence to learn weights for
+    :param kwargs: Arguments to pass to `series_to_dt`
+    :return:
+    """
+    ml_values, cl_values, _clfs, importances = series_to_dt(series, labels, prototypeidx, **kwargs)
+    weights, cl_weights = compute_weights_from_mlclvalues(series[prototypeidx], ml_values, cl_values, **kwargs)
+    return weights, importances
 
 
 def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, min_ig=0,
-                 savefig=None, **kwargs):
+                 savefig=None, warping_paths_fnc=None, **kwargs):
     """Compute Decision Tree from series
 
     :param series:
@@ -160,9 +173,12 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     :param max_clfs: Maximum number of classifiers to learn
     :param min_ig: Minimum information gain
     :param savefig: Path to filename to save tree Graphviz visualisation
-    :param kwargs: Passed to warping_paths
+    :param warping_paths_fnc: Function to compute warping paths
+    :param kwargs: Passed to warping_paths_fnc
     :return:
     """
+    if warping_paths_fnc is None:
+        warping_paths_fnc = warping_paths
     features = [[0] * (len(series[prototypeidx]) * 2)]  # feature per idx, split in positive and negative
     targets = [0]  # Do cluster
     ml_values = defaultdict(lambda: ([], []))
@@ -170,7 +186,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     for idx, label in enumerate(labels):
         cur_features = np.zeros(len(series[prototypeidx]) * 2, dtype=np.double)
         cur_features_cnt = np.zeros(len(series[prototypeidx]) * 2, dtype=np.int)
-        s, paths = warping_paths(series[prototypeidx], series[idx], None, **kwargs)
+        s, paths = warping_paths_fnc(series[prototypeidx], series[idx], **kwargs)
         path = best_path(paths)
         for i_to, i_from in path:
             d = series[prototypeidx][i_to] - series[idx][i_from]
@@ -223,6 +239,8 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
 
     cl_values = dict()
 
+    clf_w = 1.0
+    importances = defaultdict(lambda: [0, 0])
     while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
         clf = classifier()
         clf.fit(features, targets, ignore_features=ignore_features, min_ig=min_ig)
@@ -237,6 +255,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
             used_features.update(clf.tree_.used_features)
         update_cl_values(cl_values, new_cl_values)
+        update_importances(importances, new_cl_values, clf_w)
         # print(f"new_cl_values: {new_cl_values}")
         # print(f"cl_values: {cl_values}")
 
@@ -246,21 +265,30 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         if savefig is not None:
             tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names)
             print("\n\n", file=out_string)
+        clf_w *= 0.66
 
     if savefig is not None:
         with open(savefig, "w") as ofile:
             print(out_string.getvalue(), file=ofile)
 
-    return ml_values, cl_values, clfs
+    return ml_values, cl_values, clfs, importances
 
 
 def update_cl_values(cl_values, new_cl_values):
     for idx, (n, p) in new_cl_values.items():
         if idx not in cl_values:
-            cl_values[idx] = new_cl_values[idx]
+            cl_values[idx] = [n, p]
         else:
-            cl_values[idx][0].extend(new_cl_values[idx][0])
-            cl_values[idx][1].extend(new_cl_values[idx][1])
+            cl_values[idx][0].extend(n)
+            cl_values[idx][1].extend(p)
+
+
+def update_importances(importances, new_cl_values, weight):
+    for idx, (n, p) in new_cl_values.items():
+        if len(n) > 0:
+            importances[idx][0] = max(weight, importances[idx][0])
+        if len(p) > 0:
+            importances[idx][1] = max(weight, importances[idx][1])
 
 
 def decisiontree_to_clweights(clf):
@@ -317,7 +345,7 @@ def clweights_updatefrompath(cl_values, path):
     return used_features
 
 
-def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False, strict_cl=True):
+def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False, strict_cl=True, **_kwargs):
     """Compute weights that represent a rectifier type of function based on must-link values and cannot-link values.
 
          |             /
@@ -330,8 +358,9 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
          0   x0 x1 x2 x3
 
     """
-    logger.debug('ml_values = ' + 'None' if ml_values is None else str(ml_values.items()))
-    logger.debug('cl_values = ' + 'None' if cl_values is None else str(cl_values.items()))
+    if __debug__ and logger.isEnabledFor(logging.DEBUG):
+        logger.debug('ml_values = ' + ('None' if ml_values is None else str(list(ml_values.items()))))
+        logger.debug('cl_values = ' + ('None' if cl_values is None else str(list(cl_values.items()))))
 
     wn = np.zeros((len(serie), 8), dtype=np.double)  # xns, xn2, xn1, xn0, xp0, xp1, xp2, xps
     wn[:, 0:2] = np.inf
@@ -456,18 +485,20 @@ def _clean_min(cls, mls, keep_largest=True):
     return min_cls
 
 
-def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=(1, 1), y_limit=None):
+def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=(1, 1), y_limit=None,
+                 importances=None):
     if weights is None:
         return
     if y_limit is None:
         y_limit = (np.min(serie), np.max(serie))
         diff = y_limit[1] - y_limit[0]
         y_limit = (y_limit[0] - diff * 0.2, y_limit[1] + diff * 0.2)
-    logger.debug(f"y_limit = {y_limit}")
+    # logger.debug(f"y_limit = {y_limit}")
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    logger.debug(f"Weights =\n{weights}")
+    # logger.debug(f"Weights =\n{weights}")
+
     #  |             /
     # 3|            +
     #  |           /
@@ -523,6 +554,18 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
     upper_bound_4 = np.array([origin[1] + y_limit[1] for y in serie])
     ax.fill_between(range(len(serie)), lower_bound_3, lower_bound_4, facecolor='red', alpha=0.2)
     ax.fill_between(range(len(serie)), upper_bound_3, upper_bound_4, facecolor='red', alpha=0.2)
+
+    # Importances
+    if importances is not None:
+        for idx, (imp_n, imp_p) in importances.items():
+            if imp_n != 0:
+                y = origin[1] + y_limit[1]
+                alpha = (imp_n + 0.2) / 1.2
+                ax.plot([idx], [y], marker='o', color='red', alpha=alpha)
+            if imp_p != 0:
+                y = origin[1] + y_limit[0]
+                alpha = (imp_p + 0.2) / 1.2
+                ax.plot([idx], [y], marker='o', color='red', alpha=alpha)
 
     # Plot series
     ax.plot(origin[1] + scaling[1] * serie)
