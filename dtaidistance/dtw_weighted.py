@@ -233,9 +233,19 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             logger.error("No figure generated, sklearn is not installed.")
             savefig, tree, out_string, feature_names = None, None, None, None
         out_string = io.StringIO()
-        feature_names = ["f{} ({},{})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2*len(series[prototypeidx]) + 1)]
+        def args(i):
+            if (i % 2) == 0:
+                sgn = '-'
+                cmp = 's>t'
+            else:
+                sgn = '+'
+                cmp = 's<t'
+            return i, sgn, cmp
+        feature_names = ["d[{}] ({}, {}, {})".format(i // 2, *args(i))
+                         for i in range(2*len(series[prototypeidx]) + 1)]
+        class_names = ["ML", "CL"]
     else:
-        tree, out_string, feature_names = None, None, None
+        tree, out_string, feature_names, class_names = None, None, None, None
 
     cl_values = dict()
 
@@ -263,7 +273,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         ignore_features.update(used_features)
         # print(f"ignore_features: {ignore_features}")
         if savefig is not None:
-            tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names)
+            tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names, class_names=class_names)
             print("\n\n", file=out_string)
         clf_w *= 0.66
 
@@ -691,11 +701,15 @@ class DecisionTreeClassifier:
             queue_it += 1
             node, used_ftrs, idxs = queue.popleft()
             # print(f'------ node ({queue_it})\n  {node}\n  {used_ftrs}\n  {idxs}')
+            nb_samples = np.sum(idxs)
             targetsum = np.sum(targets[idxs])
             self.tree_.value[node][0, 1] = targetsum
-            self.tree_.value[node][0, 0] = np.sum(idxs) - self.tree_.value[node][0, 1]
+            nontargetsum = nb_samples - targetsum
+            self.tree_.value[node][0, 0] = nontargetsum
+            self.tree_.n_node_samples[node] = nb_samples
             if np.all(targets[idxs]) or not np.any(targets[idxs]):
                 # print('Pure leaf')
+                self.tree_.impurity[node] = 0
                 continue
             curvalues = features[idxs, :]
             curtargets = targets[idxs]
@@ -723,6 +737,7 @@ class DecisionTreeClassifier:
                 used_ftrs[best_fi] = True
                 self.tree_.feature[node] = best_fi
                 self.tree_.threshold[node] = best_thr
+                self.tree_.impurity[node] = best_gain
                 lessorequal = self.tree_.add()
                 # print(f'best_fi={best_fi}, best_thr={best_thr}, best_gain={best_gain}')
                 leq_idxs = idxs & (features[:, best_fi] <= best_thr)
@@ -734,6 +749,8 @@ class DecisionTreeClassifier:
                 self.tree_.children_right[node] = larger
                 # print('New queue:')
                 # print('\n'.join([str(elmt) for elmt in queue]))
+            else:
+                self.tree_.impurity[node] = 0
         return self
 
 

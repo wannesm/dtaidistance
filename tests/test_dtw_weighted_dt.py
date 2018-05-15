@@ -119,10 +119,10 @@ if __name__ == "__main__":
     logger.addHandler(sh)
     logger.propagate = 0
     # Output path
-    directory = Path(".") / "tests" / "output"
+    directory = Path(__file__).parent / "output"
 
-    test_split()
-    test_split2()
-    test_kdistance()
-    test_kdistance2()
+    # test_split()
+    # test_split2()
+    # test_kdistance()
+    # test_kdistance2()
     test_decisiontree(directory)

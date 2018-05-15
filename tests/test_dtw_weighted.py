@@ -203,7 +203,7 @@ def test_distance7(directory=None):
     if directory:
         plot_series(s, l, prototypeidx)
 
-    ml_values, cl_values, clf, imp = dtww.series_to_dt(s, l, prototypeidx, window=0, min_ig=0.1,
+    ml_values, cl_values, clf, imp = dtww.series_to_dt(s, l, prototypeidx, window=0, min_ig=0.01,
                                                        savefig=str(directory / "dts.dot"),
                                                        warping_paths_fnc=dtww.warping_paths)
     # logger.debug(f"ml_values = {dict(ml_values)}")
