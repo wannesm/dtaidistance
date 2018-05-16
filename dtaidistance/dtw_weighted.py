@@ -157,7 +157,7 @@ def compute_weights_using_dt(series, labels, prototypeidx, **kwargs):
     :return:
     """
     ml_values, cl_values, _clfs, importances = series_to_dt(series, labels, prototypeidx, **kwargs)
-    weights, cl_weights = compute_weights_from_mlclvalues(series[prototypeidx], ml_values, cl_values, **kwargs)
+    weights = compute_weights_from_mlclvalues(series[prototypeidx], ml_values, cl_values, **kwargs)
     return weights, importances
 
 
