@@ -655,15 +655,23 @@ class DecisionTreeClassifier:
         return ig, th_min
 
     @staticmethod
-    def kdistance(values, threshold, k=5):
+    def kdistance(values, threshold, k=5, relative=False):
         """k-distance density measure .
 
+        :param values:
+        :param threshold:
+        :param k: k-th element to return distance of
+        :param relative: Distance as a fraction of the max distance.
+            Or if a number is given, to this number.
         :return: Distances to k nearest neighbours
         """
         # print(f'kdistance({values}, {threshold})')
         dists = []
+        max_dist = 0
         for value in np.nditer(values):
             dist = abs(value - threshold)
+            if dist > max_dist:
+                max_dist = dist
             if len(dists) < k:
                 dists.append(dist)
                 dists.sort()
@@ -672,7 +680,13 @@ class DecisionTreeClassifier:
                 dists.sort()
         # Sometimes k-distance is defined as:
         # dk = 1/k*sum([d**2 for d in dists])
-        return dists[-1]
+        dist = dists[-1]
+        if relative:
+            if type(relative) == float:
+                dist = dist / relative
+            else:
+                dist = dist / max_dist
+        return dist
 
     def fit(self, features, targets, use_feature_once=True, ignore_features=None, min_ig=0):
         """Learn decision tree.
@@ -692,6 +706,7 @@ class DecisionTreeClassifier:
         nb_instances = features.shape[0]
         # print(f'nb_instances: {nb_instances} (targets.shape = {targets.shape}')
         k = int(math.ceil(len(targets) * 0.05))
+        k_relative = float(np.max(features))
         self.tree_ = Tree()
         queue = deque([(self.tree_.last(),  # Leaf
                         np.zeros(nb_features, dtype=bool),  # Used features
@@ -723,8 +738,8 @@ class DecisionTreeClassifier:
                     gain = 0.0
                 else:
                     # Prefer values in low-density regions (thus large k dist)
-                    kd = self.kdistance(curvalues[:, fi], thr, k=k)
-                    gain = ig * kd
+                    kd = self.kdistance(curvalues[:, fi], thr, k=k, relative=k_relative)
+                    gain = ig * (1 + kd)
                     logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
                                  f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
                 # print(f'fi={fi}, thr={thr}, ig={ig}, kd={kd}, gain={gain}')
