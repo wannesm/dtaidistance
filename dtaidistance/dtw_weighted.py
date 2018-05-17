@@ -655,23 +655,18 @@ class DecisionTreeClassifier:
         return ig, th_min
 
     @staticmethod
-    def kdistance(values, threshold, k=5, relative=False):
+    def kdistance(values, threshold, k=5):
         """k-distance density measure .
 
         :param values:
         :param threshold:
         :param k: k-th element to return distance of
-        :param relative: Distance as a fraction of the max distance.
-            Or if a number is given, to this number.
         :return: Distances to k nearest neighbours
         """
         # print(f'kdistance({values}, {threshold})')
         dists = []
-        max_dist = 0
         for value in np.nditer(values):
             dist = abs(value - threshold)
-            if dist > max_dist:
-                max_dist = dist
             if len(dists) < k:
                 dists.append(dist)
                 dists.sort()
@@ -680,13 +675,7 @@ class DecisionTreeClassifier:
                 dists.sort()
         # Sometimes k-distance is defined as:
         # dk = 1/k*sum([d**2 for d in dists])
-        dist = dists[-1]
-        if relative:
-            if type(relative) == float:
-                dist = dist / relative
-            else:
-                dist = dist / max_dist
-        return dist
+        return dists[-1]
 
     def fit(self, features, targets, use_feature_once=True, ignore_features=None, min_ig=0):
         """Learn decision tree.
@@ -738,8 +727,8 @@ class DecisionTreeClassifier:
                     gain = 0.0
                 else:
                     # Prefer values in low-density regions (thus large k dist)
-                    kd = self.kdistance(curvalues[:, fi], thr, k=k, relative=k_relative)
-                    gain = ig * (1 + kd)
+                    kd = self.kdistance(curvalues[:, fi], thr, k=k)
+                    gain = ig * (1 + kd/(2 * k_relative))
                     logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
                                  f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
                 # print(f'fi={fi}, thr={thr}, ig={ig}, kd={kd}, gain={gain}')
