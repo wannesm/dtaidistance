@@ -506,6 +506,8 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
     # logger.debug(f"y_limit = {y_limit}")
     if ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1)
+    else:
+        fig = None
 
     # logger.debug(f"Weights =\n{weights}")
 
@@ -582,7 +584,7 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
 
     if filename:
         plt.savefig(filename, bbox_inches='tight', pad_inches=0)
-    return ax
+    return fig, ax
 
 
 class DecisionTreeClassifier:
