@@ -16,3 +16,7 @@ benchmark*.svg
 MANIFEST
 docs/_build
 tests/output
+experiments/input
+experiments/output
+experiments/plots
+experiments/tmp
