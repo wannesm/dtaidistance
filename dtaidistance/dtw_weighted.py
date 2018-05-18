@@ -162,7 +162,7 @@ def compute_weights_using_dt(series, labels, prototypeidx, **kwargs):
 
 
 def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, min_ig=0,
-                 savefig=None, warping_paths_fnc=None, **kwargs):
+                 savefig=None, warping_paths_fnc=None, ignore_idxs=None, **kwargs):
     """Compute Decision Tree from series
 
     :param series:
@@ -179,11 +179,15 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     """
     if warping_paths_fnc is None:
         warping_paths_fnc = warping_paths
+    if ignore_idxs is None:
+        ignore_idxs = set()
     features = [[0] * (len(series[prototypeidx]) * 2)]  # feature per idx, split in positive and negative
     targets = [0]  # Do cluster
     ml_values = defaultdict(lambda: ([], []))
 
     for idx, label in enumerate(labels):
+        if idx in ignore_idxs:
+            continue
         cur_features = np.zeros(len(series[prototypeidx]) * 2, dtype=np.double)
         cur_features_cnt = np.zeros(len(series[prototypeidx]) * 2, dtype=np.int)
         s, paths = warping_paths_fnc(series[prototypeidx], series[idx], **kwargs)
