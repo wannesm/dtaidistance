@@ -162,7 +162,8 @@ def compute_weights_using_dt(series, labels, prototypeidx, **kwargs):
 
 
 def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, min_ig=0,
-                 savefig=None, warping_paths_fnc=None, ignore_idxs=None, **kwargs):
+                 savefig=None, warping_paths_fnc=None, ignore_idxs=None,
+                 min_purity=1.0, **kwargs):
     """Compute Decision Tree from series
 
     :param series:
@@ -264,7 +265,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             continue
         clfs.append(clf)
 
-        new_cl_values, used_features = decisiontree_to_clweights(clf)
+        new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
         if len(used_features) == 0:
             logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
             used_features.update(clf.tree_.used_features)
@@ -305,7 +306,7 @@ def update_importances(importances, new_cl_values, weight):
             importances[idx][1] = max(weight, importances[idx][1])
 
 
-def decisiontree_to_clweights(clf):
+def decisiontree_to_clweights(clf, min_purity=1.0):
     """Translate a decision tree to a set of cannot-link weights.
 
     This is based on the concept that we can represent the false (class 1) case as the
@@ -325,15 +326,14 @@ def decisiontree_to_clweights(clf):
         if clf.tree_.children_left[curnode] == -1 and clf.tree_.children_right[curnode] == -1:
             value = clf.tree_.value[curnode][0]
             # logger.debug(f"Leaf - values = {value}")
-            if value[0] == 0:
-                # Leaf that represents pure cannot-link
-                # logger.debug(f'CL pure leaf: {curnode}')
+            purity = value[1] / (value[0] + value[1])
+            # print(f"purity: {purity}, values: {value}")
+            assert((value[0] == 0 and purity == 1.0) or purity != 1.0)
+            if purity >= min_purity:
+                # Leaf that represents cannot-link with given purity
+                # logger.debug(f'CL leaf: {curnode}')
                 cur_used_features = clweights_updatefrompath(cl_values, path)
                 used_features.update(cur_used_features)
-            # elif value[1] == 0:
-            #     logger.debug(f'ML pure leaf: {curnode}')
-            # else:
-            #     logger.debug(f'Non pure leaf: {curnode}')
         else:
             threshold = clf.tree_.threshold[curnode]
             feature = clf.tree_.feature[curnode]
@@ -700,7 +700,7 @@ class DecisionTreeClassifier:
         nb_features = features.shape[1]
         nb_instances = features.shape[0]
         # print(f'nb_instances: {nb_instances} (targets.shape = {targets.shape}')
-        k = int(math.ceil(len(targets) * 0.05))
+        k = int(math.ceil(len(targets) * 0.005))
         k_relative = float(np.max(features))
         self.tree_ = Tree()
         queue = deque([(self.tree_.last(),  # Leaf
@@ -731,12 +731,20 @@ class DecisionTreeClassifier:
                 if thr is None or ig < min_ig:
                     kd = None
                     gain = 0.0
+                    if __debug__ and logger.isEnabledFor(logging.DEBUG):
+                        if thr is None:
+                            thr = "None"
+                        else:
+                            thr = f"{thr:+.5f}"
+                        logger.debug(f"Not splitting feature {fi:<3}, ig={ig:.5f}, thr={thr}, "
+                                     f"k={k}, kd=None, gain=0.0")
                 else:
                     # Prefer values in low-density regions (thus large k dist)
                     kd = self.kdistance(curvalues[:, fi], thr, k=k)
                     gain = ig * (1 + kd/(2 * k_relative))
-                    logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
-                                 f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
+                    if __debug__ and logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
+                                     f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
                 # print(f'fi={fi}, thr={thr}, ig={ig}, kd={kd}, gain={gain}')
                 if best_gain < gain:
                     best_gain = gain
