@@ -191,7 +191,9 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             continue
         cur_features = np.zeros(len(series[prototypeidx]) * 2, dtype=np.double)
         cur_features_cnt = np.zeros(len(series[prototypeidx]) * 2, dtype=np.int)
-        s, paths = warping_paths_fnc(series[prototypeidx], series[idx], **kwargs)
+        wp_params = {key: kwargs[key] for key in {'window', 'max_dist', 'max_step', 'max_length_diff',
+                     'penalty', 'psi'}.intersection(kwargs.keys())}
+        s, paths = warping_paths_fnc(series[prototypeidx], series[idx], **wp_params)
         path = best_path(paths)
         for i_to, i_from in path:
             d = series[prototypeidx][i_to] - series[idx][i_from]

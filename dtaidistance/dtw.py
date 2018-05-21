@@ -206,7 +206,7 @@ def _distance_c_with_params(t):
 
 
 def warping_paths(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None,):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None):
     """
     Dynamic Time Warping.
 
