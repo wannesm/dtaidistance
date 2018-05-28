@@ -162,7 +162,7 @@ def compute_weights_using_dt(series, labels, prototypeidx, **kwargs):
 
 
 def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, min_ig=0,
-                 savefig=None, warping_paths_fnc=None, ignore_idxs=None,
+                 savefig=None, warping_paths_fnc=None, ignore_idxs=None, patternlen=None,
                  min_purity=1.0, **kwargs):
     """Compute Decision Tree from series
 
@@ -175,6 +175,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     :param min_ig: Minimum information gain
     :param savefig: Path to filename to save tree Graphviz visualisation
     :param warping_paths_fnc: Function to compute warping paths
+    :param patternlen: Pattern window size (default None)
     :param kwargs: Passed to warping_paths_fnc
     :return:
     """
@@ -186,6 +187,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     targets = [0]  # Do cluster
     ml_values = defaultdict(lambda: ([], []))
 
+    # print(f"prototype idx = {prototypeidx}")
     for idx, label in enumerate(labels):
         if idx in ignore_idxs:
             continue
@@ -218,8 +220,10 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         cur_features = np.divide(cur_features, cur_features_cnt)
         features.append(cur_features)
         if label == 0:
+            # print(f"{idx:<2}: CL -> {cur_features[0]:0.3f} / {cur_features[1]:0.3f}")
             targets.append(1)  # Do not cluster
         elif label == 1:
+            # print(f"{idx:<2}: ML -> {cur_features[0]:0.3f} / {cur_features[1]:0.3f}")
             targets.append(0)  # Do cluster
         else:
             raise Exception(f"Encountered a label that is not 0 (cannot-link) or 1 (must-link): {label}")
@@ -230,9 +234,6 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     features = np.array(features)
     targets = np.array(targets)
 
-    clfs = []
-    ignore_features = set()
-    not_empty = True
     if savefig is not None:
         try:
             from sklearn import tree
@@ -254,8 +255,82 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
     else:
         tree, out_string, feature_names, class_names = None, None, None, None
 
-    cl_values = dict()
+    if patternlen is not None:
+        cl_values, clfs, importances = dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_purity)
+    else:
+        cl_values, clfs, importances = dt_onewindow(features, targets, classifier, max_clfs, min_ig, min_purity)
 
+    if savefig is not None:
+        for clf in clfs:
+            tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names, class_names=class_names)
+            print("\n\n", file=out_string)
+        with open(savefig, "w") as ofile:
+            print(out_string.getvalue(), file=ofile)
+
+    return ml_values, cl_values, clfs, importances
+
+
+def dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_purity):
+    cl_values = dict()
+    clfss = []
+    ignore_features = set()
+    clf_w = 1.0
+    importances = defaultdict(lambda: [0, 0])
+
+    nb_features = features.shape[1]
+    nb_indices = int((nb_features / 2))
+    max_kd = 0
+    for idx in range(0, int(nb_indices - patternlen / 2), int(patternlen / 2)):
+        idx_s = idx * 2
+        idx_e = idx_s + patternlen * 2
+        clf = classifier()
+        cur_features = features[:, idx_s:idx_e]
+        clf.fit(cur_features, targets, ignore_features=ignore_features, min_ig=min_ig)
+        logger.debug(f"Learned classifier {len(clfss) + 1}: idx = f{idx}/{idx_s}:f{idx+patternlen}/{idx_e}, "
+                     f"nb nodes = {clf.tree_.nb_nodes}, used features = {clf.tree_.used_features}")
+        if clf.tree_.nb_nodes <= 1:
+            continue
+        clf.set_features(list(range(idx_s, idx_e)))
+        max_kd = max(max_kd, np.max(clf.tree_.kd))
+        clfss.append(clf)
+    clfs = []
+    for clf_idx, clf in enumerate(clfss):
+        score = clf.score(max_kd)
+        logger.debug(f"Clf[{clf_idx:<2}] - Score = {score}, Entropy = {clf.avg_impurity()}, "
+                     f"depth = {clf.tree_.depth}, nbnodes = {clf.tree_.nb_nodes}")
+        clfs.append((score, -clf.tree_.nb_nodes, clf))
+    clfs.sort(reverse=True)
+    min_score = clfs[-1][0]
+    max_score = clfs[0][0]
+    minallowed_score = max_score - (max_score - min_score) / 5  # TODO: remove this magic number
+    if len(clfs) > 1 and minallowed_score > clfs[1][0]:
+        max_score = clfs[1][0] # Ignore the first one to have at least two instances
+        minallowed_score = max_score - (max_score - min_score) / 5
+    clfs = [t for t in clfs if t[0] >= minallowed_score]
+
+    if max_clfs is not None:
+        clfs = clfs[:max_clfs]
+    logger.debug(f"Kept {len(clfs)} classifiers with score >= {minallowed_score}")
+    for clf_score, clf_nbnodes, clf in clfs:
+        new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
+        # if len(used_features) == 0:
+        #     logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
+        #     used_features.update(clf.tree_.used_features)
+        update_cl_values(cl_values, new_cl_values)
+        update_importances(importances, new_cl_values, (clf_score - min_score) / (max_score - min_score))
+        # print(f"new_cl_values: {new_cl_values}")
+        # print(f"cl_values: {cl_values}")
+        # ignore_features.update(clf.tree_.used_features)
+        ignore_features.update(used_features)
+        # print(f"ignore_features: {ignore_features}")
+    return cl_values, clfs, importances
+
+
+def dt_onewindow(features, targets, classifier, max_clfs, min_ig, min_purity):
+    cl_values = dict()
+    clfs = []
+    ignore_features = set()
+    not_empty = True
     clf_w = 1.0
     importances = defaultdict(lambda: [0, 0])
     while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
@@ -266,7 +341,6 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             not_empty = False
             continue
         clfs.append(clf)
-
         new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
         if len(used_features) == 0:
             logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
@@ -275,20 +349,11 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
         update_importances(importances, new_cl_values, clf_w)
         # print(f"new_cl_values: {new_cl_values}")
         # print(f"cl_values: {cl_values}")
-
         # ignore_features.update(clf.tree_.used_features)
         ignore_features.update(used_features)
         # print(f"ignore_features: {ignore_features}")
-        if savefig is not None:
-            tree.export_graphviz(clf, out_file=out_string, feature_names=feature_names, class_names=class_names)
-            print("\n\n", file=out_string)
         clf_w *= 0.66
-
-    if savefig is not None:
-        with open(savefig, "w") as ofile:
-            print(out_string.getvalue(), file=ofile)
-
-    return ml_values, cl_values, clfs, importances
+    return cl_values, clfs, importances
 
 
 def update_cl_values(cl_values, new_cl_values):
@@ -459,7 +524,7 @@ def compute_weights_from_mlclvalues(serie, ml_values, cl_values, only_max=False,
         if vp2 < vp1:
             vp1 = vp2 = (vp1 + vp2) / 2
         wn[idx, :] = [vn3, vn2, vn1, vn0, vp0, vp1, vp2, vp3]
-    logger.debug(f'weights:\n{wn}')
+    # logger.debug(f'weights:\n{wn}')
     return wn
 
 
@@ -625,13 +690,14 @@ class DecisionTreeClassifier:
         return h
 
     @staticmethod
-    def entropy_continuous(targets, values):
+    def informationgain_continuous(targets, values, h0=None):
         """Best split based on information gain.
 
-        :return: (information gain, threshold value)
+        :return: (information gain, threshold value, entropy of current node)
         """
         # print(f'entropy_continuous:\n{targets}\n{values}')
-        h0 = DecisionTreeClassifier.entropy(targets)
+        if h0 is None:
+            h0 = DecisionTreeClassifier.entropy(targets)
         # print(f'h0={h0}, targets={targets}')
 
         thresholds = np.unique(values)
@@ -660,7 +726,7 @@ class DecisionTreeClassifier:
             ig = 0
         else:
             ig = h0 - h1_min
-        return ig, th_min
+        return ig, th_min, h0
 
     @staticmethod
     def kdistance(values, threshold, k=5):
@@ -705,9 +771,10 @@ class DecisionTreeClassifier:
         k = int(math.ceil(len(targets) * 0.005))
         k_relative = float(np.max(features))
         self.tree_ = Tree()
-        queue = deque([(self.tree_.last(),  # Leaf
+        queue = deque([(self.tree_.last(),                  # Leaf
                         np.zeros(nb_features, dtype=bool),  # Used features
-                        np.ones(nb_instances, dtype=bool))])  # Instances mask
+                        np.ones(nb_instances, dtype=bool)   # Instances mask
+                        )])
         queue_it = 0
         while len(queue) > 0:
             queue_it += 1
@@ -725,42 +792,51 @@ class DecisionTreeClassifier:
                 continue
             curvalues = features[idxs, :]
             curtargets = targets[idxs]
-            best_gain, best_fi, best_thr = 0, None, None
+            h0 = DecisionTreeClassifier.entropy(curtargets)
+            all_gains = []
+            max_kd = 0
             for fi in range(nb_features):
                 if (use_feature_once and used_ftrs[fi]) or (ignore_features is not None and fi in ignore_features):
                     continue
-                ig, thr = self.entropy_continuous(curtargets, curvalues[:, fi])
+                ig, thr, _ = self.informationgain_continuous(curtargets, curvalues[:, fi], h0=h0)
                 if thr is None or ig < min_ig:
                     kd = None
                     gain = 0.0
-                    if __debug__ and logger.isEnabledFor(logging.DEBUG):
-                        if thr is None:
-                            thr = "None"
-                        else:
-                            thr = f"{thr:+.5f}"
-                        logger.debug(f"Not splitting feature {fi:<3}, ig={ig:.5f}, thr={thr}, "
-                                     f"k={k}, kd=None, gain=0.0")
+                    # if __debug__ and logger.isEnabledFor(logging.DEBUG):
+                    #     if thr is None:
+                    #         thr = "None"
+                    #     else:
+                    #         thr = f"{thr:+.5f}"
+                    #     logger.debug(f"Not splitting feature {fi:<3}, ig={ig:.5f}, thr={thr}, "
+                    #                  f"k={k}, kd=None, gain=0.0")
                 else:
                     # Prefer values in low-density regions (thus large k dist)
                     kd = self.kdistance(curvalues[:, fi], thr, k=k)
-                    gain = ig * (1 + kd/(2 * k_relative))
-                    if __debug__ and logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
-                                     f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
+                    if kd > max_kd:
+                        max_kd = kd
+                    all_gains.append((fi, ig, thr, kd))
+            best_gain, best_fi, best_thr, best_kd = 0, None, None, None
+            for fi, ig, thr, kd in all_gains:
+                gain = ig * (1 + (kd / max_kd)**1)
+                # if __debug__ and logger.isEnabledFor(logging.DEBUG):
+                #     logger.debug(f"Splitting feature {fi:<3}, ig={ig:.5f}, thr={thr:+.5f}, "
+                #                  f"k={k}, kd={kd:.5f}, gain={gain:.5f}")
                 # print(f'fi={fi}, thr={thr}, ig={ig}, kd={kd}, gain={gain}')
                 if best_gain < gain:
                     best_gain = gain
                     best_fi = fi
                     best_thr = thr
+                    best_kd = kd
+            self.tree_.impurity[node] = h0
             if best_fi is not None:
+                self.tree_.kd[node] = best_kd
+                leq_idxs = idxs & (features[:, best_fi] <= best_thr)
                 used_ftrs = used_ftrs.copy()
                 used_ftrs[best_fi] = True
                 self.tree_.feature[node] = best_fi
                 self.tree_.threshold[node] = best_thr
-                self.tree_.impurity[node] = best_gain
                 lessorequal = self.tree_.add()
                 # print(f'best_fi={best_fi}, best_thr={best_thr}, best_gain={best_gain}')
-                leq_idxs = idxs & (features[:, best_fi] <= best_thr)
                 queue.append((lessorequal, used_ftrs, leq_idxs))
                 self.tree_.children_left[node] = lessorequal
                 larger = self.tree_.add()
@@ -770,8 +846,73 @@ class DecisionTreeClassifier:
                 # print('New queue:')
                 # print('\n'.join([str(elmt) for elmt in queue]))
             else:
-                self.tree_.impurity[node] = 0
+                pass
         return self
+
+    def avg_entropy_leafs(self):
+        e = 0
+        c = 0
+        for i in range(len(self.tree_.feature)):
+            if self.tree_.feature[i] == -1:
+                c += 1
+                values = self.tree_.value[i][0]
+                prob = values[0] / (values[0] + values[1])
+                try:
+                    e -= prob * math.log(prob) + (1-prob) * math.log(1-prob)
+                except ValueError:
+                    pass
+        return e / c
+
+    def avg_impurity(self):
+        impurity = 0
+        count = 0
+        for idx in range(len(self.tree_.feature)):
+            if self.tree_.feature[idx] == -1:
+                count += 1
+                impurity += self.tree_.impurity[idx]
+        impurity = impurity / count
+        return impurity
+
+    def score(self, max_kd):
+        # max_kd = np.max(self.tree_.kd)
+        sum_wimpurity = 0
+        cnt_wimpurity = 0
+        queue = deque()
+        queue.append((0, 0, 0))  # index, kd max, kd count
+        while len(queue) > 0:
+            idx, branch_max_kd, cnt = queue.popleft()
+            idx_l = self.tree_.children_left[idx]
+            idx_r = self.tree_.children_right[idx]
+            if idx_l == -1 and idx_r == -1:
+                # print(f"impurity = {self.tree_.impurity[idx]}, branch_max_kd = {branch_max_kd}, max_kd = {max_kd}, factor = {1 + (branch_max_kd / max_kd)**2}")
+                sum_wimpurity += (1.0 - self.tree_.impurity[idx]) * (1 + (branch_max_kd / max_kd)**1)
+                cnt_wimpurity += 1
+            else:
+                ncsum = max(branch_max_kd, self.tree_.kd[idx])
+                ncnt = cnt + 1
+                queue.append((idx_l, ncsum, ncnt))
+                queue.append((idx_r, ncsum, ncnt))
+        return sum_wimpurity / cnt_wimpurity
+
+    def set_features(self, features):
+        for i in range(len(self.tree_.feature)):
+            if self.tree_.feature[i] != -1:
+                self.tree_.feature[i] = features[self.tree_.feature[i]]
+
+    def __eq__(self, other):
+        return True
+
+    def __lt__(self, other):
+        return False
+
+    def __le__(self, other):
+        return True
+
+    def __gt__(self, other):
+        return False
+
+    def __ge__(self, other):
+        return True
 
 
 class Tree:
@@ -790,6 +931,7 @@ class Tree:
         self.impurity = []
         self.n_node_samples = []
         self.n_classes = []
+        self.kd = []
         self.add()
 
     def add(self):
@@ -805,6 +947,7 @@ class Tree:
         self.impurity.append(-1)
         self.n_node_samples.append(-1)
         self.n_classes.append(-1)
+        self.kd.append(-1)
         return len(self.feature) - 1
 
     def last(self):
@@ -821,3 +964,20 @@ class Tree:
     @property
     def used_features(self):
         return set(self.feature)
+
+    @property
+    def depth(self):
+        max_depth = 1
+        queue = deque()
+        queue.append((0, 1))
+        while len(queue) > 0:
+            idx, depth = queue.popleft()
+            if depth > max_depth:
+                max_depth = depth
+            idx_l = self.children_left[idx]
+            idx_r = self.children_right[idx]
+            if idx_l != -1:
+                queue.append((idx_l, depth + 1))
+            if idx_r != -1:
+                queue.append((idx_r, depth + 1))
+        return max_depth

@@ -20,14 +20,14 @@ def get_directory(directory):
 def test_split():
     values = np.array([1, 2, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9])
     targets = np.array([1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0])
-    ig, thr = dtww.DecisionTreeClassifier.entropy_continuous(targets, values)
+    ig, thr = dtww.DecisionTreeClassifier.informationgain_continuous(targets, values)
     assert thr == pytest.approx(4.5)
 
 
 def test_split2():
     values = np.array([0., 0., 0.])
     targets = np.array([0, 1, 0])
-    ig, thr = dtww.DecisionTreeClassifier.entropy_continuous(targets, values)
+    ig, thr = dtww.DecisionTreeClassifier.informationgain_continuous(targets, values)
     assert ig == pytest.approx(0.0)
     assert thr is None
 
