@@ -195,3 +195,41 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
             filename = str(filename)
         plt.savefig(filename)
     return fig, ax
+
+def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
+    from matplotlib import pyplot as plt
+
+    if ax is None:
+        if shownumbers:
+            figsize = (15, 15)
+        else:
+            figsize = None
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    else:
+        fig = None
+
+    ax.xaxis.set_ticks_position('top')
+    ax.yaxis.set_ticks_position('both')
+
+    im = ax.imshow(distances)
+    idxs = [str(i) for i in range(len(distances))]
+    # Show all ticks
+    ax.set_xticks(np.arange(len(idxs)))
+    ax.set_xticklabels(idxs)
+    ax.set_yticks(np.arange(len(idxs)))
+    ax.set_yticklabels(idxs)
+
+    ax.set_title("Distances between series", pad=30)
+
+    if shownumbers:
+        for i in range(len(idxs)):
+            for j in range(len(idxs)):
+                if not np.isinf(distances[i, j]):
+                    l = f"{distances[i, j]:.2f}"
+                    ax.text(j, i, l, ha="center", va="center", color="w")
+
+    if filename:
+        if type(filename) != str:
+            filename = str(filename)
+        plt.savefig(filename)
+    return fig, ax
