@@ -303,14 +303,17 @@ def dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_
     min_score = clfs[-1][0]
     max_score = clfs[0][0]
     minallowed_score = max_score - (max_score - min_score) / 5  # TODO: remove this magic number
-    if len(clfs) > 1 and minallowed_score > clfs[1][0]:
-        max_score = clfs[1][0] # Ignore the first one to have at least two instances
+    clfs_use = 1
+    # We expect that the current range includes at least two new classifiers
+    while len(clfs) > clfs_use and minallowed_score > clfs[clfs_use][0]:
+        max_score = clfs[clfs_use][0]
         minallowed_score = max_score - (max_score - min_score) / 5
+        clfs_use += 1
     clfs = [t for t in clfs if t[0] >= minallowed_score]
 
     if max_clfs is not None:
         clfs = clfs[:max_clfs]
-    logger.debug(f"Kept {len(clfs)} classifiers with score >= {minallowed_score}")
+    logger.debug(f"Kept {len(clfs)} classifiers with score >= {minallowed_score}, clfs_use = {clfs_use}")
     for clf_score, clf_nbnodes, clf in clfs:
         new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
         # if len(used_features) == 0:
