@@ -10,7 +10,7 @@ This packages is available on PyPI:
 
     $ pip install dtaidistance
 
-In case the C based version is not available, you might need to install from source.
+Depending on your system, this might not install the C version. To guarantee installation of the C extensions (which enable much faster DTW alignment), follow the instructions in the "From Source" section below.
 
 
 From Github
@@ -29,5 +29,5 @@ From source
 The library can also be compiled and/or installed directly from source.
 
 * Download the source from https://github.com/wannesm/dtaidistance
-* To compile and install in your site-package directory: ``python3 setup.py install``
-* To compile locally: ``python3 setup.py build_ext --inplace``
+* Compile the C extensions: ``python3 setup.py build_ext --inplace``
+* Install into your site-package directory: ``python3 setup.py install``
