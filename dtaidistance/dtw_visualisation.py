@@ -225,7 +225,7 @@ def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
         for i in range(len(idxs)):
             for j in range(len(idxs)):
                 if not np.isinf(distances[i, j]):
-                    l = f"{distances[i, j]:.2f}"
+                    l = "{:.2f}".format(distances[i, j])
                     ax.text(j, i, l, ha="center", va="center", color="w")
 
     if filename:

@@ -33,10 +33,10 @@ def prepare_directory(directory=None):
         directory = Path(directory)
         if not directory.exists():
             directory.mkdir(parents=True)
-        logger.debug(f"Using directory: {directory}")
+        logger.debug("Using directory: {}".format(directory))
         return Path(directory)
     directory = tempfile.mkdtemp(prefix="dtaidistance_")
-    logger.debug(f"Using directory: {directory}")
+    logger.debug("Using directory: {}".format(directory))
     return Path(directory)
 
 
@@ -84,7 +84,7 @@ class SeriesContainer:
                     pass
                 else:
                     raise Exception("Type of series not supported, "
-                                    f"expected numpy.array or array.array but got {type(serie)}")
+                                    "expected numpy.array or array.array but got {}".format(type(serie)))
         elif isinstance(self.series, np.ndarray):
             if not self.series.flags.c_contiguous:
                 self.series = self.series.copy(order='C')
@@ -97,7 +97,7 @@ class SeriesContainer:
         return len(self.series)
 
     def __str__(self):
-        return f"SeriesContainer:\n{self.series}"
+        return "SeriesContainer:\n{}".format(self.series)
 
     @staticmethod
     def wrap(series):

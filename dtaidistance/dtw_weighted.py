@@ -226,7 +226,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             # print(f"{idx:<2}: ML -> {cur_features[0]:0.3f} / {cur_features[1]:0.3f}")
             targets.append(0)  # Do cluster
         else:
-            raise Exception(f"Encountered a label that is not 0 (cannot-link) or 1 (must-link): {label}")
+            raise Exception("Encountered a label that is not 0 (cannot-link) or 1 (must-link): {}".format(label))
 
     if classifier is None:
         classifier = DecisionTreeClassifier
