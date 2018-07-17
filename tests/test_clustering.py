@@ -4,11 +4,13 @@ import math
 import tempfile
 import pytest
 import logging
+from pathlib import Path
 import numpy as np
 from dtaidistance import dtw, clustering
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+directory = None
 
 
 def test_clustering():
@@ -29,7 +31,7 @@ def test_clustering():
     assert cluster_idx[2] == {2, 5}
 
 
-def test_clustering_tree(directory=None):
+def test_clustering_tree():
     s = np.array([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -61,7 +63,7 @@ def test_clustering_tree(directory=None):
     print("Dot saved to", graphviz_fn)
 
 
-def test_linkage_tree(directory=None):
+def test_linkage_tree():
     s = np.array([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -88,14 +90,15 @@ def test_linkage_tree(directory=None):
     print("Dot saved to", graphviz_fn)
 
 
-def test_controlchart(directory=None):
+def test_controlchart():
+    import matplotlib.pyplot as plt
     series = np.zeros((600, 60))
     rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'synthetic_control.data')
     with open(rsrc_fn, 'r') as ifile:
         for idx, line in enumerate(ifile.readlines()):
             series[idx, :] = line.split()
     s = []
-    for idx in range(0, 600, 20):
+    for idx in range(0, 600, 10):
         s.append(series[idx, :])
 
     model = clustering.LinkageTree(dtw.distance_matrix_fast, {})
@@ -106,17 +109,18 @@ def test_controlchart(directory=None):
     else:
         file = tempfile.NamedTemporaryFile()
         hierarchy_fn = file.name + "_hierarchy.png"
-    model.plot(hierarchy_fn)
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 20))
+    model.plot(hierarchy_fn, axes=ax, show_ts_label=lambda idx: "ts-" + str(idx),
+               show_tr_label=True, ts_label_margin=-10,
+               ts_left_margin=10, ts_sample_length=1)
     print("Figure saved to", hierarchy_fn)
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    sh = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(message)s')
-    sh.setFormatter(formatter)
-    logger.addHandler(sh)
-    logger.propagate = 0
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
+    print(f"Saving files to {directory}")
     # test_clustering_tree(directory="/Users/wannes/Desktop/")
     # test_linkage_tree(directory="/Users/wannes/Desktop/")
-    test_controlchart(directory="/Users/wannes/Desktop/")
+    test_controlchart()

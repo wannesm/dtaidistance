@@ -156,12 +156,28 @@ class BaseTree:
         idx = int(node - len(self.series))
         return self.linkage[idx]
 
-    def plot(self, filename=None, axes=None):
+    def plot(self, filename=None, axes=None, ts_height=10,
+             ts_bottom_margin=2, ts_top_margin=2, ts_left_margin=0, ts_sample_length=1,
+             tr_label_margin=1, ts_label_margin=0,
+             show_ts_label=True, show_tr_label=True):
         """Plot the hierarchy and time series.
 
         :param filename: If a filename is passed, the image is written to this file.
         :param axes: If a axes array is passed the image is added to this figure.
             Expects axes[0] and axes[1] to be present.
+        :param ts_height: Height of a time series
+        :param ts_bottom_margin: Margin on bottom of time series image
+        :param ts_top_margin: Margin on top of time series image
+        :param ts_left_margin: Margin on left of time series image
+        :param ts_sample_length: Space between two points in the time series
+        :param tr_label_margin: Margin between tree split and label
+        :param ts_label_margin: Margin between start of series and label
+        :param show_ts_label: Show label indices. True, False or a callable object.
+            If it is a callable object, the index of the time series will be given and the
+            return string will be printed.
+        :param show_tr_label: Show tree distances. True, False or a callable object.
+            If it is a callable object, the index of the time series will be given and the
+            return string will be printed.
         """
         # print('linkage')
         # for l in self.linkage:
@@ -169,11 +185,24 @@ class BaseTree:
         from matplotlib import pyplot as plt
         from matplotlib.lines import Line2D
 
+        if show_ts_label is True:
+            show_ts_label = lambda idx: str(int(idx))
+        elif show_ts_label is False:
+            show_ts_label = lambda idx: ""
+        elif callable(show_ts_label):
+            pass
+        else:
+            raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
+        if show_tr_label is True:
+            show_tr_label = lambda dist: "{:.2f}".format(dist)
+        elif show_tr_label is False:
+            show_tr_label = lambda dist: ""
+        elif callable(show_tr_label):
+            pass
+        else:
+            raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
+
         self._series_y = [0] * len(self.series)
-        ts_height = 10
-        ts_bottom_margin = 2
-        ts_top_margin = 2
-        tr_unit = 1
 
         max_dist = 0
         for _, _, d, _ in self.linkage:
@@ -242,12 +271,12 @@ class BaseTree:
         ax[0].set_axis_off()
         # ax[0].set_xlim(left=0, right=curdept)
         ax[0].set_xlim(left=0, right=maxcumdist + 0.05)
-        ax[0].set_ylim(bottom=0, top=tr_unit * len(self.series))
+        ax[0].set_ylim(bottom=0, top=ts_bottom_margin + ts_height * len(self.series) + ts_top_margin)
         # ax[0].plot([0,1],[1,2])
         # ax[0].add_line(Line2D((0,1),(2,2), lw=2, color='black', axes=ax[0]))
 
         ax[1].set_axis_off()
-        ax[1].set_xlim(left=0, right=len(self.series[0]))
+        ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * len(self.series[0]))
         ax[1].set_ylim(bottom=0, top=ts_bottom_margin + ts_height*len(self.series) + ts_top_margin)
 
         cnt_ts = 0
@@ -257,28 +286,28 @@ class BaseTree:
             pcnt, pdepth, plcnt, prcnt, pcdist = node_props[node]
             # px = maxheight - pdepth
             px = maxcumdist - pcdist
-            py = prev_lcnt * tr_unit
+            py = prev_lcnt * ts_height
             if node < len(self.series):
                 # Plot series
                 # print('plot series y={}'.format(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor))
                 self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
                 serie = self.series[int(node)]
-                ax[1].text(0, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, int(node))
-                ax[1].plot(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
+                ax[1].text(ts_left_margin + ts_label_margin, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, show_ts_label(int(node)))
+                ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)), ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
                 cnt_ts += 1
 
             else:
                 child_left, child_right, dist, _ = self.get_linkage(node)
-                ax[0].text(px + 0.05, py + tr_unit / 10, "{:.2f}".format(dist))
+                ax[0].text(px + tr_label_margin, py + ts_height / 10, show_tr_label(dist), ha='left')
 
                 # Left
                 ccnt, cdepth, clcntl, crcntl, clcdist = node_props[child_left]
                 # print('left', ccnt, cdepth, clcntl, crcntl)
                 # cx = maxheight - cdepth
                 cx = maxcumdist - clcdist
-                cy = (prev_lcnt - crcntl) * tr_unit
+                cy = (prev_lcnt - crcntl) * ts_height
                 if py == cy:
-                    cy -= 1/2*tr_unit
+                    cy -= 1 / 2 * ts_height
                 # print('plot line', (px, cx), (py, cy))
                 # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
                 ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
@@ -290,9 +319,9 @@ class BaseTree:
                 # print('right', ccnt, cdepth, clcntr, crcntr)
                 # cx = maxheight - cdepth
                 cx = maxcumdist - crcdist
-                cy = (prev_lcnt + clcntr) * tr_unit
+                cy = (prev_lcnt + clcntr) * ts_height
                 if py == cy:
-                    cy += 1/2*tr_unit
+                    cy += 1 / 2 * ts_height
                 # print('plot line', (px, cx), (py, cy))
                 # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
                 ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
