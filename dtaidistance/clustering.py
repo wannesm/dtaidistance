@@ -300,8 +300,11 @@ class BaseTree:
                 # print('plot series y={}'.format(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor))
                 self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
                 serie = self.series[int(node)]
-                ax[1].text(ts_left_margin + ts_label_margin, ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor, show_ts_label(int(node)))
-                ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)), ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
+                ax[1].text(ts_left_margin + ts_label_margin,
+                           ts_bottom_margin + ts_height * cnt_ts + ts_height / 2,
+                           show_ts_label(int(node)), ha='left', va='center')
+                ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
+                           ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
                 cnt_ts += 1
 
             else:
