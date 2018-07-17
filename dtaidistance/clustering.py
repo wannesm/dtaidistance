@@ -159,7 +159,7 @@ class BaseTree:
     def plot(self, filename=None, axes=None, ts_height=10,
              ts_bottom_margin=2, ts_top_margin=2, ts_left_margin=0, ts_sample_length=1,
              tr_label_margin=1, ts_label_margin=0,
-             show_ts_label=True, show_tr_label=True):
+             show_ts_label=None, show_tr_label=None):
         """Plot the hierarchy and time series.
 
         :param filename: If a filename is passed, the image is written to this file.
@@ -187,18 +187,24 @@ class BaseTree:
 
         if show_ts_label is True:
             show_ts_label = lambda idx: str(int(idx))
-        elif show_ts_label is False:
+        elif show_ts_label is False or show_ts_label is None:
             show_ts_label = lambda idx: ""
         elif callable(show_ts_label):
             pass
+        elif hasattr(show_ts_label, "__getitem__"):
+            show_ts_label_prev = show_ts_label
+            show_ts_label = lambda idx: show_ts_label_prev[idx]
         else:
             raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
         if show_tr_label is True:
             show_tr_label = lambda dist: "{:.2f}".format(dist)
-        elif show_tr_label is False:
+        elif show_tr_label is False or show_tr_label is None:
             show_tr_label = lambda dist: ""
         elif callable(show_tr_label):
             pass
+        elif hasattr(show_tr_label, "__getitem__"):
+            show_tr_label_prev = show_tr_label
+            show_tr_label = lambda idx: show_tr_label_prev[idx]
         else:
             raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
 

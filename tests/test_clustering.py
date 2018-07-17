@@ -110,7 +110,9 @@ def test_controlchart():
         file = tempfile.NamedTemporaryFile()
         hierarchy_fn = file.name + "_hierarchy.png"
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 20))
-    model.plot(hierarchy_fn, axes=ax, show_ts_label=lambda idx: "ts-" + str(idx),
+    show_ts_label = lambda idx: "ts-" + str(idx)
+    # show_ts_label = list(range(len(s)))
+    model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
                show_tr_label=True, ts_label_margin=-10,
                ts_left_margin=10, ts_sample_length=1)
     print("Figure saved to", hierarchy_fn)
