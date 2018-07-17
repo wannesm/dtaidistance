@@ -172,10 +172,10 @@ class BaseTree:
         :param ts_sample_length: Space between two points in the time series
         :param tr_label_margin: Margin between tree split and label
         :param ts_label_margin: Margin between start of series and label
-        :param show_ts_label: Show label indices. True, False or a callable object.
+        :param show_ts_label: Show label indices. Boolean, callable or subscriptable object.
             If it is a callable object, the index of the time series will be given and the
             return string will be printed.
-        :param show_tr_label: Show tree distances. True, False or a callable object.
+        :param show_tr_label: Show tree distances. Boolean, callable or subscriptable object.
             If it is a callable object, the index of the time series will be given and the
             return string will be printed.
         """
@@ -195,7 +195,8 @@ class BaseTree:
             show_ts_label_prev = show_ts_label
             show_ts_label = lambda idx: show_ts_label_prev[idx]
         else:
-            raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
+            raise AttributeError("Unknown type for show_ts_label, expecting boolean, subscriptable or callable, "
+                                 "got {}".format(type(show_ts_label)))
         if show_tr_label is True:
             show_tr_label = lambda dist: "{:.2f}".format(dist)
         elif show_tr_label is False or show_tr_label is None:
@@ -206,7 +207,8 @@ class BaseTree:
             show_tr_label_prev = show_tr_label
             show_tr_label = lambda idx: show_tr_label_prev[idx]
         else:
-            raise AttributeError("Unknown type for show_ts_label: {}".format(type(show_ts_label)))
+            raise AttributeError("Unknown type for show_ts_label, expecting boolean, subscriptable or callable, "
+                                 "got {}".format(type(show_ts_label)))
 
         self._series_y = [0] * len(self.series)
 
