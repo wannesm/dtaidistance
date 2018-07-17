@@ -275,7 +275,7 @@ class BaseTree:
         if axes is None:
             fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
         else:
-            ax = axes
+            fig, ax = None, axes
         ax[0].set_axis_off()
         # ax[0].set_xlim(left=0, right=curdept)
         ax[0].set_xlim(left=0, right=maxcumdist + 0.05)
@@ -344,7 +344,7 @@ class BaseTree:
                 filename = str(filename)
             plt.savefig(filename, bbox_inches='tight', pad_inches=0)
 
-        return ax
+        return fig, ax
 
     def to_dot(self):
         child_left, child_right, dist, cnt = self.get_linkage(self.maxnode)
