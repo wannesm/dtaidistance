@@ -181,7 +181,7 @@ tree can be visualised:
 
     model.plot("myplot.png")
 
-![Clustering hierarchy](https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2)
+![Dynamic Time Warping (DTW) hierarchical clustering](https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2)
 
 
 ## Dependencies
