@@ -31,7 +31,7 @@ The source code is available at [github.com/wannesm/dtaidistance](https://github
     path = dtw.warping_path(s1, s2)
     dtwvis.plot_warping(s1, s2, path, filename="warp.png")
 
-![DTW Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=3)
+![Dynamic Time Warping (DTW) Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=4)
 
 
 #### DTW Distance Measure Between Two Series
@@ -181,7 +181,7 @@ tree can be visualised:
 
     model.plot("myplot.png")
 
-![Dynamic Time Warping (DTW) hierarchical clustering](https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2)
+![Dynamic Time Warping (DTW) hierarchical clusteringt](https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2)
 
 
 ## Dependencies

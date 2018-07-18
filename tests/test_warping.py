@@ -7,14 +7,19 @@ from dtaidistance import dtw, dtw_c
 from dtaidistance import dtw_visualisation as dtwvis
 
 
+directory = None
+
+
 def test_normalize():
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
     s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
     r, path = dtw.warp(s1, s2)
-    # dtwvis.plot_warp(s1, s2, r, path, filename=os.path.expanduser("~/Desktop/test_normalize1.png")
+    if directory:
+        dtwvis.plot_warp(s1, s2, r, path, filename=str(directory / "test_normalize1.png"))
     r_c = np.array([0., 1., 2., 2., 1., 0.5, 0., 0., 2., 1., 0., 0., 0.])
-    # path = dtw.warping_path(s1, s2, psi=2)
-    # dtwvis.plot_warping(s1, s2, path, filename=os.path.expanduser("~/Desktop/test_normalize2.png"))
+    if directory:
+        path = dtw.warping_path(s1, s2, psi=2)
+        dtwvis.plot_warping(s1, s2, path, filename=str(directory / "test_normalize2.png"))
     np.testing.assert_almost_equal(r, r_c, decimal=4)
 
 
@@ -88,12 +93,13 @@ def test_twoleadecg_1(directory=None):
 
 if __name__ == "__main__":
     np.set_printoptions(precision=2, linewidth=120)
-    dir = Path("/Users/wannes/Desktop")
-    # test_normalize()
+    directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
+    print(f"Saving files to {directory}")
+    test_normalize()
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()
-    test_psi_dtw_2a()
+    # test_psi_dtw_2a()
     # test_psi_dtw_2b()
-    test_twoleadecg_1(directory=dir)
+    # test_twoleadecg_1()
 
