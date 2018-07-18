@@ -98,7 +98,7 @@ def test_controlchart():
         for idx, line in enumerate(ifile.readlines()):
             series[idx, :] = line.split()
     s = []
-    for idx in range(0, 600, 10):
+    for idx in range(0, 600, 20):
         s.append(series[idx, :])
 
     model = clustering.LinkageTree(dtw.distance_matrix_fast, {})
@@ -109,7 +109,7 @@ def test_controlchart():
     else:
         file = tempfile.NamedTemporaryFile()
         hierarchy_fn = file.name + "_hierarchy.png"
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 20))
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
     show_ts_label = lambda idx: "ts-" + str(idx)
     # show_ts_label = list(range(len(s)))
     model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,

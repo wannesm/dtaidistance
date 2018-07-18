@@ -157,20 +157,22 @@ class BaseTree:
         return self.linkage[idx]
 
     def plot(self, filename=None, axes=None, ts_height=10,
-             ts_bottom_margin=2, ts_top_margin=2, ts_left_margin=0, ts_sample_length=1,
-             tr_label_margin=1, ts_label_margin=0,
-             show_ts_label=None, show_tr_label=None):
+             bottom_margin=2, top_margin=2, ts_left_margin=0, ts_sample_length=1,
+             tr_label_margin=3, tr_left_margin=2, ts_label_margin=0,
+             show_ts_label=None, show_tr_label=None,
+             cmap='viridis_r'):
         """Plot the hierarchy and time series.
 
         :param filename: If a filename is passed, the image is written to this file.
         :param axes: If a axes array is passed the image is added to this figure.
             Expects axes[0] and axes[1] to be present.
         :param ts_height: Height of a time series
-        :param ts_bottom_margin: Margin on bottom of time series image
-        :param ts_top_margin: Margin on top of time series image
+        :param bottom_margin: Margin on bottom
+        :param top_margin: Margin on top
         :param ts_left_margin: Margin on left of time series image
         :param ts_sample_length: Space between two points in the time series
         :param tr_label_margin: Margin between tree split and label
+        :param tr_left_margin: Left margin for tree
         :param ts_label_margin: Margin between start of series and label
         :param show_ts_label: Show label indices. Boolean, callable or subscriptable object.
             If it is a callable object, the index of the time series will be given and the
@@ -178,12 +180,15 @@ class BaseTree:
         :param show_tr_label: Show tree distances. Boolean, callable or subscriptable object.
             If it is a callable object, the index of the time series will be given and the
             return string will be printed.
+        :param cmap: Matplotlib colormap name
         """
         # print('linkage')
         # for l in self.linkage:
         #     print(l)
         from matplotlib import pyplot as plt
         from matplotlib.lines import Line2D
+        import matplotlib.colors as colors
+        import matplotlib.cm as cmx
 
         if show_ts_label is True:
             show_ts_label = lambda idx: str(int(idx))
@@ -278,69 +283,73 @@ class BaseTree:
             fig, ax = None, axes
         ax[0].set_axis_off()
         # ax[0].set_xlim(left=0, right=curdept)
-        ax[0].set_xlim(left=0, right=maxcumdist + 0.05)
-        ax[0].set_ylim(bottom=0, top=ts_bottom_margin + ts_height * len(self.series) + ts_top_margin)
+        ax[0].set_xlim(left=0, right=tr_left_margin + maxcumdist + 0.05)
+        ax[0].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
         # ax[0].plot([0,1],[1,2])
         # ax[0].add_line(Line2D((0,1),(2,2), lw=2, color='black', axes=ax[0]))
 
         ax[1].set_axis_off()
         ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * len(self.series[0]))
-        ax[1].set_ylim(bottom=0, top=ts_bottom_margin + ts_height*len(self.series) + ts_top_margin)
+        ax[1].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
+
+        line_colors = cmx.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=max_dist), cmap=plt.get_cmap(cmap))
 
         cnt_ts = 0
 
-        def plot_i(node, depth, cnt_ts, prev_lcnt, ax):
+        def plot_i(node, depth, cnt_ts, prev_lcnt, ax, left):
             # print('plot_i', node, depth, cnt_ts, prev_lcnt)
             pcnt, pdepth, plcnt, prcnt, pcdist = node_props[node]
             # px = maxheight - pdepth
-            px = maxcumdist - pcdist
+            px = tr_left_margin + maxcumdist - pcdist
             py = prev_lcnt * ts_height
             if node < len(self.series):
                 # Plot series
                 # print('plot series y={}'.format(ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor))
-                self._series_y[int(node)] = ts_bottom_margin + ts_height * cnt_ts
+                self._series_y[int(node)] = bottom_margin + ts_height * cnt_ts
                 serie = self.series[int(node)]
                 ax[1].text(ts_left_margin + ts_label_margin,
-                           ts_bottom_margin + ts_height * cnt_ts + ts_height / 2,
+                           bottom_margin + ts_height * cnt_ts + ts_height / 2,
                            show_ts_label(int(node)), ha='left', va='center')
                 ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
-                           ts_bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
+                           bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
                 cnt_ts += 1
 
             else:
                 child_left, child_right, dist, _ = self.get_linkage(node)
-                ax[0].text(px + tr_label_margin, py + ts_height / 10, show_tr_label(dist), ha='left')
+                color = line_colors.to_rgba(dist)
+                ax[0].text(px + tr_label_margin, py,
+                           show_tr_label(dist), ha='left', va='center', color=color)
 
                 # Left
                 ccnt, cdepth, clcntl, crcntl, clcdist = node_props[child_left]
                 # print('left', ccnt, cdepth, clcntl, crcntl)
                 # cx = maxheight - cdepth
-                cx = maxcumdist - clcdist
+                cx = tr_left_margin + maxcumdist - clcdist
                 cy = (prev_lcnt - crcntl) * ts_height
                 if py == cy:
                     cy -= 1 / 2 * ts_height
                 # print('plot line', (px, cx), (py, cy))
                 # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
-                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
-                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color='black', axes=ax[0]))
-                cnt_ts = plot_i(child_left, depth + 1, cnt_ts, prev_lcnt - crcntl, ax)
+                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color=color, axes=ax[0]))
+                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color=color, axes=ax[0]))
+                cnt_ts = plot_i(child_left, depth + 1, cnt_ts, prev_lcnt - crcntl, ax, True)
 
                 # Right
                 ccnt, cdepth, clcntr, crcntr, crcdist = node_props[child_right]
                 # print('right', ccnt, cdepth, clcntr, crcntr)
                 # cx = maxheight - cdepth
-                cx = maxcumdist - crcdist
+                cx = tr_left_margin + maxcumdist - crcdist
                 cy = (prev_lcnt + clcntr) * ts_height
                 if py == cy:
                     cy += 1 / 2 * ts_height
                 # print('plot line', (px, cx), (py, cy))
                 # ax[0].add_line(Line2D((px, cx), (py, cy), lw=2, color='black', axes=ax[0]))
-                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color='black', axes=ax[0]))
-                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color='black', axes=ax[0]))
-                cnt_ts = plot_i(child_right, depth + 1, cnt_ts, prev_lcnt + clcntr, ax)
+                ax[0].add_line(Line2D((px, px), (py, cy), lw=1, color=color, axes=ax[0]))
+                ax[0].add_line(Line2D((px, cx), (cy, cy), lw=1, color=color, axes=ax[0]))
+                cnt_ts = plot_i(child_right, depth + 1, cnt_ts, prev_lcnt + clcntr, ax, False)
             return cnt_ts
 
-        plot_i(self.maxnode, 0, 0, node_props[self.maxnode][2], ax)
+        plot_i(self.maxnode, 0, 0, node_props[self.maxnode][2], ax, True)
 
         if filename:
             if isinstance(filename, Path):

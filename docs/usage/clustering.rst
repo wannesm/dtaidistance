@@ -26,9 +26,20 @@ For models that keep track of the full clustering tree
 
 ::
 
-    model2.plot("myplot.png")
+    model2.plot("hierarchy.png")
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=1
+A number of options are also available to tune the layout of the figure. You can also pass your
+own set of axes. The only assumption is that the tree is printed to ``ax[0]`` and the series to ``ax[1]``.
+
+::
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+    show_ts_label = lambda idx: "ts-" + str(idx)
+    model.plot("hierarchy.png", axes=ax, show_ts_label=show_ts_label,
+               show_tr_label=True, ts_label_margin=-10,
+               ts_left_margin=10, ts_sample_length=1)
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2
    :alt: Clustering hierarchy
 
 
