@@ -1,3 +1,4 @@
 include README.md examples/hierarchical_clustering.py
 recursive-include dtaidistance *.pyx
 global-include *.pyx
+include LICENSE
