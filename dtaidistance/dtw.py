@@ -464,6 +464,22 @@ def warping_path(from_s, to_s, **kwargs):
     return path
 
 
+def warping_amount(path):
+    """
+        Returns the number of compressions and expansions performed to obtain the best path.
+        Can be used as a metric for the amount of warping.
+        :param path: path to be tested
+        Returns: # compressions or expansions
+
+    """
+    n = 0
+    for i in range(1, len(path)):
+        if path[i - 1][0] + 1 != path[i][0] or path[i - 1][1] + 1 != path[i][1]:
+            n += 1
+
+    return n
+
+
 def warp(from_s, to_s, **kwargs):
     """Warp a function to optimally match a second function.
     Same options as warping_paths().
