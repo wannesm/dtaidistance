@@ -23,6 +23,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/installation
    usage/dtw
    usage/clustering
+   usage/sequence
 
 
 
