@@ -171,3 +171,18 @@ The output in this case will be:
      [ inf   inf  inf     inf  1.4142  inf]    # 3
      [ inf   inf  inf     inf     inf  inf]    # 4
      [ inf   inf  inf     inf     inf  inf]]   # 5
+
+DTW based on shape (z-normalization)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are interested in comparing only the shape, and not the absolute
+differences and offset, you need to z-normalize the data first. This can be achieved
+using the numpy ``zscore`` function:
+
+::
+
+    import numpy as np
+    a = np.array([0.1, 0.3, 0.2, 0.1])
+    from scipy import stats
+    az = stats.zscore(a)
+    # az = array([-0.90453403,  1.50755672,  0.30151134, -0.90453403])
