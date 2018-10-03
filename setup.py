@@ -124,7 +124,7 @@ else:
 install_requires = ['numpy', 'cython']
 tests_require = ['pytest', 'matplotlib']
 
-with open('dtaidistance/__init__.py', 'r') as fd:
+with open('dtaidistance/__init__.py', 'r', encoding='utf-8') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 if not version:
@@ -137,7 +137,7 @@ if not os.path.exists(readme_path):
     except:
         pass
 if os.path.exists(readme_path):
-    with open(readme_path, 'r') as f:
+    with open(readme_path, 'r', encoding='utf-8') as f:
         long_description = f.read()
 else:
     with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:

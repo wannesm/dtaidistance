@@ -1,6 +1,19 @@
 Clustering
 ----------
 
+Clustering is used to find groups of similar instances (e.g. time series, sequences). Such a
+clustering can be used to:
+
+* Identify typical regimes or modes of the source being monitored (see for example
+  the `cobras package <https://dtai.cs.kuleuven.be/software/cobras/>`_).
+* Identify anomalies, outliers or abnormal behaviour (see for example the
+  `anomatools package <https://github.com/Vincent-Vercruyssen/anomatools>`_).
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2
+   :alt: Clustering hierarchy
+
+Two possible strategies for time series clustering are:
+
 Agglomerative clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -22,7 +35,7 @@ linkage method).
     cluster_idx = model3.fit(series)
 
 For models that keep track of the full clustering tree
-(``HierarchicalTree`` or ``LinkageTree``), the tree can be visualised:
+(``HierarchicalTree`` or ``LinkageTree``), the tree can be visualised (see figure at top of this page):
 
 ::
 
@@ -39,8 +52,6 @@ own set of axes. The only assumption is that the tree is printed to ``ax[0]`` an
                show_tr_label=True, ts_label_margin=-10,
                ts_left_margin=10, ts_sample_length=1)
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2
-   :alt: Clustering hierarchy
 
 
 Active semi-supervised clustering

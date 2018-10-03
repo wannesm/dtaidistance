@@ -22,6 +22,9 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
     """
     Generic dynamic programming.
 
+    This function does not optimize storage when a window size is given (e.g. in contrast with
+    the fast DTW functions).
+
     :param s1: First sequence
     :param s2: Second sequence
     :param fn: Function to compare two items from both sequences
