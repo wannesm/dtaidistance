@@ -3,3 +3,4 @@ pytest-benchmark
 Cython
 numpy
 tqdm
+pathlib
