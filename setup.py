@@ -93,14 +93,26 @@ class MyBuildExtCommand(BuildExtCommand):
 extra_compile_args = []
 extra_link_args = []
 if platform.system() == 'Darwin':
+    cppflags = []
     if os.path.exists("/usr/local/opt/llvm/bin/clang"):
         # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
         # `brew install llvm`).
         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
         os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
-        os.environ["CPPFLAGS"] = "-I/usr/local/opt/llvm/include"
+        cppflags += ["-I/usr/local/opt/llvm/include"]
         extra_compile_args += ['-fopenmp']
         extra_link_args += ['-fopenmp']
+        try:
+            mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
+            if mac_ver[0] == 10 and mac_ver[1] >= 14:
+                # From Mojave on, the header files are part of Xcode.app
+                cppflags += ['-I/Applications/Xcode.app/Contents/Developer/Platforms/' +
+                             'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include']
+        except Exception as exc:
+            print("Failed to check version")
+            print(exc)
+    if len(cppflags) > 0:
+        os.environ["CPPFLAGS"] = " ".join(cppflags)
 
 if cythonize is not None and numpy is not None:
     ext_modules = cythonize([
@@ -172,12 +184,11 @@ setup(
         'buildinplace': MyBuildExtCommand
     },
     license='Apache 2.0',
-    classifiers=(
+    classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
-        # 'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3'
-    ),
+    ],
     keywords='dtw',
     ext_modules=ext_modules
 )
