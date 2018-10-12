@@ -462,8 +462,10 @@ def warping_amount(path):
     """
         Returns the number of compressions and expansions performed to obtain the best path.
         Can be used as a metric for the amount of warping.
+
         :param path: path to be tested
-        Returns: # compressions or expansions
+
+        :returns number of compressions or expansions
 
     """
     n = 0
@@ -476,16 +478,21 @@ def warping_amount(path):
 
 def warping_path_penalty(s1, s2, penalty_post=0, **kwargs):
     """
-       Dynamic Time Warping (keep full matrix).
-       This function supports two different penalties. The traditional DTW penalty is used in the matrix during
-       calculation of the warping path.
-       To measure the amount of warping, penalty_post can be used. This penalty doesn't affect the warping path and is
-       added to the DTW distance for every compression or expansion.
+        Dynamic Time Warping.
 
-       same options as warping_paths()
-       :param penalty_post: Penalty to be added after path calculation, for compression/extension
+        This function supports two different penalties. The traditional DTW penalty `penalty` is used in the matrix during
+        calculation of the warping path (see :meth:`distance`).
 
-       Returns: DTW distance, best path, DTW distance between 2 path elements, DTW matrix
+        The second penalty `penalty_post` measures the amount of warping. This penalty doesn't affect the warping path
+        and is added to the DTW distance after the warping for every compression or expansion.
+
+        Same options as :meth:`warping_paths`
+
+        :param s1: First sequence
+        :param s2: Second sequence
+        :param penalty_post: Penalty to be added after path calculation, for compression/extension
+
+        :returns [DTW distance, best path, DTW distance between 2 path elements, DTW matrix]
     """
     dist, paths = warping_paths(s1, s2, **kwargs)
     path = best_path(paths)
