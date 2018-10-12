@@ -54,7 +54,9 @@ class SeriesContainer:
 
         When using the C-based extensions, the data is automatically verified and converted.
         """
-        if isinstance(series, np.matrix):
+        if isinstance(series, SeriesContainer):
+            self.series = series.series
+        elif isinstance(series, np.matrix):
             # A matrix always returns a 2D array, also if you select one row (to be consistent
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array.
