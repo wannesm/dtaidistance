@@ -118,6 +118,24 @@ def test_controlchart():
     print("Figure saved to", hierarchy_fn)
 
 
+def test_plotbug1():
+    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+    s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0])
+
+    series = s1, s2
+
+    m = clustering.LinkageTree(dtw.distance_matrix, {})
+    m.fit(series)
+
+    if directory:
+        hierarchy_fn = os.path.join(directory, "clustering.png")
+    else:
+        file = tempfile.NamedTemporaryFile()
+        hierarchy_fn = file.name + "_clustering.png"
+    m.plot(hierarchy_fn)
+    print("Figure save to", hierarchy_fn)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -125,4 +143,5 @@ if __name__ == "__main__":
     print(f"Saving files to {directory}")
     # test_clustering_tree(directory="/Users/wannes/Desktop/")
     # test_linkage_tree(directory="/Users/wannes/Desktop/")
-    test_controlchart()
+    # test_controlchart()
+    test_plotbug1()

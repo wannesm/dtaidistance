@@ -62,7 +62,7 @@ class SeriesContainer:
             # 1D array thus we need to convert to a 1D or 2D array.
             # self.series = [np.asarray(series[i]).reshape(-1) for i in range(series.shape[0])]
             self.series = np.asarray(series, order='C')
-        elif type(series) == set:
+        elif type(series) == set or type(series) == tuple:
             self.series = list(series)
         else:
             self.series = series
@@ -91,6 +91,15 @@ class SeriesContainer:
             if not self.series.flags.c_contiguous:
                 self.series = self.series.copy(order='C')
         return self.series
+
+    def get_max_y(self):
+        max_y = 0
+        if isinstance(self.series, np.ndarray):
+            max_y = max(np.max(self.series), abs(np.min(self.series)))
+        else:
+            for serie in self.series:
+                max_y = max(max_y, np.max(serie), abs(np.min(serie)))
+        return max_y
 
     def __getitem__(self, item):
         return self.series[item]

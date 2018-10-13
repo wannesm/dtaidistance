@@ -224,7 +224,7 @@ class BaseTree:
 
         node_props = dict()
 
-        max_y = max(np.max(self.series), abs(np.min(self.series)))
+        max_y = self.series.get_max_y()
         self.ts_height_factor = (ts_height / max_y) * 0.9
 
         def count(node, height):
