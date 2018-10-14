@@ -4,6 +4,7 @@ import sys
 import logging
 import io
 import pytest
+import tempfile
 import numpy as np
 try:
     from pathlib import Path
@@ -19,9 +20,13 @@ from dtaidistance.util import prepare_directory
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+directory = None
 
 
 def plot_series(s, l, idx=None):
+    global directory
+    if directory is None:
+        directory = prepare_directory()
     import matplotlib.pyplot as plt
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     fig1, ax1 = plt.subplots(nrows=len(s), ncols=1)
@@ -38,8 +43,11 @@ def plot_series(s, l, idx=None):
 
 
 def plot_margins(serie, weights, clfs, importances=None):
+    global directory
+    if directory is None:
+        directory = prepare_directory()
     from sklearn import tree
-    feature_names = ["f{} ({}, {})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2 * len(serie) + 1)]
+    feature_names = ["f{} ({}, {})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2 * len(serie))]
     out_str = io.StringIO()
     for clf in clfs:
         tree.export_graphviz(clf, out_file=out_str, feature_names=feature_names)
@@ -49,8 +57,8 @@ def plot_margins(serie, weights, clfs, importances=None):
     dtww.plot_margins(serie, weights, filename=str(directory / "margins.png"), importances=importances)
 
 
-def test_distance1(directory=None):
-    directory = prepare_directory(directory)
+def test_distance1():
+    directory = prepare_directory()
 
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
     s2 = np.array([0., 1, 2, 3, 1, 10, 1, 0, 2, 1, 0, 0, 0])
@@ -68,8 +76,7 @@ def test_distance1(directory=None):
     dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp2.png")
 
 
-def test_distance2(directory=None):
-    directory = prepare_directory(directory)
+def test_distance2():
     s = np.array([
         [0., 0, 1, 2, 1, 0, 1.3, 0, 0],
         [0., 0, 1, 2, 1, 0, 1,   0, 0],
@@ -82,9 +89,13 @@ def test_distance2(directory=None):
 
     if directory:
         plot_series(s, l)
+        savefig = str(directory / "dts.dot")
+    else:
+        savefig = None
 
     prototypeidx = 0
-    ml_values, cl_values, clfs = dtww.series_to_dt(s, l, prototypeidx, max_clfs=50, savefig=str(directory / "dts.dot"))
+    ml_values, cl_values, clfs, importances = \
+        dtww.series_to_dt(s, l, prototypeidx, max_clfs=50, savefig=savefig)
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values, only_max=False, strict_cl=True)
@@ -93,8 +104,7 @@ def test_distance2(directory=None):
         plot_margins(s[prototypeidx], weights, clfs)
 
 
-def test_distance3(directory=None):
-    directory = prepare_directory(directory)
+def test_distance3():
     s = np.array([
         [0., 0, 1, 2, 1, 0, 1.3, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0]
@@ -116,8 +126,7 @@ def test_distance3(directory=None):
         dtwvis.plot_warpingpaths(s[0], s[1], paths, path, filename=wp_fn)
 
 
-def test_distance4(directory=None):
-    directory = prepare_directory(directory)
+def test_distance4():
     s = np.array([
         [0., 0, 1,    2,    1,   0,   1.3, 0, 0],  # 0
         [0., 1, 2,    0,    0,   0,   0,   0, 0],  # 1
@@ -131,10 +140,13 @@ def test_distance4(directory=None):
 
     if directory:
         plot_series(s, l)
+        savefig = str(directory / "dts.dot")
+    else:
+        savefig = None
 
     prototypeidx = 0
-    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1,
-                                                  savefig=str(directory / "dts.dot"))
+    ml_values, cl_values, clf, importances = \
+        dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1, savefig=savefig)
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
@@ -143,8 +155,7 @@ def test_distance4(directory=None):
         plot_margins(s[prototypeidx], weights, clf)
 
 
-def test_distance5(directory=None):
-    directory = prepare_directory(directory)
+def test_distance5():
     s = np.array([
         [0., 0, 0, 2,  0, -2, 0, 0,  0, 0, 0, 0,  0, 0, 0],  # 0
         [0., 0, 2, 0, -2,  0, 2, 0, -2, 0, 2, 0, -2, 0, 0],  # 1
@@ -156,7 +167,7 @@ def test_distance5(directory=None):
         plot_series(s, l)
 
     prototypeidx = 0
-    ml_values, cl_values, clf = dtww.series_to_dt(s, l, prototypeidx, window=4)
+    ml_values, cl_values, clf, importances = dtww.series_to_dt(s, l, prototypeidx, window=4)
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
@@ -165,19 +176,21 @@ def test_distance5(directory=None):
         plot_margins(s[prototypeidx], weights, clf)
 
 
-def test_distance6(directory=None):
-    directory = prepare_directory(directory)
+def test_distance6():
     s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
     l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
 
     if directory:
         plot_series(s, l)
+        savefig = str(directory / "dts.dot")
+    else:
+        savefig = None
 
     prototypeidx = 3
     labels = np.zeros(l.shape)
     labels[l == l[prototypeidx]] = 1
-    ml_values, cl_values, clf = dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1,
-                                                  savefig=str(directory / "dts.dot"))
+    ml_values, cl_values, clf, importances = \
+        dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1, savefig=savefig)
     logger.debug(f"ml_values = {dict(ml_values)}")
     logger.debug(f"cl_values = {dict(cl_values)}")
     weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
@@ -186,8 +199,7 @@ def test_distance6(directory=None):
         plot_margins(s[prototypeidx], weights, clf, prototypeidx)
 
 
-def test_distance7(directory=None):
-    directory = prepare_directory(directory)
+def test_distance7():
     s = np.array([
         [0.0, 0.3, 0.5, 0.8, 1.0, 0.1, 0.0, 0.1],
         [0.0, 0.2, 0.3, 0.7, 1.1, 0.0, 0.1, 0.0],
@@ -202,9 +214,11 @@ def test_distance7(directory=None):
 
     if directory:
         plot_series(s, l, prototypeidx)
-
+        savefig = str(directory / "dts.dot")
+    else:
+        savefig = None
     ml_values, cl_values, clf, imp = dtww.series_to_dt(s, l, prototypeidx, window=0, min_ig=0.01,
-                                                       savefig=str(directory / "dts.dot"),
+                                                       savefig=savefig,
                                                        warping_paths_fnc=dtww.warping_paths)
     # logger.debug(f"ml_values = {dict(ml_values)}")
     # logger.debug(f"cl_values = {dict(cl_values)}")
@@ -228,10 +242,10 @@ if __name__ == "__main__":
     directory = Path(__file__).resolve().parent.parent / "tests" / "output"
 
     # Functions
-    # test_distance1(directory=directory)
-    # test_distance2(directory=directory)
-    # test_distance3(directory=directory)
-    # test_distance4(directory=directory)
-    # test_distance5(directory=directory)
-    # test_distance6(directory=directory)
-    test_distance7(directory=directory)
+    # test_distance1()
+    # test_distance2()
+    # test_distance3()
+    # test_distance4()
+    # test_distance5()
+    # test_distance6()
+    test_distance7()

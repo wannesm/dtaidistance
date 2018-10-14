@@ -241,6 +241,7 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
             logger.error("No figure generated, sklearn is not installed.")
             savefig, tree, out_string, feature_names = None, None, None, None
         out_string = io.StringIO()
+
         def args(i):
             if (i % 2) == 0:
                 sgn = '-'
@@ -249,8 +250,9 @@ def series_to_dt(series, labels, prototypeidx, classifier=None, max_clfs=None, m
                 sgn = '+'
                 cmp = 's<t'
             return i, sgn, cmp
+
         feature_names = ["d[{}] ({}, {}, {})".format(i // 2, *args(i))
-                         for i in range(2*len(series[prototypeidx]) + 1)]
+                         for i in range(2*len(series[prototypeidx]))]
         class_names = ["ML", "CL"]
     else:
         tree, out_string, feature_names, class_names = None, None, None, None
@@ -672,6 +674,7 @@ class DecisionTreeClassifier:
         """
         self.tree_ = None
         self.criterion = "igkdistance"
+        self.n_features_ = None
 
     @staticmethod
     def entropy(targets):
@@ -769,6 +772,7 @@ class DecisionTreeClassifier:
         # print(f'features:\n{features}')
         # print(f'targets:\n{targets}')
         nb_features = features.shape[1]
+        self.n_features_ = nb_features
         nb_instances = features.shape[0]
         # print(f'nb_instances: {nb_instances} (targets.shape = {targets.shape}')
         k = int(math.ceil(len(targets) * 0.005))
