@@ -46,7 +46,7 @@ def size_cond(size):
     n = size
     r = 2
     f = math.factorial
-    return int(f(n) / f(r) / f(n-r))
+    return int(f(n) / (f(r) * f(n-r)))
 
 
 def example_naivehierarchicalclustering():
