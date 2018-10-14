@@ -451,9 +451,6 @@ class LinkageTree(BaseTree):
 
     def _size_cond(self, size):
         n = int(size)
-        # r = 2
-        # f = math.factorial
-        # return int(f(n) / f(r) / f(n - r))
         return int((n * (n - 1)) / 2)
 
 
