@@ -11,6 +11,7 @@ Utility functions for DTAIDistance.
 
 """
 import os
+import sys
 import logging
 from array import array
 from pathlib import Path
@@ -115,3 +116,8 @@ class SeriesContainer:
         if isinstance(series, SeriesContainer):
             return series
         return SeriesContainer(series)
+
+
+def recompile():
+    import subprocess as sp
+    sp.run([sys.executable, 'setup.py', 'build_ext', '--inplace'], cwd=dtaidistance_dir)
