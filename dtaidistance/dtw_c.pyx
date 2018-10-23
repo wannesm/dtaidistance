@@ -23,6 +23,7 @@ from cython.parallel import parallel, prange
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdio cimport printf
 from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, pow
+from libc.stdint cimport intptr_t
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -348,7 +349,8 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
     #print('dists: {}, {}'.format(dists_py.shape, dists_py.shape[0]*dists_py.shape[1]))
     cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
     cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
-    cdef long ptr;
+    # cdef long ptr;
+    cdef intptr_t ptr
     cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] cur_np;
     #for i in range(len(cur)):
     #    print(cur[i])
