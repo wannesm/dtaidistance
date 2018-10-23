@@ -99,6 +99,7 @@ def test_decisiontree(directory=None):
         plt.xlim([-0.1, 1.1])
         plt.ylim([-0.1, 1.1])
         plt.savefig(str(directory / "features.png"))
+        plt.close()
 
     clf = dtww.DecisionTreeClassifier()
     clf.fit(features, targets, use_feature_once=False)

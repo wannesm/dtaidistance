@@ -134,7 +134,7 @@ or a matrix (in case all series have the same length):
 
     from dtaidistance import dtw
     import numpy as np
-    series = np.matrix([
+    series = np.array([
         [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
         [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
         [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
@@ -151,7 +151,7 @@ multiple nodes, or to only compare source series to target series.
 
     from dtaidistance import dtw
     import numpy as np
-    series = np.matrix([
+    series = np.array([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1],

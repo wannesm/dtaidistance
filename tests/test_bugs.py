@@ -35,7 +35,6 @@ def test_distance2_a():
     s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
     d1 = dtw.distance(s1, s2, **dist_opts)
     d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
-    print(d1, d2)
     assert d1 == d2
     assert d1 == pytest.approx(1.0)
 
@@ -57,7 +56,6 @@ def test_distance2_b():
     s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
     d1 = dtw.distance(s1, s2, **dist_opts)
     d2 = dtw_c.distance_nogil(s1, s2, **dist_opts)
-    print(d1, d2)
     assert d1 == d2
     assert d1 == pytest.approx(1.0)
 
@@ -107,7 +105,7 @@ def test_distance4():
     for i in range(s.shape[0]):
         ss = s[i]  # ss will not be C contiguous memory layout
         d = dtw_c.distance_nogil(ss, p)
-        print(d)
+        # print(d)
 
 
 # def test_distance5():
@@ -158,10 +156,20 @@ def test_distance6():
     print(d)
 
 
+def test_bug1():
+    """Failed on Windows if pointer types are different."""
+    series = [np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
+              np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
+              np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
+    ds = dtw.distance_matrix_fast(series)
+    # print(ds)
+
+
 if __name__ == "__main__":
     # test_distance2_a()
     # test_distance2_b()
     # test_distance2_c()
     # test_distance3_a()
     # test_distance4()
-    test_distance6()
+    # test_distance6()
+    test_bug1()

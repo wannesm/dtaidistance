@@ -355,6 +355,8 @@ class BaseTree:
             if isinstance(filename, Path):
                 filename = str(filename)
             plt.savefig(filename, bbox_inches='tight', pad_inches=0)
+            plt.close()
+            fig, ax = None, None
 
         return fig, ax
 

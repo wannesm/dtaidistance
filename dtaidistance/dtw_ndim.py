@@ -264,7 +264,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         logger.error("No C version available (yet)")
     if not use_c:
         logger.info("Compute distances in Python")
-        if isinstance(s, np.matrix):
+        if isinstance(s, np.ndarray) and len(s.shape) == 2:
             ss = [np.asarray(s[i]).reshape(-1) for i in range(s.shape[0])]
             s = ss
         if parallel:

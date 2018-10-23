@@ -660,6 +660,8 @@ def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=
 
     if filename:
         plt.savefig(filename, bbox_inches='tight', pad_inches=0)
+        plt.close()
+        fig, ax = None, None
     return fig, ax
 
 
@@ -678,7 +680,7 @@ class DecisionTreeClassifier:
 
     @staticmethod
     def entropy(targets):
-        """H(X) = -\sum_{i=0}^{n}(P(x_i))\log P(x_i))
+        """H(X) = -\\sum_{i=0}^{n}(P(x_i))\\log P(x_i))
 
         :param targets: Numpy array with class target (values are 0 and 1)
         :return: entropy

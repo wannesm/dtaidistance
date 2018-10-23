@@ -28,7 +28,7 @@ def test_psi_dtw_1a():
     s1 = np.sin(x)
     s2 = np.sin(x - 1)
     d, paths = dtw.warping_paths(s1, s2, psi=2)
-    print(paths[:5,:5])
+    # print(paths[:5,:5])
     # path = dtw.warping_path(s1, s2, psi=2)
     # dtwvis.plot_warping(s1, s2, path, filename=os.path.expanduser("~/Desktop/test_psi_dtw_1_1.png"))
     # path = dtw.best_path(paths)

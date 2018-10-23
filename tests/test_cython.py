@@ -10,7 +10,7 @@ from dtaidistance import dtw, dtw_c
 def test_numpymatrix():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    s = np.matrix([
+    s = np.array([
         [0., 0, 1, 2, 1, 0, 1, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0],
         [1., 2, 0, 0, 0, 0, 0, 1, 0]])
@@ -29,7 +29,7 @@ def test_numpymatrix():
 def test_numpymatrix_transpose():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    s = np.matrix([
+    s = np.array([
         [0., 0., 1.,],
         [0, 1, 2],
         [1, 2, 0],

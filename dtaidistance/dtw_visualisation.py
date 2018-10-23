@@ -74,6 +74,8 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
     fig.lines = lines
     if filename:
         plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
     return fig, ax
 
 
@@ -103,6 +105,8 @@ def plot_warping(s1, s2, path, filename=None):
     fig.lines = lines
     if filename:
         plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
     return fig, ax
 
 
@@ -194,6 +198,8 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         if type(filename) != str:
             filename = str(filename)
         plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
     return fig, ax
 
 def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
@@ -232,4 +238,6 @@ def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
         if type(filename) != str:
             filename = str(filename)
         plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
     return fig, ax

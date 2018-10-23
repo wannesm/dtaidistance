@@ -14,7 +14,7 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 def test_bug1(directory=None):
-    series = np.matrix([
+    series = np.array([
         [0., 0, 1, 2, 1, 0, 1, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0],
         [1., 2, 0, 0, 0, 0, 0, 1, 1],
