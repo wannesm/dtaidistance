@@ -277,6 +277,7 @@ cdef double distance_nogil_c(
         if last_under_max_dist == -1:
             # print('early stop')
             # print(dtw)
+            free(dtw)
             return inf
 
         if psi != 0 and minj == c and r - 1 - i <= psi:

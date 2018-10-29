@@ -23,7 +23,7 @@ import numpy as np
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
+dtaidistance_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 def prepare_directory(directory=None):
