@@ -306,6 +306,36 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     return d, dtw
 
 
+def warping_paths_fast(s1, s2, window=None, max_dist=None,
+                       max_step=None, max_length_diff=None, penalty=None, psi=None):
+    """Fast C version of :meth:`distance`."""
+    r = len(s1)
+    c = len(s2)
+    if dtw_c is None:
+        _print_library_missing()
+        return None
+    if window is None:
+        window = 0
+    if max_dist is None:
+        max_dist = 0
+    if max_step is None:
+        max_step = 0
+    if max_length_diff is None:
+        max_length_diff = 0
+    if penalty is None:
+        penalty = 0
+    if psi is None:
+        psi = 0
+    dtw = np.full((r + 1, c + 1), np.inf)
+    d = dtw_c.warping_paths_nogil(dtw, s1, s2, window,
+                                  max_dist=max_dist,
+                                  max_step=max_step,
+                                  max_length_diff=max_length_diff,
+                                  penalty=penalty,
+                                  psi=psi)
+    return d, dtw
+
+
 def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_progress=False):
     def distance_matrix_wrapper(seqs, **kwargs):
         return distance_matrix(seqs, parallel=parallel, use_c=use_c,

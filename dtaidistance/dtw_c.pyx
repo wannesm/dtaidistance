@@ -302,6 +302,175 @@ cdef double distance_nogil_c(
     return result
 
 
+def warping_paths_nogil(double[:, :] dtw, double[:] s1, double[:] s2,
+             int window=0, double max_dist=0,
+             double max_step=0, int max_length_diff=0, double penalty=0, int psi=0):
+    """DTW warping paths.
+
+    See distance(). This calls a pure c dtw computation that avoids the GIL.
+    :param s1: First sequence (buffer of doubles)
+    :param s2: Second sequence (buffer of doubles)
+    """
+    r = len(s1)
+    c = len(s2)
+    #return distance_nogil_c(s1, s2, len(s1), len(s2),
+    # If the arrays (memoryviews) are not C contiguous, the pointer will not point to the correct array
+    if isinstance(s1, (np.ndarray, np.generic)):
+        if not s1.base.flags.c_contiguous:
+            logger.debug("Warning: Sequence 1 passed to method distance is not C-contiguous. " +
+                         "The sequence will be copied.")
+            s1 = s1.copy()
+    if isinstance(s2, (np.ndarray, np.generic)):
+        if not s2.base.flags.c_contiguous:
+            logger.debug("Warning: Sequence 2 passed to method distance is not C-contiguous. " +
+                         "The sequence will be copied.")
+            s2 = s2.copy()
+    # if not isinstance(dtw, (np.ndarray, np.generic)):
+    #     raise Exception("Warping paths datastructure needs to be a numpy array")
+    # if not dtw.base.flags.c_contiguous:
+    #     raise Exception("Warping paths datastructure is not C contiguous")
+    result = warping_paths_nogil_c(&dtw[0, 0], &s1[0], &s2[0], len(s1), len(s2),
+                                   window, max_dist, max_step, max_length_diff, penalty, psi, True)
+    vr = dtw[r - psi:r, c]
+    vc = dtw[r, c - psi:c]
+    mir = np.argmin(vr)
+    mic = np.argmin(vc)
+    if vr[mir] < vc[mic]:
+        dtw[r - psi + mir + 1:r + 1, c] = -1
+        d = vr[mir]
+    else:
+        dtw[r, c - psi + mic + 1:c + 1] = -1
+        d = vc[mic]
+    return d
+
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.infer_types(False)
+cdef double warping_paths_nogil_c(
+            double *dtw, double *s1, double *s2,
+            int r, # len_s1
+            int c, # len_s2
+            int window=0, double max_dist=0,
+            double max_step=0, int max_length_diff=0, double penalty=0, int psi=0,
+            int do_sqrt=0) nogil:
+    """DTW warping paths.
+
+    See warping_paths(). This is a pure c dtw computation that avoids the GIL.
+    """
+    # printf("%i, %i\n", r, c)
+    if max_length_diff != 0 and abs(r-c) > max_length_diff:
+        return inf
+    if window == 0:
+        window = max(r, c)
+    if max_step == 0:
+        max_step = inf
+    else:
+        max_step = pow(max_step, 2)
+    if max_dist == 0:
+        max_dist = inf
+    else:
+        max_dist = pow(max_dist, 2)
+    penalty = pow(penalty, 2)
+    cdef int i
+    cdef int j
+    for j in range(r * c):
+        dtw[j] = inf
+    # dtw[0] = 0
+    for i in range(psi + 1):
+        dtw[i] = 0
+        dtw[i * (c + 1)] = 0
+    cdef double last_under_max_dist = 0
+    cdef double prev_last_under_max_dist = inf
+    cdef int i0 = 1
+    cdef int i1 = 0
+    cdef int minj
+    cdef int maxj
+    cdef double minv
+    cdef DTYPE_t d
+    cdef double tempv
+    cdef int iii
+    for i in range(r):
+        # printf("iter %i/%i\n", i, r)
+        #
+        #printf("[ ")
+        #for iii in range(length):
+        #    printf("%f ", dtw[iii])
+        #printf("\n")
+        #for iii in range(length,length*2):
+        #    printf("%f ", dtw[iii])
+        #printf("]\n")
+        #
+        if last_under_max_dist == -1:
+            prev_last_under_max_dist = inf
+        else:
+            prev_last_under_max_dist = last_under_max_dist
+        last_under_max_dist = -1
+        i0 = i
+        i1 = i + 1
+        maxj = r - c
+        if maxj < 0:
+            maxj = 0
+        maxj = i - maxj - window + 1
+        if maxj < 0:
+            maxj = 0
+        minj = c - r
+        if minj < 0:
+            minj = 0
+        minj = i + minj + window
+        if minj > c:
+            minj = c
+        for j in range(maxj, minj):
+            # printf('s1[i] = s1[%i] = %f , s2[j] = s2[%i] = %f\n', i, s1[i], j, s2[j])
+            d = pow(s1[i] - s2[j], 2)
+            if d > max_step:
+                continue
+            minv = dtw[i0 * (c + 1) + j]
+            tempv = dtw[i0 * (c + 1) + j + 1] + penalty
+            if tempv < minv:
+                minv = tempv
+            tempv = dtw[i1 * (c + 1) + j] + penalty
+            if tempv < minv:
+                minv = tempv
+            # printf('d = %f, minv = %f\n', d, minv)
+            dtw[i1 * (c + 1) + j + 1] = d + minv
+            #
+            #printf('%i, %i, %i\n',i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip)
+            #printf('%f, %f, %f\n',dtw[i0*length + j - skipp],dtw[i0*length + j + 1 - skipp],dtw[i1*length + j - skip])
+            #printf('i=%i, j=%i, d=%f, skip=%i, skipp=%i\n',i,j,d,skip,skipp)
+            #printf("[ ")
+            #for iii in range(length):
+            #    printf("%f ", dtw[iii])
+            #printf("\n")
+            #for iii in range(length,length*2):
+            #    printf("%f ", dtw[iii])
+            #printf("]\n")
+            #
+            if dtw[i1 * (c + 1) + j + 1] <= max_dist:
+                last_under_max_dist = j
+            else:
+                dtw[i1 * (c + 1) + j + 1] = inf
+                if prev_last_under_max_dist < j + 1:
+                    break
+        if last_under_max_dist == -1:
+            # print('early stop')
+            # print(dtw)
+            if do_sqrt == 1:
+                for i in range((r + 1) * (c + 1)):
+                    dtw[i] = sqrt(dtw[i])
+            return inf
+
+        # printf("[ ")
+        # for iii in range(i1*length,i1*length + length):
+        #    printf("%f ", dtw[iii])
+        # printf("]\n")
+
+    if do_sqrt == 1:
+        for i in range((r + 1) * (c + 1)):
+            dtw[i] = sqrt(dtw[i])
+    return 0
+
+
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance_matrix(cur, double max_dist=inf, int max_length_diff=0,

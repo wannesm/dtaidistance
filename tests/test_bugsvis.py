@@ -10,10 +10,11 @@ from dtaidistance import dtw, clustering
 import dtaidistance.dtw_visualisation as dtwvis
 
 
+directory = None
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-def test_bug1(directory=None):
+def test_bug1():
     series = np.array([
         [0., 0, 1, 2, 1, 0, 1, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -33,7 +34,7 @@ def test_bug1(directory=None):
     print("Figure saved to", hierarchy_fn)
 
 
-def test_bug2(directory=None):
+def test_bug2():
     s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
     s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
     d1a = dtw.distance_fast(s1, s2, window=2)
@@ -60,4 +61,7 @@ if __name__ == "__main__":
     sh.setFormatter(formatter)
     logger.addHandler(sh)
     logger.propagate = 0
-    test_bug2(directory=Path.home() / "Desktop/")
+    directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
+    print(f"Saving files to {directory}")
+    test_bug1()
+    # test_bug2()

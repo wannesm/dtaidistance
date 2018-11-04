@@ -23,6 +23,20 @@ def test_normalize():
     np.testing.assert_almost_equal(r, r_c, decimal=4)
 
 
+def test_normalize2():
+    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+    s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
+    d1, paths1 = dtw.warping_paths(s1, s2, psi=2)
+    d2, paths2 = dtw.warping_paths_fast(s1, s2, psi=2)
+    path1 = dtw.best_path(paths1)
+    path2 = dtw.best_path(paths2)
+    if directory:
+        dtwvis.plot_warpingpaths(s1, s2, paths1, path1, filename=directory / "normalize.png")
+    np.testing.assert_almost_equal(d1, d2, decimal=4)
+    np.testing.assert_almost_equal(paths1, paths2, decimal=4)
+    np.testing.assert_almost_equal(path1, path2, decimal=4)
+
+
 def test_psi_dtw_1a():
     x = np.arange(0, 20, .5)
     s1 = np.sin(x)
@@ -95,7 +109,8 @@ if __name__ == "__main__":
     np.set_printoptions(precision=2, linewidth=120)
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
-    test_normalize()
+    # test_normalize()
+    test_normalize2()
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()
