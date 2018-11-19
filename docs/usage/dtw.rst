@@ -29,7 +29,7 @@ Only the distance measure based on two sequences of numbers:
     print(distance)
 
 The fastest version (30-300 times) uses c directly but requires an array
-as input (with the double type):
+as input (with the double type, other data types are not yet supported):
 
 ::
 
@@ -46,7 +46,7 @@ Or you can use a numpy array (with dtype double or float):
     from dtaidistance import dtw
     import numpy as np
     s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
-    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
+    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.double)
     d = dtw.distance_fast(s1, s2)
 
 Check the ``__doc__`` for information about the available arguments:

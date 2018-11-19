@@ -172,7 +172,12 @@ def distance(s1, s2, window=None, max_dist=None,
 
 def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None):
-    """Fast C version of :meth:`distance`."""
+    """Fast C version of :meth:`distance`.
+
+    Note: the series are expected to be arrays of the type ``double``.
+    Thus ``numpy.array([1,2,3], dtype=numpy.double)`` or
+    ``array.array('d', [1,2,3])``
+    """
     if dtw_c is None:
         _print_library_missing()
         return None
