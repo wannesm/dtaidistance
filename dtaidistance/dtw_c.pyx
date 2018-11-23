@@ -331,6 +331,10 @@ def warping_paths_nogil(double[:, :] dtw, double[:] s1, double[:] s2,
     #     raise Exception("Warping paths datastructure is not C contiguous")
     result = warping_paths_nogil_c(&dtw[0, 0], &s1[0], &s2[0], len(s1), len(s2),
                                    window, max_dist, max_step, max_length_diff, penalty, psi, True)
+
+    if psi == 0:
+        return dtw[r, min(c, c + window - 1)]
+
     vr = dtw[r - psi:r, c]
     vc = dtw[r, c - psi:c]
     mir = np.argmin(vr)
