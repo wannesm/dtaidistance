@@ -76,12 +76,15 @@ def distance(s1, s2, window=None, max_dist=None,
     Returns: DTW distance
     """
     if use_c:
-        return distance_fast(s1, s2, window,
-                             max_dist=max_dist,
-                             max_step=max_step,
-                             max_length_diff=max_length_diff,
-                             penalty=penalty,
-                             psi=psi)
+        if dtw_c is None:
+            logger.warning("C-library not available, using the Python version")
+        else:
+            return distance_fast(s1, s2, window,
+                                 max_dist=max_dist,
+                                 max_step=max_step,
+                                 max_length_diff=max_length_diff,
+                                 penalty=penalty,
+                                 psi=psi)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
