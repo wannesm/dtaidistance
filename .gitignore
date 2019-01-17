@@ -1,5 +1,6 @@
 .idea
 dtw_c.c
+dtw_c.py
 dtw_c.*.so
 .cache
 .benchmarks
@@ -10,6 +11,8 @@ dtaidistance.egg-info
 dist
 dtaidistance/*html
 dtaidistance/*so
+dtaidistance/__pycache__/
+dtaidistance/dtw_c.*.pyd
 README
 README.rst
 benchmark*.svg
