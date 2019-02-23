@@ -8,6 +8,7 @@ from setuptools.extension import Extension
 from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
+from setuptools.command.install import install
 import platform
 import os
 import sys
@@ -25,7 +26,29 @@ try:
 except ImportError:
     cythonize = None
 
+use_openmp = False
 here = os.path.abspath(os.path.dirname(__file__))
+
+
+class MyInstallCommand(install):
+    user_options = install.user_options + [
+        ('openmp', None, 'Use openmp'),
+    ]
+
+    def initialize_options(self):
+        install.initialize_options(self)
+        self.openmp = None
+
+    def finalize_options(self):
+        print("Use openmp", self.openmp)
+        install.finalize_options(self)
+
+    def run(self):
+        global use_openmp
+        if self.openmp == 1:
+            use_openmp = True
+        print(f"Set global use_openmp to {use_openmp}")
+        install.run(self)
 
 
 class MySDistCommand(SDistCommand):
@@ -85,9 +108,24 @@ class PyTest(TestCommand):
 
 
 class MyBuildExtCommand(BuildExtCommand):
+    user_options = BuildExtCommand.user_options + [
+        ('openmp', None, 'Use openmp'),
+    ]
+
     def initialize_options(self):
         super().initialize_options()
+        self.openmp = None
         self.inplace = True
+
+    def finalize_options(self):
+        print("Use openmp", self.openmp)
+        super().finalize_options()
+
+    def run(self):
+        global use_openmp
+        if self.openmp == 1:
+            use_openmp = True
+        super().run()
 
 
 extra_compile_args = []
@@ -111,8 +149,14 @@ if platform.system() == 'Darwin':
         except Exception as exc:
             print("Failed to check version")
             print(exc)
+    elif use_openmp:
+        extra_compile_args += ['-fopenmp']
+        extra_link_args += ['-fopenmp']
     if len(cppflags) > 0:
         os.environ["CPPFLAGS"] = " ".join(cppflags)
+elif use_openmp:
+    extra_compile_args += ['-fopenmp']
+    extra_link_args += ['-fopenmp']
 
 if cythonize is not None and numpy is not None:
     ext_modules = cythonize([
@@ -181,7 +225,8 @@ setup(
         'test': PyTest,
         'readme': PrepReadme,
         'sdist': MySDistCommand,
-        'buildinplace': MyBuildExtCommand
+        'buildinplace': MyBuildExtCommand,
+        'install': MyInstallCommand
     },
     license='Apache 2.0',
     classifiers=[
