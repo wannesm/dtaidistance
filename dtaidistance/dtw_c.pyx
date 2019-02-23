@@ -24,6 +24,7 @@ from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdio cimport printf
 from libc.math cimport sin, cos, acos, exp, sqrt, fabs, M_PI, pow
 from libc.stdint cimport intptr_t
+from cpython.exc cimport PyErr_CheckSignals
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -206,7 +207,9 @@ cdef double distance_nogil_c(
     cdef double psi_shortest = inf
     cdef int iii
     for i in range(r):
-        #
+        if i % 1024 == 0:
+                with gil:
+                    PyErr_CheckSignals()
         #printf("[ ")
         #for iii in range(length):
         #    printf("%f ", dtw[iii])
