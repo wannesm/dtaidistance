@@ -161,8 +161,8 @@ if platform.system() == 'Darwin':
         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
         os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
         cppflags += ["-I/usr/local/opt/llvm/include"]
-        # extra_compile_args += ['-fopenmp']
-        # extra_link_args += ['-fopenmp']
+        extra_compile_args += ['-fopenmp']
+        extra_link_args += ['-fopenmp']
         try:
             mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
             if mac_ver[0] == 10 and mac_ver[1] >= 14:
