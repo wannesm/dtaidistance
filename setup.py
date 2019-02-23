@@ -30,6 +30,10 @@ use_openmp = False
 here = os.path.abspath(os.path.dirname(__file__))
 
 
+if "--openmp" in sys.argv:
+    use_openmp = True
+
+
 class MyInstallCommand(install):
     user_options = install.user_options + [
         ('openmp', None, 'Use openmp'),
@@ -40,13 +44,14 @@ class MyInstallCommand(install):
         self.openmp = None
 
     def finalize_options(self):
-        print("Use openmp", self.openmp)
+        # print("Use openmp", self.openmp)
         install.finalize_options(self)
 
     def run(self):
         global use_openmp
         if self.openmp == 1:
             use_openmp = True
+            # TODO: too late, Extension has been created
         print(f"Set global use_openmp to {use_openmp}")
         install.run(self)
 
@@ -118,7 +123,13 @@ class MyBuildExtCommand(BuildExtCommand):
         self.inplace = True
 
     def finalize_options(self):
+        global extra_compile_args
+        global extra_link_args
         print("Use openmp", self.openmp)
+        if '-fopenmp' not in extra_compile_args:
+            extra_compile_args += ['-fopenmp']
+        if '-fopenmp' not in extra_link_args:
+            extra_link_args += ['-fopenmp']
         super().finalize_options()
 
     def run(self):
@@ -150,8 +161,8 @@ if platform.system() == 'Darwin':
         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
         os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
         cppflags += ["-I/usr/local/opt/llvm/include"]
-        extra_compile_args += ['-fopenmp']
-        extra_link_args += ['-fopenmp']
+        # extra_compile_args += ['-fopenmp']
+        # extra_link_args += ['-fopenmp']
         try:
             mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
             if mac_ver[0] == 10 and mac_ver[1] >= 14:
@@ -164,7 +175,14 @@ if platform.system() == 'Darwin':
     if len(cppflags) > 0:
         os.environ["CPPFLAGS"] = " ".join(cppflags)
 
+if use_openmp:
+    if '-fopenmp' not in extra_compile_args:
+        extra_compile_args += ['-fopenmp']
+    if '-fopenmp' not in extra_link_args:
+        extra_link_args += ['-fopenmp']
+
 if cythonize is not None and numpy is not None:
+    print("create ext modules")
     ext_modules = cythonize([
         Extension(
             "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
