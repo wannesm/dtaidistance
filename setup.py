@@ -128,6 +128,12 @@ class MyBuildExtCommand(BuildExtCommand):
         super().run()
 
 
+class MyBuildExtInPlaceCommand(MyBuildExtCommand):
+    def initialize_options(self):
+        super().initialize_options()
+        self.inplace = True
+
+
 extra_compile_args = []
 extra_link_args = []
 if platform.system() == 'Darwin':
@@ -225,7 +231,8 @@ setup(
         'test': PyTest,
         'readme': PrepReadme,
         'sdist': MySDistCommand,
-        'buildinplace': MyBuildExtCommand,
+        'buildinplace': MyBuildExtInPlaceCommand,
+        'build_ext': MyBuildExtCommand,
         'install': MyInstallCommand
     },
     license='Apache 2.0',
