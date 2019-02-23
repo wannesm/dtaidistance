@@ -123,8 +123,14 @@ class MyBuildExtCommand(BuildExtCommand):
 
     def run(self):
         global use_openmp
+        global extra_compile_args
+        global extra_link_args
         if self.openmp == 1:
             use_openmp = True
+        if '-fopenmp' not in extra_compile_args:
+            extra_compile_args += ['-fopenmp']
+        if '-fopenmp' not in extra_link_args:
+            extra_link_args += ['-fopenmp']
         super().run()
 
 
@@ -155,14 +161,8 @@ if platform.system() == 'Darwin':
         except Exception as exc:
             print("Failed to check version")
             print(exc)
-    elif use_openmp:
-        extra_compile_args += ['-fopenmp']
-        extra_link_args += ['-fopenmp']
     if len(cppflags) > 0:
         os.environ["CPPFLAGS"] = " ".join(cppflags)
-elif use_openmp:
-    extra_compile_args += ['-fopenmp']
-    extra_link_args += ['-fopenmp']
 
 if cythonize is not None and numpy is not None:
     ext_modules = cythonize([
