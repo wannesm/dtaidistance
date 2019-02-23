@@ -123,25 +123,12 @@ class MyBuildExtCommand(BuildExtCommand):
         self.inplace = True
 
     def finalize_options(self):
-        global extra_compile_args
-        global extra_link_args
-        print("Use openmp", self.openmp)
-        if '-fopenmp' not in extra_compile_args:
-            extra_compile_args += ['-fopenmp']
-        if '-fopenmp' not in extra_link_args:
-            extra_link_args += ['-fopenmp']
         super().finalize_options()
 
     def run(self):
         global use_openmp
-        global extra_compile_args
-        global extra_link_args
         if self.openmp == 1:
             use_openmp = True
-        if '-fopenmp' not in extra_compile_args:
-            extra_compile_args += ['-fopenmp']
-        if '-fopenmp' not in extra_link_args:
-            extra_link_args += ['-fopenmp']
         super().run()
 
 
