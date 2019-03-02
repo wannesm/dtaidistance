@@ -15,6 +15,7 @@ This packages is available on PyPI:
     $ pip install dtaidistance
 
 In case the C based version is not available, see the documentation for alternative installation options.
+In case OpenMP is not available on your system add the `--noopenmp` global option.
 
 The source code is available at [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
