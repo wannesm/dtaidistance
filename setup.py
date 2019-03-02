@@ -9,10 +9,12 @@ from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
 from setuptools.command.install import install
+from setuptools import Distribution
 import platform
 import os
 import sys
 import re
+import subprocess as sp
 
 try:
     import numpy
@@ -26,34 +28,17 @@ try:
 except ImportError:
     cythonize = None
 
-use_openmp = False
 here = os.path.abspath(os.path.dirname(__file__))
 
-
-if "--openmp" in sys.argv:
-    use_openmp = True
-
-
-class MyInstallCommand(install):
-    user_options = install.user_options + [
-        ('openmp', None, 'Use openmp'),
-    ]
-
-    def initialize_options(self):
-        install.initialize_options(self)
-        self.openmp = None
-
-    def finalize_options(self):
-        # print("Use openmp", self.openmp)
-        install.finalize_options(self)
-
-    def run(self):
-        global use_openmp
-        if self.openmp == 1:
-            use_openmp = True
-            # TODO: too late, Extension has been created
-        print(f"Set global use_openmp to {use_openmp}")
-        install.run(self)
+c_args = {
+    'unix': ['-fopenmp'],
+    'msvc': ['/openmp', '/Ox', '/fp:fast','/favor:INTEL64','/Og'],
+    'mingw32': ['-fopenmp','-O3','-ffast-math','-march=native']
+}
+l_args = {
+    'unix': ['-fopenmp'],
+    'mingw32': ['-fopenmp']
+}
 
 
 class MySDistCommand(SDistCommand):
@@ -112,30 +97,102 @@ class PyTest(TestCommand):
         sys.exit(errno)
 
 
-class MyBuildExtCommand(BuildExtCommand):
-    user_options = BuildExtCommand.user_options + [
-        ('openmp', None, 'Use openmp'),
+class MyDistribution(Distribution):
+    global_options = Distribution.global_options + [
+        ('noopenmp', None, 'Disable compilation with openmp')
     ]
 
-    def initialize_options(self):
-        super().initialize_options()
-        self.openmp = None
-        self.inplace = True
+    def __init__(self, attrs=None):
+        self.noopenmp = 0
+        super().__init__(attrs)
 
-    def finalize_options(self):
-        super().finalize_options()
 
-    def run(self):
-        global use_openmp
-        if self.openmp == 1:
-            use_openmp = True
-        super().run()
+class MyInstallCommand(install):
+    pass
+
+    # def initialize_options(self):
+    #     install.initialize_options(self)
+
+    # def finalize_options(self):
+    #     install.finalize_options(self)
+
+    # def run(self):
+    #     install.run(self)
+
+
+class MyBuildExtCommand(BuildExtCommand):
+    pass
+
+    def build_extensions(self):
+        c = self.compiler.compiler_type
+        print(f"Compiler type: {c}")
+        print(f"--noopenmp: {self.distribution.noopenmp}")
+        if c in c_args:
+            if self.distribution.noopenmp == 1:
+                args = [arg for arg in c_args[c] if "openmp" not in arg]
+            else:
+                args = c_args[c]
+            for e in self.extensions:
+                e.extra_compile_args = args
+        else:
+            print("Unknown compiler type")
+        if c in l_args:
+            if self.distribution.noopenmp == 1:
+                args = [arg for arg in l_args[c] if "openmp" not in arg]
+            else:
+                args = l_args[c]
+            for e in self.extensions:
+                e.extra_link_args = args
+        BuildExtCommand.build_extensions(self)
+
+    # def initialize_options(self):
+    #     super().initialize_options()
+    #     self.noopenmp = None
+    #     self.inplace = True
+
+    # def finalize_options(self):
+    #     super().finalize_options()
+
+    # def run(self):
+    #     super().run()
 
 
 class MyBuildExtInPlaceCommand(MyBuildExtCommand):
     def initialize_options(self):
         super().initialize_options()
         self.inplace = True
+
+
+def check_openmp_clang(bin_dir):
+    """Check if OpenMP is available."""
+    clangcpp = os.path.join(bin_dir, "clang-cpp")
+    if os.path.exists(clangcpp):
+        try:
+            p = sp.run([clangcpp, "-fopenmp", "-dM"],
+                       stdout=sp.PIPE, input='\n', encoding='ascii')
+            defs = p.stdout.splitlines()
+            for curdef in defs:
+                if "_OPENMP" in curdef:
+                    return True
+        except Exception:
+            return False
+    return False
+
+
+def check_openmp_gcc(bin_dir):
+    """Check if OpenMP is available."""
+    clangcpp = os.path.join(bin_dir, "cpp")
+    if os.path.exists(clangcpp):
+        try:
+            p = sp.run([clangcpp, "-fopenmp", "-dM"],
+                       stdout=sp.PIPE, input='\n', encoding='ascii')
+            defs = p.stdout.splitlines()
+            for curdef in defs:
+                if "_OPENMP" in curdef:
+                    return True
+        except Exception:
+            return False
+    return False
 
 
 extra_compile_args = []
@@ -145,11 +202,13 @@ if platform.system() == 'Darwin':
     if os.path.exists("/usr/local/opt/llvm/bin/clang"):
         # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
         # `brew install llvm`).
+        if not check_openmp_clang("/usr/local/opt/llvm/bin/"):
+            print("WARNING: OpenMP seems not to be available: brew upgrade llvm")
         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
         os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
         cppflags += ["-I/usr/local/opt/llvm/include"]
-        extra_compile_args += ['-fopenmp']
-        extra_link_args += ['-fopenmp']
+        # extra_compile_args += ['-fopenmp']
+        # extra_link_args += ['-fopenmp']
         try:
             mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
             if mac_ver[0] == 10 and mac_ver[1] >= 14:
@@ -162,20 +221,14 @@ if platform.system() == 'Darwin':
     if len(cppflags) > 0:
         os.environ["CPPFLAGS"] = " ".join(cppflags)
 
-if use_openmp:
-    if '-fopenmp' not in extra_compile_args:
-        extra_compile_args += ['-fopenmp']
-    if '-fopenmp' not in extra_link_args:
-        extra_link_args += ['-fopenmp']
-
 if cythonize is not None and numpy is not None:
     print("create ext modules")
     ext_modules = cythonize([
         Extension(
             "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
             include_dirs=np_include_dirs,
-            extra_compile_args=extra_compile_args,
-            extra_link_args=extra_link_args)])
+            extra_compile_args=[],
+            extra_link_args=[])])
 elif numpy is None:
     print("Numpy was not found, preparing a pure Python version.")
     ext_modules = []
@@ -232,6 +285,7 @@ setup(
     package_data={
         '': ['*.pyx', '*.pxd'],
     },
+    distclass=MyDistribution,
     cmdclass={
         'test': PyTest,
         'readme': PrepReadme,
