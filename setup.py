@@ -59,7 +59,6 @@ class PrepReadme(Command):
         pass
 
     def run(self):
-        super().run()
         PrepReadme.run_pandoc()
 
     @staticmethod
