@@ -124,7 +124,7 @@ class MyInstallCommand(install):
 def set_custom_envvars_for_homebrew():
     """Update environment variables automatically for Homebrew if CC is not set"""
     if platform.system() == 'Darwin' and "CC" not in os.environ:
-        print("Set custom environment variables for Homebrew Clang")
+        print("Set custom environment variables for Homebrew Clang because CC is not set")
         cppflags = []
         if "CPPFLAGS" in os.environ:
             cppflags.append(os.environ["CPPFLAGS"])
@@ -163,7 +163,7 @@ def set_custom_envvars_for_homebrew():
             os.environ["LDFLAGS"] = " ".join(ldflags)
             print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
     else:
-        print("Using existing environment variables:")
+        print("Using existing environment variables because CC is set:")
         print("CC={}".format(os.environ["CC"]))
         print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
         print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
