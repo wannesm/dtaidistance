@@ -32,11 +32,12 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 c_args = {
     'unix': ['-fopenmp'],
-    'msvc': ['/openmp', '/Ox', '/fp:fast','/favor:INTEL64','/Og'],
-    'mingw32': ['-fopenmp','-O3','-ffast-math','-march=native']
+    'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og'],
+    'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native']
 }
 l_args = {
     'unix': ['-fopenmp'],
+    'msvc': [],
     'mingw32': ['-fopenmp']
 }
 
@@ -58,6 +59,7 @@ class PrepReadme(Command):
         pass
 
     def run(self):
+        super().run()
         PrepReadme.run_pandoc()
 
     @staticmethod
@@ -67,7 +69,7 @@ class PrepReadme(Command):
         try:
             sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
         except sp.CalledProcessError as err:
-            print("Pandoc failed, Mardown format will be used.")
+            print("Pandoc failed, Markdown format will be used.")
             print(err)
 
 
@@ -90,7 +92,6 @@ class PyTest(TestCommand):
         pass
 
     def run_tests(self):
-        # import shlex
         import pytest
         sys.path.append('.')
         errno = pytest.main(self.pytest_args)
@@ -120,13 +121,52 @@ class MyInstallCommand(install):
     #     install.run(self)
 
 
+def set_custom_envvars_for_homebrew():
+    """Update environment variables automatically for Homebrew if CC is not set"""
+    if platform.system() == 'Darwin' and "CC" not in os.environ:
+        print("Set custom environment variables for Homebrew Clang")
+        cppflags = []
+        ldflags = []
+        if "LDFLAGS" in os.environ:
+            ldflags.append(os.environ["LDFLAGS"])
+        if os.path.exists("/usr/local/opt/llvm/bin/clang"):
+            # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
+            # `brew install llvm`).
+            os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
+            print("CC={}".format(os.environ["CC"]))
+            ldflags += ["-L/usr/local/opt/llvm/lib"]
+            cppflags += ["-I/usr/local/opt/llvm/include"]
+            try:
+                mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
+                if mac_ver[0] == 10 and mac_ver[1] >= 14:
+                    # From Mojave on, the header files are part of Xcode.app
+                    cppflags += ['-I/Applications/Xcode.app/Contents/Developer/Platforms/' +
+                                 'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include']
+            except Exception as exc:
+                print("Failed to check version")
+                print(exc)
+        if len(cppflags) > 0:
+            os.environ["CPPFLAGS"] = " ".join(cppflags)
+            print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
+        if len(ldflags) > 0:
+            os.environ["LDFLAGS"] = " ".join(ldflags)
+            print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
+    else:
+        print("Using existing environment variables:")
+        print("CC={}".format(os.environ["CC"]))
+        print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
+        print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
+
+
 class MyBuildExtCommand(BuildExtCommand):
-    pass
 
     def build_extensions(self):
         c = self.compiler.compiler_type
-        print(f"Compiler type: {c}")
-        print(f"--noopenmp: {self.distribution.noopenmp}")
+        print("Compiler type: {}".format(c))
+        print("--noopenmp: {}".format(self.distribution.noopenmp))
+        if self.distribution.noopenmp == 0 and not check_openmp(self.compiler.compiler[0]):
+            print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
+            self.distribution.noopenmp = 1
         if c in c_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in c_args[c] if "openmp" not in arg]
@@ -135,7 +175,7 @@ class MyBuildExtCommand(BuildExtCommand):
             for e in self.extensions:
                 e.extra_compile_args = args
         else:
-            print("Unknown compiler type")
+            print("Unknown compiler type: {}".format(c))
         if c in l_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in l_args[c] if "openmp" not in arg]
@@ -145,10 +185,9 @@ class MyBuildExtCommand(BuildExtCommand):
                 e.extra_link_args = args
         BuildExtCommand.build_extensions(self)
 
-    # def initialize_options(self):
-    #     super().initialize_options()
-    #     self.noopenmp = None
-    #     self.inplace = True
+    def initialize_options(self):
+        set_custom_envvars_for_homebrew()
+        super().initialize_options()
 
     # def finalize_options(self):
     #     super().finalize_options()
@@ -163,64 +202,35 @@ class MyBuildExtInPlaceCommand(MyBuildExtCommand):
         self.inplace = True
 
 
-def check_openmp_clang(bin_dir):
-    """Check if OpenMP is available."""
-    clangcpp = os.path.join(bin_dir, "clang-cpp")
-    if os.path.exists(clangcpp):
+def check_openmp(cc_bin):
+    """Check if OpenMP is available"""
+    print("Checking for OpenMP availability")
+    if "clang" in cc_bin:
+        cpp = os.path.join(os.path.dirname(cc_bin), "clang-cpp")
+    elif "cc" in cc_bin:
+        cpp = os.path.join(os.path.dirname(cc_bin), "cpp")
+    else:
+        print("... do not know how to check for OpenMP (unknown CC)")
+        return True
+    if os.path.exists(cpp):
         try:
-            p = sp.run([clangcpp, "-fopenmp", "-dM"],
+            p = sp.run([cpp, "-fopenmp", "-dM"],
                        stdout=sp.PIPE, input='\n', encoding='ascii')
             defs = p.stdout.splitlines()
             for curdef in defs:
                 if "_OPENMP" in curdef:
+                    print("... found OpenMP")
                     return True
         except Exception:
+            print("... no OpenMP")
             return False
+    else:
+        print("... do not know how to check for OpenMP (did not find CPP)")
+        return True
     return False
 
 
-def check_openmp_gcc(bin_dir):
-    """Check if OpenMP is available."""
-    clangcpp = os.path.join(bin_dir, "cpp")
-    if os.path.exists(clangcpp):
-        try:
-            p = sp.run([clangcpp, "-fopenmp", "-dM"],
-                       stdout=sp.PIPE, input='\n', encoding='ascii')
-            defs = p.stdout.splitlines()
-            for curdef in defs:
-                if "_OPENMP" in curdef:
-                    return True
-        except Exception:
-            return False
-    return False
-
-
-extra_compile_args = []
-extra_link_args = []
-if platform.system() == 'Darwin':
-    cppflags = []
-    if os.path.exists("/usr/local/opt/llvm/bin/clang"):
-        # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
-        # `brew install llvm`).
-        if not check_openmp_clang("/usr/local/opt/llvm/bin/"):
-            print("WARNING: OpenMP seems not to be available: brew upgrade llvm")
-        os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
-        os.environ["LDFLAGS"] = "-L/usr/local/opt/llvm/lib"
-        cppflags += ["-I/usr/local/opt/llvm/include"]
-        # extra_compile_args += ['-fopenmp']
-        # extra_link_args += ['-fopenmp']
-        try:
-            mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
-            if mac_ver[0] == 10 and mac_ver[1] >= 14:
-                # From Mojave on, the header files are part of Xcode.app
-                cppflags += ['-I/Applications/Xcode.app/Contents/Developer/Platforms/' +
-                             'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include']
-        except Exception as exc:
-            print("Failed to check version")
-            print(exc)
-    if len(cppflags) > 0:
-        os.environ["CPPFLAGS"] = " ".join(cppflags)
-
+# Set up extension
 if cythonize is not None and numpy is not None:
     print("create ext modules")
     ext_modules = cythonize([
@@ -230,31 +240,28 @@ if cythonize is not None and numpy is not None:
             extra_compile_args=[],
             extra_link_args=[])])
 elif numpy is None:
-    print("Numpy was not found, preparing a pure Python version.")
+    print("WARNING: Numpy was not found, preparing a pure Python version.")
     ext_modules = []
 else:
-    print("Cython was not found, preparing a pure Python version.")
+    print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
-    # ext_modules = [
-    #     Extension("dtaidistance.dtw_c", ["dtaidistance/dtw_c.c"],
-    #               include_dirs=[numpy.get_include()],
-    #               extra_compile_args=extra_compile_args,
-    #               extra_link_args=extra_link_args)]
 
 install_requires = ['numpy', 'cython']
 tests_require = ['pytest', 'matplotlib']
 
+# Check version number
 with open('dtaidistance/__init__.py', 'r', encoding='utf-8') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 if not version:
     raise RuntimeError('Cannot find version information')
 
+# Set up readme file
 readme_path = os.path.join(here, 'README')
 if not os.path.exists(readme_path):
     try:
         PrepReadme.run_pandoc()
-    except:
+    except Exception:
         pass
 if os.path.exists(readme_path):
     with open(readme_path, 'r', encoding='utf-8') as f:
@@ -263,6 +270,7 @@ else:
     with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
         long_description = f.read()
 
+# Create setup
 setup(
     name='dtaidistance',
     version=version,
