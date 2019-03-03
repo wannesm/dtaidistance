@@ -126,6 +126,11 @@ def set_custom_envvars_for_homebrew():
     if platform.system() == 'Darwin' and "CC" not in os.environ:
         print("Set custom environment variables for Homebrew Clang")
         cppflags = []
+        if "CPPFLAGS" in os.environ:
+            cppflags.append(os.environ["CPPFLAGS"])
+        cflags = []
+        if "CFLAGS" in os.environ:
+            cflags.append(os.environ["CFLAGS"])
         ldflags = []
         if "LDFLAGS" in os.environ:
             ldflags.append(os.environ["LDFLAGS"])
@@ -136,18 +141,24 @@ def set_custom_envvars_for_homebrew():
             print("CC={}".format(os.environ["CC"]))
             ldflags += ["-L/usr/local/opt/llvm/lib"]
             cppflags += ["-I/usr/local/opt/llvm/include"]
+            cflags += ["-I/usr/local/opt/llvm/include"]
             try:
                 mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
                 if mac_ver[0] == 10 and mac_ver[1] >= 14:
                     # From Mojave on, the header files are part of Xcode.app
-                    cppflags += ['-I/Applications/Xcode.app/Contents/Developer/Platforms/' +
-                                 'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include']
+                    incpath = '-I/Applications/Xcode.app/Contents/Developer/Platforms/' + \
+                              'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include'
+                    cppflags += [incpath]
+                    cflags += [incpath]
             except Exception as exc:
                 print("Failed to check version")
                 print(exc)
         if len(cppflags) > 0:
             os.environ["CPPFLAGS"] = " ".join(cppflags)
             print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
+        if len(cflags) > 0:
+            os.environ["CFLAGS"] = " ".join(cflags)
+            print("CFLAGS={}".format(os.environ["CFLAGS"]))
         if len(ldflags) > 0:
             os.environ["LDFLAGS"] = " ".join(ldflags)
             print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
@@ -155,6 +166,7 @@ def set_custom_envvars_for_homebrew():
         print("Using existing environment variables:")
         print("CC={}".format(os.environ["CC"]))
         print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
+        print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
         print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
 
 
