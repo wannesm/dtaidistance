@@ -216,9 +216,10 @@ class MyBuildExtInPlaceCommand(MyBuildExtCommand):
 def check_openmp(cc_bin):
     """Check if OpenMP is available"""
     print("Checking for OpenMP availability")
-    if "clang" in cc_bin:
+    cc_binname = os.path.basename(cc_bin)
+    if "clang" in cc_binname:
         cpp = os.path.join(os.path.dirname(cc_bin), "clang-cpp")
-    elif "cc" in cc_bin:
+    elif "cc" in cc_binname:
         cpp = os.path.join(os.path.dirname(cc_bin), "cpp")
     else:
         print("... do not know how to check for OpenMP (unknown CC)")
