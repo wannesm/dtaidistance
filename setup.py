@@ -217,17 +217,15 @@ def check_openmp(cc_bin):
     """Check if OpenMP is available"""
     print("Checking for OpenMP availability")
     cc_binname = os.path.basename(cc_bin)
-    if "clang" in cc_binname:
-        cpp = os.path.join(os.path.dirname(cc_bin), "clang-cpp")
-    elif "cc" in cc_binname:
-        cpp = os.path.join(os.path.dirname(cc_bin), "cpp")
-    else:
-        print("... do not know how to check for OpenMP (unknown CC)")
-        return True
-    if os.path.exists(cpp):
+    args = None
+    kwargs = None
+    if "clang" in cc_binname or "cc" in cc_binname:
+        args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
+        kwargs = {"stdout": sp.PIPE, "input": '', "encoding": 'ascii'}
+    if args is not None:
         try:
-            p = sp.run([cpp, "-fopenmp", "-dM"],
-                       stdout=sp.PIPE, input='\n', encoding='ascii')
+            print(" ".join(args) + " ".join(str(k)+"="+str(v) for k,v in kwargs.items()))
+            p = sp.run(*args, **kwargs)
             defs = p.stdout.splitlines()
             for curdef in defs:
                 if "_OPENMP" in curdef:
@@ -237,7 +235,7 @@ def check_openmp(cc_bin):
             print("... no OpenMP")
             return False
     else:
-        print("... do not know how to check for OpenMP (did not find CPP)")
+        print("... do not know how to check for OpenMP (unknown CC)")
         return True
     return False
 
