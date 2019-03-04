@@ -163,7 +163,7 @@ def set_custom_envvars_for_homebrew():
             print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
     else:
         print("Using the following environment variables:")
-        print("CC={}".format(os.environ["CC"]))
+        print("CC={}".format(os.environ.get("CC", "")))
         print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
         print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
         print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
