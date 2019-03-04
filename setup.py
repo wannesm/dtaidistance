@@ -223,8 +223,8 @@ def check_openmp(cc_bin):
         args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
         kwargs = {"stdout": sp.PIPE, "input": '', "encoding": 'ascii'}
     if args is not None:
+        print(" ".join(args) + " ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
         try:
-            print(" ".join(args) + " ".join(str(k)+"="+str(v) for k,v in kwargs.items()))
             p = sp.run(*args, **kwargs)
             defs = p.stdout.splitlines()
             for curdef in defs:
