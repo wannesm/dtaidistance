@@ -92,6 +92,7 @@ def test_linkage_tree():
 
 def test_controlchart():
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap
     series = np.zeros((600, 60))
     rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'synthetic_control.data')
     with open(rsrc_fn, 'r') as ifile:
@@ -112,9 +113,15 @@ def test_controlchart():
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
     show_ts_label = lambda idx: "ts-" + str(idx)
     # show_ts_label = list(range(len(s)))
+
+    def curcmap(idx):
+        if idx % 2 == 0:
+            return 'r'
+        return 'g'
+
     model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
                show_tr_label=True, ts_label_margin=-10,
-               ts_left_margin=10, ts_sample_length=1)
+               ts_left_margin=10, ts_sample_length=1, ts_color=curcmap)
     print("Figure saved to", hierarchy_fn)
 
 
@@ -142,6 +149,6 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_clustering_tree()
-    test_linkage_tree()
-    # test_controlchart()
+    # test_linkage_tree()
+    test_controlchart()
     # test_plotbug1()

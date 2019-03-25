@@ -160,7 +160,7 @@ class BaseTree:
              bottom_margin=2, top_margin=2, ts_left_margin=0, ts_sample_length=1,
              tr_label_margin=3, tr_left_margin=2, ts_label_margin=0,
              show_ts_label=None, show_tr_label=None,
-             cmap='viridis_r'):
+             cmap='viridis_r', ts_color=None):
         """Plot the hierarchy and time series.
 
         :param filename: If a filename is passed, the image is written to this file.
@@ -181,6 +181,8 @@ class BaseTree:
             If it is a callable object, the index of the time series will be given and the
             return string will be printed.
         :param cmap: Matplotlib colormap name
+        :param ts_color: function that takes the index and returns a color
+            (compatible with the matplotlib.color color argument)
         """
         # print('linkage')
         # for l in self.linkage:
@@ -292,7 +294,11 @@ class BaseTree:
         ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * len(self.series[0]))
         ax[1].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
 
-        line_colors = cmx.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=max_dist), cmap=plt.get_cmap(cmap))
+        if type(cmap) == str:
+            cmap = plt.get_cmap(cmap)
+        else:
+            pass
+        line_colors = cmx.ScalarMappable(norm=colors.Normalize(vmin=0, vmax=max_dist), cmap=cmap)
 
         cnt_ts = 0
 
@@ -310,8 +316,13 @@ class BaseTree:
                 ax[1].text(ts_left_margin + ts_label_margin,
                            bottom_margin + ts_height * cnt_ts + ts_height / 2,
                            show_ts_label(int(node)), ha='left', va='center')
+                if ts_color:
+                    curcolor = ts_color(int(node))
+                else:
+                    curcolor = None
                 ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
-                           bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie)
+                           bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie,
+                           color=curcolor)
                 cnt_ts += 1
 
             else:
