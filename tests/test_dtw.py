@@ -84,7 +84,7 @@ def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
          [1., 2, 0, 0, 0, 0, 0, 1, 1]]
     s = np.array(s)
     m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c, use_nogil=use_nogil)
-    # print(m)
+    print(m)
     assert m[1, 3] == pytest.approx(math.sqrt(2))
     assert np.isinf(m[1, 2])
 
@@ -97,4 +97,5 @@ def test_distance_matrix_block():
 
 
 if __name__ == "__main__":
-    test_distance1_a()
+    # test_distance1_a()
+    run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
