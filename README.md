@@ -191,11 +191,13 @@ tree can be visualised:
 - [Numpy](http://www.numpy.org)
 
 Optional:
+
 - [Cython](http://cython.org)
 - [tqdm](https://github.com/tqdm/tqdm)
 - [matplotlib](https://matplotlib.org)
 
 Development:
+
 - [pytest](http://doc.pytest.org)
 - [pytest-benchmark](http://pytest-benchmark.readthedocs.io)
 
@@ -203,7 +205,7 @@ Development:
 ## Contact
 
 - [Wannes Meert](https://people.cs.kuleuven.be/wannes.meert)  
-  [Wannes.Meert@cs.kuleuven.be](mailto:Wannes.Meert@cs.kuleuven.be)
+  <[Wannes.Meert@cs.kuleuven.be](mailto:Wannes.Meert@cs.kuleuven.be)>
 
 
 ## References
@@ -231,7 +233,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2018 KU Leuven, DTAI Research Group
+    Copyright 2016-2019 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
