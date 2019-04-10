@@ -242,7 +242,6 @@ def check_openmp(cc_bin):
 
 # Set up extension
 if cythonize is not None and numpy is not None:
-    print("create ext modules")
     ext_modules = cythonize([
         Extension(
             "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
