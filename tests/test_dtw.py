@@ -4,6 +4,30 @@ import numpy as np
 from dtaidistance import dtw, dtw_c
 
 
+def test_expected_length1():
+    block = ((1, 4), (3, 5))
+    length = dtw._distance_matrix_length(block, 6)
+    assert length == 5
+
+
+def test_expected_length2():
+    block = ((1, 3), (3, 5))
+    length = dtw._distance_matrix_length(block, 6)
+    assert length == 4
+
+
+def test_expected_length3():
+    block = ((1, 4), (3, 5))
+    length = dtw._distance_matrix_length(block, 6)
+    assert length == 5
+
+
+def test_expected_length4():
+    block = ((0, 6), (0, 6))
+    length = dtw._distance_matrix_length(block, 6)
+    assert length == int(6 * (6 - 1) / 2)
+
+
 def test_distance1_a():
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
@@ -62,6 +86,7 @@ def test_distance_matrix1_d():
          [1., 2, 0, 0, 0, 0, 0, 1]]
     s = [np.array(si) for si in s]
     m = dtw_c.distance_matrix_nogil(s)
+    m = dtw.distances_array_to_matrix(m, len(s))
     assert m[0, 1] == pytest.approx(math.sqrt(2))
 
 
@@ -70,8 +95,24 @@ def test_distance_matrix1_e():
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1]]
     s = [np.array(si) for si in s]
-    m = dtw_c.distance_matrix_nogil_p(s)
+    m = dtw_c.distance_matrix_nogil(s, is_parallel=True)
+    m = dtw.distances_array_to_matrix(m, len(s))
+    print(m)
     assert m[0, 1] == pytest.approx(math.sqrt(2))
+
+
+def test_distance_matrix2_e():
+    n = 1
+    nn = 1
+    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
+         [0., 1, 2, 0, 0, 0, 0, 0, 0] * n,
+         [1., 2, 0, 0, 0, 0, 0, 1] * n] * nn
+    s = [np.array(si) for si in s]
+    m1 = dtw_c.distance_matrix_nogil(s, is_parallel=True)
+    m1 = dtw.distances_array_to_matrix(m1, len(s))
+    m2 = dtw.distance_matrix(s, parallel=True, use_c=True, use_nogil=True)
+    assert m1[0, 1] == math.sqrt(2) * n, "m1[0,1]={} != {}".format(m1[0, 1], math.sqrt(2) * n)
+    assert m2[0, 1] == math.sqrt(2) * n, "m2[0,1]={} != {}".format(m2[0, 1], math.sqrt(2) * n)
 
 
 def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
@@ -98,4 +139,6 @@ def test_distance_matrix_block():
 
 if __name__ == "__main__":
     # test_distance1_a()
-    run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
+    test_distance_matrix2_e()
+    # run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
+    # test_expected_length1()

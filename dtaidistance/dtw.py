@@ -31,6 +31,8 @@ except ImportError:
     logger.info('tqdm library not available')
     tqdm = None
 
+DTYPE = np.double
+
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None):
@@ -354,7 +356,7 @@ def distance_matrix_func(use_c=False, use_nogil=False, parallel=False, show_prog
 
 def distance_matrix(s, max_dist=None, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
-                    block=None, block_compact=False, parallel=False,
+                    block=None, compact=False, parallel=False,
                     use_c=False, use_nogil=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
@@ -367,12 +369,13 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param psi: see :meth:`distance`
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
         only compare rows 0:10 with rows 20:25.
-    :param block_compact: Only return a distance matrix for the relevant rows given in the block parameter.
+    :param compact: Return the distance matrix as an array representing the upper triangular matrix.
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions (it is recommended to use use_nogil)
     :param use_nogil: Use pure c functions
     :param show_progress: Show progress using the tqdm library
     """
+    # Check whether multiprocessing is available
     if parallel and (not use_c or not use_nogil):
         try:
             import multiprocessing as mp
@@ -382,6 +385,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
             mp = None
     else:
         mp = None
+    # Prepare options and data to pass to distance method
     dist_opts = {
         'max_dist': max_dist,
         'max_step': max_step,
@@ -391,109 +395,123 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         'psi': psi
     }
     s = SeriesContainer.wrap(s)
-    dists = None
     if max_length_diff is None:
         max_length_diff = np.inf
     large_value = np.inf
-    logger.info('Computing distances')
+    dists = None
     if use_c:
         for k, v in dist_opts.items():
             if v is None:
+                # None is represented as 0.0 for C
                 dist_opts[k] = 0.0
+
+    logger.info('Computing distances')
     if use_c and use_nogil:
-        logger.info("Compute distances in pure C")
+        logger.info("Compute distances in pure C (parallel={})".format(parallel))
         dist_opts['block'] = block
-        dist_opts['block_compact'] = block_compact
-        if parallel:
-            logger.info("Use parallel computation")
-            dists = dtw_c.distance_matrix_nogil_p(s, **dist_opts)
-        else:
-            logger.info("Use serial computation")
-            dists = dtw_c.distance_matrix_nogil(s, **dist_opts)
-    if use_c and not use_nogil:
+        dists = dtw_c.distance_matrix_nogil(s, is_parallel=parallel, **dist_opts)
+
+    elif use_c and not use_nogil:
         logger.info("Compute distances in Python compiled C")
         if parallel:
             logger.info("Use parallel computation")
-            if block is None:
-                dists = np.zeros((len(s), len(s))) + large_value
-                idxs = np.triu_indices(len(s), k=1)
-                idxs_target = idxs
-            else:
-                if block_compact:
-                    dists = np.zeros((block[0][1]-block[0][0], block[1][1]-block[1][0])) + large_value
-                else:
-                    dists = np.zeros((len(s), len(s))) + large_value
-                idxsl_r = []
-                idxsl_c = []
-                for r in range(block[0][0], block[0][1]):
-                    for c in range(max(r + 1, block[1][0]), min(len(s), block[1][1])):
-                        idxsl_r.append(r)
-                        idxsl_c.append(c)
-                idxs = (np.array(idxsl_r), np.array(idxsl_c))
-                if block_compact:
-                    idxs_target = (np.array(idxsl_r) - block[0][0], np.array(idxsl_c) - block[1][0])
-                else:
-                    idxs_target = idxs
+            idxs = _distance_matrix_idxs(block, len(s))
             with mp.Pool() as p:
-                dists[idxs_target] = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
-                # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
-                # for r in range(len(s)):
-                #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
-                #     pbar.update(len(s) - r - 1)
-                # pbar.close()
+                dists = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
         else:
             logger.info("Use serial computation")
             dist_opts['block'] = block
             dists = dtw_c.distance_matrix(s, **dist_opts)
-    if not use_c:
+
+    elif not use_c:
         logger.info("Compute distances in Python")
         if parallel:
             logger.info("Use parallel computation")
-            if block is None:
-                dists = np.zeros((len(s), len(s))) + large_value
-                idxs = np.triu_indices(len(s), k=1)
-                idxs_target = idxs
-            else:
-                if block_compact:
-                    dists = np.zeros((block[0][1]-block[0][0], block[1][1]-block[1][0])) + large_value
-                else:
-                    dists = np.zeros((len(s), len(s))) + large_value
-                idxsl_r = []
-                idxsl_c = []
-                for r in range(block[0][0], block[0][1]):
-                    for c in range(max(r + 1, block[1][0]), min(len(s), block[1][1])):
-                        idxsl_r.append(r)
-                        idxsl_c.append(c)
-                idxs = (np.array(idxsl_r), np.array(idxsl_c))
-                if block_compact:
-                    idxs_target = (np.array(idxsl_r) - block[0][0], np.array(idxsl_c) - block[1][0])
-                else:
-                    idxs_target = idxs
+            idxs = _distance_matrix_idxs(block, len(s))
             with mp.Pool() as p:
-                dists[idxs_target] = p.map(_distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
-                # pbar = tqdm(total=int((len(s)*(len(s)-1)/2)))
-                # for r in range(len(s)):
-                #     dists[r,r+1:len(s)] = p.map(distance, [(s[r],s[c], dist_opts) for c in range(r+1,len(cur))])
-                #     pbar.update(len(s) - r - 1)
-                # pbar.close()
+                dists = p.map(_distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
         else:
             logger.info("Use serial computation")
-            dists = np.zeros((len(s), len(s))) + large_value
-            if block is None:
-                it_r = range(len(s))
-            else:
-                it_r = range(block[0][0], block[0][1])
-            if show_progress:
-                it_r = tqdm(it_r)
-            for r in it_r:
-                if block is None:
-                    it_c = range(r + 1, len(s))
-                else:
-                    it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
-                for c in it_c:
-                    if abs(len(s[r]) - len(s[c])) <= max_length_diff:
-                        dists[r, c] = distance(s[r], s[c], **dist_opts)
+            dists = distance_matrix_python(s, block=block, show_progress=show_progress,
+                                           max_length_diff=max_length_diff, dist_opts=dist_opts)
+
+    exp_length = _distance_matrix_length(block, len(s))
+    assert len(dists) == exp_length, "len(dists)={} != {}".format(len(dists), exp_length)
+    if compact:
+        return dists
+
+    # Create full matrix and fill upper triangular matrix with distance values (or only block if specified)
+    dists_matrix = distances_array_to_matrix(dists, nb_series=len(s), block=block)
+
+    return dists_matrix
+
+
+def distances_array_to_matrix(dists, nb_series, block=None):
+    """Transform a distances array to a full matrix representation.
+
+    The upper triangular matrix will contain all the distances.
+    """
+    dists_matrix = np.full((nb_series, nb_series), np.inf, dtype=DTYPE)
+    idxs = _distance_matrix_idxs(block, nb_series)
+    dists_matrix[idxs] = dists
+    return dists_matrix
+
+
+def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=None, dist_opts=None):
+    if dist_opts is None:
+        dist_opts = {}
+    large_value = np.inf
+    dists = np.full((_distance_matrix_length(block, len(s)),), large_value, dtype=DTYPE)
+    if block is None:
+        it_r = range(len(s))
+    else:
+        it_r = range(block[0][0], block[0][1])
+    if show_progress:
+        it_r = tqdm(it_r)
+    idx = 0
+    for r in it_r:
+        if block is None:
+            it_c = range(r + 1, len(s))
+        else:
+            it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
+        for c in it_c:
+            if abs(len(s[r]) - len(s[c])) <= max_length_diff:
+                dists[idx] = distance(s[r], s[c], **dist_opts)
+            idx += 1
     return dists
+
+
+def _distance_matrix_idxs(block, nb_series):
+    if block is None or block == 0:
+        idxs = np.triu_indices(nb_series, k=1)
+    else:
+        idxsl_r = []
+        idxsl_c = []
+        for r in range(block[0][0], block[0][1]):
+            for c in range(max(r + 1, block[1][0]), min(nb_series, block[1][1])):
+                idxsl_r.append(r)
+                idxsl_c.append(c)
+        idxs = (np.array(idxsl_r), np.array(idxsl_c))
+    return idxs
+
+
+def _distance_matrix_length(block, nb_series):
+    if block is not None:
+        block_rb = block[0][0]
+        block_re = block[0][1]
+        block_cb = block[1][0]
+        block_ce = block[1][1]
+        length = 0
+        for ri in range(block_rb, block_re):
+            if block_cb <= ri:
+                if block_ce > ri:
+                    length += (block_ce - ri - 1)
+            else:
+                if block_ce > ri:
+                    length += (block_ce - block_cb)
+    else:
+        length = int(nb_series * (nb_series - 1) / 2)
+    return length
 
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,

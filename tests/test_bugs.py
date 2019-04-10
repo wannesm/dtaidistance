@@ -3,6 +3,11 @@ import numpy as np
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 from dtaidistance import dtw, dtw_c
+import logging
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
+
 
 if dtw_c is None:
     print('ERROR: dtw_c is not build')
@@ -165,7 +170,19 @@ def test_bug1():
     # print(ds)
 
 
+def test_bug1_serial():
+    """Failed on Windows if pointer types are different."""
+    series = [np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
+              np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
+              np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
+    ds = dtw.distance_matrix_fast(series, parallel=False)
+    print(ds)
+
+
 if __name__ == "__main__":
+    logger.setLevel(logging.WARNING)
+    sh = logging.StreamHandler(sys.stdout)
+    logger.addHandler(sh)
     # test_distance2_a()
     # test_distance2_b()
     # test_distance2_c()

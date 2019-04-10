@@ -176,6 +176,7 @@ def test_distance5():
         plot_margins(s[prototypeidx], weights, clf)
 
 
+@pytest.mark.skip("Takes too long")
 def test_distance6():
     s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
     l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')

@@ -483,55 +483,86 @@ cdef double warping_paths_nogil_c(
 def distance_matrix(cur, double max_dist=inf, int max_length_diff=0,
                     int window=0, double max_step=0, double penalty=0, block=None, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
+
+    :return: The distance matrix as a list representing the triangular matrix.
     """
     if max_length_diff == 0:
         max_length_diff = 999999
-    if block is None:
+    if block is None or block == 0:
         block = ((0, len(cur)), (0, len(cur)))
-    cdef double large_value = inf
-    cdef np.ndarray[DTYPE_t, ndim=2] dists = np.zeros((len(cur), len(cur))) + large_value
-    for r in range(block[0][0], block[0][1]):
-        for c in range(max(r + 1, block[1][0]), block[1][1]):
-            if labs(len(cur[r]) - len(cur[c])) <= max_length_diff:
-                dists[r, c] = distance(cur[r], cur[c], window=window,
-                                       max_dist=max_dist, max_step=max_step,
-                                       max_length_diff=max_length_diff,
-                                       penalty=penalty)
-    return dists
-
-
-def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
-                          int window=0, double max_step=0, double penalty=0, block=None, bool block_compact=False,
-                          bool is_parallel=False, **kwargs):
-    """Compute a distance matrix between all sequences given in `cur`.
-    This method calls a pure c implementation of the dtw computation that
-    avoids the GIL.
-    """
-    # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
-    # Prepare for only c datastructures
-    # TODO: compact block
-    cdef int block_rb=0
-    cdef int block_re=0
-    cdef int block_cb=0
-    cdef int block_ce=0
-    if block is not None:
+        length = int(len(cur)*(len(cur) - 1) / 2)
+    else:
         block_rb = block[0][0]
         block_re = block[0][1]
         block_cb = block[1][0]
         block_ce = block[1][1]
+        length = 0
+        for ri in range(block_rb, block_re):
+            if block_cb <= ri:
+                if block_ce > ri:
+                    length += (block_ce - ri - 1)
+            else:
+                if block_ce > ri:
+                    length += (block_ce - block_cb)
+    cdef double large_value = inf
+    cdef np.ndarray[DTYPE_t, ndim=1] dists = np.full((length,), large_value, dtype=DTYPE)
+    idx = 0
+    for r in range(block[0][0], block[0][1]):
+        for c in range(max(r + 1, block[1][0]), block[1][1]):
+            if labs(len(cur[r]) - len(cur[c])) <= max_length_diff:
+                dists[idx] = distance(cur[r], cur[c], window=window,
+                                      max_dist=max_dist, max_step=max_step,
+                                      max_length_diff=max_length_diff,
+                                      penalty=penalty)
+                idx += 1
+    return dists
+
+
+def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
+                          int window=0, double max_step=0, double penalty=0, block=None,
+                          bool is_parallel=False, **kwargs):
+    """Compute a distance matrix between all sequences given in `cur`.
+    This method calls a pure c implementation of the dtw computation that
+    avoids the GIL.
+
+    :return: The distance matrix as a list representing the triangular matrix.
+    """
+    # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
+    # Prepare for only c datastructures
+    cdef int length = 0
+    cdef int block_rb=0
+    cdef int block_re=0
+    cdef int block_cb=0
+    cdef int block_ce=0
+    cdef ri = 0
+    if block is not None and block != 0.0:
+        block_rb = block[0][0]
+        block_re = block[0][1]
+        block_cb = block[1][0]
+        block_ce = block[1][1]
+        # TODO: replace by formula?
+        for ri in range(block_rb, block_re):
+            if block_cb <= ri:
+                if block_ce > ri:
+                    length += (block_ce - ri - 1)
+            else:
+                if block_ce > ri:
+                    length += (block_ce - block_cb)
+    else:
+        length = int(len(cur) * (len(cur) - 1) / 2)
     if max_length_diff == 0:
         max_length_diff = 999999
     cdef double large_value = inf
-    dists_py = np.zeros((len(cur), len(cur))) + large_value
-    cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] dists = dists_py
+
+    dists_py = np.full((length,), large_value, dtype=DTYPE)
+    cdef np.ndarray[DTYPE_t, ndim=1, mode="c"] dists = dists_py
     #print('dists: {}, {}'.format(dists_py.shape, dists_py.shape[0]*dists_py.shape[1]))
     cdef double **cur2 = <double **> malloc(len(cur) * sizeof(double*))
     cdef int *cur2_len = <int *> malloc(len(cur) * sizeof(int))
     # cdef long ptr;
     cdef intptr_t ptr
     cdef np.ndarray[DTYPE_t, ndim=2, mode="c"] cur_np;
-    #for i in range(len(cur)):
-    #    print(cur[i])
+
     if cur.__class__.__name__ == "SeriesContainer":
         cur = cur.c_data()
     if type(cur) in [list, set]:
@@ -550,89 +581,111 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
             cur2_len[i] = cur_np.shape[1]
     else:
         return None
+
     if is_parallel:
-        distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty,
-                                  block_rb, block_re, block_cb, block_ce, block_compact)
+        distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window, max_step, penalty,
+                                  block_rb, block_re, block_cb, block_ce)
     else:
-        distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0,0], max_dist, max_length_diff, window, max_step, penalty,
-                                block_rb, block_re, block_cb, block_ce, block_compact)
+        distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window, max_step, penalty,
+                                block_rb, block_re, block_cb, block_ce)
     free(cur2)
     free(cur2_len)
     return dists_py
 
 
-def distance_matrix_nogil_p(cur, double max_dist=inf, int max_length_diff=0,
-                            int window=0, double max_step=0, double penalty=0, block=None, block_compact=False, **kwargs):
-    """Compute a distance matrix between all sequences given in `cur`.
-    This method calls a pure c implementation of the dtw computation that
-    avoids the GIL and executes them in parallel.
-    """
-    return distance_matrix_nogil(cur, max_dist=max_dist, max_length_diff=max_length_diff,
-                                 window=window, max_step=max_step, penalty=penalty,
-                                 block=block, block_compact=block_compact,
-                                 is_parallel=True, **kwargs)
-
-
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,
                              double max_dist=0, int max_length_diff=0,
                              int window=0, double max_step=0, double penalty=0,
-                             int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0, bool block_compact=0):
-    #for i in range(len_cur):
-    #    print(i)
-    #    print(cur_len[i])
-    #    for j in range(cur_len[i]):
-    #        printf("%f ", cur[i][j])
-    #    printf("\n")
-    #printf("---\n")
+                             int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0):
     cdef int r
     cdef int c
     cdef int cb
+    cdef int i
 
     if block_re == 0:
         block_re = len_cur
     if block_ce == 0:
         block_ce = len_cur
+    i = 0
     for r in range(block_rb, block_re):
         if r + 1 > block_cb:
             cb = r+1
         else:
             cb = block_cb
         for c in range(cb, block_ce):
-            output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
-                                                     window=window, max_dist=max_dist,
-                                                     max_step=max_step, max_length_diff=max_length_diff,
-                                                     penalty=penalty)
-            #for i in range(len_cur):
-            #    for j in range(len_cur):
-            #        printf("%f ", output[i*len_cur+j])
-            #    printf("\n")
-            #printf("---\n")
+            output[i] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
+                                         window=window, max_dist=max_dist,
+                                         max_step=max_step, max_length_diff=max_length_diff,
+                                         penalty=penalty)
+            i += 1
 
 
 cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* output,
                                double max_dist=0, int max_length_diff=0,
                                int window=0, double max_step=0, double penalty=0,
-                               int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0, bool block_compact=0):
+                               int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0):
     # Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     cdef Py_ssize_t r
     cdef Py_ssize_t c
     cdef Py_ssize_t cb
     cdef Py_ssize_t brb = block_rb  # TODO: why is this necessary for cython?
+    cdef Py_ssize_t ir
+    cdef Py_ssize_t length = 0
 
-    # printf("%f %f %f %f", block_rb, block_re, block_cb, block_ce)
+    if block_re == 0 and block_ce == 0:
+        length = len_cur * (len_cur - 1) / 2
+    else:
+        for ri in range(block_rb, block_re):
+            if block_cb <= ri:
+                if block_ce > ri:
+                    length += (block_ce - ri - 1)
+            else:
+                if block_ce > ri:
+                    length += (block_ce - block_cb)
+
+    if max_length_diff == 0:
+        max_length_diff = 999999
+    cdef double large_value = inf
 
     if block_re == 0:
         block_re = len_cur
     if block_ce == 0:
         block_ce = len_cur
+
+    cdef np.ndarray[np.intp_t, ndim=1, mode="c"] irs_py = np.empty((length,), dtype=np.intp)
+    cdef Py_ssize_t[:] irs = irs_py
+    cdef np.ndarray[np.intp_t, ndim=1, mode="c"] ics_py = np.empty((length,), dtype=np.intp)
+    cdef Py_ssize_t[:] ics = ics_py
+    ir = 0
+    for r in range(brb, block_re):
+        if r + 1 > block_cb:
+            cb = r+1
+        else:
+            cb = block_cb
+        for c in range(cb, block_ce):
+            irs[ir] = r
+            ics[ir] = c
+            ir += 1
+
+    # ir = 0
+    # for r in range(brb, block_re):
+    #     if r + 1 > block_cb:
+    #         cb = r+1
+    #     else:
+    #         cb = block_cb
+    #     with nogil, parallel():
+    #         for c in prange(cb, block_ce):
+    #             output[ir + c - cb] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
+    #                                                    window=window, max_dist=max_dist,
+    #                                                    max_step=max_step, max_length_diff=max_length_diff,
+    #                                                    penalty=penalty)
+    #     ir += block_ce - cb
+
     with nogil, parallel():
-        for r in prange(brb, block_re):
-            if r + 1 > block_cb:
-                cb = r+1
-            else:
-                cb = block_cb
-            for c in range(cb, block_ce):
-                output[len_cur*r + c] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
-                                                         window=window, max_dist=max_dist,
-                                                         max_step=max_step, max_length_diff=max_length_diff,
-                                                         penalty=penalty)
+        for ir in prange(length):
+            r = irs[ir]
+            c = ics[ir]
+            output[ir] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
+                                          window=window, max_dist=max_dist,
+                                          max_step=max_step, max_length_diff=max_length_diff,
+                                          penalty=penalty)
