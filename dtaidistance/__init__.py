@@ -32,7 +32,7 @@ except ImportError:
     #                "then run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
     dtw_c = None
 
-__version__ = "1.1.4"
+__version__ = "1.2"
 __author__ = "Wannes Meert"
-__copyright__ = "Copyright 2017-2018 KU Leuven, DTAI Research Group"
+__copyright__ = "Copyright 2017-2019 KU Leuven, DTAI Research Group"
 __license__ = "Apache License, Version 2.0"
