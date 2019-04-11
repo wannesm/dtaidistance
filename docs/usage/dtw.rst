@@ -55,21 +55,40 @@ Check the ``__doc__`` for information about the available arguments:
 
     print(dtw.distance.__doc__)
 
-A number of options are foreseen to early stop some paths the dynamic
-programming algorithm is exploring or tune the distance measure
-computation:
+
+DTW Complexity and Early-Stopping
+"""""""""""""""""""""""""""""""""
+
+The ``distance`` function has linear space complexity but quadratic
+time complexity. To reduce the time complexity a number of options
+are available. The most used appraoch accros DTW implementations is
+to use a window that indicates the maximal shift that is allowed.
+This reduces the complexity to the product of window size and series length:
 
 -  ``window``: Only allow for shifts up to this amount away from the two
    diagonals.
+
+A number of other options are foreseen to early stop some or all paths the
+dynamic programming algorithm is exploring:
+
 -  ``max_dist``: Stop if the returned distance measure will be larger
    than this value.
 -  ``max_step``: Do not allow steps larger than this value.
 -  ``max_length_diff``: Return infinity if difference in length of two
    series is larger.
+
+
+DTW Tuning
+""""""""""
+
+A number of options are foreseen to tune how the cost is computed:
+
 -  ``penalty``: Penalty to add if compression or expansion is applied
    (on top of the distance).
 -  ``psi``: Psi relaxation to ignore begin and/or end of sequences (for
    cylical sequencies) [2].
+
+
 
 DTW and keep all warping paths
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
