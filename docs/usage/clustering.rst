@@ -26,10 +26,13 @@ linkage method).
 
     # Custom Hierarchical clustering
     model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+    cluster_idx = model1.fit(series)
     # Keep track of full tree by using the HierarchicalTree wrapper class
     model2 = clustering.HierarchicalTree(model1)
+    cluster_idx = model2.fit(series)
     # You can also pass keyword arguments identical to instantiate a Hierarchical object
     model2 = clustering.HierarchicalTree(dists_fun=dtw.distance_matrix_fast, dists_options={})
+    cluster_idx = model2.fit(series)
     # SciPy linkage clustering
     model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
     cluster_idx = model3.fit(series)

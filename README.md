@@ -170,8 +170,10 @@ wrapper for the SciPy linkage method).
     from dtaidistance import clustering
     # Custom Hierarchical clustering
     model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
+    cluster_idx = model1.fit(series)
     # Augment Hierarchical object to keep track of the full tree
     model2 = clustering.HierarchicalTree(model1)
+    cluster_idx = model2.fit(series)
     # SciPy linkage clustering
     model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
     cluster_idx = model3.fit(series)
