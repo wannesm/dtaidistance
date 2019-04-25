@@ -10,7 +10,7 @@ Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo
 
 ## Installation
 
-This packages is available on PyPI:
+This packages is available on PyPI (requires Python 3):
 
     $ pip install dtaidistance
 
