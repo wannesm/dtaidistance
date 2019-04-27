@@ -374,6 +374,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param use_c: Use c compiled Python functions (it is recommended to use use_nogil)
     :param use_nogil: Use pure c functions
     :param show_progress: Show progress using the tqdm library
+    :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     # Check whether multiprocessing is available
     if parallel and (not use_c or not use_nogil):
@@ -447,14 +448,31 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
 
 
 def distances_array_to_matrix(dists, nb_series, block=None):
-    """Transform a distances array to a full matrix representation.
+    """Transform a condensed distances array to a full matrix representation.
 
     The upper triangular matrix will contain all the distances.
     """
     dists_matrix = np.full((nb_series, nb_series), np.inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists
+    # dists_cond = np.zeros(self._size_cond(len(series)))
+    # idx = 0
+    # for r in range(len(series) - 1):
+    #     dists_cond[idx:idx + len(series) - r - 1] = dists[r, r + 1:]
+    #     idx += len(series) - r - 1
     return dists_matrix
+
+
+def distance_array_index(a, b, nb_series):
+    if a == b:
+        return 0
+    if a > b:
+        a, b = b, a
+    idx = 0
+    for r in range(a):
+        idx += nb_series - r - 1
+    idx += b
+    return idx
 
 
 def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=None, dist_opts=None):
@@ -516,14 +534,14 @@ def _distance_matrix_length(block, nb_series):
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, parallel=True, show_progress=False):
+                         block=None, compact=False, parallel=True, show_progress=False):
     """Fast C version of :meth:`distance_matrix`."""
     if dtw_c is None:
         _print_library_missing()
         return None
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
-                           block=block, parallel=parallel,
+                           block=block, compact=compact, parallel=parallel,
                            use_c=True, use_nogil=True, show_progress=show_progress)
 
 

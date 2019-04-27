@@ -28,6 +28,23 @@ def test_expected_length4():
     assert length == int(6 * (6 - 1) / 2)
 
 
+def test_condensed_index1():
+    """
+         0    1    2    3    4    5
+      +-----------------------------+
+    0 | -- |  0 |  1 |  2 |  3 |  4 |
+    1 | -- | -- |  5 |  6 |  7 |  8 |
+    2 | -- | -- | -- |  9 | 10 | 11 |
+    3 | -- | -- | -- | -- | 12 | 13 |
+    4 | -- | -- | -- | -- | -- | 14 |
+      +-----------------------------+
+
+    """
+    assert dtw.distance_array_index(3, 2, 5) == 9
+    assert dtw.distance_array_index(2, 3, 5) == 9
+    assert dtw.distance_array_index(1, 5, 5) == 8
+
+
 def test_distance1_a():
     s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
     s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
