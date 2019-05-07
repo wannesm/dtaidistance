@@ -50,8 +50,10 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
         ci = s1[i]
         if ci > ui:
             t += abs(ci - ui)
-        else:
+        elif ci < li:
             t += abs(ci - li)
+        else:
+            pass
     return t
 
 
