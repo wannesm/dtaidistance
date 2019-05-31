@@ -519,7 +519,7 @@ def distance_matrix(cur, double max_dist=inf, int max_length_diff=0,
 
 
 def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
-                          int window=0, double max_step=0, double penalty=0, block=None,
+                          int window=0, double max_step=0, double penalty=0, int psi=0, block=None,
                           bool is_parallel=False, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     This method calls a pure c implementation of the dtw computation that
@@ -583,10 +583,12 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
         return None
 
     if is_parallel:
-        distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window, max_step, penalty,
+        distance_matrix_nogil_c_p(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window,
+                                  max_step, penalty, psi,
                                   block_rb, block_re, block_cb, block_ce)
     else:
-        distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window, max_step, penalty,
+        distance_matrix_nogil_c(cur2, len(cur), cur2_len, &dists[0], max_dist, max_length_diff, window,
+                                max_step, penalty, psi,
                                 block_rb, block_re, block_cb, block_ce)
     free(cur2)
     free(cur2_len)
@@ -595,7 +597,7 @@ def distance_matrix_nogil(cur, double max_dist=inf, int max_length_diff=0,
 
 cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* output,
                              double max_dist=0, int max_length_diff=0,
-                             int window=0, double max_step=0, double penalty=0,
+                             int window=0, double max_step=0, double penalty=0, psi=0,
                              int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0):
     cdef int r
     cdef int c
@@ -616,13 +618,13 @@ cdef distance_matrix_nogil_c(double **cur, int len_cur, int* cur_len, double* ou
             output[i] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                          window=window, max_dist=max_dist,
                                          max_step=max_step, max_length_diff=max_length_diff,
-                                         penalty=penalty)
+                                         penalty=penalty, psi=psi)
             i += 1
 
 
 cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* output,
                                double max_dist=0, int max_length_diff=0,
-                               int window=0, double max_step=0, double penalty=0,
+                               int window=0, double max_step=0, double penalty=0, int psi=0,
                                int block_rb=0, int block_re=0, int block_cb=0, int block_ce=0):
     # Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     cdef Py_ssize_t r
@@ -688,4 +690,4 @@ cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* 
             output[ir] = distance_nogil_c(cur[r], cur[c], cur_len[r], cur_len[c],
                                           window=window, max_dist=max_dist,
                                           max_step=max_step, max_length_diff=max_length_diff,
-                                          penalty=penalty)
+                                          penalty=penalty, psi=psi)

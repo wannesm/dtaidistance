@@ -20,7 +20,7 @@ from .util import SeriesContainer, dtaidistance_dir
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 try:
-    from . import dtw_c
+s    from . import dtw_c
 except ImportError:
     # logger.info('C library not available')
     dtw_c = None

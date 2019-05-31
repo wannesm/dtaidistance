@@ -179,6 +179,17 @@ def test_bug1_serial():
     print(ds)
 
 
+def test_bug1_psi():
+    s = [np.array([0., 0, 1, 2, 1, 0, 1, 0, 0]),
+         np.array([9., 0, 1, 2, 1, 0, 1, 0, 9])]
+
+    res1 = dtw.distance_matrix(s, compact=True, psi=1)
+    res2 = dtw.distance_matrix_fast(s, compact=True, psi=1)
+    print(res1)
+    print(res2)
+    assert res1 == pytest.approx(res2)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.WARNING)
     sh = logging.StreamHandler(sys.stdout)
@@ -189,4 +200,4 @@ if __name__ == "__main__":
     # test_distance3_a()
     # test_distance4()
     # test_distance6()
-    test_bug1()
+    test_bug1_psi()
