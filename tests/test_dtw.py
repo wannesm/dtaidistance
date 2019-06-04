@@ -40,9 +40,9 @@ def test_condensed_index1():
       +-----------------------------+
 
     """
-    assert dtw.distance_array_index(3, 2, 5) == 9
-    assert dtw.distance_array_index(2, 3, 5) == 9
-    assert dtw.distance_array_index(1, 5, 5) == 8
+    assert dtw.distance_array_index(3, 2, 6) == 9
+    assert dtw.distance_array_index(2, 3, 6) == 9
+    assert dtw.distance_array_index(1, 5, 6) == 8
 
 
 def test_distance1_a():
@@ -156,6 +156,7 @@ def test_distance_matrix_block():
 
 if __name__ == "__main__":
     # test_distance1_a()
-    test_distance_matrix2_e()
+    # test_distance_matrix2_e()
     # run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
     # test_expected_length1()
+    test_condensed_index1()

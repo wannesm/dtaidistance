@@ -467,13 +467,13 @@ def distances_array_to_matrix(dists, nb_series, block=None):
 
 def distance_array_index(a, b, nb_series):
     if a == b:
-        return 0
+        raise ValueError("Distance between the same series is not available.")
     if a > b:
         a, b = b, a
     idx = 0
     for r in range(a):
         idx += nb_series - r - 1
-    idx += b
+    idx += b - a - 1
     return idx
 
 
