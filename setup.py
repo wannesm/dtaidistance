@@ -175,9 +175,16 @@ class MyBuildExtCommand(BuildExtCommand):
         c = self.compiler.compiler_type
         print("Compiler type: {}".format(c))
         print("--noopenmp: {}".format(self.distribution.noopenmp))
-        if self.distribution.noopenmp == 0 and not check_openmp(self.compiler.compiler[0]):
-            print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
-            self.distribution.noopenmp = 1
+        if self.distribution.noopenmp == 0:
+            try:
+                check_result = check_openmp(self.compiler.compiler[0])
+            except Exception as exc:
+                print("WARNING: Cannot check for OpenMP, assuming to be available")
+                print(exc)
+                check_result = True  # Assume to be present by default
+            if not check_result:
+                print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
+                self.distribution.noopenmp = 1
         if c in c_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in c_args[c] if "openmp" not in arg]
@@ -235,7 +242,7 @@ def check_openmp(cc_bin):
             print("... no OpenMP")
             return False
     else:
-        print("... do not know how to check for OpenMP (unknown CC)")
+        print("... do not know how to check for OpenMP (unknown CC), assume to be available")
         return True
     return False
 
