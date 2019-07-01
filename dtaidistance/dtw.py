@@ -375,7 +375,8 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions (it is recommended to use use_nogil)
     :param use_nogil: Use pure c functions
-    :param show_progress: Show progress using the tqdm library
+    :param show_progress: Show progress using the tqdm library. This is only supported for
+        the pure Python version (thus not the C-based implementations).
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     # Check whether multiprocessing is available
@@ -536,7 +537,7 @@ def _distance_matrix_length(block, nb_series):
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True, show_progress=False):
+                         block=None, compact=False, parallel=True):
     """Fast C version of :meth:`distance_matrix`."""
     if dtw_c is None:
         _print_library_missing()
@@ -544,7 +545,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, use_nogil=True, show_progress=show_progress)
+                           use_c=True, use_nogil=True, show_progress=False)
 
 
 def warping_path(from_s, to_s, **kwargs):
