@@ -42,36 +42,6 @@ l_args = {
 }
 
 
-class MySDistCommand(SDistCommand):
-    def run(self):
-        PrepReadme.run_pandoc()
-        super().run()
-
-
-class PrepReadme(Command):
-    description = "Translate readme from Markdown to ReStructuredText"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        PrepReadme.run_pandoc()
-
-    @staticmethod
-    def run_pandoc():
-        import subprocess as sp
-        print("running pandoc")
-        try:
-            sp.call(['pandoc', '--from=markdown', '--to=rst', '--output=README', 'README.md'])
-        except sp.CalledProcessError as err:
-            print("Pandoc failed, Markdown format will be used.")
-            print(err)
-
-
 class PyTest(TestCommand):
     description = "Run tests"
     user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]
@@ -273,18 +243,13 @@ if not version:
     raise RuntimeError('Cannot find version information')
 
 # Set up readme file
-readme_path = os.path.join(here, 'README')
-if not os.path.exists(readme_path):
-    try:
-        PrepReadme.run_pandoc()
-    except Exception:
-        pass
+readme_path = os.path.join(here, 'README.md')
 if os.path.exists(readme_path):
     with open(readme_path, 'r', encoding='utf-8') as f:
         long_description = f.read()
 else:
-    with open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
-        long_description = f.read()
+    long_description = ""
+long_description_content_type = "text/markdown"
 
 # Create setup
 setup(
@@ -292,6 +257,7 @@ setup(
     version=version,
     description='Distance measures for time series',
     long_description=long_description,
+    long_description_content_type=long_description_content_type,
     author='Wannes Meert',
     author_email='wannes.meert@cs.kuleuven.be',
     url='https://dtai.cs.kuleuven.be',
