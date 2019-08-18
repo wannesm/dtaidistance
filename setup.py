@@ -279,8 +279,6 @@ setup(
     distclass=MyDistribution,
     cmdclass={
         'test': PyTest,
-        'readme': PrepReadme,
-        'sdist': MySDistCommand,
         'buildinplace': MyBuildExtInPlaceCommand,
         'build_ext': MyBuildExtCommand,
         'install': MyInstallCommand
