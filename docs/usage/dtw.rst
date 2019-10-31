@@ -228,7 +228,7 @@ DTW based on shape (z-normalization)
 
 If you are interested in comparing only the shape, and not the absolute
 differences and offset, you need to z-normalize the data first. This can be achieved
-using the numpy ``zscore`` function:
+using the scipy ``zscore`` function:
 
 ::
 
