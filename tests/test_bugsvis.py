@@ -54,6 +54,30 @@ def test_bug2():
     assert d1b == pytest.approx(d2)
 
 
+def test_bug3():
+    series = np.array([
+        np.array([1, 2, 1]),
+        np.array([0., 1, 2, 0, 0, 0, 0, 0, 0]),
+        np.array([1., 2, 0, 0, 0, 0, 0, 1, 1, 3, 4, 5]),
+        np.array([0., 0, 1, 2, 1, 0, 1]),
+        np.array([0., 1, 2, 0, 0, 0, 0, 0]),
+        np.array([1., 2, 0, 0, 0, 0, 0, 1, 1])])
+    ds = dtw.distance_matrix(series)
+    print(ds)
+
+    model = clustering.LinkageTree(dtw.distance_matrix, {})
+    cluster_idx = model.fit(series)
+    print(cluster_idx)
+
+    if directory:
+        fn = directory / "bug3.png"
+    else:
+        file = tempfile.NamedTemporaryFile()
+        fn = Path(file.name + "_bug3.png")
+
+    model.plot(fn, show_ts_label=True)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     sh = logging.StreamHandler(sys.stdout)
@@ -65,3 +89,4 @@ if __name__ == "__main__":
     print(f"Saving files to {directory}")
     test_bug1()
     # test_bug2()
+    # test_bug3()

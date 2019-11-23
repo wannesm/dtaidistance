@@ -95,7 +95,7 @@ class SeriesContainer:
 
     def get_max_y(self):
         max_y = 0
-        if isinstance(self.series, np.ndarray):
+        if isinstance(self.series, np.ndarray) and len(self.series.shape) == 2:
             max_y = max(np.max(self.series), abs(np.min(self.series)))
         else:
             for serie in self.series:
