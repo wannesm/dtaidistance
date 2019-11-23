@@ -19,6 +19,7 @@ from .util import SeriesContainer, dtaidistance_dir
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
+dtw_c = None
 try:
     from . import dtw_c
 except ImportError:
@@ -32,6 +33,16 @@ except ImportError:
     tqdm = None
 
 DTYPE = np.double
+
+
+def try_import_c():
+    global dtw_c
+    try:
+        from . import dtw_c
+    except ImportError as exc:
+        print('Cannot import C library')
+        print(exc)
+        dtw_c = None
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
