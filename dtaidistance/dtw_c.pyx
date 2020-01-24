@@ -632,18 +632,28 @@ cdef distance_matrix_nogil_c_p(double **cur, int len_cur, int* cur_len, double* 
     cdef Py_ssize_t cb
     cdef Py_ssize_t brb = block_rb  # TODO: why is this necessary for cython?
     cdef Py_ssize_t ir
-    cdef Py_ssize_t length = 0
+    cdef long llength = 0
+    cdef Py_ssize_t slength
 
     if block_re == 0 and block_ce == 0:
-        length = len_cur * (len_cur - 1) / 2
+        # First divide the even number to avoid overflowing
+        if len_cur % 2 == 0:
+            llength = (len_cur / 2) * (len_cur - 1)
+        else:
+            llength = len_cur * ((len_cur - 1) / 2)
     else:
         for ri in range(block_rb, block_re):
             if block_cb <= ri:
                 if block_ce > ri:
-                    length += (block_ce - ri - 1)
+                    llength += (block_ce - ri - 1)
             else:
                 if block_ce > ri:
-                    length += (block_ce - block_cb)
+                    llength += (block_ce - block_cb)
+    length = llength
+    print(length, llength)
+    if length < 0:
+        print("ERROR: Length of array needed to represent the distance matrix larger than maximal value for Py_ssize_t")
+        return
 
     if max_length_diff == 0:
         max_length_diff = 999999
