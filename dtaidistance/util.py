@@ -12,6 +12,7 @@ Utility functions for DTAIDistance.
 """
 import os
 import sys
+import csv
 import logging
 from array import array
 from pathlib import Path
@@ -41,6 +42,33 @@ def prepare_directory(directory=None):
     return Path(directory)
 
 
+def read_substitution_matrix(file):
+    """Read substitution matrix from file.
+
+    Comments starting with # and newlines are allowed anywhere
+    in the file.
+    
+    :return: A dictionary mapping tuples of symbols to their weight.
+    """
+
+    def strip_comments(reader):
+        for line in reader:
+            if not line.rstrip() or line[0] == '#':
+                continue
+            yield line.rstrip()
+
+    matrix = dict()
+    with open(file) as f:
+        reader = csv.reader(strip_comments(f), delimiter=" ", skipinitialspace=True)
+        line = next(reader)
+        idx = {i: symbol for i, symbol in enumerate(line)}
+        for line in reader:
+            symbol = line[0]
+            for j, value in enumerate(line[1:]):
+                matrix[(idx[j], symbol)] = float(value)
+    return matrix
+
+
 class SeriesContainer:
     def __init__(self, series):
         """Container for a list of series.
@@ -62,7 +90,7 @@ class SeriesContainer:
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array.
             # self.series = [np.asarray(series[i]).reshape(-1) for i in range(series.shape[0])]
-            self.series = np.asarray(series, order='C')
+            self.series = np.asarray(series, order="C")
         elif type(series) == set or type(series) == tuple:
             self.series = list(series)
         else:
@@ -81,16 +109,20 @@ class SeriesContainer:
                 serie = self.series[i]
                 if isinstance(serie, np.ndarray):
                     if not serie.flags.c_contiguous:
-                        serie = np.asarray(serie, order='C')
+                        serie = np.asarray(serie, order="C")
                         self.series[i] = serie
                 elif isinstance(serie, array):
                     pass
                 else:
-                    raise Exception("Type of series not supported, "
-                                    "expected numpy.array or array.array but got {}".format(type(serie)))
+                    raise Exception(
+                        "Type of series not supported, "
+                        "expected numpy.array or array.array but got {}".format(
+                            type(serie)
+                        )
+                    )
         elif isinstance(self.series, np.ndarray):
             if not self.series.flags.c_contiguous:
-                self.series = self.series.copy(order='C')
+                self.series = self.series.copy(order="C")
         return self.series
 
     def get_max_y(self):
@@ -120,4 +152,5 @@ class SeriesContainer:
 
 def recompile():
     import subprocess as sp
-    sp.run([sys.executable, 'setup.py', 'build_ext', '--inplace'], cwd=dtaidistance_dir)
+
+    sp.run([sys.executable, "setup.py", "build_ext", "--inplace"], cwd=dtaidistance_dir)

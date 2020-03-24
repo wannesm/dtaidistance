@@ -2,9 +2,10 @@ import os
 from pathlib import Path
 import numpy as np
 from dtaidistance import alignment
+from dtaidistance.util import read_substitution_matrix
 
 
-directory = None
+directory = Path()
 
 
 def test_sequences1():
@@ -63,6 +64,61 @@ def test_sequences4():
     assert s2a1 == algn_sol1[1]
 
 
+def test_sequences_custom():
+
+    matrix = read_substitution_matrix(
+        Path(__file__).parent / "rsrc" / "substitution.txt"
+    )
+    substitution = alignment.make_substitution_fn(matrix)
+
+    s1 = "CCAGG"
+    s2 = "CCGA"
+
+    value, matrix = alignment.needleman_wunsch(s1, s2)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol1 = [list("CCAGG"), list("CC-GA")]
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]
+
+    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
+    algn, s1a2, s2a2 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol2 = [list("CC-AGG"), list("CCGA--")]
+    assert s1a2 == algn_sol2[0]
+    assert s2a2 == algn_sol2[1]
+
+
+def test_sequences_blosum():
+    matrix = read_substitution_matrix(
+        Path(__file__).parent / "rsrc" / "substitution.txt"
+    )
+    substitution = alignment.make_substitution_fn(matrix)
+    s1 = "AGACTAGTTAC"
+    s2 = "CGAGACGT"
+    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol1 = [list('--AGACTAGTTAC'),
+                 list('CGAGAC--GT---')]
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]               
+
+
+def test_substitution_function():
+    matrix = read_substitution_matrix(
+        Path(__file__).parent / "rsrc" / "substitution.txt"
+    )
+    substitution = alignment.make_substitution_fn(matrix, gap=0.5)
+    assert substitution('A', 'B') == (1, 0.5)
+    assert substitution('A', 'A') == (-20.0, 0.5)
+    assert substitution('A', 'C') == (3.0, 0.5)
+
+    # test just changing gap function
+    substitution2 = alignment.make_substitution_fn({}, gap=0.5)
+    assert substitution2('A', 'A') == (-1, 0.5)
+    assert substitution2('G', 'C') == (1, 0.5)
+    assert alignment._default_substitution_fn('A', 'A') == (-1, 1)
+    assert alignment._default_substitution_fn('G', 'C') == (1, 1)
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
@@ -70,3 +126,6 @@ if __name__ == "__main__":
     test_sequences2()
     test_sequences3()
     test_sequences4()
+    test_sequences_custom()
+    test_sequences_blosum()
+    test_substitution_function()

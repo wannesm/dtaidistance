@@ -18,7 +18,8 @@ from .dp import dp
 
 
 def needleman_wunsch(s1, s2, window=None, max_dist=None,
-                     max_step=None, max_length_diff=None, psi=None):
+                     max_step=None, max_length_diff=None, psi=None,
+                     substitution=None):
     """Needleman-Wunsch global sequence alignment.
 
     Example:
@@ -40,16 +41,27 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
             'G-ATTACA', 'GCAT-GCU'
 
     """
+    if substitution is None:
+        substitution =  _default_substitution_fn
     value, matrix = dp(s1, s2,
-                       _needleman_wunsch_fn, border=_needleman_wunsch_border,
+                       fn=substitution, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
     matrix = -matrix
     return value, matrix
 
 
-def _needleman_wunsch_fn(v1, v2):
-    """Needleman-Wunsch
+
+def _needleman_wunsch_border(ri, ci):
+    if ri == 0:
+        return ci
+    if ci == 0:
+        return ri
+    return 0
+
+
+def  _default_substitution_fn(v1, v2):
+    """Default substitution function.
 
     Match: +1 -> -1
     Mismatch or Indel: −1 -> +1
@@ -65,12 +77,35 @@ def _needleman_wunsch_fn(v1, v2):
     return d, d_indel
 
 
-def _needleman_wunsch_border(ri, ci):
-    if ri == 0:
-        return ci
-    if ci == 0:
-        return ri
-    return 0
+def make_substitution_fn(matrix, gap=1, opt='max'):
+    """Make a similarity function from a dictionary.
+    
+    Elements that are not in the dictionary are passed to the default
+    function. This allows for this function to be used for only
+    using the gap penalty as follows.
+
+        substitution = make_substitution_fn({}, gap=0.5)
+
+    :param matrix: Substitution matrix as a dictionary of tuples to values.
+    :param opt: Direction in which matrix optimises alignments. If `max`,
+        values are reversed, see :meth:` _default_substitution_fn`.
+    :return: Function that compares two elements.
+    """
+
+    if opt == 'max':
+        modifier = -1.0
+    else:
+        modifier = 1.0
+
+    def _unwrap(a, b):
+        if (a, b) in matrix:
+            return matrix[(a, b)] * modifier, gap
+        elif (b, a) in matrix:
+            return matrix[(b, a)] * modifier, gap
+        else:
+            return _default_substitution_fn(a, b)[0], gap
+
+    return _unwrap
 
 
 def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
