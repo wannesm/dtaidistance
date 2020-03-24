@@ -5,7 +5,7 @@ from dtaidistance import alignment
 from dtaidistance.util import read_substitution_matrix
 
 
-directory = None
+directory = Path()
 
 
 def test_sequences1():
@@ -50,49 +50,64 @@ def test_sequences3():
     assert s2a1 == algn_sol1[1]
 
 
-def test_sequences_alignment():
-    global directory
-
-    matrix = read_substitution_matrix(os.path.join(
-        directory, "rsrc", "substitution.txt"
-    ))
-    substitution = alignment.substitution_from_dict(matrix)
-
-    s1 = "AGACTAGTTAC"
-    s2 = "CGAGACGT"
-    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
+def test_sequences4():
+    s1 = "AGACTAGTTACC"
+    s2 = "CGAGACGTC"
+    value, matrix = alignment.needleman_wunsch(s1, s2)
     algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
-
-    print(matrix)
-    print(algn)
-    print(''.join(s1a1))
-    print(''.join(s2a1))
-
-
-def test_sequences_alignment_blosum():
-
-    matrix = read_substitution_matrix(os.path.join(
-        directory, "rsrc", "blosum62.txt"
-    ))
-    substitution = alignment.substitution_from_dict(matrix)
-
-    s1 = "AGACTAGTTAC"
-    s2 = "CGAGACGT"
-    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
-    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
-
-    algn_sol1 = [list('AGA--CTAGTTAC'),
-                 list('CGAGAC-G-T---')]
-
+    # print(matrix)
+    # print(algn)
+    # print(s1a1)
+    # print(s2a1)
+    algn_sol1 = [list("--AGACTAGTTACC"), list("CGAGAC--GT--C-")]
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
+
+
+def test_sequences_custom():
+
+    matrix = read_substitution_matrix(
+        Path(__file__).parent / "rsrc" / "substitution.txt"
+    )
+    substitution = alignment.substitution_from_dict(matrix)
+
+    s1 = "CCAGG"
+    s2 = "CCGA"
+
+    value, matrix = alignment.needleman_wunsch(s1, s2)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol1 = [list("CCAGG"), list("CC-GA")]
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]
+
+    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
+    algn, s1a2, s2a2 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol2 = [list("CC-AGG"), list("CCGA--")]
+    assert s1a2 == algn_sol2[0]
+    assert s2a2 == algn_sol2[1]
+
+
+def test_sequences_blosum():
+    matrix = read_substitution_matrix(
+        Path(__file__).parent / "rsrc" / "substitution.txt"
+    )
+    substitution = alignment.substitution_from_dict(matrix)
+    s1 = "AGACTAGTTAC"
+    s2 = "CGAGACGT"
+    value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    algn_sol1 = [list('--AGACTAGTTAC'),
+                 list('CGAGAC--GT---')]
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]               
 
 
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
-    # test_sequences1()
-    # test_sequences2()
-    # test_sequences3()
-    test_sequences_alignment()
-    test_sequences_alignment_blosum()
+    test_sequences1()
+    test_sequences2()
+    test_sequences3()
+    test_sequences4()
+    test_sequences_custom()
+    test_sequences_blosum()
