@@ -34,10 +34,6 @@ def test_sequences2():
     s2 = "GAAT"
     value, matrix = alignment.needleman_wunsch(s1, s2)
     algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
-    print(matrix)
-    print(algn)
-    print(s1a1)
-    print(s2a1)
     algn_sol1 = [list('GAAAAAAAT'), list('GAA-----T')]
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
@@ -48,11 +44,7 @@ def test_sequences3():
     s2 = "GAATA"
     value, matrix = alignment.needleman_wunsch(s1, s2)
     algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
-    print(matrix)
-    print(algn)
-    print(s1a1)
-    print(s2a1)
-    algn_sol1 = [list('GAAAAAAAT'), list('GAA-----T')]
+    algn_sol1 = [list('GAA-AAAAAT'), list('GAATA-----')]
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
 
