@@ -49,9 +49,24 @@ def test_sequences3():
     assert s2a1 == algn_sol1[1]
 
 
+def test_sequences4():
+    s1 = "AGACTAGTTACC"
+    s2 = "CGAGACGTC"
+    value, matrix = alignment.needleman_wunsch(s1, s2)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    # print(matrix)
+    # print(algn)
+    # print(s1a1)
+    # print(s2a1)
+    algn_sol1 = [list("--AGACTAGTTACC"), list("CGAGAC--GT--C-")]
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
-    # test_sequences1()
-    # test_sequences2()
+    test_sequences1()
+    test_sequences2()
     test_sequences3()
+    test_sequences4()

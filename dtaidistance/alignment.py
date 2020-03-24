@@ -95,32 +95,43 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
         prev_vals = [paths[i + ops[orderi][0], j + ops[orderi][1]] for orderi in order]
         # c = np.argmax([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         c = int(np.argmax(prev_vals))
+        # print(f"{i},{j}: {prev_vals} -> {c} ({ops[order[c]]})")
         opi, opj = ops[order[c]]
         i, j = i + opi, j + opj
         p.append((i - 1, j - 1))
+    while i > 0:
+        i -= 1
+        p.append((i -1, j - 1))
+    while j > 0:
+        j -= 1
+        p.append((i -1, j - 1))
+
+    s1a = None if s1 is None else []
+    s2a = None if s2 is None else []
+    s1ip, s2ip = p[0]
+    for s1i, s2i in p[1:]:
+        if s1i != s1ip and s2i != s2ip:
+            # diagonal
+            if s1a is not None:
+                s1a.append(s1[s1ip])
+            if s2a is not None:
+                s2a.append(s2[s2ip])
+        elif s1i == s1ip:
+            if s1a is not None:
+                s1a.append(gap)
+            if s2a is not None:
+                s2a.append(s2[s2ip])
+        elif s2i == s2ip:
+            if s1a is not None:
+                s1a.append(s1[s1ip])
+            if s2a is not None:
+                s2a.append(gap)
+        s1ip, s2ip = s1i, s2i
+    if s1a is not None:
+        s1a.reverse()
+    if s2a is not None:
+        s2a.reverse()
+
     p.pop()
     p.reverse()
-    if s1 is not None:
-        s1a = []
-        s1ip = -1
-        for s1i, _ in p:
-            if s1i == s1ip + 1:
-                s1a.append(s1[s1i])
-            else:
-                s1a.append(gap)
-            s1ip = s1i
-    else:
-        s1a = None
-    if s2 is not None:
-        s2a = []
-        s2ip = -1
-        for _, s2i in p:
-            if s2i == s2ip + 1:
-                s2a.append(s2[s2i])
-            else:
-                s2a.append(gap)
-            s2ip = s2i
-    else:
-        s2a = None
-
     return p, s1a, s2a
