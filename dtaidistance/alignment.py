@@ -18,7 +18,8 @@ from .dp import dp
 
 
 def needleman_wunsch(s1, s2, window=None, max_dist=None,
-                     max_step=None, max_length_diff=None, psi=None):
+                     max_step=None, max_length_diff=None, psi=None,
+                     substitution=None):
     """Needleman-Wunsch global sequence alignment.
 
     Example:
@@ -40,8 +41,10 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
             'G-ATTACA', 'GCAT-GCU'
 
     """
+    if substitution is None:
+        substitution = _needleman_wunsch_fn
     value, matrix = dp(s1, s2,
-                       _needleman_wunsch_fn, border=_needleman_wunsch_border,
+                       fn=_needleman_wunsch_fn, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
     matrix = -matrix
@@ -73,6 +76,22 @@ def _needleman_wunsch_border(ri, ci):
     return 0
 
 
+def substitution_from_dict(matrix):
+    """Make a custom substitution matrix from dictionary.
+    
+    :param matrix: Substitution matrix as a dictionary of tuples to values.
+    :return: Function that compares two elements.
+    """
+    def _unwrap(a, b):
+        if (a, b) in matrix:
+            return matrix[(a, b)]
+        elif (b, a) in matrix:
+            return matrix[(b, a)]
+        return 0
+
+    return _unwrap
+
+
 def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
     """Compute the optimal alignment from the nxm paths matrix.
 
@@ -86,30 +105,35 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
         There might be more optimal paths than covered by these orderings. For example,
         when using combinations of these orderings in different parts of the matrix.
     """
-    i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
+    print(paths)
+    i, j = int(paths.shape[0] -1 ), int(paths.shape[1] -1 )
     p = []
-    if paths[i, j] != -1:
-        p.append((i - 1, j - 1))
+    # if paths[i, j] != -1:
+    p.append((i , j ))
     ops = [(-1,-1), (-1,-0), (-0,-1)]
     if order is None:
         order = [0, 1, 2]
     while i > 0 and j > 0:
+        print(p)
         prev_vals = [paths[i + ops[orderi][0], j + ops[orderi][1]] for orderi in order]
         # c = np.argmax([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         c = int(np.argmax(prev_vals))
         opi, opj = ops[order[c]]
         i, j = i + opi, j + opj
-        if paths[i, j] != -1:
-            p.append((i - 1, j - 1))
+        print(i, j)
+        # if paths[i, j] != -1:
+        p.append((i -1, j-1 ))
     p.pop()
     p.reverse()
+    print(p)
     if s1 is not None:
         s1a = []
         s1ip = -1
-        for s1i, _ in p:
+        for s1i, s1j in p:
             if s1i == s1ip + 1:
                 s1a.append(s1[s1i])
             else:
+                print(s1a, s1i, s1ip)
                 s1a.append(gap)
             s1ip = s1i
     else:
