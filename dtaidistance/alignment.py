@@ -105,11 +105,8 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
         There might be more optimal paths than covered by these orderings. For example,
         when using combinations of these orderings in different parts of the matrix.
     """
-    print(paths)
-    i, j = int(paths.shape[0] -1 ), int(paths.shape[1] -1 )
-    p = []
-    # if paths[i, j] != -1:
-    p.append((i , j ))
+    i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
+    p = [(i - 1, j - 1)]
     ops = [(-1,-1), (-1,-0), (-0,-1)]
     if order is None:
         order = [0, 1, 2]
@@ -120,9 +117,7 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
         c = int(np.argmax(prev_vals))
         opi, opj = ops[order[c]]
         i, j = i + opi, j + opj
-        print(i, j)
-        # if paths[i, j] != -1:
-        p.append((i -1, j-1 ))
+        p.append((i - 1, j - 1))
     p.pop()
     p.reverse()
     print(p)
