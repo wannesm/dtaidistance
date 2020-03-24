@@ -77,7 +77,7 @@ def _needleman_wunsch_border(ri, ci):
 
 
 def substitution_from_dict(matrix):
-    """Make a custom substitution matrix from dictionary.
+    """Make a similarity function from a dictionary.
     
     :param matrix: Substitution matrix as a dictionary of tuples to values.
     :return: Function that compares two elements.
@@ -111,7 +111,6 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
     if order is None:
         order = [0, 1, 2]
     while i > 0 and j > 0:
-        print(p)
         prev_vals = [paths[i + ops[orderi][0], j + ops[orderi][1]] for orderi in order]
         # c = np.argmax([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         c = int(np.argmax(prev_vals))
@@ -120,7 +119,6 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
         p.append((i - 1, j - 1))
     p.pop()
     p.reverse()
-    print(p)
     if s1 is not None:
         s1a = []
         s1ip = -1
