@@ -44,7 +44,7 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
     if substitution is None:
         substitution = _needleman_wunsch_fn
     value, matrix = dp(s1, s2,
-                       fn=_needleman_wunsch_fn, border=_needleman_wunsch_border,
+                       fn=substitution, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
     matrix = -matrix
@@ -76,18 +76,26 @@ def _needleman_wunsch_border(ri, ci):
     return 0
 
 
-def substitution_from_dict(matrix):
+def substitution_from_dict(matrix, gap=1, opt='max'):
     """Make a similarity function from a dictionary.
     
     :param matrix: Substitution matrix as a dictionary of tuples to values.
+    :param opt: Direction in which matrix optimises alignments. If `max`,
+        values are reversed, see :meth:`_needleman_wunsch_fn`.
     :return: Function that compares two elements.
     """
+
+    if opt == 'max':
+        modifier = -1.0
+    else:
+        modifier = 1.0
+
     def _unwrap(a, b):
         if (a, b) in matrix:
-            return matrix[(a, b)]
+            return matrix[(a, b)] * modifier, gap
         elif (b, a) in matrix:
-            return matrix[(b, a)]
-        return 0
+            return matrix[(b, a)] * modifier, gap
+        return 0, gap
 
     return _unwrap
 
