@@ -615,12 +615,18 @@ def warping_path_penalty(s1, s2, penalty_post=0, **kwargs):
     return [dist, path, path_stepsize, paths]
 
 
-def warp(from_s, to_s, **kwargs):
+def warp(from_s, to_s, path=None, **kwargs):
     """Warp a function to optimally match a second function.
 
-    Same options as :meth:`warping_paths`.
+        :param from_s: First sequence
+        :param to_s: Second sequence
+        :param path: (Optional) Path to use wrap the 'from_s' sequence to the 'to_s' sequence
+                    If provided, this function will use it.
+                    If not provided, this function will calculate it using the warping_path function
+        :param kwargs: Same options as :meth:`warping_paths`.
     """
-    path = warping_path(from_s, to_s, **kwargs)
+    if path is None:
+        path = warping_path(from_s, to_s, **kwargs)
     from_s2 = np.zeros(len(to_s))
     from_s2_cnt = np.zeros(len(to_s))
     for r_c, c_c in path:
