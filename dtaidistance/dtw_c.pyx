@@ -34,6 +34,128 @@ DTYPE = np.double
 ctypedef np.double_t DTYPE_t
 cdef double inf = np.inf
 
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef nearest_neighbour_lb_keogh(np.ndarray[DTYPE_t, ndim=2] data, np.ndarray[DTYPE_t, ndim=2] target, distParams, bint use_parallel, np.ndarray[np.int_t, ndim=1] best_fits, np.ndarray[DTYPE_t, ndim=2] lb):
+    """
+    lb_keogh nearest neighbour (1NN)
+
+    Return 1NN result,s ped up by early stopping and lower bound
+
+    :param data: 2D Array of 1D time series
+    :param L: Lower enveloppe part, calculated by lb_keogh_enveloppes
+    :param U: Upper enveloppe part, calculated by lb_keogh_enveloppes
+    :param distParams: Distance function paraneters. For correctness, 'window' should match the enveloppe window
+    :param use_parallel: Use fast parallel version (only in C version)
+
+    Returns: 1D array of nearest neighbours indices from the enveloppes
+    """
+    cdef int d, t
+    cdef double best_score_so_far, score
+
+    cdef int window =data.shape[1]
+    cdef int psi = 0
+
+    if "window" in distParams:
+        window = distParams['window'] 
+
+    if "psi" in distParams:
+        psi = distParams['psi']
+
+    if use_parallel:
+        with nogil:
+            for d in prange(data.shape[0]):
+                best_score_so_far = inf
+                for t in range(target.shape[0]):
+                    if best_score_so_far > lb[d, t]:
+                        score = distance_nogil_c(&data[d,0],&target[t,0],data.shape[1], target.shape[1], window,best_score_so_far,0, 0, 0,  psi)
+                        if score < best_score_so_far:
+                            best_score_so_far = score
+                            best_fits[d]=t
+    else:
+         for d in range(data.shape[0]):
+            best_score_so_far = inf
+            for t in range(target.shape[0]):
+                if best_score_so_far > lb[d, t]:
+                    score = distance_nogil_c(&data[d,0],&target[t,0],data.shape[1], target.shape[1], window,best_score_so_far,0, 0, 0,  psi)
+                    if score < best_score_so_far:
+                        best_score_so_far = score
+                        best_fits[d]=t
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef lb_keogh_distance(np.ndarray[DTYPE_t, ndim=2] data, np.ndarray[DTYPE_t, ndim=2] L, np.ndarray[DTYPE_t, ndim=2] U, bint use_parallel, np.ndarray[DTYPE_t, ndim=2] lb):
+    """
+    lb_keogh
+
+    Lower bound calculated on a 2D array of time series.
+
+    :param data: 2D Array of 1D time series
+    :param L: Lower enveloppe part, calculated by lb_keogh_enveloppes
+    :param U: Upper enveloppe part, calculated by lb_keogh_enveloppes
+    :param use_c: Use fast pure c compiled functions
+    :param use_parallel: Use fast parallel version (only in C version)
+
+    TODO: Support for different lengths of data
+    Returns: 2D array of lower bounds, shaped #samples x #enveloppes
+    """
+    cdef int d, e, i
+    cdef DTYPE_t ci, dif
+    if use_parallel:
+        with nogil:
+            for d in prange(data.shape[0]):
+                for e in range(L.shape[0]):
+                    for i in range(L.shape[1]):
+                        ci = data[d, i]
+                        dif = 0
+                        if ci > U[e, i]:
+                            dif = ci - U[e, i]
+                        elif ci < L[e,i]:
+                            dif = - ci + L[e, i]
+                        lb[d,e] = lb[d,e]+dif*dif
+                    lb[d,e] = lb[d,e]**(1/2)
+
+    else:
+        for d in range(data.shape[0]):
+            for e in range(L.shape[0]):
+                for i in range(L.shape[1]):
+                    ci = data[d, i]
+                    dif = 0
+                    if ci > U[e, i]:
+                        dif = ci - U[e, i]
+                    elif ci < L[e,i]:
+                        dif = - ci + L[e, i]
+                    lb[d,e] = lb[d,e]+dif*dif
+                lb[d,e] = lb[d,e]**(1/2)
+
+
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+cpdef lb_keogh_enveloppes(np.ndarray[DTYPE_t, ndim=2] data, int window, np.ndarray[DTYPE_t, ndim=2] L, np.ndarray[DTYPE_t, ndim=2] U):
+    """
+    lb_keogh enveloppe calculation
+
+    Calculates enveloppes arround 2D array of 1D data
+
+    :param data: 2D Array of 1D time series
+    :param window: Window size of the enveloppes
+  
+    Returns: 2D arrays L and U of lower and upper enveloppes in same order of data
+    
+    TODO: support for use_parallel, to that end, getting rid of the ranges in the inner loop
+    """
+    cdef int i, d, imin, imax
+    
+    for i in range(data.shape[1]):
+        imin = max(0, i - window+1)
+        imax = min(data.shape[1],i + window)
+        for d in range(data.shape[0]):
+            U[d,i] = max(data[d,range(imin,imax)])
+            L[d,i] = min(data[d,range(imin,imax)])
+
+
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 def distance(np.ndarray[DTYPE_t, ndim=1] s1, np.ndarray[DTYPE_t, ndim=1] s2,
