@@ -123,7 +123,7 @@ class Hierarchical:
             if i not in deleted:
                 prototypes.append(i)
                 if i not in cluster_idx:
-                    cluster_idx[i] = set(i)
+                    cluster_idx[i] = {i}
         return cluster_idx
 
 
