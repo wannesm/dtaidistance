@@ -92,6 +92,7 @@ def plot_warping(s1, s2, path, filename=None):
     fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
     ax[0].plot(s1)
     ax[1].plot(s2)
+    plt.tight_layout()
     transFigure = fig.transFigure.inverted()
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
