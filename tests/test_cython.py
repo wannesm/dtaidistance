@@ -126,9 +126,30 @@ def test_negativedimensions2():
     print(dists)
 
 
+def test_overflowdistance():
+    maxvalthirtytwobit = 2147483647
+    s = np.array([
+        [maxvalthirtytwobit, maxvalthirtytwobit, 1, 2, 1, 0, 1, 0, 0],
+        [1., 2, 0, 0, 0, 0, 0, 1, 0]])
+    d1 = dtw.distance(s[0], s[1], use_c=False)
+    d2 = dtw.distance(s[0], s[1], use_c=True)
+    print(d1)
+    print(d2)
+    # m = dtw_c.distance_matrix_nogil(s)
+    # m2 = dtw.distance_matrix(s, compact=True)
+    # print(m)
+    # print(m2)
+    # correct = np.array([1.41421356, 1.73205081, 1.41421356])
+    # assert m[0] == pytest.approx(math.sqrt(2))
+    # assert m2[0] == pytest.approx(math.sqrt(2))
+    # np.testing.assert_almost_equal(correct, m, decimal=4)
+    # np.testing.assert_almost_equal(correct, m2, decimal=4)
+
+
 if __name__ == "__main__":
     # test_numpymatrix()
     # test_numpymatrix_transpose()
     # test_negativedimensions()
-    test_negativedimensions2()
+    # test_negativedimensions2()
+    test_overflowdistance()
 

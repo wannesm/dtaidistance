@@ -102,7 +102,7 @@ def test_controlchart():
     for idx in range(0, 600, 20):
         s.append(series[idx, :])
 
-    model = clustering.LinkageTree(dtw.distance_matrix_fast, {})
+    model = clustering.LinkageTree(dtw.distance_matrix_fast, {'parallel': True})
     cluster_idx = model.fit(s)
 
     if directory:

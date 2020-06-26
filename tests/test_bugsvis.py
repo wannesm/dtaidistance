@@ -78,6 +78,20 @@ def test_bug3():
     model.plot(fn, show_ts_label=True)
 
 
+def test_bug4():
+    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+    s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
+    path = dtw.warping_path(s1, s2)
+
+    if directory:
+        fn = directory / "bug4.png"
+    else:
+        file = tempfile.NamedTemporaryFile()
+        fn = Path(file.name + "_bug4.png")
+
+    dtwvis.plot_warping(s1, s2, path, filename=str(fn))
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     sh = logging.StreamHandler(sys.stdout)
@@ -87,6 +101,7 @@ if __name__ == "__main__":
     logger.propagate = 0
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
-    test_bug1()
+    # test_bug1()
     # test_bug2()
     # test_bug3()
+    test_bug4()
