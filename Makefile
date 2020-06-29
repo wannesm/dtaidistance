@@ -38,6 +38,8 @@ clean:
 	python3 setup.py clean
 	rm -f dtaidistance/dtw_c.c
 	rm -f dtaidistance/dtw_c.*.so
+	rm -f dtaidistance/dtw_cc.c
+	rm -f dtaidistance/dtw_cc.*.so
 
 .PHONY: build
 build:

@@ -1,7 +1,7 @@
 import math
 import pytest
 import numpy as np
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw, dtw_cc
 
 
 def test_expected_length1():
@@ -157,6 +157,6 @@ def test_distance_matrix_block():
 if __name__ == "__main__":
     # test_distance1_a()
     # test_distance_matrix2_e()
-    # run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
+    run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
     # test_expected_length1()
-    test_condensed_index1()
+    # test_condensed_index1()

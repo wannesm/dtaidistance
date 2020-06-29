@@ -18,7 +18,16 @@ from array import array
 from pathlib import Path
 import tempfile
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+import dtw_cc
+try:
+    import dtw_cc_numpy
+except ImportError:
+    dtw_cc_numpy = None
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -85,7 +94,7 @@ class SeriesContainer:
         """
         if isinstance(series, SeriesContainer):
             self.series = series.series
-        elif isinstance(series, np.ndarray) and len(series.shape) == 2:
+        elif np is not None and isinstance(series, np.ndarray) and len(series.shape) == 2:
             # A matrix always returns a 2D array, also if you select one row (to be consistent
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array.
@@ -107,7 +116,7 @@ class SeriesContainer:
         if type(self.series) == list:
             for i in range(len(self.series)):
                 serie = self.series[i]
-                if isinstance(serie, np.ndarray):
+                if np is not None and isinstance(serie, np.ndarray):
                     if not serie.flags.c_contiguous:
                         serie = np.asarray(serie, order="C")
                         self.series[i] = serie
@@ -120,10 +129,14 @@ class SeriesContainer:
                             type(serie)
                         )
                     )
-        elif isinstance(self.series, np.ndarray):
+            return dtw_cc.dtw_series_from_data(self.series)
+        elif np is not None and isinstance(self.series, np.ndarray):
+            if dtw_cc_numpy is None:
+                raise Exception("Numpy not supported, C-extension for Numpy is not available")
             if not self.series.flags.c_contiguous:
                 self.series = self.series.copy(order="C")
-        return self.series
+            return dtw_cc_numpy.dtw_series_from_numpy(self.series)
+        return dtw_cc.dtw_series_from_data(self.series)
 
     def get_max_y(self):
         max_y = 0
