@@ -23,15 +23,22 @@ dtw_cc = None
 try:
     from . import dtw_cc
 except ImportError:
-    logger.info('DTAIDistance C library not available')
+    logger.debug('DTAIDistance C library not available')
     dtw_cc = None
 
 dtw_cc_omp = None
 try:
     from . import dtw_cc_omp
 except ImportError:
-    logger.info('DTAIDistance C-OMP library not available')
+    logger.debug('DTAIDistance C-OMP library not available')
     dtw_cc_omp = None
+
+dtw_cc_numpy = None
+try:
+    from . import dtw_cc_numpy
+except ImportError:
+    logger.debug('DTAIDistance C-Numpy library not available')
+    dtw_cc_numpy = None
 
 try:
     from tqdm import tqdm
@@ -359,13 +366,13 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     if psi is None:
         psi = 0
     dtw = np.full((r + 1, c + 1), np.inf)
-    d = dtw_cc.dtw_warping_paths(dtw, s1, s2,
-                                 window=window,
-                                 max_dist=max_dist,
-                                 max_step=max_step,
-                                 max_length_diff=max_length_diff,
-                                 penalty=penalty,
-                                 psi=psi)
+    d = dtw_cc.warping_paths(dtw, s1, s2,
+                             window=window,
+                             max_dist=max_dist,
+                             max_step=max_step,
+                             max_length_diff=max_length_diff,
+                             penalty=penalty,
+                             psi=psi)
     return d, dtw
 
 

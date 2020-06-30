@@ -18,8 +18,6 @@ cimport dtaidistancec
 
 
 cdef class DTWBlock:
-    cdef  dtaidistancec.DTWBlock _block
-
     def __cinit__(self):
         pass
 
@@ -50,8 +48,6 @@ cdef class DTWBlock:
 
 
 cdef class DTWSettings:
-    cdef dtaidistancec.DTWSettings _settings
-
     def __cinit__(self):
         pass
 
@@ -123,18 +119,15 @@ cdef class DTWSettings:
             f"  psi = {self.psi}\n"
             "}")
 
-cdef class DTWSeriesPointers:
-    cdef double **_ptrs = NULL
-    cdef int **_lengths = NULL
-    cdef int _nb_ptrs = 0
 
+cdef class DTWSeriesPointers:
     def __cinit__(self, int nb_series):
         self._ptrs = <double **> malloc(nb_series * sizeof(double*))
         self._nb_ptrs = nb_series
         if not self._ptrs:
             self._ptrs = NULL
             raise MemoryError()
-        self._lengths = <double **> malloc(nb_series * sizeof(int*))
+        self._lengths = <int *> malloc(nb_series * sizeof(int))
         if not self._lengths:
             self._lengths = NULL
             raise MemoryError()
@@ -145,28 +138,10 @@ cdef class DTWSeriesPointers:
         if self._lengths is not NULL:
             free(self._lengths)
 
-    @property
-    def ptrs(self):
-        return self._ptrs
-
-    @property
-    def lengths(self):
-        return self._lengths
-
-    @property
-    def nb_ptrs(self):
-        return self._nb_ptrs
-
 
 cdef class DTWSeriesMatrix:
-    cdef double[:,:] _data = NULL
-
-    def __cinit__(self, double[:, :] data):
+    def __cinit__(self, double[:, ::1] data):
         self._data = data
-
-    @property
-    def matrix(self):
-        return self._data
 
     @property
     def nb_rows(self):
@@ -178,17 +153,19 @@ cdef class DTWSeriesMatrix:
 
 
 def dtw_series_from_data(data):
+    cdef DTWSeriesPointers ptrs
+    cdef DTWSeriesMatrix matrix
+    cdef intptr_t ptr
     if isinstance(data, list) or isinstance(data, set) or isinstance(data, tuple):
-        ptrs = DTWSeriesPointers(len(data), diff_lengths=True)
-        cdef intptr_t ptr
+        ptrs = DTWSeriesPointers(len(data))
         for i in range(len(data)):
             ptr = data[i].ctypes.data  # uniform for memoryviews and numpy
             ptrs._ptrs[i] = <double *> ptr
             ptrs._lengths[i] = len(data[i])
         return ptrs
     try:
-        ptrs = DTWSeriesMatrix(data)
-        return ptrs
+        matrix = DTWSeriesMatrix(data)
+        return matrix
     except ValueError:
         raise ValueError(f"Cannot convert data of type {type(data)}")
 
@@ -227,6 +204,8 @@ def distance_matrix(cur, block=None, **kwargs):
     :param kwargs: Settings (see DTWSettings)
     :return: The distance matrix as a list representing the triangular matrix.
     """
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesPointers ptrs
     cdef int length = 0
     cdef int block_rb=0
     cdef int block_re=0
@@ -240,11 +219,11 @@ def distance_matrix(cur, block=None, **kwargs):
         block_ce = block[1][1]
 
     settings = DTWSettings(**kwargs)
-    block = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
-    length = dtaidistancec.dtw_distances_length(block._block, len(cur))
+    cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    length = dtaidistancec.dtw_distances_length(&dtwblock._block, len(cur))
 
     cdef array.array dists = array.array('d')
-    dists.resize(length)
+    array.resize(dists, length)
 
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
@@ -254,10 +233,14 @@ def distance_matrix(cur, block=None, **kwargs):
         cur = dtw_series_from_data(cur)
 
     if isinstance(cur, DTWSeriesPointers):
-        dtaidistancec.dtw_distances_ptrs(cur.ptrs, cur.nb_ptrs, cur.lengths,
-                                         dists.as_doubles, &block._block, &settings._settings)
+        ptrs = cur
+        dtaidistancec.dtw_distances_ptrs(
+            ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
-        dtaidistancec.dtw_distances_matrix(cur.matrix, cur.nb_rows, cur.nb_cols,
-                                           dists.as_doubles, &block._block, &settings._settings)
+        matrix = cur
+        dtaidistancec.dtw_distances_matrix(
+            &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
     return dists

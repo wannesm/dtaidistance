@@ -3,7 +3,7 @@ import pytest
 import os
 import numpy as np
 from pathlib import Path
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw
 from dtaidistance import dtw_visualisation as dtwvis
 
 
@@ -62,7 +62,7 @@ def test_psi_dtw_1c():
     x = np.arange(0, 20, .5)
     s1 = np.sin(x)
     s2 = np.sin(x - 1)
-    d = dtw_c.distance_nogil(s1, s2, psi=2)
+    d = dtw.distance_fast(s1, s2, psi=2)
     np.testing.assert_equal(d, 0.0)
 
 
@@ -90,7 +90,7 @@ def test_psi_dtw_2c():
     x = np.arange(0, 20, .5)
     s1 = np.sin(x - 1)
     s2 = np.sin(x)
-    d = dtw_c.distance_nogil(s1, s2, psi=2, window=3)
+    d = dtw.distance_fast(s1, s2, psi=2, window=3)
     np.testing.assert_equal(d, 0.0)
 
 

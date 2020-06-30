@@ -36,10 +36,14 @@ benchmark-clustering:
 .PHONY: clean
 clean:
 	python3 setup.py clean
-	rm -f dtaidistance/dtw_c.c
+	rm -f dtaidistance/dtw_c.{c,html,so}
 	rm -f dtaidistance/dtw_c.*.so
-	rm -f dtaidistance/dtw_cc.c
+	rm -f dtaidistance/dtw_cc.{c,html}
 	rm -f dtaidistance/dtw_cc.*.so
+	rm -f dtaidistance/dtw_cc_*.{c,html}
+	rm -f dtaidistance/dtw_cc_*.*.so
+	rm -f dtaidistance/*.pyc
+	rm -rf dtaidistance/__pycache__
 
 .PHONY: build
 build:

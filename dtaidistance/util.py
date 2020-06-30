@@ -23,9 +23,13 @@ try:
 except ImportError:
     np = None
 
-import dtw_cc
 try:
-    import dtw_cc_numpy
+    from . import dtw_cc
+except ImportError:
+    dtw_cc = None
+
+try:
+    from . import dtw_cc_numpy
 except ImportError:
     dtw_cc_numpy = None
 
@@ -113,6 +117,8 @@ class SeriesContainer:
             buffers are guaranteed to be C-contiguous and can thus be used
             as regular pointer-based arrays in C.
         """
+        if dtw_cc is None:
+            raise Exception('C library not loaded')
         if type(self.series) == list:
             for i in range(len(self.series)):
                 serie = self.series[i]

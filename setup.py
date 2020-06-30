@@ -171,8 +171,9 @@ class MyBuildExtCommand(BuildExtCommand):
                 args = l_args[c]
             for e in self.extensions:
                 e.extra_link_args = args
-        # TODO remove from self.extensions the openmp version if noopenmp
-        print(f'All extensions')
+        if numpy is None:
+            self.extensions = [arg for arg in self.extensions if "numpy" not in str(arg)]
+        print(f'All extensions:')
         print(self.extensions)
         BuildExtCommand.build_extensions(self)
 
@@ -248,12 +249,12 @@ if cythonize is not None:
                 include_dirs=np_include_dirs,
                 extra_compile_args=[],
                 extra_link_args=[]))
-        extensions.append(
-            Extension(
-                "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
-                include_dirs=np_include_dirs,
-                extra_compile_args=[],
-                extra_link_args=[]))
+        # extensions.append(
+        #     Extension(
+        #         "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
+        #         include_dirs=np_include_dirs,
+        #         extra_compile_args=[],
+        #         extra_link_args=[]))
     else:
         print("WARNING: Numpy was not found, preparing a version without Numpy support.")
 

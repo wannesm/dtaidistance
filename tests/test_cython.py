@@ -4,7 +4,7 @@ import sys
 import os
 import math
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw
 
 
 def test_numpymatrix():
@@ -14,8 +14,7 @@ def test_numpymatrix():
         [0., 0, 1, 2, 1, 0, 1, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0],
         [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-    m = dtw_c.distance_matrix_nogil(s)
-    m = dtw.distances_array_to_matrix(m, len(s))
+    m = dtw.distance_matrix_fast(s)
     m2 = dtw.distance_matrix(s)
     correct = np.array([
         [np.inf, 1.41421356, 1.73205081],
@@ -34,7 +33,7 @@ def test_numpymatrix_compact():
         [0., 0, 1, 2, 1, 0, 1, 0, 0],
         [0., 1, 2, 0, 0, 0, 0, 0, 0],
         [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-    m = dtw_c.distance_matrix_nogil(s)
+    m = dtw.distance_matrix_fast(s, compact=True)
     m2 = dtw.distance_matrix(s, compact=True)
     correct = np.array([1.41421356, 1.73205081, 1.41421356])
     assert m[0] == pytest.approx(math.sqrt(2))
@@ -57,8 +56,7 @@ def test_numpymatrix_transpose():
         [0, 0, 1],
         [0, 0, 0]
     ]).T
-    m = dtw_c.distance_matrix_nogil(s)
-    m = dtw.distances_array_to_matrix(m, len(s))
+    m = dtw.distance_matrix_fast(s)
     m2 = dtw.distance_matrix(s)
     correct = np.array([
         [np.inf, 1.41421356, 1.73205081],

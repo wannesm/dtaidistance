@@ -1,5 +1,5 @@
 
-cimport dtaidistancec
+from dtaidistancec cimport dtwvalue, DTWBlock, DTWSettings
 
 cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw_openmp.h":
     size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, int nb_ptrs, int* lengths,

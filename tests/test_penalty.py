@@ -1,10 +1,10 @@
 import math
 import pytest
 import numpy as np
-from dtaidistance import dtw, dtw_c
-import matplotlib.pyplot as plt
+from dtaidistance import dtw
 
 np.set_printoptions(precision=2, linewidth=120)
+
 
 def test_penalty_cyclicalshift():
     s1 = np.array([0., 1, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0])

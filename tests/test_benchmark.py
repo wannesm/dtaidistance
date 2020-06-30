@@ -1,5 +1,5 @@
 import numpy as np
-from dtaidistance import dtw, dtw_c, clustering
+from dtaidistance import dtw, clustering
 import array
 import pytest
 import math
@@ -40,18 +40,7 @@ def test_distance1_cpython(benchmark):
     s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0]*n)
 
     def d():
-        return dtw_c.distance(s1, s2)
-
-    assert benchmark(d) == math.sqrt(2*n)
-
-
-@pytest.mark.benchmark(group="distance1")
-def test_distance1_c_array(benchmark):
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0]*n)
-    s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0]*n)
-
-    def d():
-        return dtw_c.distance_nogil(s1, s2)
+        return dtw.distance_fast(s1, s2)
 
     assert benchmark(d) == math.sqrt(2*n)
 
@@ -62,7 +51,7 @@ def test_distance1_c_numpy(benchmark):
     s2 = array.array('d', [0., 1, 2, 0, 0, 0, 0, 0, 0]*n)
 
     def d():
-        return dtw_c.distance_nogil(s1, s2)
+        return dtw.distance_fast(s1, s2)
 
     assert benchmark(d) == math.sqrt(2*n)
 

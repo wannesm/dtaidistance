@@ -11,7 +11,8 @@ Dynamic Time Warping (DTW), C implementation, with OpenMP support.
 """
 from cpython cimport array
 import array
-cimport dtw_cc
+from dtw_cc cimport DTWSeriesMatrix, DTWSeriesPointers, DTWSettings, DTWBlock
+from dtw_cc import dtw_series_from_data
 cimport dtaidistancec
 cimport dtaidistancec_omp
 
@@ -28,6 +29,8 @@ def distance_matrix(cur, block=None, **kwargs):
     :param kwargs: Settings (see DTWSettings)
     :return: The distance matrix as a list representing the triangular matrix.
     """
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesPointers ptrs
     cdef int length = 0
     cdef int block_rb=0
     cdef int block_re=0
@@ -40,25 +43,29 @@ def distance_matrix(cur, block=None, **kwargs):
         block_cb = block[1][0]
         block_ce = block[1][1]
 
-    settings = dtw_cc.DTWSettings(**kwargs)
-    block = dtw_cc.DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
-    length = dtaidistancec.dtw_distances_length(block._block, len(cur))
+    settings = DTWSettings(**kwargs)
+    cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    length = dtaidistancec.dtw_distances_length(&dtwblock._block, len(cur))
 
     cdef array.array dists = array.array('d')
-    dists.resize(length)
+    array.resize(dists, length)
 
-    if isinstance(cur, dtw_cc.DTWSeriesMatrix) or isinstance(cur, dtw_cc.DTWSeriesPointers):
+    if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
         cur = cur.c_data()
     else:
-        cur = dtw_cc.dtw_series_from_data(cur)
+        cur = dtw_series_from_data(cur)
 
-    if isinstance(cur, dtw_cc.DTWSeriesPointers):
+    if isinstance(cur, DTWSeriesPointers):
+        ptrs = cur
         dtaidistancec_omp.dtw_distances_ptrs_parallel(
-            cur.ptrs, cur.nb_ptrs, cur.lengths, dists.as_doubles, &block._block, &settings._settings)
-    elif isinstance(cur, dtw_cc.DTWSeriesMatrix):
+            ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrix):
+        matrix = cur
         dtaidistancec_omp.dtw_distances_matrix_parallel(
-            cur.matrix, cur.nb_rows, cur.nb_cols, dists.as_doubles, &block._block, &settings._settings)
+            &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
     return dists
