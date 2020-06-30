@@ -137,11 +137,14 @@ class SeriesContainer:
                     )
             return dtw_cc.dtw_series_from_data(self.series)
         elif np is not None and isinstance(self.series, np.ndarray):
-            if dtw_cc_numpy is None:
-                raise Exception("Numpy not supported, C-extension for Numpy is not available")
             if not self.series.flags.c_contiguous:
+                logger.warning("Numpy array not C contiguous, copying data.")
                 self.series = self.series.copy(order="C")
-            return dtw_cc_numpy.dtw_series_from_numpy(self.series)
+            if dtw_cc_numpy is None:
+                logger.warning("DTAIDistance C-extension for Numpy is not available. Proceeding anyway.")
+                return dtw_cc.dtw_series_from_data(self.series)
+            else:
+                return dtw_cc_numpy.dtw_series_from_numpy(self.series)
         return dtw_cc.dtw_series_from_data(self.series)
 
     def get_max_y(self):
