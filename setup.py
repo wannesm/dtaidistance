@@ -31,7 +31,10 @@ except ImportError:
 here = os.path.abspath(os.path.dirname(__file__))
 
 c_args = {
-    'unix': ['-fopenmp'],
+    # Xpreprocessor is required for the built-in CLANG on macos, but other
+    # installations of LLVM don't seem to be bothered by it (although it's
+    # not required.
+    'unix': ['-Xpreprocessor', '-fopenmp'],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og'],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native']
 }
@@ -122,6 +125,10 @@ def set_custom_envvars_for_homebrew():
             except Exception as exc:
                 print("Failed to check version")
                 print(exc)
+        else:
+            # The default clang in XCode is compatible with OpenMP when using -Xpreprocessor
+            pass
+
         if len(cppflags) > 0:
             os.environ["CPPFLAGS"] = " ".join(cppflags)
             print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
@@ -306,7 +313,7 @@ setup(
     },
     include_package_data=True,
     package_data={
-        '': ['*.pyx', '*.pxd'],
+        '': ['*.pyx', '*.pxd', '*.c', '*.h'],
     },
     distclass=MyDistribution,
     cmdclass={
