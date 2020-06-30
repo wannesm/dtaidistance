@@ -26,7 +26,7 @@ benchmark:
 
 .PHONY: benchmark-parallelc
 benchmark-parallelc:
-	export PYTHONPATH=.;py.test -k 'matrix1 and pure' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test -k 'matrix1 or distance1' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
 
 .PHONY: benchmark-clustering
 benchmark-clustering:

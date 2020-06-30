@@ -386,7 +386,7 @@ def distance_matrix_func(use_c=False, parallel=False, show_progress=False):
 def distance_matrix(s, max_dist=None, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
-                    use_c=False, show_progress=False):
+                    use_c=False, use_mp=False, show_progress=False):
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
@@ -401,6 +401,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     :param compact: Return the distance matrix as an array representing the upper triangular matrix.
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
+    :param use_mp: Use Multiprocessing for parallel operations (not OpenMP)
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
@@ -411,7 +412,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
     if use_c and parallel:
         if dtw_cc_omp is None:
             logger.warning('OMP extension not loaded, using multiprocessing')
-    if parallel and (not use_c or dtw_cc_omp is None):
+    if parallel and (use_mp or not use_c or dtw_cc_omp is None):
         try:
             import multiprocessing as mp
             logger.info('Using multiprocessing')
@@ -441,12 +442,12 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
                 dist_opts[k] = 0.0
 
     logger.info('Computing distances')
-    if use_c and parallel and dtw_cc_omp is not None:
+    if use_c and parallel and not use_mp and dtw_cc_omp is not None:
         logger.info("Compute distances in C (parallel=OMP)")
         dist_opts['block'] = block
         dists = dtw_cc_omp.distance_matrix(s, **dist_opts)
 
-    elif use_c and parallel and dtw_cc_omp is None:
+    elif use_c and parallel and (dtw_cc_omp is None or use_mp):
         logger.info("Compute distances in C (parallel=MP)")
         idxs = _distance_matrix_idxs(block, len(s))
         with mp.Pool() as p:
@@ -470,7 +471,7 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
 
     else:
         raise Exception(f'Unsupported combination of: parallel={parallel}, '
-                        f'use_c={use_c}, dtw_cc_omp={dtw_cc_omp}')
+                        f'use_c={use_c}, dtw_cc_omp={dtw_cc_omp}, use_mp={use_mp}')
 
     exp_length = _distance_matrix_length(block, len(s))
     assert len(dists) == exp_length, "len(dists)={} != {}".format(len(dists), exp_length)
