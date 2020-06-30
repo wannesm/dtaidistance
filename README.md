@@ -1,11 +1,13 @@
 # Time Series Distances
 
-Library for time series distances (e.g. Dynamic Time Warping) used in the [DTAI Research Group](https://dtai.cs.kuleuven.be).
-The library offers a pure Python implementation and a faster implementation in C.
+Library for time series distances (e.g. Dynamic Time Warping) used in the
+[DTAI Research Group](https://dtai.cs.kuleuven.be). The library offers a pure
+Python implementation and a faster implementation in C.
 
 Documentation: http://dtaidistance.readthedocs.io
 
-Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
+Citing this work:
+[![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
 
 ## Installation
@@ -14,10 +16,18 @@ This packages is available on PyPI (requires Python 3):
 
     $ pip install dtaidistance
 
-In case the C based version is not available, see the documentation for alternative installation options.
-In case OpenMP is not available on your system add the `--noopenmp` global option.
+In case the C based version is not available, see the documentation for
+alternative installation options. In case OpenMP is not available on your
+system add the `--noopenmp` global option.
 
-The source code is available at [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
+The library has no dependency on Numpy. But if Numpy is available, some
+additional functionality is provided. If you want to make sure this is
+also installed then use:
+
+   $ pip install dtaidistance[numpy]
+
+The source code is available at
+[github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
 
 ## Usage
@@ -190,11 +200,11 @@ tree can be visualised:
 ## Dependencies
 
 - [Python 3](http://www.python.org)
-- [Numpy](http://www.numpy.org)
 
 Optional:
 
 - [Cython](http://cython.org)
+- [Numpy](http://www.numpy.org)
 - [tqdm](https://github.com/tqdm/tqdm)
 - [matplotlib](https://matplotlib.org)
 
@@ -235,7 +245,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2019 KU Leuven, DTAI Research Group
+    Copyright 2016-2020 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
