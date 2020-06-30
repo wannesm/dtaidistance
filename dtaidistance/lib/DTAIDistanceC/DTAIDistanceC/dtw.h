@@ -71,7 +71,7 @@ size_t dtw_distances_ptrs(dtwvalue **ptrs, int nb_ptrs, int* lengths, dtwvalue* 
                           DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_matrix(dtwvalue *matrix, int nb_rows, int nb_cols, dtwvalue* output,
                             DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_length(DTWBlock *block, int nb_series);
+int dtw_distances_length(DTWBlock *block, int nb_series);
 
 // Auxiliary functions
 void dtw_set_printprecision(int precision);

@@ -441,6 +441,14 @@ size_t dtw_distances_ptrs(dtwvalue **ptrs, int nb_ptrs, int* lengths, dtwvalue* 
     if (length == 0) {
         return 0;
     }
+    
+    // Correct block
+    if (block->re == 0) {
+        block->re = nb_ptrs;
+    }
+    if (block->ce == 0) {
+        block->ce = nb_ptrs;
+    }
 
     i = 0;
     for (r=block->rb; r<block->re; r++) {
@@ -490,10 +498,10 @@ size_t dtw_distances_matrix(dtwvalue *matrix, int nb_rows, int nb_cols, dtwvalue
     return length;
 }
 
-size_t dtw_distances_length(DTWBlock *block, int nb_series) {
-    size_t ir;
+int dtw_distances_length(DTWBlock *block, int nb_series) {
+    ssize_t ir;
     long llength = 0;
-    size_t slength;
+    int slength;  // Should be ssize_t but not available on all platforms
 
     if (block->re == 0 && block->ce == 0) {
         // First divide the even number to avoid overflowing
@@ -515,21 +523,14 @@ size_t dtw_distances_length(DTWBlock *block, int nb_series) {
             }
         }
     }
-    slength = llength;
+    slength = (int)llength;
     #ifdef DTWDEBUG
     printf("length=%f, llength=%f", slength, llength);
     #endif
+    // The test assumes slength is a signed integer that overflows
     if (slength < 0) {
         printf("ERROR: Length of array needed to represent the distance matrix larger than maximal value for size_t");
         return 0;
-    }
-    
-    // Correct block
-    if (block->re == 0) {
-        block->re = nb_series;
-    }
-    if (block->ce == 0) {
-        block->ce = nb_series;
     }
     
     return slength;

@@ -12,7 +12,7 @@ Dynamic Time Warping (DTW), C implementation, with OpenMP support.
 from cpython cimport array
 import array
 from dtw_cc cimport DTWSeriesMatrix, DTWSeriesPointers, DTWSettings, DTWBlock
-from dtw_cc import dtw_series_from_data
+from dtw_cc import dtw_series_from_data, distance_matrix_length
 cimport dtaidistancec
 cimport dtaidistancec_omp
 
@@ -45,7 +45,13 @@ def distance_matrix(cur, block=None, **kwargs):
 
     settings = DTWSettings(**kwargs)
     cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
-    length = dtaidistancec.dtw_distances_length(&dtwblock._block, len(cur))
+    length = distance_matrix_length(dtwblock, len(cur))
+
+    # Correct block
+    if dtwblock.re == 0:
+        dtwblock.re_set(len(cur))
+    if dtwblock.ce == 0:
+        dtwblock.ce_set(len(cur))
 
     cdef array.array dists = array.array('d')
     array.resize(dists, length)

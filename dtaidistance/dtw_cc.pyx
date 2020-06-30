@@ -35,6 +35,9 @@ cdef class DTWBlock:
     def re(self):
         return self._block.re
 
+    def re_set(self, value):
+        self._block.re = value
+
     @property
     def cb(self):
         return self._block.cb
@@ -42,6 +45,9 @@ cdef class DTWBlock:
     @property
     def ce(self):
         return self._block.ce
+
+    def ce_set(self, value):
+        self._block.ce = value
 
     def __str__(self):
         return f'DTWBlock(rb={self.rb},re={self.re},cb={self.cb},ce={self.ce})'
@@ -220,7 +226,13 @@ def distance_matrix(cur, block=None, **kwargs):
 
     settings = DTWSettings(**kwargs)
     cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
-    length = dtaidistancec.dtw_distances_length(&dtwblock._block, len(cur))
+    length = distance_matrix_length(dtwblock, len(cur))
+
+    # Correct block
+    if dtwblock.re == 0:
+        dtwblock.re_set(len(cur))
+    if dtwblock.ce == 0:
+        dtwblock.ce_set(len(cur))
 
     cdef array.array dists = array.array('d')
     array.resize(dists, length)
@@ -244,3 +256,34 @@ def distance_matrix(cur, block=None, **kwargs):
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
     return dists
+
+
+def distance_matrix_length(DTWBlock block, int nb_series):
+    cdef Py_ssize_t r
+    cdef Py_ssize_t c
+    cdef Py_ssize_t cb
+    cdef Py_ssize_t brb = block.rb  # TODO: why is this necessary for cython?
+    cdef Py_ssize_t ir
+    cdef long llength = 0
+    cdef Py_ssize_t slength
+
+    if block.re == 0 and block.ce == 0:
+        # First divide the even number to avoid overflowing
+        if nb_series % 2 == 0:
+            llength = (nb_series / 2) * (nb_series - 1)
+        else:
+            llength = nb_series * ((nb_series - 1) / 2)
+    else:
+        for ri in range(block.rb, block.re):
+            if block.cb <= ri:
+                if block.ce > ri:
+                    llength += (block.ce - ri - 1)
+            else:
+                if block.ce > ri:
+                    llength += (block.ce - block.cb)
+    slength = llength
+    # print(slength, llength)
+    if slength < 0:
+        print("ERROR: Length of array needed to represent the distance matrix larger than maximal value for Py_ssize_t")
+        return
+    return slength

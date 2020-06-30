@@ -9,13 +9,21 @@
 #include "dtw_openmp.h"
 
 
-int dtw_distances_prepare(DTWBlock *block, int len_cur, ssize_t **irs, ssize_t **ics, size_t *length) {
+int dtw_distances_prepare(DTWBlock *block, int nb_series, ssize_t **irs, ssize_t **ics, size_t *length) {
     size_t r, c;
     size_t cb, ir;
     
-    *length = dtw_distances_length(block, len_cur);
+    *length = dtw_distances_length(block, nb_series);
     if (length == 0) {
         return 0;
+    }
+    
+    // Correct block
+    if (block->re == 0) {
+        block->re = nb_series;
+    }
+    if (block->ce == 0) {
+        block->ce = nb_series;
     }
 
     *irs = (ssize_t *)malloc(sizeof(ssize_t) * *length);
