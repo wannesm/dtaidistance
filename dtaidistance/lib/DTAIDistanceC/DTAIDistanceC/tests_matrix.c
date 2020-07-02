@@ -10,13 +10,14 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stddef.h>
 #include <criterion/criterion.h>
 
 #include "dtw.h"
 #include "dtw_openmp.h"
 
 
-//#define SKIPALL
+#define SKIPALL
 
 //----------------------------------------------------
 // MARK: MATRIX
@@ -29,7 +30,7 @@ Test(matrix, test_a) {
     double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
     double *s[] = {s1, s2};
-    int lengths[] = {9, 9};
+    size_t lengths[] = {9, 9};
     double result[1];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = dtw_empty_block();
@@ -44,7 +45,7 @@ Test(matrix, test_a_parallel) {
     double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
     double *s[] = {s1, s2};
-    int lengths[] = {9, 9};
+    size_t lengths[] = {9, 9};
     double result[1];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = dtw_empty_block();
@@ -60,7 +61,7 @@ Test(matrix, test_b) {
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
     double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
     double *s[] = {s1, s2, s3};
-    int lengths[] = {9, 9, 8};
+    size_t lengths[] = {9, 9, 8};
     double result[3];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = dtw_empty_block();
@@ -76,7 +77,7 @@ Test(matrix, test_b_parallel) {
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
     double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
     double *s[] = {s1, s2, s3};
-    int lengths[] = {9, 9, 8};
+    size_t lengths[] = {9, 9, 8};
     double result[3];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = dtw_empty_block();
@@ -95,7 +96,7 @@ Test(matrix, test_c_block_ptrs) {
     double s5[] = {0., 1, 2, 0, 0, 0, 0, 0, 0};
     double s6[] = {1., 2, 0, 0, 0, 0, 0, 1, 1};
     double *s[] = {s1, s2, s3, s4, s5, s6};
-    int lengths[] = {9, 9, 9, 9, 9, 9};
+    size_t lengths[] = {9, 9, 9, 9, 9, 9};
     double result[5];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
@@ -118,8 +119,8 @@ Test(matrix, test_c_block_matrix) {
                   0., 0, 1, 2, 1, 0, 1, 0, 0,
                   0., 1, 2, 0, 0, 0, 0, 0, 0,
                   1., 2, 0, 0, 0, 0, 0, 1, 1};
-    int nb_cols = 9;
-    int nb_rows = 6;
+    size_t nb_cols = 9;
+    size_t nb_rows = 6;
     double result[5];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
@@ -142,7 +143,7 @@ Test(matrix, test_c_block_ptrs_parallel) {
     double s5[] = {0., 1, 2, 0, 0, 0, 0, 0, 0};
     double s6[] = {1., 2, 0, 0, 0, 0, 0, 1, 1};
     double *s[] = {s1, s2, s3, s4, s5, s6};
-    int lengths[] = {9, 9, 9, 9, 9, 9};
+    size_t lengths[] = {9, 9, 9, 9, 9, 9};
     double result[5];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
@@ -171,8 +172,8 @@ Test(matrix, test_c_block_matrix_parallel) {
                   0., 0, 1, 2, 1, 0, 1, 0, 0,
                   0., 1, 2, 0, 0, 0, 0, 0, 0,
                   1., 2, 0, 0, 0, 0, 0, 1, 1};
-    int nb_cols = 9;
-    int nb_rows = 6;
+    size_t nb_cols = 9;
+    size_t nb_rows = 6;
     double result[5];
     DTWSettings settings = dtw_default_settings();
     DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
@@ -186,4 +187,89 @@ Test(matrix, test_c_block_matrix_parallel) {
     cr_assert_float_eq(result[2], 2.23606798, 0.001);
     cr_assert_float_eq(result[3], 1.73205081, 0.001);
     cr_assert_float_eq(result[4], sqrt(2), 0.001);
+}
+
+//----------------------------------------------------
+// MARK: AUXILIARY FUNCTIONS
+
+Test(aux, test_length_overflow_noblock) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    DTWBlock block = {.rb=0, .re=0, .cb=0, .ce=0};
+    size_t length, expected_length;
+    size_t nb_series;
+    
+    // https://en.cppreference.com/w/c/types/limits
+//    printf("The max value for sizes, SIZE_MAX = %zu\n", SIZE_MAX);
+    
+    nb_series = floor(sqrt(SIZE_MAX));
+    length = dtw_distances_length(&block, nb_series);
+    expected_length = nb_series*(nb_series-1)/2;
+//    printf("nb_series = %zu / length = %zu / expected = %zu\n", nb_series, length, expected_length);
+    cr_assert_eq(length, expected_length); // no overflow
+    
+    nb_series = floor(sqrt(SIZE_MAX)) + 1;
+    length = dtw_distances_length(&block, nb_series);
+//    printf("nb_series = %zu / length = %zu / expected = %zu\n", nb_series, length, expected_length);
+    cr_assert_eq(length, 0); // overflow detected
+}
+
+Test(aux, test_length_overflow_block) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    size_t length, expected_length;
+    size_t nb_series;
+    
+    // https://en.cppreference.com/w/c/types/limits
+    printf("The max value for sizes, SIZE_MAX = %zu\n", SIZE_MAX);
+    
+//    size_t b = floor(sqrt(SIZE_MAX)) - 1; // C cannot deal with SIZE_MAX to sqrt correctly
+//    nb_series = 2*b + 1;
+//    DTWBlock block = {.rb=0, .re=b, .cb=b+1, .ce=2*b+1};
+//    length = dtw_distances_length(&block, nb_series);
+//    expected_length = b*b;
+//    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);
+//    cr_assert_eq(length, expected_length); // no overflow
+    
+//    size_t b = floor(sqrt(SIZE_MAX)) - 1; // C cannot deal with SIZE_MAX to sqrt correctly
+//    nb_series = 2*b + 1;
+//    DTWBlock block = {.rb=0, .re=b+1, .cb=b, .ce=2*b+1};
+//    length = dtw_distances_length(&block, nb_series);
+//    expected_length = 0;
+//    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);
+//    cr_assert_eq(length, expected_length); // no overflow
+    
+    // Just a bit overflow
+//    size_t b = floor(sqrt(SIZE_MAX)) - 1; // C cannot deal with SIZE_MAX to sqrt correctly
+//    nb_series = 2*b + 1;
+//    DTWBlock block = {.rb=0, .re=b+2, .cb=b, .ce=2*b+1};
+//    length = dtw_distances_length(&block, nb_series);
+//    expected_length = 0;
+//    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);
+//    cr_assert_eq(length, expected_length); // overflow
+    
+    // Maximal overflow, fastest test
+    nb_series = SIZE_MAX;
+    DTWBlock block = {.rb=0, .re=nb_series, .cb=0, .ce=nb_series};
+    length = dtw_distances_length(&block, nb_series);
+    expected_length = 0;
+    cr_assert_eq(length, expected_length); // overflow
+}
+
+Test(aux, test_length_nooverflow_block) {
+    #ifdef SKIPALL
+//    cr_skip_test();
+    #endif
+    size_t length, expected_length;
+    size_t nb_series;
+    
+    size_t b = 10;
+    nb_series = 2*b + 1;
+    DTWBlock block = {.rb=0, .re=b, .cb=b+1, .ce=2*b+1};
+    length = dtw_distances_length(&block, nb_series);
+    expected_length = b*b;
+//    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);
+    cr_assert_eq(length, expected_length); // no overflow
 }

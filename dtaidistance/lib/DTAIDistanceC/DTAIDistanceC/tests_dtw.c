@@ -56,6 +56,7 @@ Test(dtw, test_b_b) {
     double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
     DTWSettings settings = dtw_default_settings();
     double d = dtw_distance(s1, 12, s2, 11, &settings);
+//    printf("d = %f\n", d);
     cr_assert_float_eq(d, 0.02, 0.001);
     dtw_reset_printprecision();
 }
@@ -166,6 +167,7 @@ Test(wps, test_a_a) {
     DTWSettings settings = dtw_default_settings();
     dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 10*10);
     double d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
+//    printf("d = %f\n", d);
     free(wps);
     cr_assert_float_eq(d, sqrt(2), 0.001);
 }

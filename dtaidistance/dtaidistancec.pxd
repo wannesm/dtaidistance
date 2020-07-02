@@ -3,30 +3,31 @@
 cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw.h":
     ctypedef double dtwvalue
     ctypedef struct DTWSettings:
-        int window
+        size_t window
         dtwvalue max_dist
         dtwvalue max_step
-        int max_length_diff
+        size_t max_length_diff
         dtwvalue penalty
-        int psi
+        size_t psi
+        bint use_ssize_t
 
     ctypedef struct DTWBlock:
-        int rb
-        int re
-        int cb
-        int ce
+        size_t rb
+        size_t re
+        size_t cb
+        size_t ce
 
     DTWSettings dtw_default_settings()
-    dtwvalue dtw_distance(dtwvalue *s1, int l1, dtwvalue *s2, int l2,
+    dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2,
                           DTWSettings *settings)
-    dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, int l1, dtwvalue *s2, int l2,
+    dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, int l2,
                                bint return_dtw, bint do_sqrt, DTWSettings *settings)
 
     void dtw_print_settings(DTWSettings *settings)
 
     DTWBlock dtw_empty_block()
-    size_t dtw_distances_ptrs(dtwvalue **ptrs, int nb_ptrs, int* lengths, dtwvalue* output,
+    size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
                           DTWBlock* block, DTWSettings* settings)
-    size_t dtw_distances_matrix(dtwvalue *matrix, int nb_rows, int nb_cols, dtwvalue* output,
+    size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output,
                             DTWBlock* block, DTWSettings* settings)
-    size_t dtw_distances_length(DTWBlock *block, int nb_series)
+    size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bint use_ssize_t)

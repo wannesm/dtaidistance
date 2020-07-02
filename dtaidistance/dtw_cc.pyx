@@ -10,11 +10,16 @@ Dynamic Time Warping (DTW), C implementation.
 
 """
 from cpython cimport array
+from cython import Py_ssize_t
 import array
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdint cimport intptr_t
 
 cimport dtaidistancec
+
+
+cdef extern from "Python.h":
+    Py_ssize_t PY_SSIZE_T_MAX
 
 
 cdef class DTWBlock:
@@ -55,7 +60,7 @@ cdef class DTWBlock:
 
 cdef class DTWSettings:
     def __cinit__(self):
-        pass
+        self._settings.use_ssize_t = True  # adapt to Py_ssize_t
 
     def __init__(self, **kwargs):
         self._settings = dtaidistancec.dtw_default_settings()
@@ -133,7 +138,7 @@ cdef class DTWSeriesPointers:
         if not self._ptrs:
             self._ptrs = NULL
             raise MemoryError()
-        self._lengths = <int *> malloc(nb_series * sizeof(int))
+        self._lengths = <size_t *> malloc(nb_series * sizeof(size_t))
         if not self._lengths:
             self._lengths = NULL
             raise MemoryError()
@@ -212,12 +217,12 @@ def distance_matrix(cur, block=None, **kwargs):
     """
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesPointers ptrs
-    cdef int length = 0
-    cdef int block_rb=0
-    cdef int block_re=0
-    cdef int block_cb=0
-    cdef int block_ce=0
-    cdef ri = 0
+    cdef Py_ssize_t length = 0
+    cdef Py_ssize_t block_rb=0
+    cdef Py_ssize_t block_re=0
+    cdef Py_ssize_t block_cb=0
+    cdef Py_ssize_t block_ce=0
+    cdef Py_ssize_t ri = 0
     if block is not None and block != 0.0:
         block_rb = block[0][0]
         block_re = block[0][1]
@@ -258,32 +263,7 @@ def distance_matrix(cur, block=None, **kwargs):
     return dists
 
 
-def distance_matrix_length(DTWBlock block, int nb_series):
-    cdef Py_ssize_t r
-    cdef Py_ssize_t c
-    cdef Py_ssize_t cb
-    cdef Py_ssize_t brb = block.rb  # TODO: why is this necessary for cython?
-    cdef Py_ssize_t ir
-    cdef long llength = 0
-    cdef Py_ssize_t slength
-
-    if block.re == 0 and block.ce == 0:
-        # First divide the even number to avoid overflowing
-        if nb_series % 2 == 0:
-            llength = (nb_series / 2) * (nb_series - 1)
-        else:
-            llength = nb_series * ((nb_series - 1) / 2)
-    else:
-        for ri in range(block.rb, block.re):
-            if block.cb <= ri:
-                if block.ce > ri:
-                    llength += (block.ce - ri - 1)
-            else:
-                if block.ce > ri:
-                    llength += (block.ce - block.cb)
-    slength = llength
-    # print(slength, llength)
-    if slength < 0:
-        print("ERROR: Length of array needed to represent the distance matrix larger than maximal value for Py_ssize_t")
-        return
-    return slength
+def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
+    cdef Py_ssize_t length
+    length = dtaidistancec.dtw_distances_length(&block._block, nb_series, True)
+    return length

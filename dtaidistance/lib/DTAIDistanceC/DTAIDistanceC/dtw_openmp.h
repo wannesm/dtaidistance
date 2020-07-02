@@ -14,11 +14,11 @@
 
 #include "dtw.h"
 
-int dtw_distances_prepare(DTWBlock *block, int len_cur,
-                          ssize_t **irs, ssize_t **ics, size_t *length);
-size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, int nb_ptrs, int* lengths,
+int dtw_distances_prepare(DTWBlock *block, size_t len_cur,
+                          size_t **irs, size_t **ics, size_t *length, DTWSettings *settings);
+size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths,
                                    dtwvalue* output, DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_matrix_parallel(dtwvalue *matrix, int nb_rows, int nb_cols,
+size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols,
                                      dtwvalue* output, DTWBlock* block, DTWSettings* settings);
 
 #endif /* dtw_openmp_h */

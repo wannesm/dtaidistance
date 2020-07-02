@@ -9,11 +9,11 @@
 #include "dtw_openmp.h"
 
 
-int dtw_distances_prepare(DTWBlock *block, int nb_series, ssize_t **irs, ssize_t **ics, size_t *length) {
+int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **irs, size_t **ics, size_t *length, DTWSettings *settings) {
     size_t r, c;
     size_t cb, ir;
     
-    *length = dtw_distances_length(block, nb_series);
+    *length = dtw_distances_length(block, nb_series, settings->use_ssize_t);
     if (length == 0) {
         return 0;
     }
@@ -26,12 +26,12 @@ int dtw_distances_prepare(DTWBlock *block, int nb_series, ssize_t **irs, ssize_t
         block->ce = nb_series;
     }
 
-    *irs = (ssize_t *)malloc(sizeof(ssize_t) * *length);
+    *irs = (size_t *)malloc(sizeof(size_t) * *length);
     if (!irs) {
         printf("Error: dtw_matrix_parallel - cannot allocate memory (length = %zu)", *length);
         return 1;
     }
-    *ics = (ssize_t *)malloc(sizeof(ssize_t) * *length);
+    *ics = (size_t *)malloc(sizeof(size_t) * *length);
     if (!ics) {
         printf("Error: dtw_matrix_parallel - cannot allocate memory (length = %zu)", *length);
         return 1;
@@ -53,14 +53,14 @@ int dtw_distances_prepare(DTWBlock *block, int nb_series, ssize_t **irs, ssize_t
 }
 
 
-size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, int nb_ptrs, int* lengths, dtwvalue* output,
+size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
                      DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     size_t r, c;
     size_t length;
-    ssize_t *irs, *ics;
+    size_t *irs, *ics;
 
-    if (dtw_distances_prepare(block, nb_ptrs, &irs, &ics, &length) != 0) {
+    if (dtw_distances_prepare(block, nb_ptrs, &irs, &ics, &length, settings) != 0) {
         return 0;
     }
 
@@ -81,13 +81,13 @@ size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, int nb_ptrs, int* lengths, d
     return length;
 }
 
-size_t dtw_distances_matrix_parallel(dtwvalue *matrix, int nb_rows, int nb_cols, dtwvalue* output, DTWBlock* block, DTWSettings* settings) {
+size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output, DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     size_t r, c;
     size_t length;
-    ssize_t *irs, *ics;
+    size_t *irs, *ics;
 
-    if (dtw_distances_prepare(block, nb_rows, &irs, &ics, &length) != 0) {
+    if (dtw_distances_prepare(block, nb_rows, &irs, &ics, &length, settings) != 0) {
         return 0;
     }
 

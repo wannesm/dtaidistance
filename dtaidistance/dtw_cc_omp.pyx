@@ -31,12 +31,12 @@ def distance_matrix(cur, block=None, **kwargs):
     """
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesPointers ptrs
-    cdef int length = 0
-    cdef int block_rb=0
-    cdef int block_re=0
-    cdef int block_cb=0
-    cdef int block_ce=0
-    cdef ri = 0
+    cdef Py_ssize_t length = 0
+    cdef Py_ssize_t block_rb=0
+    cdef Py_ssize_t block_re=0
+    cdef Py_ssize_t block_cb=0
+    cdef Py_ssize_t block_ce=0
+    cdef Py_ssize_t ri = 0
     if block is not None and block != 0.0:
         block_rb = block[0][0]
         block_re = block[0][1]

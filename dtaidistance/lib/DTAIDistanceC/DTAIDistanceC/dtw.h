@@ -14,6 +14,7 @@
 #include <math.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -37,48 +38,52 @@ typedef double dtwvalue;
  @param penalty: Customize the cost for expansion or compression.
  @param psi: Psi relaxation allows to ignore this number of entries at the beginning
         and/or end of both sequences.
- 
- @remark We use int instead of size_t because we need operations on the indices that return
-         negative results (e.g. negative ranges).
+ @param use_ssize_t: Internal variable. Check if array size would exceed SIZE_MAX (true)
+        or PTRDIFF_MAX (false).
  */
 struct DTWSettings_s {
-    int window;
+    size_t window;
     dtwvalue max_dist;
     dtwvalue max_step;
-    int max_length_diff;
+    size_t max_length_diff;
     dtwvalue penalty;
-    int psi;
+    size_t psi;
+    bool use_ssize_t;
 };
 typedef struct DTWSettings_s DTWSettings;
 
 struct DTWBlock_s {
-    int rb;
-    int re;
-    int cb;
-    int ce;
+    size_t rb;
+    size_t re;
+    size_t cb;
+    size_t ce;
 };
 typedef struct DTWBlock_s DTWBlock;
 
 
-// DTW
+// Settings
 DTWSettings dtw_default_settings(void);
-dtwvalue dtw_distance(dtwvalue *s1, int l1, dtwvalue *s2, int l2, DTWSettings *settings);
-dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, int l1, dtwvalue *s2, int l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
+void dtw_print_settings(DTWSettings *settings);
+
+// DTW
+dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
+dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
 
 // Distance matrix
 DTWBlock dtw_empty_block(void);
-size_t dtw_distances_ptrs(dtwvalue **ptrs, int nb_ptrs, int* lengths, dtwvalue* output,
+void dtw_print_block(DTWBlock *block);
+bool dtw_block_is_valid(DTWBlock *block, size_t nb_series);
+size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
                           DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_matrix(dtwvalue *matrix, int nb_rows, int nb_cols, dtwvalue* output,
+size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output,
                             DTWBlock* block, DTWSettings* settings);
-int dtw_distances_length(DTWBlock *block, int nb_series);
+size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t);
 
 // Auxiliary functions
 void dtw_set_printprecision(int precision);
 void dtw_reset_printprecision(void);
 
-void dtw_print_wps(dtwvalue * wps, int l1, int l2);
-void dtw_print_twoline(dtwvalue * dtw, int r, int c, int length, int i0, int i1, int skip, int skipp, int maxj, int minj);
-void dtw_print_settings(DTWSettings *settings);
+void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2);
+void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0, int i1, size_t skip, size_t skipp, size_t maxj, size_t minj);
 
 #endif /* dtw_h */
