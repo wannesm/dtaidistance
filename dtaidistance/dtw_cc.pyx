@@ -63,7 +63,7 @@ cdef class DTWSettings:
         self._settings.use_ssize_t = True  # adapt to Py_ssize_t
 
     def __init__(self, **kwargs):
-        self._settings = dtaidistancec.dtw_default_settings()
+        self._settings = dtaidistancec.dtw_settings_default()
         if "window" in kwargs:
             if kwargs["window"] is None:
                 self._settings.window = 0

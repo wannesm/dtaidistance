@@ -1,25 +1,20 @@
-//
-//  dtw.c
-//  DTAIDistance
-//
-//  Copyright © 2020 Wannes Meert.
-//  Apache License, Version 2.0, see LICENSE for details.
-//
+/*!
+@file dtw.c
+@brief DTAIDistance.dtw
+
+@author Wannes Meert
+@copyright Copyright © 2020 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
+*/
 #include "dtw.h"
 
 
 //#define DTWDEBUG
 
 
-void intHandler(int dummy) {
-    printf("Interrupt process, stopping ...\n");
-    keepRunning = 0;
-}
-
-// MARK: DTW
+// MARK: Settings
 
 /* Create settings struct with default values (all extras deactivated). */
-DTWSettings dtw_default_settings(void) {
+DTWSettings dtw_settings_default(void) {
     DTWSettings s = {
         .window = 0,
         .max_dist = 0,
@@ -32,20 +27,35 @@ DTWSettings dtw_default_settings(void) {
     return s;
 }
 
-/*
- Compute the DTW between two series.
- 
- @param s1: First sequence
- @param l1: length of first sequence
- @param s2: Second sequence
- @param l2: length of second sequence
- @param settings: A struct with options for the DTW algorithm.
- */
+void dtw_settings_print(DTWSettings *settings) {
+    printf("DTWSettings {\n");
+    printf("  window = %zu\n", settings->window);
+    printf("  max_dist = %f\n", settings->max_dist);
+    printf("  max_step = %f\n", settings->max_step);
+    printf("  max_length_diff = %zu\n", settings->max_length_diff);
+    printf("  penalty = %f\n", settings->penalty);
+    printf("  psi = %zu\n", settings->psi);
+    printf("  use_ssize_t = %d\n", settings->use_ssize_t);
+    printf("}\n");
+}
+
+// MARK: DTW
+
+/**
+Compute the DTW between two series.
+
+@param s1 First sequence
+@param l1 Length of first sequence
+@param s2 Second sequence
+@param l2 Length of second sequence
+@param settings A DTWSettings struct with options for the DTW algorithm.
+*/
 dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
                       dtwvalue *s2, size_t l2,
                       DTWSettings *settings) {
     size_t ldiff;
-    signal(SIGINT, intHandler);
+    size_t dl;
+    signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
     dtwvalue max_step = settings->max_step;
@@ -59,6 +69,11 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
         ldiff = l1 - l2;
     } else {
         ldiff  = l2 - l1;
+    }
+    if (l1 > l2) {
+        dl = ldiff;
+    } else {
+        dl = 0;
     }
     if (settings->max_length_diff != 0 && ldiff > settings->max_length_diff) {
         return INFINITY;
@@ -99,7 +114,12 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     int i1 = 0;
     size_t minj;
     size_t maxj;
-    size_t dl;
+    size_t curidx;
+    size_t dl_window = dl + window - 1;
+    size_t ldiff_window = window;
+    if (l2 > l1) {
+        ldiff_window += ldiff;
+    }
     dtwvalue minv;
     dtwvalue d; // DTYPE_t
     dtwvalue tempv;
@@ -116,19 +136,9 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             prev_last_under_max_dist = last_under_max_dist;
         }
         last_under_max_dist = -1;
-        if (l1 > l2) {
-            dl = ldiff;
-        } else {
-            dl = 0;
-        }
-        maxj = i + 1;
-        if (maxj > dl) {
-            maxj -= dl;
-        } else {
-            maxj = 0;
-        }
-        if (maxj > window) {
-            maxj -= window;
+        maxj = i;
+        if (maxj > dl_window) {
+            maxj -= dl_window;
         } else {
             maxj = 0;
         }
@@ -142,10 +152,9 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
         if (length == l2 + 1) {
             skip = 0;
         }
-        minj = i + window;
-        if (l2 > l1) {
-            minj += ldiff;
-        }
+        // No risk for overflow/modulo because we also need to store dtw of size
+        // MIN(l2+1, ldiff + 2*window + 1) ?
+        minj = i + ldiff_window;
         if (minj > l2) {
             minj = l2;
         }
@@ -161,30 +170,35 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             #endif
             d = pow(s1[i] - s2[j], 2);
             if (d > max_step) {
+                // Let the value be INFINITY as initialized
                 continue;
             }
-            minv = dtw[i0*length + j - skipp];
-            tempv = dtw[i0*length + j + 1 - skipp] + penalty;
+            curidx = i0*length + j - skipp;
+            minv = dtw[curidx];
+            curidx += 1;
+            tempv = dtw[curidx] + penalty;
             if (tempv < minv) {
                 minv = tempv;
             }
-            tempv = dtw[i1*length + j - skip] + penalty;
+            curidx = i1*length + j - skip;
+            tempv = dtw[curidx] + penalty;
             if (tempv < minv) {
                 minv = tempv;
             }
             #ifdef DTWDEBUG
             printf("d = %f, minv = %f\n", d, minv);
             #endif
-            dtw[i1 * length + j + 1 - skip] = d + minv;
+            curidx += 1;
+            dtw[curidx] = d + minv;
             #ifdef DTWDEBUG
             printf("%zu, %zu, %zu\n",i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip);
             printf("%f, %f, %f\n",dtw[i0*length + j - skipp],dtw[i0*length + j + 1 - skipp],dtw[i1*length + j - skip]);
             printf("i=%zu, j=%zu, d=%f, skip=%zu, skipp=%zu\n",i,j,d,skip,skipp);
             #endif
-            if (dtw[i1*length + j + 1 - skip] <= max_dist) {
+            if (dtw[curidx] <= max_dist) {
                 last_under_max_dist = j;
             } else {
-                dtw[i1*length + j + 1 - skip] = INFINITY;
+                dtw[curidx] = INFINITY;
                 if (prev_last_under_max_dist + 1 - skipp < j + 1 - skip) {
                     break;
                 }
@@ -199,8 +213,8 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             return INFINITY;
         }
         if (settings->psi != 0 && minj == l2 && l1 - 1 - i <= settings->psi) {
-            if (dtw[i1*length + length - 1] < psi_shortest) {
-                psi_shortest = dtw[i1*length + length - 1];
+            if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
+                psi_shortest = dtw[(i1 + 1)*length - 1];
             }
         }
 #ifdef DTWDEBUG
@@ -208,7 +222,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
 #endif
     }
     if (window - 1 < 0) {
-        l2 = l2 + window - 1;
+        l2 += window - 1;
     }
     dtwvalue result = sqrt(dtw[length * i1 + l2 - skip]);
     if (settings->psi != 0) {
@@ -224,20 +238,20 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     return result;
 }
 
-/*
+/*!
 Compute all warping paths between two series.
-
-@param wps: Empty array of length (l1+1)*(l2+1) in which the warping paths will be stored.
+ 
+@param wps Empty array of length `(l1+1)*(l2+1)` in which the warping paths will be stored.
     It represents the full matrix of warping paths between the two series.
-@param s1: First sequence
-@param l1: length of first sequence
-@param s2: Second sequence
-@param l2: length of second sequence
-@param return_dtw: If only the matrix is required, finding the dtw value can be skipped
+@param s1 First sequence
+@param l1 Length of first sequence
+@param s2 Second sequence
+@param l2 Length of second sequence
+@param return_dtw If only the matrix is required, finding the dtw value can be skipped
     to save operations.
-@param do_sqrt: Apply the sqrt operations on all items in the wps array. If not required,
+@param do_sqrt Apply the sqrt operations on all items in the wps array. If not required,
     this can be skipped to save operations.
-@param settings: A struct with options for the DTW algorithm.
+@param settings A DTWSettings struct with options for the DTW algorithm.
  
 @return The dtw value if return_dtw is true; Otherwise -1.
 */
@@ -248,7 +262,7 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
                          DTWSettings *settings) {
     size_t ldiff;
     dtwvalue rvalue = 1;
-    signal(SIGINT, intHandler);
+    signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
     dtwvalue max_step = settings->max_step;
@@ -324,11 +338,11 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
         maxj = i + 1;
         if (maxj > dl) {
             maxj -= dl;
-        } else {
-            maxj = 0;
-        }
-        if (maxj > window) {
-            maxj -= window;
+            if (maxj > window) {
+                maxj -= window;
+            } else {
+                maxj = 0;
+            }
         } else {
             maxj = 0;
         }
@@ -447,10 +461,10 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
 }
 
 
-// MARK: Distance Matrix
+// MARK: Block
 
 /* Create settings struct with default values (all extras deactivated). */
-DTWBlock dtw_empty_block(void) {
+DTWBlock dtw_block_empty(void) {
     DTWBlock b = {
         .rb = 0,  // row-begin
         .re = 0,  // row-end
@@ -461,7 +475,7 @@ DTWBlock dtw_empty_block(void) {
 }
 
 
-void dtw_print_block(DTWBlock *block) {
+void dtw_block_print(DTWBlock *block) {
     printf("DTWBlock {\n");
     printf("  rb = %zu\n", block->rb);
     printf("  re = %zu\n", block->re);
@@ -498,6 +512,9 @@ bool dtw_block_is_valid(DTWBlock *block, size_t nb_series) {
     }
     return true;
 }
+
+
+// MARK: Distance Matrix
 
 
 size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
@@ -636,13 +653,19 @@ size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t)
 }
 
 
-// MARK: Debugging
+// MARK: Auxiliary functions
 
-void dtw_set_printprecision(int precision) {
+/*! Interupt Handler */
+void dtw_int_handler(int dummy) {
+    printf("Interrupt process, stopping ...\n");
+    keepRunning = 0;
+}
+
+void dtw_printprecision_set(int precision) {
     printPrecision = precision;
 }
 
-void dtw_reset_printprecision(void) {
+void dtw_printprecision_reset(void) {
     printPrecision = 3;
 }
 
@@ -699,16 +722,4 @@ void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0
         }
     }
     printf("]]\n");
-}
-
-void dtw_print_settings(DTWSettings *settings) {
-    printf("DTWSettings {\n");
-    printf("  window = %zu\n", settings->window);
-    printf("  max_dist = %f\n", settings->max_dist);
-    printf("  max_step = %f\n", settings->max_step);
-    printf("  max_length_diff = %zu\n", settings->max_length_diff);
-    printf("  penalty = %f\n", settings->penalty);
-    printf("  psi = %zu\n", settings->psi);
-    printf("  use_ssize_t = %d\n", settings->use_ssize_t);
-    printf("}\n");
 }

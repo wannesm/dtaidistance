@@ -1,21 +1,33 @@
-//
-//  dtw_openmp.c
-//  DTAIDistanceC
-//
-//  Copyright © 2020 Wannes Meert.
-//  Apache License, Version 2.0, see LICENSE for details.
-//
+/*!
+@file dtw_openmp.c
+@brief DTAIDistance.dtw
+
+@author Wannes Meert
+@copyright Copyright © 2020 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
+*/
 
 #include "dtw_openmp.h"
 
-
+/**
+ Check the arguments passed to dtw_distances_* and prepare the array of indices to be used.
+ The indices are created upfront to allow for easy parallelization.
+ 
+ @param block Block to indicate which series to compare.
+ @param nb_series Number of series
+ @param irs Row indices
+ @param ics  Column indices
+ @param length Length of (compact) distances matrix
+ @param settings : Settings for DTW
+ 
+ @return 0 if all is ok, other number if not.
+ */
 int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **irs, size_t **ics, size_t *length, DTWSettings *settings) {
     size_t r, c;
     size_t cb, ir;
     
     *length = dtw_distances_length(block, nb_series, settings->use_ssize_t);
     if (length == 0) {
-        return 0;
+        return 1;
     }
     
     // Correct block

@@ -21,7 +21,7 @@ void benchmark1() {
        ra2[i] = rand() % 10;
    }
    
-   DTWSettings settings = dtw_default_settings();
+   DTWSettings settings = dtw_settings_default();
    double d = dtw_distance(ra1, size, ra2, size, &settings);
    
    printf("... done\n");
@@ -56,8 +56,8 @@ void benchmark2() {
         printf("Error: benchmark - Cannot allocate memory for result (size=%zu)\n", rl);
         return;
     }
-    DTWSettings settings = dtw_default_settings();
-    DTWBlock block = dtw_empty_block();
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
     dtw_matrix_parallel(s, 6*n, lengths, result, &block, &settings);
 //    for (int i=0; i<rl; i++) {
 //        printf("%.2f ", result[i]);

@@ -19,6 +19,10 @@
 		C06FD20824AA10F600892537 /* dtw.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD1DE24A652F100892537 /* dtw.c */; };
 		C06FD20924AA10F600892537 /* dtw_openmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20024A9DB1F00892537 /* dtw_openmp.c */; };
 		C06FD20A24AA10F600892537 /* tests_matrix.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20424AA0BBC00892537 /* tests_matrix.c */; };
+		C0CD703F24AF4F1F00F1BB3B /* dtw.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD1DE24A652F100892537 /* dtw.c */; };
+		C0CD704024AF4F1F00F1BB3B /* dtw_openmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20024A9DB1F00892537 /* dtw_openmp.c */; };
+		C0CD704124AF4F1F00F1BB3B /* tests_matrix.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20424AA0BBC00892537 /* tests_matrix.c */; };
+		C0CD704824AF4F3500F1BB3B /* tests_dtw.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD1E024A8DE1800892537 /* tests_dtw.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -58,6 +62,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		C0CD704324AF4F1F00F1BB3B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -69,11 +82,11 @@
 		C06FD1E624A8DF9900892537 /* DTAIDistanceCTestDTW */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestDTW; sourceTree = BUILT_PRODUCTS_DIR; };
 		C06FD1F124A9487C00892537 /* benchmark.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = benchmark.c; sourceTree = "<group>"; };
 		C06FD1F624A94A2600892537 /* DTAIDistanceCBenchmark */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCBenchmark; sourceTree = BUILT_PRODUCTS_DIR; };
-		C06FD1F824A94A2600892537 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		C06FD1FF24A9DB1F00892537 /* dtw_openmp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dtw_openmp.h; sourceTree = "<group>"; };
 		C06FD20024A9DB1F00892537 /* dtw_openmp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dtw_openmp.c; sourceTree = "<group>"; };
 		C06FD20424AA0BBC00892537 /* tests_matrix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = tests_matrix.c; sourceTree = "<group>"; };
 		C06FD21124AA10F600892537 /* DTAIDistanceCTestMatrix */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestMatrix; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0CD704724AF4F1F00F1BB3B /* DTAIDistanceCTestAll */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestAll; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +118,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0CD704224AF4F1F00F1BB3B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -112,7 +132,6 @@
 			isa = PBXGroup;
 			children = (
 				C06FD1D524A652B400892537 /* DTAIDistanceC */,
-				C06FD1F724A94A2600892537 /* DTAIDistanceCBenchmark */,
 				C06FD1D424A652B400892537 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -124,6 +143,7 @@
 				C06FD1E624A8DF9900892537 /* DTAIDistanceCTestDTW */,
 				C06FD1F624A94A2600892537 /* DTAIDistanceCBenchmark */,
 				C06FD21124AA10F600892537 /* DTAIDistanceCTestMatrix */,
+				C0CD704724AF4F1F00F1BB3B /* DTAIDistanceCTestAll */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -141,14 +161,6 @@
 				C06FD20424AA0BBC00892537 /* tests_matrix.c */,
 			);
 			path = DTAIDistanceC;
-			sourceTree = "<group>";
-		};
-		C06FD1F724A94A2600892537 /* DTAIDistanceCBenchmark */ = {
-			isa = PBXGroup;
-			children = (
-				C06FD1F824A94A2600892537 /* main.c */,
-			);
-			path = DTAIDistanceCBenchmark;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -222,6 +234,23 @@
 			productReference = C06FD21124AA10F600892537 /* DTAIDistanceCTestMatrix */;
 			productType = "com.apple.product-type.tool";
 		};
+		C0CD703D24AF4F1F00F1BB3B /* DTAIDistanceCTestAll */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C0CD704424AF4F1F00F1BB3B /* Build configuration list for PBXNativeTarget "DTAIDistanceCTestAll" */;
+			buildPhases = (
+				C0CD703E24AF4F1F00F1BB3B /* Sources */,
+				C0CD704224AF4F1F00F1BB3B /* Frameworks */,
+				C0CD704324AF4F1F00F1BB3B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DTAIDistanceCTestAll;
+			productName = DTAIDistanceTest;
+			productReference = C0CD704724AF4F1F00F1BB3B /* DTAIDistanceCTestAll */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -259,6 +288,7 @@
 				C06FD1F524A94A2600892537 /* DTAIDistanceCBenchmark */,
 				C06FD1E524A8DF9900892537 /* DTAIDistanceCTestDTW */,
 				C06FD20624AA10F600892537 /* DTAIDistanceCTestMatrix */,
+				C0CD703D24AF4F1F00F1BB3B /* DTAIDistanceCTestAll */,
 			);
 		};
 /* End PBXProject section */
@@ -301,6 +331,17 @@
 				C06FD20824AA10F600892537 /* dtw.c in Sources */,
 				C06FD20924AA10F600892537 /* dtw_openmp.c in Sources */,
 				C06FD20A24AA10F600892537 /* tests_matrix.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C0CD703E24AF4F1F00F1BB3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C0CD703F24AF4F1F00F1BB3B /* dtw.c in Sources */,
+				C0CD704024AF4F1F00F1BB3B /* dtw_openmp.c in Sources */,
+				C0CD704824AF4F3500F1BB3B /* tests_dtw.c in Sources */,
+				C0CD704124AF4F1F00F1BB3B /* tests_matrix.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,6 +611,50 @@
 			};
 			name = Release;
 		};
+		C0CD704524AF4F1F00F1BB3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 2462T87J45;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				OTHER_CFLAGS = (
+					"-Xpreprocessor",
+					"-fopenmp",
+				);
+				OTHER_LDFLAGS = (
+					"-lcriterion",
+					"-lomp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		C0CD704624AF4F1F00F1BB3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = YES;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 2462T87J45;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = /usr/local/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				OTHER_CFLAGS = (
+					"-Xpreprocessor",
+					"-fopenmp",
+				);
+				OTHER_LDFLAGS = (
+					"-lcriterion",
+					"-lomp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -614,6 +699,15 @@
 			buildConfigurations = (
 				C06FD20F24AA10F600892537 /* Debug */,
 				C06FD21024AA10F600892537 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C0CD704424AF4F1F00F1BB3B /* Build configuration list for PBXNativeTarget "DTAIDistanceCTestAll" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C0CD704524AF4F1F00F1BB3B /* Debug */,
+				C0CD704624AF4F1F00F1BB3B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

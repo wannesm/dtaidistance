@@ -17,7 +17,7 @@ cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw.h":
         size_t cb
         size_t ce
 
-    DTWSettings dtw_default_settings()
+    DTWSettings dtw_settings_default()
     dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2,
                           DTWSettings *settings)
     dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, int l2,
