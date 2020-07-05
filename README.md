@@ -78,7 +78,7 @@ the distance measure computation:
 - `max_step`: Do not allow steps larger than this value.
 - `max_length_diff`: Return infinity if difference in length of two series is larger.
 - `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
-- `psi`: Psi relaxation to ignore begin and/or end of sequences (for cylical sequencies) [2].
+- `psi`: Psi relaxation to ignore begin and/or end of sequences (for cylical sequences) [2].
 
 
 #### DTW Distance Measure all warping paths
@@ -92,7 +92,7 @@ If, next to the distance, you also want the full matrix to see all possible warp
     print(distance)
     print(paths)
 
-The matrix with all warping paths can be visualised as follows:
+The matrix with all warping paths can be visualized as follows:
 
     from dtaidistance import dtw
     from dtaidistance import dtw_visualisation as dtwvis
@@ -184,7 +184,7 @@ wrapper for the SciPy linkage method).
 
 
 For models that keep track of the full clustering tree (`HierarchicalTree` or `LinkageTree`), the
-tree can be visualised:
+tree can be visualized:
 
     model.plot("myplot.png")
 

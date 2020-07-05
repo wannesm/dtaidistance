@@ -54,7 +54,7 @@ class Hierarchical:
         """Merge sequences.
 
         :param series: Iterator over series.
-        :return: Dictionary with as keys the prototype indicices and as values all the indicides of the series in
+        :return: Dictionary with as keys the prototype indices and as values all the indices of the series in
             that cluster.
         """
         nb_series = len(series)

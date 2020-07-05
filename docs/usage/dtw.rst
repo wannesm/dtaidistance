@@ -105,7 +105,7 @@ possible warping paths:
     print(distance)
     print(paths)
 
-The matrix with all warping paths can be visualised as follows:
+The matrix with all warping paths can be visualized as follows:
 
 ::
 
