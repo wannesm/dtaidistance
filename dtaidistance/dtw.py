@@ -12,7 +12,9 @@ Dynamic Time Warping (DTW)
 """
 import logging
 import math
+import array
 
+from . import util
 from .util import SeriesContainer
 
 
@@ -48,8 +50,14 @@ except ImportError:
 try:
     import numpy as np
     DTYPE = np.double
+    argmin = np.argmin
+    array_min = np.min
+    array_max = np.max
 except ImportError:
     np = None
+    argmin = util.argmin
+    array_min = min
+    array_max = max
 
 
 def try_import_c():
@@ -60,6 +68,9 @@ def try_import_c():
         print('Cannot import C library')
         print(exc)
         dtw_cc = None
+
+
+inf = float("inf")
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
@@ -73,8 +84,8 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
     for i in range(len(s1)):
         imin = max(0, i - max(0, len(s1) - len(s2)) - window + 1)
         imax = min(len(s2), i + max(0, len(s2) - len(s1)) + window)
-        ui = np.max(s2[imin:imax])
-        li = np.min(s2[imin:imax])
+        ui = array_max(s2[imin:imax])
+        li = array_min(s2[imin:imax])
         ci = s1[i]
         if ci > ui:
             t += abs(ci - ui)
@@ -141,17 +152,17 @@ def distance(s1, s2,
                                  use_pruning=use_pruning)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
-        return np.inf
+        return inf
     if window is None:
         window = max(r, c)
     if not max_step:
-        max_step = np.inf
+        max_step = inf
     else:
         max_step *= max_step
     if use_pruning:
         max_dist = ub_euclidean(s1, s2)**2
     elif not max_dist:
-        max_dist = np.inf
+        max_dist = inf
     else:
         max_dist *= max_dist
     if not penalty:
@@ -162,34 +173,36 @@ def distance(s1, s2,
         psi = 0
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
-    dtw = np.full((2, length), np.inf)
-    # dtw[0, 0] = 0
+    dtw = array.array('d', [inf] * (2 * length))
+    sc = 0
+    ec = 0
+    ec_next = 0
+    smaller_found = False
     for i in range(psi + 1):
-        dtw[0, i] = 0
-    last_under_max_dist = 0
+        dtw[i] = 0
     skip = 0
     i0 = 1
     i1 = 0
-    psi_shortest = np.inf
+    psi_shortest = inf
     for i in range(r):
         # print("i={}".format(i))
         # print(dtw)
-        if last_under_max_dist == -1:
-            prev_last_under_max_dist = np.inf
-        else:
-            prev_last_under_max_dist = last_under_max_dist
-        last_under_max_dist = -1
         skipp = skip
         skip = max(0, i - max(0, r - c) - window + 1)
         i0 = 1 - i0
         i1 = 1 - i1
-        dtw[i1, :] = np.inf
+        for ii in range(i1*length, i1*length+length):
+            dtw[ii] = inf
         j_start = max(0, i - max(0, r - c) - window + 1)
         j_end = min(c, i + max(0, c - r) + window)
-        if dtw.shape[1] == c + 1:
+        if sc > j_start:
+            j_start = sc
+        smaller_found = False
+        ec_next = i
+        if length == c + 1:
             skip = 0
         if psi != 0 and j_start == 0 and i < psi:
-            dtw[i1, 0] = 0
+            dtw[i1 * length] = 0
         for j in range(j_start, j_end):
             d = (s1[i] - s2[j])**2
             if d > max_step:
@@ -198,34 +211,33 @@ def distance(s1, s2,
             assert j - skipp >= 0
             assert j + 1 - skipp >= 0
             assert j - skip >= 0
-            dtw[i1, j + 1 - skip] = d + min(dtw[i0, j - skipp],
-                                            dtw[i0, j + 1 - skipp] + penalty,
-                                            dtw[i1, j - skip] + penalty)
+            dtw[i1 * length + j + 1 - skip] = d + min(dtw[i0 * length + j - skipp],
+                                                      dtw[i0 * length + j + 1 - skipp] + penalty,
+                                                      dtw[i1 * length + j - skip] + penalty)
             # print('({},{}), ({},{}), ({},{})'.format(i0, j - skipp, i0, j + 1 - skipp, i1, j - skip))
             # print('{}, {}, {}'.format(dtw[i0, j - skipp], dtw[i0, j + 1 - skipp], dtw[i1, j - skip]))
             # print('i={}, j={}, d={}, skip={}, skipp={}'.format(i,j,d,skip,skipp))
             # print(dtw)
-            if dtw[i1, j + 1 - skip] <= max_dist:
-                last_under_max_dist = j
-            else:
-                # print('above max_dist', dtw[i1, j + 1 - skip], i1, j + 1 - skip)
-                dtw[i1, j + 1 - skip] = np.inf
-                if prev_last_under_max_dist + 1 - skipp < j + 1 - skip:
-                    # print("break")
+            if dtw[i1 * length + j + 1 - skip] > max_dist:
+                if not smaller_found:
+                    sc = j + 1
+                if j >= ec:
                     break
-        if last_under_max_dist == -1:
-            # print('early stop')
-            # print(dtw)
-            return np.inf
+            else:
+                smaller_found = True
+                ec_next = j + 1
+        ec = ec_next
         if psi != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi:
-            psi_shortest = min(psi_shortest, dtw[i1, length - 1])
+            psi_shortest = min(psi_shortest, dtw[i1 * length + length - 1])
     if psi == 0:
-        d = math.sqrt(dtw[i1, min(c, c + window - 1) - skip])
+        d = math.sqrt(dtw[i1 * length + min(c, c + window - 1) - skip])
     else:
         ic = min(c, c + window - 1) - skip
-        vc = dtw[i1, ic - psi:ic + 1]
-        d = min(np.min(vc), psi_shortest)
+        vc = dtw[i1 * length + ic - psi:i1 * length + ic + 1]
+        d = min(array_min(vc), psi_shortest)
         d = math.sqrt(d)
+    if max_dist and d > max_dist:
+        d = inf
     return d
 
 
@@ -287,17 +299,19 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param psi: see :meth:`distance`
     :returns: (DTW distance, DTW matrix)
     """
+    if np is None:
+        logger.error("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
-        return np.inf
+        return inf
     if window is None:
         window = max(r, c)
     if not max_step:
-        max_step = np.inf
+        max_step = inf
     else:
         max_step *= max_step
     if not max_dist:
-        max_dist = np.inf
+        max_dist = inf
     else:
         max_dist *= max_dist
     if not penalty:
@@ -306,22 +320,26 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         penalty *= penalty
     if psi is None:
         psi = 0
-    dtw = np.full((r + 1, c + 1), np.inf)
+    dtw = np.full((r + 1, c + 1), inf)
     # dtw[0, 0] = 0
     for i in range(psi + 1):
         dtw[0, i] = 0
         dtw[i, 0] = 0
-    last_under_max_dist = 0
     i0 = 1
     i1 = 0
+    sc = 0
+    ec = 0
+    smaller_found = False
+    ec_next = 0
     for i in range(r):
-        if last_under_max_dist == -1:
-            prev_last_under_max_dist = np.inf
-        else:
-            prev_last_under_max_dist = last_under_max_dist
-        last_under_max_dist = -1
         i0 = i
         i1 = i + 1
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
+        if sc > j_start:
+            j_start = sc
+        smaller_found = False
+        ec_next = i
         # print('i =', i, 'skip =',skip, 'skipp =', skipp)
         # jmin = max(0, i - max(0, r - c) - window + 1)
         # jmax = min(c, i + max(0, c - r) + window)
@@ -331,7 +349,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         # print(x,y,dtw[i+1, jmin+1-skip:jmax+1-skip])
         # dtw[i+1, jmin+1-skip:jmax+1-skip] = np.minimum(x,
         #                                                y)
-        for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
+        for j in range(j_start, j_end):
             # print('j =', j, 'max=',min(c, c - r + i + window))
             d = (s1[i] - s2[j])**2
             if max_step is not None and d > max_step:
@@ -341,17 +359,14 @@ def warping_paths(s1, s2, window=None, max_dist=None,
                                      dtw[i0, j + 1] + penalty,
                                      dtw[i1, j] + penalty)
             # dtw[i + 1, j + 1 - skip] = d + min(dtw[i + 1, j + 1 - skip], dtw[i + 1, j - skip])
-            if max_dist is not None:
-                if dtw[i1, j + 1] <= max_dist:
-                    last_under_max_dist = j
-                else:
-                    dtw[i1, j + 1] = np.inf
-                    if prev_last_under_max_dist < j + 1:
-                        break
-        if max_dist is not None and last_under_max_dist == -1:
-            # print('early stop')
-            # print(dtw)
-            return np.inf, dtw
+            if dtw[i1, j + 1] > max_dist:
+                if not smaller_found:
+                    sc = j + 1
+                if j >= ec:
+                    break
+            else:
+                smaller_found = True
+                ec_next = j + 1
     dtw = np.sqrt(dtw)
     if psi == 0:
         d = dtw[i1, min(c, c + window - 1)]
@@ -360,20 +375,25 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         ic = min(c, c + window - 1)
         vr = dtw[ir-psi:ir+1, ic]
         vc = dtw[ir, ic-psi:ic+1]
-        mir = np.argmin(vr)
-        mic = np.argmin(vc)
+        mir = argmin(vr)
+        mic = argmin(vc)
         if vr[mir] < vc[mic]:
             dtw[ir-psi+mir+1:ir+1, ic] = -1
             d = vr[mir]
         else:
             dtw[ir, ic - psi + mic + 1:ic+1] = -1
             d = vc[mic]
+    if max_dist and d > max_dist:
+        d = inf
     return d, dtw
 
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
                        max_step=None, max_length_diff=None, penalty=None, psi=None):
     """Fast C version of :meth:`distance`."""
+    if np is None:
+        logger.error("Numpy is required for the warping_paths_fast method")
+        logger.error("You can call the dtw_cc.warping_paths method directly with an array.array.")
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
@@ -389,7 +409,7 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
         penalty = 0
     if psi is None:
         psi = 0
-    dtw = np.full((r + 1, c + 1), np.inf)
+    dtw = np.full((r + 1, c + 1), inf)
     d = dtw_cc.warping_paths(dtw, s1, s2,
                              window=window,
                              max_dist=max_dist,
@@ -458,7 +478,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     }
     s = SeriesContainer.wrap(s)
     if max_length_diff is None:
-        max_length_diff = np.inf
+        max_length_diff = inf
     dists = None
     if use_c:
         for k, v in dist_opts.items():
@@ -514,7 +534,9 @@ def distances_array_to_matrix(dists, nb_series, block=None):
 
     The upper triangular matrix will contain all the distances.
     """
-    dists_matrix = np.full((nb_series, nb_series), np.inf, dtype=DTYPE)
+    if np is None:
+        logger.error("Numpy is required for the distances_array_to_matrix method")
+    dists_matrix = np.full((nb_series, nb_series), inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists
     # dists_cond = np.zeros(self._size_cond(len(series)))
@@ -540,8 +562,7 @@ def distance_array_index(a, b, nb_series):
 def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=None, dist_opts=None):
     if dist_opts is None:
         dist_opts = {}
-    large_value = np.inf
-    dists = np.full((_distance_matrix_length(block, len(s)),), large_value, dtype=DTYPE)
+    dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
     if block is None:
         it_r = range(len(s))
     else:
@@ -563,15 +584,21 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
 
 def _distance_matrix_idxs(block, nb_series):
     if block is None or block == 0:
-        idxs = np.triu_indices(nb_series, k=1)
-    else:
-        idxsl_r = []
-        idxsl_c = []
-        for r in range(block[0][0], block[0][1]):
-            for c in range(max(r + 1, block[1][0]), min(nb_series, block[1][1])):
-                idxsl_r.append(r)
-                idxsl_c.append(c)
+        if np is not None:
+            idxs = np.triu_indices(nb_series, k=1)
+            return idxs
+        # Numpy is not available
+        block = ((0, nb_series), (0, nb_series))
+    idxsl_r = []
+    idxsl_c = []
+    for r in range(block[0][0], block[0][1]):
+        for c in range(max(r + 1, block[1][0]), min(nb_series, block[1][1])):
+            idxsl_r.append(r)
+            idxsl_c.append(c)
+    if np is not None:
         idxs = (np.array(idxsl_r), np.array(idxsl_c))
+    else:
+        idxs = (idxsl_r, idxsl_c)
     return idxs
 
 
@@ -672,12 +699,13 @@ def warp(from_s, to_s, path=None, **kwargs):
     """
     if path is None:
         path = warping_path(from_s, to_s, **kwargs)
-    from_s2 = np.zeros(len(to_s))
-    from_s2_cnt = np.zeros(len(to_s))
+    from_s2 = array.array('d', [0] * len(to_s))
+    from_s2_cnt = array.array('i', [0] * len(to_s))
     for r_c, c_c in path:
         from_s2[c_c] += from_s[r_c]
         from_s2_cnt[c_c] += 1
-    from_s2 /= from_s2_cnt
+    for i in range(len(to_s)):
+        from_s2[i] /= from_s2_cnt[i]
     return from_s2, path
 
 
@@ -703,7 +731,7 @@ def best_path(paths):
     if paths[i, j] != -1:
         p.append((i - 1, j - 1))
     while i > 0 and j > 0:
-        c = np.argmin([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
+        c = argmin([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         if c == 0:
             i, j = i - 1, j - 1
         elif c == 1:

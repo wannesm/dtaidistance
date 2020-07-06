@@ -176,3 +176,11 @@ def recompile():
     import subprocess as sp
 
     sp.run([sys.executable, "setup.py", "build_ext", "--inplace"], cwd=dtaidistance_dir)
+
+
+def argmin(a):
+    imin, vmin = 0, float("inf")
+    for i, v in enumerate(a):
+        if v < vmin:
+            imin, vmin = i, v
+    return imin
