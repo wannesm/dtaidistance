@@ -102,7 +102,7 @@ def test_distance3_a():
 
 
 def test_distance4():
-    with dtw_numpy.test_uses_numpy() as np:
+    with dtw_numpy.test_uses_numpy(strict=False) as np:
         try:
             import pandas as pd
         except ImportError:

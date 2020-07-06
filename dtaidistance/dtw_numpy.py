@@ -28,15 +28,26 @@ class NumpyStub:
 
 
 class test_uses_numpy(ContextDecorator):
+    def __init__(self, strict=True):
+        """Context to construct tests that use the optional dependency Numpy.
+
+        :param strict: Throw error if Numpy is not used (to remove context where not necessary)
+        :return: Numpy stub
+        """
+        self.strict = strict
+        self.testwithoutnp = test_without_numpy()
+
     def __enter__(self):
-        self.testwithoutnp = False
-        if "DTAIDISTANCE_TESTWITHOUTNUMPY" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTNUMPY"] == "1":
-            self.testwithoutnp = True
         return NumpyStub(self.testwithoutnp)
 
     def __exit__(self, *exc):
         if self.testwithoutnp:
             if exc[0] is None:
-                return
+                if self.strict and self.testwithoutnp:
+                    # If no NumpyException is thrown, this test did not use Numpy because no error was thrown
+                    # and should not use this decorator
+                    raise Exception("Test does not use Numpy, remove decorator!")
+                else:
+                    return
             if issubclass(exc[0], NumpyException):
                 return True
