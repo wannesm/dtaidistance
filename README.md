@@ -68,13 +68,14 @@ Only the distance measure based on two sequences of numbers:
     distance = dtw.distance(s1, s2)
     print(distance)
 
-The fastest version (30-300 times) uses c directly but requires an array as input (with the double type):
+The fastest version (30-300 times) uses c directly but requires an array as input (with the double type),
+and (optionally) also prunes computations by setting `max_dist` to the Euclidean upper bound:
 
     from dtaidistance import dtw
     import array
     s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
     s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
+    d = dtw.distance_fast(s1, s2, use_pruning=True)
 
 Or you can use a numpy array (with dtype double or float):
 
@@ -82,7 +83,7 @@ Or you can use a numpy array (with dtype double or float):
     import numpy as np
     s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
     s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
+    d = dtw.distance_fast(s1, s2, use_pruning=True)
 
 
 Check the `__doc__` for information about the available arguments:
