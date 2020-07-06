@@ -85,10 +85,28 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
     return t
 
 
+def ub_euclidean(s1, s2):
+    n = min(len(s1), len(s2))
+    ub = 0
+    for v1, v2 in zip(s1, s2):
+        ub += (v1 - v2)**2
+    # If the two series differ in length, compare the last element of the shortest series
+    # to the remaining elements in the longer series
+    if len(s1) > len(s2):
+        v2 = s2[n - 1]
+        for v1 in s1[n:]:
+            ub += (v1 - v2)**2
+    elif len(s1) < len(s2):
+        v1 = s1[n-1]
+        for v2 in s2[n:]:
+            ub += (v1 - v2)**2
+    return math.sqrt(ub)
+
+
 def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
-             use_c=False):
+             use_c=False, use_pruning=False):
     """
     Dynamic Time Warping.
 
@@ -105,6 +123,8 @@ def distance(s1, s2,
     :param psi: Psi relaxation parameter (ignore start and end of matching).
         Useful for cyclical series.
     :param use_c: Use fast pure c compiled functions
+    :param use_pruning: Prune values based on Euclidean distance.
+        This is the same as passing ub_euclidean() to max_dist
 
     Returns: DTW distance
     """
@@ -117,7 +137,8 @@ def distance(s1, s2,
                                  max_step=max_step,
                                  max_length_diff=max_length_diff,
                                  penalty=penalty,
-                                 psi=psi)
+                                 psi=psi,
+                                 use_pruning=use_pruning)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
@@ -127,7 +148,9 @@ def distance(s1, s2,
         max_step = np.inf
     else:
         max_step *= max_step
-    if not max_dist:
+    if use_pruning:
+        max_dist = ub_euclidean(s1, s2)**2
+    elif not max_dist:
         max_dist = np.inf
     else:
         max_dist *= max_dist
@@ -207,7 +230,7 @@ def distance(s1, s2,
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False):
     """Fast C version of :meth:`distance`.
 
     Note: the series are expected to be arrays of the type ``double``.
@@ -234,7 +257,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                         max_step=max_step,
                         max_length_diff=max_length_diff,
                         penalty=penalty,
-                        psi=psi)
+                        psi=psi,
+                        use_pruning=use_pruning)
     return d
 
 
@@ -383,7 +407,7 @@ def distance_matrix_func(use_c=False, parallel=False, show_progress=False):
     return distance_matrix_wrapper
 
 
-def distance_matrix(s, max_dist=None, max_length_diff=None,
+def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
                     use_c=False, use_mp=False, show_progress=False):
@@ -429,7 +453,8 @@ def distance_matrix(s, max_dist=None, max_length_diff=None,
         'window': window,
         'max_length_diff': max_length_diff,
         'penalty': penalty,
-        'psi': psi
+        'psi': psi,
+        'use_pruning': use_pruning
     }
     s = SeriesContainer.wrap(s)
     if max_length_diff is None:

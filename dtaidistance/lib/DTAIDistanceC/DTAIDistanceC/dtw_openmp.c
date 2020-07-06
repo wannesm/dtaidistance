@@ -40,12 +40,12 @@ int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **irs, size_
 
     *irs = (size_t *)malloc(sizeof(size_t) * *length);
     if (!irs) {
-        printf("Error: dtw_matrix_parallel - cannot allocate memory (length = %zu)", *length);
+        printf("Error: dtw_distances_* - cannot allocate memory (length = %zu)", *length);
         return 1;
     }
     *ics = (size_t *)malloc(sizeof(size_t) * *length);
     if (!ics) {
-        printf("Error: dtw_matrix_parallel - cannot allocate memory (length = %zu)", *length);
+        printf("Error: dtw_distances_* - cannot allocate memory (length = %zu)", *length);
         return 1;
     }
     ir = 0;

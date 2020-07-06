@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <inttypes.h>
+#include <string.h>
 
 #include "dtw.h"
 #include "dtw_openmp.h"
@@ -45,7 +47,7 @@ void benchmark2() {
         s[i*6+4] = s5;
         s[i*6+5] = s6;
     }
-    int lengths[6*n];
+    size_t lengths[6*n];
     for (int i=0; i<6*n; i++) {
         lengths[i] = 9;
     }
@@ -58,7 +60,7 @@ void benchmark2() {
     }
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    dtw_matrix_parallel(s, 6*n, lengths, result, &block, &settings);
+    dtw_distances_ptrs_parallel(s, 6*n, lengths, result, &block, &settings);
 //    for (int i=0; i<rl; i++) {
 //        printf("%.2f ", result[i]);
 //    }
@@ -66,6 +68,36 @@ void benchmark2() {
     free(result);
 }
 
+void benchmark3() {
+    double v = INFINITY;
+    printf("v = %f\n", v);
+    v = v + 1;
+    printf("v + 1 = %f\n", v);
+    
+    double f = INFINITY;
+    uint64_t fn; memcpy(&fn, &f, sizeof f);
+    printf("INFINITY:   %f %" PRIx64 "\n", f, fn);
+}
+
+void benchmark4() {
+    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    DTWSettings settings = dtw_settings_default();
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    printf("d=%f\n", d);
+}
+
+void benchmark5() {
+    dtwvalue s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+    dtwvalue s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_dist = 1.415;
+    dtwvalue wps[10*10];
+    dtwvalue d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
+    printf("d=%f\n", d);
+    dtw_print_wps(wps, 9, 9);
+}
 
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
@@ -74,7 +106,10 @@ int main(int argc, const char * argv[]) {
     time(&start_t);
     
 //    benchmark1();
-    benchmark2();
+//    benchmark2();
+//    benchmark3();
+//    benchmark4();
+    benchmark5();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

@@ -17,9 +17,6 @@
 #include <stddef.h>
 
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
 /**
  @var keepRunning
  @abstract Indicator to track if an interrupt occured requiring the algorithm to exit.
@@ -37,21 +34,23 @@ typedef double dtwvalue;
 /**
 Settings for DTW operations:
  
-@field window: Window size; expressed as distance to a single side, thus
+@field window : Window size; expressed as distance to a single side, thus
        the total window size will be window*2 + 1.
-@field max_dist: Maximal distance, exit early if no lower value is possible
-       and return INFINITY.
-@field max_step: Maximal stepsize, replace value with INFINITY if step is
+@field max_dist : Maximal distance, avoid computing cells that have a larger value.
+       Return INFINITY if no path is found with a distance lower or equal to max_dist.
+@field max_step : Maximal stepsize, replace value with INFINITY if step is
        larger than max_step.
-@field max_length_diff: Maximal difference in length between two series.
+@field max_length_diff : Maximal difference in length between two series.
        If longer, return INFINITY.
-@field penalty: Customize the cost for expansion or compression.
+@field penalty : Customize the cost for expansion or compression.
 @field psi: Psi relaxation allows to ignore this number of entries at the beginning
        and/or end of both sequences.
-@field use_ssize_t: Internal variable. Check if array size would exceed SIZE_MAX (true)
+@field use_ssize_t : Internal variable. Check if array size would exceed SIZE_MAX (true)
        or PTRDIFF_MAX (false).
        This can be used to be compatible with Python's Py_ssize_t when wrapping this
        library: https://www.python.org/dev/peps/pep-0353/
+@field use_pruning : Compute Euclidean distance first to set max_dist (current value in
+       max_dist is ignored).
  */
 struct DTWSettings_s {
     size_t window;
@@ -61,6 +60,7 @@ struct DTWSettings_s {
     dtwvalue penalty;
     size_t psi;
     bool use_ssize_t;
+    bool use_pruning;
 };
 typedef struct DTWSettings_s DTWSettings;
 
@@ -86,8 +86,14 @@ DTWSettings dtw_settings_default(void);
 void        dtw_settings_print(DTWSettings *settings);
 
 // DTW
+typedef dtwvalue (*DTWFnPtr)(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
+
 dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
 dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
+
+// Bound
+dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2);
+dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
 
 // Block
 DTWBlock dtw_block_empty(void);

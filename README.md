@@ -9,6 +9,16 @@ Documentation: http://dtaidistance.readthedocs.io
 Citing this work:
 [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
+**New in v2**:
+
+- Numpy is now an optional dependency, also for the C-code.
+- Small optimizations to improve speed.
+- The parallelization is now implemented directly in C (using OpenMP).
+- The `max_dist` argument turned out to be similar to Silva and Batista's work 
+  on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
+  since it prunes more distance measures. Additionally, a `use_pruning` argument
+  is added to automatically set `max_dist` to the Euclidean distance. 
+
 
 ## Installation
 
@@ -239,6 +249,10 @@ Development:
    In SIGKDD Workshop on Mining and Learning from Time Series, II. Association for Computing Machinery-ACM, 2016.
 6. C. Yanping, K. Eamonn, H. Bing, B. Nurjahan, B. Anthony, M. Abdullah and B. Gustavo.
    [The UCR Time Series Classification Archive](www.cs.ucr.edu/~eamonn/time_series_data/), 2015.
+7. D. F. Silva and G. E. Batista. 
+   [Speeding up all-pairwise dynamic time warping matrix calculation](http://sites.labic.icmc.usp.br/dfs/pdf/SDM_PrunedDTW.pdf),
+   In Proceedings of the 2016 SIAM International Conference on Data Mining, pages 837–845. SIAM, 2016.
+
 
 
 ## License

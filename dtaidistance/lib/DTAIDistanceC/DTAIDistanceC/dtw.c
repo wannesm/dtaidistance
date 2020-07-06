@@ -11,6 +11,11 @@
 //#define DTWDEBUG
 
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define EDIST(x, y) ((x - y) * (x - y))
+
+
 // MARK: Settings
 
 /* Create settings struct with default values (all extras deactivated). */
@@ -55,6 +60,11 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
                       DTWSettings *settings) {
     size_t ldiff;
     size_t dl;
+    // DTWPruned
+    size_t sc = 0;
+    size_t ec = 0;
+    bool smaller_found;
+    size_t ec_next;
     signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
@@ -86,7 +96,9 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     } else {
         max_step = pow(max_step, 2);
     }
-    if (max_dist == 0) {
+    if (settings->use_pruning) {
+        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+    } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
         max_dist = pow(max_dist, 2);
@@ -106,8 +118,6 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     for (i=0; i<settings->psi + 1; i++) {
         dtw[i] = 0;
     }
-    dtwvalue last_under_max_dist = 0;
-    dtwvalue prev_last_under_max_dist = INFINITY;
     size_t skip = 0;
     size_t skipp = 0;
     int i0 = 1;
@@ -130,12 +140,6 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             printf("Stop computing DTW...\n");
             return INFINITY;
         }
-        if (last_under_max_dist == -1) {
-            prev_last_under_max_dist = INFINITY;
-        } else {
-            prev_last_under_max_dist = last_under_max_dist;
-        }
-        last_under_max_dist = -1;
         maxj = i;
         if (maxj > dl_window) {
             maxj -= dl_window;
@@ -158,6 +162,15 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
         if (minj > l2) {
             minj = l2;
         }
+        // PrunedDTW
+        if (sc > maxj) {
+            #ifdef DTWDEBUG
+            printf("correct maxj to sc: %zu -> %zu (saved %zu computations)\n", maxj, sc, sc-maxj);
+            #endif
+            maxj = sc;
+        }
+        smaller_found = false;
+        ec_next = i;
         if (settings->psi != 0 && maxj == 0 && i < settings->psi) {
             dtw[i1*length + 0] = 0;
         }
@@ -168,7 +181,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             #ifdef DTWDEBUG
             printf("ri=%zu,ci=%zu, s1[i] = s1[%zu] = %f , s2[j] = s2[%zu] = %f\n", i, j, i, s1[i], j, s2[j]);
             #endif
-            d = pow(s1[i] - s2[j], 2);
+            d = EDIST(s1[i], s2[j]);
             if (d > max_step) {
                 // Let the value be INFINITY as initialized
                 continue;
@@ -195,36 +208,40 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
             printf("%f, %f, %f\n",dtw[i0*length + j - skipp],dtw[i0*length + j + 1 - skipp],dtw[i1*length + j - skip]);
             printf("i=%zu, j=%zu, d=%f, skip=%zu, skipp=%zu\n",i,j,d,skip,skipp);
             #endif
-            if (dtw[curidx] <= max_dist) {
-                last_under_max_dist = j;
-            } else {
-                dtw[curidx] = INFINITY;
-                if (prev_last_under_max_dist + 1 - skipp < j + 1 - skip) {
+            // PrunedDTW
+            if (dtw[curidx] > max_dist) {
+                #ifdef DTWDEBUG
+                printf("dtw[%zu] = %f > %f\n", curidx, dtw[curidx], max_dist);
+                #endif
+                if (!smaller_found) {
+                    sc = j + 1;
+                }
+                if (j >= ec) {
+                    #ifdef DTWDEBUG
+                    printf("Break because of pruning with j=%zu, ec=%zu (saved %zu computations)\n", j, ec, minj-j);
+                    #endif
                     break;
                 }
+            } else {
+                smaller_found = true;
+                ec_next = j + 1;
             }
         }
-        if (last_under_max_dist == -1) {
-            #ifdef DTWDEBUG
-            printf("early stop\n");
-            dtw_print_twoline(dtw, l1, l2, length, i0, i1, skip, skipp, maxj, minj);
-            #endif
-            free(dtw);
-            return INFINITY;
-        }
+        ec = ec_next;
         if (settings->psi != 0 && minj == l2 && l1 - 1 - i <= settings->psi) {
             if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
                 psi_shortest = dtw[(i1 + 1)*length - 1];
             }
         }
-#ifdef DTWDEBUG
+        #ifdef DTWDEBUG
         dtw_print_twoline(dtw, l1, l2, length, i0, i1, skip, skipp, maxj, minj);
-#endif
+        #endif
     }
     if (window - 1 < 0) {
         l2 += window - 1;
     }
     dtwvalue result = sqrt(dtw[length * i1 + l2 - skip]);
+    // Deal wit psi-relaxation
     if (settings->psi != 0) {
         for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
             if (dtw[i1*length + i] < psi_shortest) {
@@ -235,8 +252,13 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     }
     free(dtw);
     signal(SIGINT, SIG_DFL);
+    if (settings->max_dist !=0 && result > settings->max_dist) {
+        // DTWPruned keeps the last value larger than max_dist. Correct for this.
+        result = INFINITY;
+    }
     return result;
 }
+
 
 /*!
 Compute all warping paths between two series.
@@ -261,12 +283,17 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
                          bool return_dtw, bool do_sqrt,
                          DTWSettings *settings) {
     size_t ldiff;
+    // DTWPruned
+    size_t sc = 0;
+    size_t ec = 0;
+    bool smaller_found;
+    size_t ec_next;
     dtwvalue rvalue = 1;
     signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
     dtwvalue max_step = settings->max_step;
-    dtwvalue max_dist = settings->max_dist;
+    dtwvalue max_dist = settings->max_dist; // upper bound
     dtwvalue penalty = settings->penalty;
     
     #ifdef DTWDEBUG
@@ -291,7 +318,9 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     } else {
         max_step = pow(max_step, 2);
     }
-    if (max_dist == 0) {
+    if (settings->use_pruning) {
+        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+    } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
         max_dist = pow(max_dist, 2);
@@ -306,8 +335,6 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
         wps[i] = 0;
         wps[i * (l2 + 1)] = 0;
     }
-    dtwvalue last_under_max_dist = 0;
-    dtwvalue prev_last_under_max_dist = INFINITY;
     size_t i0 = 1;
     size_t i1 = 0;
     size_t minj;
@@ -318,16 +345,13 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     dtwvalue tempv;
     keepRunning = 1;
     for (i=0; i<l1; i++) {
+        #ifdef DTWDEBUG
+        printf("i=%zu, sc=%zu, ec=%zu\n", i, sc, ec);
+        #endif
         if (!keepRunning){
             printf("Stop computing DTW...\n");
             return INFINITY;
         }
-        if (last_under_max_dist == -1) {
-            prev_last_under_max_dist = INFINITY;
-        } else {
-            prev_last_under_max_dist = last_under_max_dist;
-        }
-        last_under_max_dist = -1;
         i0 = i;
         i1 = i + 1;
         if (l1 > l2) {
@@ -353,11 +377,20 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
         if (minj > l2) {
             minj = l2;
         }
+        // PrunedDTW
+        if (sc > maxj) {
+            #ifdef DTWDEBUG
+            printf("correct maxj to sc: %zu -> %zu (saved %zu computations)\n", maxj, sc, sc-maxj);
+            #endif
+            maxj = sc;
+        }
+        smaller_found = false;
+        ec_next = i;
         for (j=maxj; j<minj; j++) {
             #ifdef DTWDEBUG
-            printf("ri=%zu,ci=%zu, s1[i] = s1[%zu] = %f , s2[j] = s2[%zu] = %f\n", i, j, i, s1[i], j, s2[j]);
+            printf("ri=%zu, ci=%zu, s1[i/%zu]=%f , s2[j/%zu]=%f\n", i, j, i, s1[i], j, s2[j]);
             #endif
-            d = pow(s1[i] - s2[j], 2);
+            d = EDIST(s1[i], s2[j]);
             if (d > max_step) {
                 continue;
             }
@@ -371,36 +404,23 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
                 minv = tempv;
             }
             #ifdef DTWDEBUG
-            printf("d = %f, minv = %f\n", d, minv);
+            printf("wps[%zu,%zu]=%f, d=%f, minv =%f\n", i, j, d+minv, d, minv);
             #endif
             wps[i1 * (l2 + 1) + j + 1] = d + minv;
-            if (wps[i1 * (l2 + 1) + j + 1] <= max_dist) {
-                last_under_max_dist = j;
-            } else {
-                wps[i1 * (l2 + 1) + j + 1] = INFINITY;
-                if (prev_last_under_max_dist + 1 < j + 1) {
+            // PrunedDTW
+            if (wps[i1 * (l2 + 1) + j + 1] > max_dist) {
+                if (!smaller_found) {
+                    sc = j + 1;
+                }
+                if (j >= ec) {
                     break;
                 }
-            }
-        }
-        if (last_under_max_dist == -1) {
-            #ifdef DTWDEBUG
-            printf("early stop\n");
-            #endif
-            if (do_sqrt) {
-                for (i=0; i<(l1 + 1) * (l2 + 1); i++) {
-                    wps[i] = sqrt(wps[i]);
-                }
-            }
-            #ifdef DTWDEBUG
-            dtw_print_wps(wps, l1, l2);
-            #endif
-            if (return_dtw) {
-                return INFINITY;
             } else {
-                return -1;
+                smaller_found = true;
+                ec_next = j + 1;
             }
         }
+        ec = ec_next;
     }
 
     if (do_sqrt) {
@@ -409,6 +429,7 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
         }
     }
     
+    // Deal with Psi-relaxation
     if (return_dtw && settings->psi == 0) {
         rvalue = wps[l1*(l2 + 1) + MIN(l2, l2 + window - 1)];
     } else if (return_dtw) {
@@ -456,8 +477,92 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     #ifdef DTWDEBUG
     dtw_print_wps(wps, l1, l2);
     #endif
-    
+    if (settings->max_dist > 0 && rvalue > settings->max_dist) {
+        // DTWPruned keeps the last value larger than max_dist. Correct for this.
+        rvalue = INFINITY;
+    }
     return rvalue;
+}
+
+
+// MARK: Bound
+
+dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2) {
+    size_t n = MIN(l1, l2);
+    dtwvalue ub = 0;
+    for (size_t i=0; i<n; i++) {
+        ub += EDIST(s1[i], s2[i]);
+    }
+    // If the two series differ in length, compare the last element of the shortest series
+    // to the remaining elements in the longer series
+    if (l1 > l2) {
+        for (size_t i=n; i<l1; i++) {
+            ub += EDIST(s1[i], s2[n-1]);
+        }
+    } else if (l1 < l2) {
+        for (size_t i=n; i<l2; i++) {
+            ub += EDIST(s1[n-1], s2[i]);
+        }
+    }
+    return sqrt(ub);
+}
+
+
+dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings) {
+    size_t window = settings->window;
+    if (window == 0) {
+        window = MAX(l1, l2);
+    }
+    size_t imin, imax;
+    size_t t = 0;
+    dtwvalue ui;
+    dtwvalue li;
+    dtwvalue ci;
+    size_t ldiff12 = l1 + 1;
+    if (ldiff12 > l2) {
+        ldiff12 -= l2;
+        if (ldiff12 > window) {
+            ldiff12 -= window;
+        } else {
+            ldiff12 = 0;
+        }
+    } else {
+        ldiff12 = 0;
+    }
+    size_t ldiff21 = l2 + window;
+    if (ldiff21 > l1) {
+        ldiff21 -= l1;
+    } else {
+        ldiff21 = 0;
+    }
+    
+    for (size_t i=0; i<l1; i++) {
+        if (i > ldiff12) {
+            imin = i - ldiff12;
+        } else {
+            imin = 0;
+        }
+        imax = MAX(l2, ldiff21);
+        ui = 0;
+        for (size_t j=imin; j<imax; j++) {
+            if (s2[j] > ui) {
+                ui = s2[j];
+            }
+        }
+        li = INFINITY;
+        for (size_t j=imin; j<imax; j++) {
+            if (s2[j] < li) {
+                li = s2[j];
+            }
+        }
+        ci = s1[i];
+        if (ci > ui) {
+            t += ci - ui;
+        } else if (ci < li) {
+            t += li - ci;
+        }
+    }
+    return t;
 }
 
 

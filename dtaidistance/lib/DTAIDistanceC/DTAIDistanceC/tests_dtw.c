@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <criterion/criterion.h>
+#include <criterion/parameterized.h>
 
 #include "dtw.h"
 
@@ -21,45 +22,65 @@
 //----------------------------------------------------
 // MARK: DTW
 
-Test(dtw, test_a_a) {
+dtwvalue dtw_warping_paths_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings) {
+    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * (l1 + 1)*  (l2 + 1));
+    return dtw_warping_paths(wps, s1, l1, s2, l2, true, true, settings);
+}
+
+struct dtw_test_params {
+    DTWFnPtr fn;
+    DTWSettings settings;
+};
+
+
+ParameterizedTestParameters(dtw, test_series1) {
+    static struct dtw_test_params params[] = {
+        {.fn = dtw_distance, .settings={.window=0}},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0}},
+        {.fn = dtw_distance, .settings={.window=0, .use_pruning=true}}
+    };
+    size_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_series1) {
     #ifdef SKIPALL
     cr_skip_test();
     #endif
     double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
-    DTWSettings settings = dtw_settings_default();
-    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    double d = param->fn(s1, 9, s2, 9, &param->settings);
 //    printf("d=%f\n", d);
     cr_assert_float_eq(d, sqrt(2), 0.001);
 }
 
-Test(dtw, test_b_a) {
+
+ParameterizedTestParameters(dtw, test_series2) {
+    static struct dtw_test_params params[] = {
+        {.fn = dtw_distance, .settings={.window=0}},
+        {.fn = dtw_warping_paths_distance, .settings={.window=0}},
+        {.fn = dtw_distance, .settings={.window=0, .use_pruning=true}},
+        {.fn = dtw_distance, .settings={.window=3}},
+        {.fn = dtw_warping_paths_distance, .settings={.window=3}},
+        {.fn = dtw_distance, .settings={.window=3, .use_pruning=true}}
+    };
+    size_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_series2) {
     #ifdef SKIPALL
     cr_skip_test();
     #endif
     dtw_printprecision_set(6);
     double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
     double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
-    DTWSettings settings = dtw_settings_default();
-    settings.window = 3;
-    double d = dtw_distance(s1, 12, s2, 11, &settings);
+    double d = param->fn(s1, 12, s2, 11, &param->settings);
+//    printf("d=%f\n", d);
     cr_assert_float_eq(d, 0.02, 0.001);
     dtw_printprecision_reset();
 }
 
-Test(dtw, test_b_b) {
-    #ifdef SKIPALL
-    cr_skip_test();
-    #endif
-    dtw_printprecision_set(6);
-    double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
-    double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
-    DTWSettings settings = dtw_settings_default();
-    double d = dtw_distance(s1, 12, s2, 11, &settings);
-//    printf("d = %f\n", d);
-    cr_assert_float_eq(d, 0.02, 0.001);
-    dtw_printprecision_reset();
-}
 
 Test(dtw, test_c_a) {
     #ifdef SKIPALL
@@ -94,6 +115,7 @@ Test(dtw, test_c_c) {
     DTWSettings settings = dtw_settings_default();
     settings.max_step = 1.1;
     double d = dtw_distance(s1, 7, s2, 7, &settings);
+//    printf("d=%f\n",d);
     cr_assert_float_eq(d, 1.0, 0.001);
 }
 
@@ -117,6 +139,59 @@ Test(dtw, test_d_a) {
     double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
     DTWSettings settings = dtw_settings_default();
+    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    cr_assert_float_eq(d, 3037000496.440516, 0.001);
+}
+
+// MARK DTW - PrunedDTW
+
+Test(dtwp, test_c_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtwp, test_c_c) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 1.1;
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert_float_eq(d, 1.0, 0.001);
+}
+
+Test(dtwp, test_c_d) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0};
+    double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.max_step = 0.1;
+    settings.use_pruning = true;
+    double d = dtw_distance(s1, 7, s2, 7, &settings);
+    cr_assert(isinf(d));
+}
+
+Test(dtwp, test_d_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double maxval_thirtytwobit = 2147483647;
+    double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
+    DTWSettings settings = dtw_settings_default();
+    settings.use_pruning = true;
     double d = dtw_distance(s1, 9, s2, 9, &settings);
     cr_assert_float_eq(d, 3037000496.440516, 0.001);
 }
@@ -157,20 +232,6 @@ Test(dtw_psi, test_a_b) {
 
 //----------------------------------------------------
 // MARK: WPS
-
-Test(wps, test_a_a) {
-    #ifdef SKIPALL
-    cr_skip_test();
-    #endif
-    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
-    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
-    DTWSettings settings = dtw_settings_default();
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 10*10);
-    double d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
-//    printf("d = %f\n", d);
-    free(wps);
-    cr_assert_float_eq(d, sqrt(2), 0.001);
-}
 
 Test(wps, test_b_a) {
     #ifdef SKIPALL
@@ -227,6 +288,7 @@ Test(wps, test_c_b) {
     settings.max_dist = 0.1;
     dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 8*8);
     double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
+//    dtw_print_wps(wps, 7, 7);
     free(wps);
     cr_assert(isinf(d));
 }

@@ -94,6 +94,11 @@ cdef class DTWSettings:
                 self._settings.psi = 0
             else:
                 self._settings.psi = kwargs["psi"]
+        if "use_pruning" in kwargs:
+            if kwargs["use_pruning"] is None:
+                self._settings.use_pruning = False
+            else:
+                self._settings.use_pruning = kwargs["psi"]
 
     @property
     def window(self):
@@ -119,6 +124,10 @@ cdef class DTWSettings:
     def psi(self):
         return self._settings.psi
 
+    @property
+    def use_pruning(self):
+        return self._settings.use_pruning
+
     def __str__(self):
         return (
             "DTWSettings {\n"
@@ -128,6 +137,7 @@ cdef class DTWSettings:
             f"  max_length_diff = {self.max_length_diff}\n"
             f"  penalty = {self.penalty}\n"
             f"  psi = {self.psi}\n"
+            f"  use_pruning = {self.use_pruning}\n"
             "}")
 
 
