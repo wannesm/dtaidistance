@@ -11,9 +11,11 @@ Citing this work:
 
 **New in v2**:
 
-- Numpy is now an optional dependency, also for the C-code.
-- Small optimizations to improve speed.
-- The parallelization is now implemented directly in C (using OpenMP).
+- Numpy is now an optional dependency, also to compile the C library
+  (only Cython is required).
+- Small optimizations throughout the C code to improve speed. The consistent
+  use of `size_t` instead of `int` allows for larger data structures on 64 bit machines.
+- The parallelization is now implemented directly in C (included if OpenMP is installed).
 - The `max_dist` argument turned out to be similar to Silva and Batista's work 
   on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
   since it prunes more distance measures. Additionally, a `use_pruning` argument
@@ -27,8 +29,9 @@ This packages is available on PyPI (requires Python 3):
     $ pip install dtaidistance
 
 In case the C based version is not available, see the documentation for
-alternative installation options. In case OpenMP is not available on your
-system add the `--noopenmp` global option.
+alternative installation options. In case
+[OpenMP](https://www.openmp.org/resources/openmp-compilers-tools/)
+is not available on your system add the `--noopenmp` global option.
 
 The library has no dependency on Numpy. But if Numpy is available, some
 additional functionality is provided. If you want to make sure this is
