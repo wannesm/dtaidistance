@@ -1,7 +1,9 @@
 import math
 import pytest
-import numpy as np
-from dtaidistance import dtw
+from dtaidistance import dtw, dtw_numpy
+
+
+numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
 
 
 def test_expected_length1():
@@ -52,98 +54,118 @@ def test_distance1_a():
     assert d1 == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance1_b():
-    s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
-    s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
-    d2, _ = dtw.warping_paths(s1, s2)
-    assert d2 == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
+        s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
+        d2, _ = dtw.warping_paths(s1, s2)
+        assert d2 == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance1_d():
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
-    s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
-    assert(d) == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
+        s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0])
+        d = dtw.distance_fast(s1, s2)
+        assert(d) == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance1_c():
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
-    s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.double)
-    d3 = dtw.distance_fast(s1, s2)
-    assert(d3) == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
+        s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.double)
+        d3 = dtw.distance_fast(s1, s2)
+        assert(d3) == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix1_a():
-    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
-         [0, 1, 2, 0, 0, 0, 0, 0, 0]]
-    s = [np.array(si) for si in s]
-    m1 = dtw.distance_matrix(s, parallel=False, use_c=False)
-    assert m1[0,1] == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
+             [0, 1, 2, 0, 0, 0, 0, 0, 0]]
+        s = [np.array(si) for si in s]
+        m1 = dtw.distance_matrix(s, parallel=False, use_c=False)
+        assert m1[0,1] == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix1_b():
-    s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
-         [0, 1, 2, 0, 0, 0, 0, 0, 0]]
-    s = [np.array(si) for si in s]
-    m2 = dtw.distance_matrix(s, parallel=True, use_c=False)
-    assert m2[0, 1] == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
+             [0, 1, 2, 0, 0, 0, 0, 0, 0]]
+        s = [np.array(si) for si in s]
+        m2 = dtw.distance_matrix(s, parallel=True, use_c=False)
+        assert m2[0, 1] == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix1_c():
-    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
-         [0., 1, 2, 0, 0, 0, 0, 0, 0]]
-    s = [np.array(si) for si in s]
-    m3 = dtw.distance_matrix(s, parallel=False, use_c=True)
-    assert m3[0, 1] == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0]]
+        s = [np.array(si) for si in s]
+        m3 = dtw.distance_matrix(s, parallel=False, use_c=True)
+        assert m3[0, 1] == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix1_d():
-    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
-         [0., 1, 2, 0, 0, 0, 0, 0, 0],
-         [1., 2, 0, 0, 0, 0, 0, 1]]
-    s = [np.array(si) for si in s]
-    m = dtw.distance_matrix_fast(s)
-    assert m[0, 1] == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1]]
+        s = [np.array(si) for si in s]
+        m = dtw.distance_matrix_fast(s)
+        assert m[0, 1] == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix1_e():
-    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
-         [0., 1, 2, 0, 0, 0, 0, 0, 0],
-         [1., 2, 0, 0, 0, 0, 0, 1]]
-    s = [np.array(si) for si in s]
-    m = dtw.distance_matrix_fast(s, parallel=True)
-    print(m)
-    assert m[0, 1] == pytest.approx(math.sqrt(2))
+    with dtw_numpy.test_uses_numpy() as np:
+        s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1]]
+        s = [np.array(si) for si in s]
+        m = dtw.distance_matrix_fast(s, parallel=True)
+        print(m)
+        assert m[0, 1] == pytest.approx(math.sqrt(2))
 
 
+@numpyonly
 def test_distance_matrix2_e():
-    n = 1
-    nn = 1
-    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
-         [0., 1, 2, 0, 0, 0, 0, 0, 0] * n,
-         [1., 2, 0, 0, 0, 0, 0, 1] * n] * nn
-    s = [np.array(si) for si in s]
-    m1 = dtw.distance_matrix_fast(s, parallel=True)
-    m2 = dtw.distance_matrix(s, parallel=True, use_c=True)
-    assert m1[0, 1] == math.sqrt(2) * n, "m1[0,1]={} != {}".format(m1[0, 1], math.sqrt(2) * n)
-    assert m2[0, 1] == math.sqrt(2) * n, "m2[0,1]={} != {}".format(m2[0, 1], math.sqrt(2) * n)
+    with dtw_numpy.test_uses_numpy() as np:
+        n = 1
+        nn = 1
+        s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
+             [0., 1, 2, 0, 0, 0, 0, 0, 0] * n,
+             [1., 2, 0, 0, 0, 0, 0, 1] * n] * nn
+        s = [np.array(si) for si in s]
+        m1 = dtw.distance_matrix_fast(s, parallel=True)
+        m2 = dtw.distance_matrix(s, parallel=True, use_c=True)
+        assert m1[0, 1] == math.sqrt(2) * n, "m1[0,1]={} != {}".format(m1[0, 1], math.sqrt(2) * n)
+        assert m2[0, 1] == math.sqrt(2) * n, "m2[0,1]={} != {}".format(m2[0, 1], math.sqrt(2) * n)
 
 
 def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
-    # print(parallel, use_c, use_nogil)
-    s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
-         [0., 1, 2, 0, 0, 0, 0, 0, 0],
-         [1., 2, 0, 0, 0, 0, 0, 1, 1],
-         [0., 0, 1, 2, 1, 0, 1, 0, 0],
-         [0., 1, 2, 0, 0, 0, 0, 0, 0],
-         [1., 2, 0, 0, 0, 0, 0, 1, 1]]
-    s = np.array(s)
-    m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c)
-    print(m)
-    assert m[1, 3] == pytest.approx(math.sqrt(2))
-    assert np.isinf(m[1, 2])
+    with dtw_numpy.test_uses_numpy() as np:
+        # print(parallel, use_c, use_nogil)
+        s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1]]
+        s = np.array(s)
+        m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c)
+        print(m)
+        assert m[1, 3] == pytest.approx(math.sqrt(2))
+        assert np.isinf(m[1, 2])
 
 
+@numpyonly
 def test_distance_matrix_block():
     for parallel in [False, True]:
         for use_c in [False,True]:

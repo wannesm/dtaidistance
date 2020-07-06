@@ -15,7 +15,9 @@ import math
 import array
 
 from . import util
+from . import dtw_numpy
 from .util import SeriesContainer
+from .exceptions import NumpyException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -48,6 +50,8 @@ except ImportError:
     tqdm = None
 
 try:
+    if dtw_numpy.test_without_numpy():
+        raise ImportError()
     import numpy as np
     DTYPE = np.double
     argmin = np.argmin
@@ -300,7 +304,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :returns: (DTW distance, DTW matrix)
     """
     if np is None:
-        logger.error("Numpy is required for the warping_paths method")
+        raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -392,8 +396,8 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
                        max_step=None, max_length_diff=None, penalty=None, psi=None):
     """Fast C version of :meth:`distance`."""
     if np is None:
-        logger.error("Numpy is required for the warping_paths_fast method")
-        logger.error("You can call the dtw_cc.warping_paths method directly with an array.array.")
+        raise NumpyException("Numpy is required for the warping_paths_fast method. "
+                             "You can call the dtw_cc.warping_paths method directly with an array.array.")
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
@@ -535,7 +539,7 @@ def distances_array_to_matrix(dists, nb_series, block=None):
     The upper triangular matrix will contain all the distances.
     """
     if np is None:
-        logger.error("Numpy is required for the distances_array_to_matrix method")
+        raise NumpyException("Numpy is required for the distances_array_to_matrix method")
     dists_matrix = np.full((nb_series, nb_series), inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists

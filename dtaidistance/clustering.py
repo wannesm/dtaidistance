@@ -13,9 +13,14 @@ Time series clustering.
 import logging
 from pathlib import Path
 from collections import deque
-import numpy as np
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from .util import SeriesContainer
+from .exceptions import NumpyException, MatplotlibException, ScipyException
 
 try:
     from tqdm import tqdm
@@ -41,7 +46,7 @@ class Hierarchical:
     :param show_progress: Use a tqdm progress bar
     """
 
-    def __init__(self, dists_fun, dists_options, max_dist=np.inf,
+    def __init__(self, dists_fun, dists_options, max_dist=float('inf'),
                  merge_hook=None, order_hook=None, show_progress=True):
         self.dists_fun = dists_fun
         self.dists_options = dists_options
@@ -57,6 +62,8 @@ class Hierarchical:
         :return: Dictionary with as keys the prototype indicices and as values all the indicides of the series in
             that cluster.
         """
+        if np is None:
+            raise NumpyException("The fit function requires Numpy to be installed.")
         nb_series = len(series)
         cluster_idx = dict()
         dists = self.dists_fun(series, **self.dists_options)
@@ -187,10 +194,15 @@ class BaseTree:
         # print('linkage')
         # for l in self.linkage:
         #     print(l)
-        from matplotlib import pyplot as plt
-        from matplotlib.lines import Line2D
-        import matplotlib.colors as colors
-        import matplotlib.cm as cmx
+        if np is None:
+            raise NumpyException("The plot function requires Numpy to be installed.")
+        try:
+            from matplotlib import pyplot as plt
+            from matplotlib.lines import Line2D
+            import matplotlib.colors as colors
+            import matplotlib.cm as cmx
+        except ImportError:
+            raise MatplotlibException("The plot function requires Matplotlib to be installed.")
 
         if show_ts_label is True:
             show_ts_label = lambda idx: str(int(idx))
@@ -401,7 +413,7 @@ class HierarchicalTree(BaseTree):
         else:
             self._model = model
         super().__init__(**kwargs)
-        self._model.max_dist = np.inf
+        self._model.max_dist = float('inf')
 
     def fit(self, series, *args, **kwargs):
         self.series = SeriesContainer.wrap(series)
@@ -452,14 +464,13 @@ class LinkageTree(BaseTree):
         self.method = method
 
     def fit(self, series):
-        self.series = SeriesContainer.wrap(series)
+        if np is None:
+            raise NumpyException("The fit function requires Numpy to be installed.")
         try:
             from scipy.cluster.hierarchy import linkage
         except ImportError:
-            logger.error("The LinkageTree class requires the scipy package to be installed.")
-            self.linkage = None
-            linkage = None
-            return
+            raise ScipyException("The LinkageTree class requires the scipy package to be installed.")
+        self.series = SeriesContainer.wrap(series)
         dists = self.dists_fun(self.series, **self.dists_options)
         dists_cond = np.zeros(self._size_cond(len(series)))
         idx = 0

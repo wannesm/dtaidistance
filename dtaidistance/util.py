@@ -18,6 +18,7 @@ from array import array
 from pathlib import Path
 import tempfile
 
+
 try:
     import numpy as np
 except ImportError:
