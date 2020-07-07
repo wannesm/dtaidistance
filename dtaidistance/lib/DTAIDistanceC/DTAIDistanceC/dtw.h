@@ -90,10 +90,12 @@ void        dtw_settings_print(DTWSettings *settings);
 typedef dtwvalue (*DTWFnPtr)(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
 
 dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
+dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim, DTWSettings *settings);
 dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
 
 // Bound
 dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2);
+dtwvalue ub_euclidean_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim);
 dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
 
 // Block

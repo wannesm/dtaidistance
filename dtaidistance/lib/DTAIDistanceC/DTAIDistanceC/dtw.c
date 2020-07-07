@@ -263,6 +263,229 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     return result;
 }
 
+/**
+ Compute the DTW between two n-dimensional series.
+
+ @param s1 First sequence
+ @param l1 Length of first sequence
+ @param s2 Second sequence
+ @param l2 Length of second sequence
+ @param ndim Number of dimensions
+ @param settings A DTWSettings struct with options for the DTW algorithm.
+*/
+dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
+                           dtwvalue *s2, size_t l2, int ndim,
+                           DTWSettings *settings) {
+    assert(settings->psi < l1 && settings->psi < l2);
+    size_t ldiff;
+    size_t dl;
+    // DTWPruned
+    size_t sc = 0;
+    size_t ec = 0;
+    bool smaller_found;
+    size_t ec_next;
+    signal(SIGINT, dtw_int_handler);
+    
+    size_t window = settings->window;
+    dtwvalue max_step = settings->max_step;
+    dtwvalue max_dist = settings->max_dist;
+    dtwvalue penalty = settings->penalty;
+    
+    #ifdef DTWDEBUG
+    printf("r=%zu, c=%zu\n", l1, l2);
+    #endif
+    if (l1 > l2) {
+        ldiff = l1 - l2;
+    } else {
+        ldiff  = l2 - l1;
+    }
+    if (l1 > l2) {
+        dl = ldiff;
+    } else {
+        dl = 0;
+    }
+    if (settings->max_length_diff != 0 && ldiff > settings->max_length_diff) {
+        return INFINITY;
+    }
+    if (window == 0) {
+        window = MAX(l1, l2);
+    }
+    if (max_step == 0) {
+        max_step = INFINITY;
+    } else {
+        max_step = pow(max_step, 2);
+    }
+    if (settings->use_pruning) {
+        max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
+    } else if (max_dist == 0) {
+        max_dist = INFINITY;
+    } else {
+        max_dist = pow(max_dist, 2);
+    }
+    penalty = pow(penalty, 2);
+    size_t length = MIN(l2+1, ldiff + 2*window + 1);
+    assert(length > 0);
+    dtwvalue * dtw = (dtwvalue *)malloc(sizeof(dtwvalue) * length * 2);
+    if (!dtw) {
+        printf("Error: dtw_distance - Cannot allocate memory (size=%zu)\n", length*2);
+        return 0;
+    }
+    size_t i;
+    size_t j;
+    size_t i_idx;
+    size_t j_idx;
+    for (j=0; j<length*2; j++) {
+        dtw[j] = INFINITY;
+    }
+    for (i=0; i<settings->psi + 1; i++) {
+        dtw[i] = 0;
+    }
+    size_t skip = 0;
+    size_t skipp = 0;
+    int i0 = 1;
+    int i1 = 0;
+    size_t minj;
+    size_t maxj;
+    size_t curidx;
+    size_t dl_window = dl + window - 1;
+    size_t ldiff_window = window;
+    if (l2 > l1) {
+        ldiff_window += ldiff;
+    }
+    dtwvalue minv;
+    dtwvalue d; // DTYPE_t
+    dtwvalue tempv;
+    dtwvalue psi_shortest = INFINITY;
+    keepRunning = 1;
+    for (i=0; i<l1; i++) {
+        if (!keepRunning){
+            printf("Stop computing DTW...\n");
+            return INFINITY;
+        }
+        i_idx = i * ndim;
+        maxj = i;
+        if (maxj > dl_window) {
+            maxj -= dl_window;
+        } else {
+            maxj = 0;
+        }
+        skipp = skip;
+        skip = maxj;
+        i0 = 1 - i0;
+        i1 = 1 - i1;
+        for (j=0; j<length; j++) {
+            dtw[length * i1 + j] = INFINITY;
+        }
+        if (length == l2 + 1) {
+            skip = 0;
+        }
+        // No risk for overflow/modulo because we also need to store dtw of size
+        // MIN(l2+1, ldiff + 2*window + 1) ?
+        minj = i + ldiff_window;
+        if (minj > l2) {
+            minj = l2;
+        }
+        // PrunedDTW
+        if (sc > maxj) {
+            #ifdef DTWDEBUG
+            printf("correct maxj to sc: %zu -> %zu (saved %zu computations)\n", maxj, sc, sc-maxj);
+            #endif
+            maxj = sc;
+        }
+        smaller_found = false;
+        ec_next = i;
+        if (settings->psi != 0 && maxj == 0 && i < settings->psi) {
+            dtw[i1*length + 0] = 0;
+        }
+        #ifdef DTWDEBUG
+        printf("i=%zu, maxj=%zu, minj=%zu\n", i, maxj, minj);
+        #endif
+        for (j=maxj; j<minj; j++) {
+            j_idx = j * ndim;
+            #ifdef DTWDEBUG
+            printf("ri=%zu,ci=%zu, s1[i] = s1[%zu] = %f , s2[j] = s2[%zu] = %f\n", i, j, i, s1[i], j, s2[j]);
+            #endif
+            d = 0;
+            for (int d=0; d<ndim; d++) {
+                d = EDIST(s1[i_idx + d], s2[j_idx + d]);
+            }
+            if (d > max_step) {
+                // Let the value be INFINITY as initialized
+                continue;
+            }
+            curidx = i0*length + j - skipp;
+            minv = dtw[curidx];
+            curidx += 1;
+            tempv = dtw[curidx] + penalty;
+            if (tempv < minv) {
+                minv = tempv;
+            }
+            curidx = i1*length + j - skip;
+            tempv = dtw[curidx] + penalty;
+            if (tempv < minv) {
+                minv = tempv;
+            }
+            #ifdef DTWDEBUG
+            printf("d = %f, minv = %f\n", d, minv);
+            #endif
+            curidx += 1;
+            dtw[curidx] = d + minv;
+            #ifdef DTWDEBUG
+            printf("%zu, %zu, %zu\n",i0*length + j - skipp,i0*length + j + 1 - skipp,i1*length + j - skip);
+            printf("%f, %f, %f\n",dtw[i0*length + j - skipp],dtw[i0*length + j + 1 - skipp],dtw[i1*length + j - skip]);
+            printf("i=%zu, j=%zu, d=%f, skip=%zu, skipp=%zu\n",i,j,d,skip,skipp);
+            #endif
+            // PrunedDTW
+            if (dtw[curidx] > max_dist) {
+                #ifdef DTWDEBUG
+                printf("dtw[%zu] = %f > %f\n", curidx, dtw[curidx], max_dist);
+                #endif
+                if (!smaller_found) {
+                    sc = j + 1;
+                }
+                if (j >= ec) {
+                    #ifdef DTWDEBUG
+                    printf("Break because of pruning with j=%zu, ec=%zu (saved %zu computations)\n", j, ec, minj-j);
+                    #endif
+                    break;
+                }
+            } else {
+                smaller_found = true;
+                ec_next = j + 1;
+            }
+        }
+        ec = ec_next;
+        if (settings->psi != 0 && minj == l2 && l1 - 1 - i <= settings->psi) {
+            if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
+                psi_shortest = dtw[(i1 + 1)*length - 1];
+            }
+        }
+        #ifdef DTWDEBUG
+        dtw_print_twoline(dtw, l1, l2, length, i0, i1, skip, skipp, maxj, minj);
+        #endif
+    }
+    if (window - 1 < 0) {
+        l2 += window - 1;
+    }
+    dtwvalue result = sqrt(dtw[length * i1 + l2 - skip]);
+    // Deal wit psi-relaxation
+    if (settings->psi != 0) {
+        for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
+            if (dtw[i1*length + i] < psi_shortest) {
+                psi_shortest = dtw[i1*length + i];
+            }
+        }
+        result = sqrt(psi_shortest);
+    }
+    free(dtw);
+    signal(SIGINT, SIG_DFL);
+    if (settings->max_dist !=0 && result > settings->max_dist) {
+        // DTWPruned keeps the last value larger than max_dist. Correct for this.
+        result = INFINITY;
+    }
+    return result;
+}
+
 
 /*!
 Compute all warping paths between two series.
@@ -504,6 +727,36 @@ dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2) {
     } else if (l1 < l2) {
         for (size_t i=n; i<l2; i++) {
             ub += EDIST(s1[n-1], s2[i]);
+        }
+    }
+    return sqrt(ub);
+}
+
+dtwvalue ub_euclidean_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim) {
+    size_t n = MIN(l1, l2);
+    size_t idx;
+    dtwvalue ub = 0;
+    for (size_t i=0; i<n; i++) {
+        idx = i*ndim;
+        for (int d=0; d<ndim; d++) {
+            ub += EDIST(s1[idx + d], s2[idx + d]);
+        }
+    }
+    // If the two series differ in length, compare the last element of the shortest series
+    // to the remaining elements in the longer series
+    if (l1 > l2) {
+        for (size_t i=n; i<l1; i++) {
+            idx = i*ndim;
+            for (int d=0; d<ndim; d++) {
+                ub += EDIST(s1[idx + d], s2[(n-1)*ndim]);
+            }
+        }
+    } else if (l1 < l2) {
+        for (size_t i=n; i<l2; i++) {
+            idx = i*ndim;
+            for (int d=0; d<ndim; d++) {
+                ub += EDIST(s1[(n-1)*ndim], s2[idx + d]);
+            }
         }
     }
     return sqrt(ub);

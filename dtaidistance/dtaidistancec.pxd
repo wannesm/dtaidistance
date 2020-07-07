@@ -23,10 +23,13 @@ cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw.h":
 
     dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2,
                           DTWSettings *settings)
+    dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim,
+                               DTWSettings *settings)
     dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, int l2,
                                bint return_dtw, bint do_sqrt, DTWSettings *settings)
 
     dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2)
+    dtwvalue ub_euclidean_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim)
     dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings)
 
     DTWBlock dtw_empty_block()
