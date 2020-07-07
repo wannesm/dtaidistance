@@ -9,7 +9,15 @@ def test_distance1_a():
     s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
     d1 = dtw_ndim.distance(s1, s2)
     d1p, paths = dtw_ndim.warping_paths(s1, s2)
+    print(d1, d1p)
     assert d1 == pytest.approx(d1p)
+
+
+def test_distance1_b():
+    s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1],  [0, 0]], dtype=np.double)
+    s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
+    d1 = dtw_ndim.distance_fast(s1, s2)
+    print(d1)
 
 
 def test_visualisation_a():
@@ -19,6 +27,7 @@ def test_visualisation_a():
     path = dtw.best_path(paths)
     fig, ax = dtwvis.plot_warping(s1, s2, path)
     fig.show()
+
 
 def test_visualisation_b():
     s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1], [0, 0]], dtype=np.double)
@@ -31,5 +40,6 @@ def test_visualisation_b():
 
 if __name__ == "__main__":
     test_distance1_a()
-    test_visualisation_a()
-    test_visualisation_b()
+    test_distance1_b()
+    # test_visualisation_a()
+    # test_visualisation_b()

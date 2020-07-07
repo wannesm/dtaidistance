@@ -141,6 +141,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     keepRunning = 1;
     for (i=0; i<l1; i++) {
         if (!keepRunning){
+            free(dtw);
             printf("Stop computing DTW...\n");
             return INFINITY;
         }
@@ -359,6 +360,7 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
     keepRunning = 1;
     for (i=0; i<l1; i++) {
         if (!keepRunning){
+            free(dtw);
             printf("Stop computing DTW...\n");
             return INFINITY;
         }
@@ -406,8 +408,8 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
             printf("ri=%zu,ci=%zu, s1[i] = s1[%zu] = %f , s2[j] = s2[%zu] = %f\n", i, j, i, s1[i], j, s2[j]);
             #endif
             d = 0;
-            for (int d=0; d<ndim; d++) {
-                d = EDIST(s1[i_idx + d], s2[j_idx + d]);
+            for (int d_i=0; d_i<ndim; d_i++) {
+                d += EDIST(s1[i_idx + d_i], s2[j_idx + d_i]);
             }
             if (d > max_step) {
                 // Let the value be INFINITY as initialized
@@ -946,7 +948,7 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
     return length;
 }
 
-size_t dtw_distances_ptrs_ndim(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+size_t dtw_distances_ndim_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
                                DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
     size_t length;

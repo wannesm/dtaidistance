@@ -19,7 +19,7 @@ int    dtw_distances_prepare(DTWBlock *block, size_t len_cur,
                              size_t **irs, size_t **ics, size_t *length, DTWSettings *settings);
 size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths,
                                    dtwvalue* output, DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_ptrs_ndim_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+size_t dtw_distances_ndim_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
                                         DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols,
                                      dtwvalue* output, DTWBlock* block, DTWSettings* settings);

@@ -374,3 +374,17 @@ Test(wps_psi, test_a_b) {
     free(wps);
     cr_assert_float_eq(d, 0.0, 0.001);
 }
+
+// MARK: NDIM
+
+Test(ndim, test_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0, 0, 0, 1, 2, 1, 0,  1, 0, 0};
+    double s2[] = {0, 0, 2, 1, 0, 1, 0, .5, 0, 0};
+    DTWSettings settings = dtw_settings_default();
+    dtwvalue d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
+//    printf("d=%f\n", d);
+    cr_assert_float_eq(d, 1.118033988749895, 0.001);
+}

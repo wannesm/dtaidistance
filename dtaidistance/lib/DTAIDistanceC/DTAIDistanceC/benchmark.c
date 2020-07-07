@@ -99,6 +99,14 @@ void benchmark5() {
     dtw_print_wps(wps, 9, 9);
 }
 
+void benchmark6() {
+    double s1[] = {0, 0, 0, 1, 2, 1, 0,  1, 0, 0};
+    double s2[] = {0, 0, 2, 1, 0, 1, 0, .5, 0, 0};
+    DTWSettings settings = dtw_settings_default();
+    dtwvalue d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
+    printf("d=%f\n", d);
+}
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -109,7 +117,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark2();
 //    benchmark3();
 //    benchmark4();
-    benchmark5();
+//    benchmark5();
+    benchmark6();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

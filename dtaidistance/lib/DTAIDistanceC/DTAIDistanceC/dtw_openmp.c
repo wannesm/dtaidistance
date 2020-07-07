@@ -106,7 +106,7 @@ size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* leng
 }
 
 
-size_t dtw_distances_ptrs_ndim_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+size_t dtw_distances_ndim_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
                                         DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     size_t r, c;

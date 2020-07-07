@@ -75,3 +75,62 @@ def distance_matrix(cur, block=None, **kwargs):
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
     return dists
+
+
+def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
+    """Compute a distance matrix between all sequences given in `cur`.
+    This method calls a pure c implementation of the dtw computation that
+    avoids the GIL.
+
+    Assumes C-contiguous arrays.
+
+    :param cur: DTWSeriesMatrix or DTWSeriesPointers
+    :param block: see DTWBlock
+    :param kwargs: Settings (see DTWSettings)
+    :return: The distance matrix as a list representing the triangular matrix.
+    """
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesPointers ptrs
+    cdef Py_ssize_t length = 0
+    cdef Py_ssize_t block_rb=0
+    cdef Py_ssize_t block_re=0
+    cdef Py_ssize_t block_cb=0
+    cdef Py_ssize_t block_ce=0
+    cdef Py_ssize_t ri = 0
+    if block is not None and block != 0.0:
+        block_rb = block[0][0]
+        block_re = block[0][1]
+        block_cb = block[1][0]
+        block_ce = block[1][1]
+
+    settings = DTWSettings(**kwargs)
+    cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    length = distance_matrix_length(dtwblock, len(cur))
+
+    # Correct block
+    if dtwblock.re == 0:
+        dtwblock.re_set(len(cur))
+    if dtwblock.ce == 0:
+        dtwblock.ce_set(len(cur))
+
+    cdef array.array dists = array.array('d')
+    array.resize(dists, length)
+
+    if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
+        pass
+    elif cur.__class__.__name__ == "SeriesContainer":
+        cur = cur.c_data()
+    else:
+        cur = dtw_series_from_data(cur, force_pointers=True)
+
+    if isinstance(cur, DTWSeriesPointers):
+        ptrs = cur
+        dtaidistancec_omp.dtw_distances_ndim_ptrs_parallel(
+            ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrix):
+        print("ERROR: C library cannot deal with DTWSeriesMatrix.")
+        for i in range(length):
+            dists[i] = 0
+
+    return dists
