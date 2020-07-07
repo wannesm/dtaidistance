@@ -22,7 +22,6 @@
  @return 0 if all is ok, other number if not.
  */
 int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **irs, size_t **ics, size_t *length, DTWSettings *settings) {
-    size_t r, c;
     size_t cb, ir;
     
     *length = dtw_distances_length(block, nb_series, settings->use_ssize_t);
@@ -37,30 +36,43 @@ int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **irs, size_
     if (block->ce == 0) {
         block->ce = nb_series;
     }
+    if (block->re <= block->rb) {
+        *length = 0;
+        return 1;
+    }
+    if (block->ce <= block->cb) {
+        *length = 0;
+        return 1;
+    }
 
     *irs = (size_t *)malloc(sizeof(size_t) * *length);
     if (!irs) {
         printf("Error: dtw_distances_* - cannot allocate memory (length = %zu)", *length);
+        *length = 0;
         return 1;
     }
     *ics = (size_t *)malloc(sizeof(size_t) * *length);
     if (!ics) {
+        free(*irs);
         printf("Error: dtw_distances_* - cannot allocate memory (length = %zu)", *length);
+        *length = 0;
         return 1;
     }
     ir = 0;
-    for (r=block->rb; r<block->re; r++) {
+    assert(block->rb < block->re);
+    for (size_t r=block->rb; r<block->re; r++) {
         if (r + 1 > block->cb) {
             cb = r+1;
         } else {
             cb = block->cb;
         }
-        for (c=cb; c<block->ce; c++) {
+        for (size_t c=cb; c<block->ce; c++) {
             (*irs)[ir] = r;
             (*ics)[ir] = c;
             ir += 1;
         }
     }
+    assert(ir == *length);
     return 0;
 }
 
@@ -104,6 +116,7 @@ size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb
     }
 
     size_t pi=0;
+    assert(length > 0);
     #pragma omp parallel for private(pi, r, c)
     for(pi=0; pi<length; ++pi) {
 //        printf("pi=%zu\n", pi);

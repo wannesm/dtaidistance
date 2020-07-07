@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <assert.h>
 
 
 /**

@@ -27,7 +27,8 @@ DTWSettings dtw_settings_default(void) {
         .max_length_diff = 0,
         .penalty = 0,
         .psi = 0,
-        .use_ssize_t = false
+        .use_ssize_t = false,
+        .use_pruning = false
     };
     return s;
 }
@@ -41,6 +42,7 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  penalty = %f\n", settings->penalty);
     printf("  psi = %zu\n", settings->psi);
     printf("  use_ssize_t = %d\n", settings->use_ssize_t);
+    printf("  use_pruning = %d\n", settings->use_pruning);
     printf("}\n");
 }
 
@@ -58,6 +60,7 @@ Compute the DTW between two series.
 dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
                       dtwvalue *s2, size_t l2,
                       DTWSettings *settings) {
+    assert(settings->psi < l1 && settings->psi < l2);
     size_t ldiff;
     size_t dl;
     // DTWPruned
@@ -105,6 +108,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     }
     penalty = pow(penalty, 2);
     size_t length = MIN(l2+1, ldiff + 2*window + 1);
+    assert(length > 0);
     dtwvalue * dtw = (dtwvalue *)malloc(sizeof(dtwvalue) * length * 2);
     if (!dtw) {
         printf("Error: dtw_distance - Cannot allocate memory (size=%zu)\n", length*2);
@@ -435,7 +439,6 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     } else if (return_dtw) {
         dtwvalue mir_value = INFINITY;
         size_t curi;
-        size_t mir = 0;
         size_t mir_rel = 0;
         dtwvalue mic_value = INFINITY;
         size_t mic = 0;
@@ -444,7 +447,6 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
             curi = ri*(l2 + 1) + l2;
             if (wps[curi] < mir_value) {
                 mir_value = wps[curi];
-                mir = curi;
                 mir_rel = ri;
             }
         }
@@ -687,6 +689,7 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
             i += 1;
         }
     }
+    assert(length == i);
     return length;
 }
 
@@ -702,9 +705,6 @@ size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t)
     } else {
         max_value = SIZE_MAX;
     }
-    
-//    printf("nb_series = %zu\n", nb_series);
-//    dtw_print_block(block);
     
     if (block->re == 0 || block->ce == 0) {
         // Check for overflow
@@ -729,17 +729,13 @@ size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t)
         }
         for (ir=block->rb; ir<block->re; ir++) {
             if (ir < block->cb) {
-//                printf("1   - ir < block->cb = %zu\n", block->cb);
                 delta = block->ce - block->cb;
             } else { // ir >= block->cb
-//                printf("2   - ir >= block->cb = %zu\n", block->cb);
                 if (block->ce <= ir) {
-//                    printf("2.1 - block->ce = %zu <= ir\n", block->ce);
                     // ir only increases so block->ce will always be < ir
                     // delta = 0
                     break;
                 } else { // block->ce > ir
-//                    printf("2.2 - block->ce = %zu > ir\n", block->ce);
                     delta = block->ce - ir - 1;
                 }
             }
@@ -749,11 +745,9 @@ size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t)
                 printf("ERROR: Length of array needed to represent the distance matrix for %zu series and block {%zu, %zu, %zu, %zu} is larger than the maximal value allowed (unsigned %zu)\n", nb_series, block->rb, block->re, block->cb, block->ce, max_value);
                 return 0;
             }
-//            printf("ir = %zu // delta = %zu\n", ir, delta);
             length += delta;
         }
     }
-//    printf("length = %zu\n", length);
     return length;
 }
 

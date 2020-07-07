@@ -10,6 +10,7 @@
 #define dtw_openmp_h
 
 #include <stdio.h>
+#include <assert.h>
 #include <omp.h>
 
 #include "dtw.h"
