@@ -267,9 +267,9 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
  Compute the DTW between two n-dimensional series.
 
  @param s1 First sequence
- @param l1 Length of first sequence
+ @param l1 Length of first sequence. In tuples, real length should be length*ndim.
  @param s2 Second sequence
- @param l2 Length of second sequence
+ @param l2 Length of second sequence. In tuples, real length should be length*ndim.
  @param ndim Number of dimensions
  @param settings A DTWSettings struct with options for the DTW algorithm.
 */
@@ -943,6 +943,45 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
         }
     }
     assert(length == i);
+    return length;
+}
+
+size_t dtw_distances_ptrs_ndim(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+                               DTWBlock* block, DTWSettings* settings) {
+    size_t r, c, cb;
+    size_t length;
+    size_t i;
+    dtwvalue value;
+    
+    length = dtw_distances_length(block, nb_ptrs, false);
+    if (length == 0) {
+        return 0;
+    }
+    
+    // Correct block
+    if (block->re == 0) {
+        block->re = nb_ptrs;
+    }
+    if (block->ce == 0) {
+        block->ce = nb_ptrs;
+    }
+
+    i = 0;
+    for (r=block->rb; r<block->re; r++) {
+        if (r + 1 > block->cb) {
+            cb = r+1;
+        } else {
+            cb = block->cb;
+        }
+        for (c=cb; c<block->ce; c++) {
+            value = dtw_distance_ndim(ptrs[r], lengths[r],
+                                      ptrs[c], lengths[c],
+                                      ndim, settings);
+//            printf("i=%zu - r=%zu - c=%zu - value=%.4f\n", i, r, c, value);
+            output[i] = value;
+            i += 1;
+        }
+    }
     return length;
 }
 

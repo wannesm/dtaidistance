@@ -105,6 +105,36 @@ size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* leng
     return length;
 }
 
+
+size_t dtw_distances_ptrs_ndim_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+                                        DTWBlock* block, DTWSettings* settings) {
+    // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
+    size_t r, c;
+    size_t length;
+    size_t *irs, *ics;
+
+    if (dtw_distances_prepare(block, nb_ptrs, &irs, &ics, &length, settings) != 0) {
+        return 0;
+    }
+
+    size_t pi=0;
+    #pragma omp parallel for private(pi, r, c)
+    for(pi=0; pi<length; ++pi) {
+//        printf("pi=%zu\n", pi);
+        r = irs[pi];
+        c = ics[pi];
+        double value = dtw_distance_ndim(ptrs[r], lengths[r],
+                                         ptrs[c], lengths[c],
+                                         ndim, settings);
+//        printf("pi=%zu - r=%zu - c=%zu - value=%.4f\n", pi, r, c, value);
+        output[pi] = value;
+    }
+    
+    free(irs);
+    free(ics);
+    return length;
+}
+
 size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output, DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     size_t r, c;
