@@ -192,7 +192,7 @@ Test(matrix, test_c_block_matrix_parallel) {
 //----------------------------------------------------
 // MARK: NDIM
 
-Test(matrix_ndim, test_a_matrix) {
+Test(matrix_ndim, test_a_ptrs) {
     #ifdef SKIPALL
     cr_skip_test();
     #endif
@@ -220,7 +220,7 @@ Test(matrix_ndim, test_a_matrix) {
 }
 
 
-Test(matrix_ndim, test_a_matrix_parallel) {
+Test(matrix_ndim, test_a_ptrs_parallel) {
     #ifdef SKIPALL
     cr_skip_test();
     #endif
@@ -240,6 +240,52 @@ Test(matrix_ndim, test_a_matrix_parallel) {
 //        printf("%.4f ", result[i]);
 //    }
 //    printf("\n");
+    cr_assert_float_eq(result[0], 2.4495, 0.001);
+    cr_assert_float_eq(result[1], 3.0000, 0.001);
+    cr_assert_float_eq(result[2], 0.0000, 0.001);
+    cr_assert_float_eq(result[3], 2.4495, 0.001);
+    cr_assert_float_eq(result[4], 3.0000, 0.001);
+}
+
+
+Test(matrix_ndim, test_a_matrix) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s[] = {
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1,
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1};
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
+    double result[dtw_distances_length(&block, 6, false)];
+    dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
+    cr_assert_float_eq(result[0], 2.4495, 0.001);
+    cr_assert_float_eq(result[1], 3.0000, 0.001);
+    cr_assert_float_eq(result[2], 0.0000, 0.001);
+    cr_assert_float_eq(result[3], 2.4495, 0.001);
+    cr_assert_float_eq(result[4], 3.0000, 0.001);
+}
+
+
+Test(matrix_ndim, test_a_matrix_parallel) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s[] = {
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1,
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1};
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
+    double result[dtw_distances_length(&block, 6, false)];
+    dtw_distances_ndim_matrix_parallel(s, 6, 4, 2, result, &block, &settings);
     cr_assert_float_eq(result[0], 2.4495, 0.001);
     cr_assert_float_eq(result[1], 3.0000, 0.001);
     cr_assert_float_eq(result[2], 0.0000, 0.001);

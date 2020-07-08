@@ -929,6 +929,14 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
         return 0;
     }
     
+    // Correct block
+    if (block->re == 0) {
+        block->re = nb_rows;
+    }
+    if (block->ce == 0) {
+        block->ce = nb_rows;
+    }
+    
     i = 0;
     for (r=block->rb; r<block->re; r++) {
         if (r + 1 > block->cb) {
@@ -959,6 +967,14 @@ size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_col
     length = dtw_distances_length(block, nb_rows, settings->use_ssize_t);
     if (length == 0) {
         return 0;
+    }
+    
+    // Correct block
+    if (block->re == 0) {
+        block->re = nb_rows;
+    }
+    if (block->ce == 0) {
+        block->ce = nb_rows;
     }
     
     i = 0;

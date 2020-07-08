@@ -108,22 +108,17 @@ void benchmark6() {
 }
 
 void benchmark7() {
-    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
-    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
-    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
-    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0};
-    double s5[] = {0., 1, 2, 0, 0, 0, 0, 0};
-    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1};
-    double *s[] = {s1, s2, s3, s4, s5, s6};
-    size_t lengths[] = {4, 4, 4, 4, 4, 4};
+    double s[] = {
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1,
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
     double result[dtw_distances_length(&block, 6, false)];
-    dtw_distances_ndim_ptrs(s, 6, lengths, 2, result, &block, &settings);
-    for (int i=0; i<5; i++) {
-        printf("%.4f ", result[i]);
-    }
-    printf("\n");
+    dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
 int main(int argc, const char * argv[]) {
