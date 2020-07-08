@@ -110,6 +110,8 @@ size_t dtw_distances_ndim_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths,
                                DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output,
                             DTWBlock* block, DTWSettings* settings);
+size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output,
+                                 DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t);
 
 // Auxiliary functions

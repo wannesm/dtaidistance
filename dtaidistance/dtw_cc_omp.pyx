@@ -11,7 +11,7 @@ Dynamic Time Warping (DTW), C implementation, with OpenMP support.
 """
 from cpython cimport array
 import array
-from dtw_cc cimport DTWSeriesMatrix, DTWSeriesPointers, DTWSettings, DTWBlock
+from dtw_cc cimport DTWSeriesMatrix, DTWSeriesMatrixNDim, DTWSeriesPointers, DTWSettings, DTWBlock
 from dtw_cc import dtw_series_from_data, distance_matrix_length
 cimport dtaidistancec
 cimport dtaidistancec_omp
@@ -90,6 +90,7 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     :return: The distance matrix as a list representing the triangular matrix.
     """
     cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesMatrixNDim matrixnd
     cdef DTWSeriesPointers ptrs
     cdef Py_ssize_t length = 0
     cdef Py_ssize_t block_rb=0
@@ -129,8 +130,18 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
-        print("ERROR: C library cannot deal with DTWSeriesMatrix.")
-        for i in range(length):
-            dists[i] = 0
+        # This is not a n-dimensional case ?
+        matrix = cur
+        dtaidistancec_omp.dtw_distances_matrix_parallel(
+            &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrixNDim):
+        matrixnd = cur
+        dtaidistancec_omp.dtw_distances_ndim_matrix_parallel(
+            &matrixnd._data[0,0,0], matrixnd.nb_rows, matrixnd.nb_cols, ndim,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    else:
+        raise Exception("Unknown series container")
+
 
     return dists

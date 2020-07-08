@@ -173,6 +173,23 @@ cdef class DTWSeriesMatrix:
         return self._data.shape[1]
 
 
+cdef class DTWSeriesMatrixNDim:
+    def __cinit__(self, double[:, :, ::1] data):
+        self._data = data
+
+    @property
+    def nb_rows(self):
+        return self._data.shape[0]
+
+    @property
+    def nb_cols(self):
+        return self._data.shape[1]
+
+    @property
+    def nb_dims(self):
+        return self._data.shape[2]
+
+
 def dtw_series_from_data(data, force_pointers=False):
     cdef DTWSeriesPointers ptrs
     cdef DTWSeriesMatrix matrix
@@ -186,6 +203,11 @@ def dtw_series_from_data(data, force_pointers=False):
         return ptrs
     try:
         matrix = DTWSeriesMatrix(data)
+        return matrix
+    except ValueError:
+        pass
+    try:
+        matrix = DTWSeriesMatrixNDim(data)
         return matrix
     except ValueError:
         raise ValueError(f"Cannot convert data of type {type(data)}")
@@ -321,6 +343,7 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     :return: The distance matrix as a list representing the triangular matrix.
     """
     cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesMatrixNDim matrixnd
     cdef DTWSeriesPointers ptrs
     cdef Py_ssize_t length = 0
     cdef Py_ssize_t block_rb=0
@@ -347,7 +370,7 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     cdef array.array dists = array.array('d')
     array.resize(dists, length)
 
-    if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
+    if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesMatrixNDim) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
         cur = cur.c_data()
@@ -361,9 +384,18 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
-        print("ERROR: C library cannot deal with DTWSeriesMatrix.")
-        for i in range(length):
-            dists[i] = 0
+        # This is not a n-dimensional case ?
+        matrix = cur
+        dtaidistancec.dtw_distances_matrix(
+            &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrixNDim):
+        matrixnd = cur
+        dtaidistancec.dtw_distances_ndim_matrix(
+            &matrixnd._data[0,0,0], matrixnd.nb_rows, matrixnd.nb_cols, ndim,
+            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+    else:
+        raise Exception("Unknown series container")
 
     return dists
 

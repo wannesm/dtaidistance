@@ -190,6 +190,65 @@ Test(matrix, test_c_block_matrix_parallel) {
 }
 
 //----------------------------------------------------
+// MARK: NDIM
+
+Test(matrix_ndim, test_a_matrix) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s5[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double *s[] = {s1, s2, s3, s4, s5, s6};
+    size_t lengths[] = {4, 4, 4, 4, 4, 4};
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
+    double result[dtw_distances_length(&block, 6, false)];
+    dtw_distances_ndim_ptrs(s, 6, lengths, 2, result, &block, &settings);
+//    for (int i=0; i<5; i++) {
+//        printf("%.4f ", result[i]);
+//    }
+//    printf("\n");
+    cr_assert_float_eq(result[0], 2.4495, 0.001);
+    cr_assert_float_eq(result[1], 3.0000, 0.001);
+    cr_assert_float_eq(result[2], 0.0000, 0.001);
+    cr_assert_float_eq(result[3], 2.4495, 0.001);
+    cr_assert_float_eq(result[4], 3.0000, 0.001);
+}
+
+
+Test(matrix_ndim, test_a_matrix_parallel) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s5[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double *s[] = {s1, s2, s3, s4, s5, s6};
+    size_t lengths[] = {4, 4, 4, 4, 4, 4};
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
+    double result[dtw_distances_length(&block, 6, false)];
+    dtw_distances_ndim_ptrs_parallel(s, 6, lengths, 2, result, &block, &settings);
+//    for (int i=0; i<5; i++) {
+//        printf("%.4f ", result[i]);
+//    }
+//    printf("\n");
+    cr_assert_float_eq(result[0], 2.4495, 0.001);
+    cr_assert_float_eq(result[1], 3.0000, 0.001);
+    cr_assert_float_eq(result[2], 0.0000, 0.001);
+    cr_assert_float_eq(result[3], 2.4495, 0.001);
+    cr_assert_float_eq(result[4], 3.0000, 0.001);
+}
+
+
+//----------------------------------------------------
 // MARK: AUXILIARY FUNCTIONS
 
 Test(aux, test_length_overflow_noblock) {
@@ -260,7 +319,7 @@ Test(aux, test_length_overflow_block) {
 
 Test(aux, test_length_nooverflow_block) {
     #ifdef SKIPALL
-//    cr_skip_test();
+    cr_skip_test();
     #endif
     size_t length, expected_length;
     size_t nb_series;

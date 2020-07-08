@@ -23,5 +23,8 @@ size_t dtw_distances_ndim_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t*
                                         DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols,
                                      dtwvalue* output, DTWBlock* block, DTWSettings* settings);
+size_t dtw_distances_ndim_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output,
+                                          DTWBlock* block, DTWSettings* settings);
+
 
 #endif /* dtw_openmp_h */

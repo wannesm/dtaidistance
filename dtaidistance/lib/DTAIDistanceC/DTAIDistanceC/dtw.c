@@ -948,6 +948,40 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
     return length;
 }
 
+
+size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output,
+                                 DTWBlock* block, DTWSettings* settings) {
+    size_t r, c, cb;
+    size_t length;
+    size_t i;
+    dtwvalue value;
+    
+    length = dtw_distances_length(block, nb_rows, settings->use_ssize_t);
+    if (length == 0) {
+        return 0;
+    }
+    
+    i = 0;
+    for (r=block->rb; r<block->re; r++) {
+        if (r + 1 > block->cb) {
+            cb = r+1;
+        } else {
+            cb = block->cb;
+        }
+        for (c=cb; c<block->ce; c++) {
+            value = dtw_distance_ndim(&matrix[r*nb_cols*ndim], nb_cols,
+                                      &matrix[c*nb_cols*ndim], nb_cols,
+                                      ndim, settings);
+//            printf("i=%zu - r=%zu - c=%zu - value=%.4f\n", i, r, c, value);
+            output[i] = value;
+            i += 1;
+        }
+    }
+    assert(length == i);
+    return length;
+}
+
+
 size_t dtw_distances_ndim_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
                                DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
@@ -1067,7 +1101,7 @@ void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2) {
     char buffer[20];
     char format[5];
     snprintf(format, sizeof(format), "%%.%df", printPrecision);
-    for (int ri=0; ri<l1+1; ri++) {
+    for (size_t ri=0; ri<l1+1; ri++) {
         if (ri==0) {
             printf("[[ ");
         } else {
@@ -1093,7 +1127,7 @@ void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0
     size_t ci_cor; // corrected column index
     // Row 1
     printf("[[ ");
-    for (int ci=0; ci<c; ci++) {
+    for (size_t ci=0; ci<c; ci++) {
         if (ci < maxj || ci > minj) {
             printf("x ");
         } else {
@@ -1105,7 +1139,7 @@ void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0
     printf("]\n");
     // Row 2
     printf(" [ ");
-    for (int ci=0; ci<c; ci++) {
+    for (size_t ci=0; ci<c; ci++) {
         if (ci < maxj || ci > minj) {
             printf("x ");
         } else {

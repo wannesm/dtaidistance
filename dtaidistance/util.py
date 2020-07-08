@@ -144,6 +144,8 @@ class SeriesContainer:
             if dtw_cc_numpy is None:
                 logger.warning("DTAIDistance C-extension for Numpy is not available. Proceeding anyway.")
                 return dtw_cc.dtw_series_from_data(self.series)
+            elif len(self.series.shape) == 3:
+                return dtw_cc_numpy.dtw_series_from_numpy_ndim(self.series)
             else:
                 return dtw_cc_numpy.dtw_series_from_numpy(self.series)
         return dtw_cc.dtw_series_from_data(self.series)

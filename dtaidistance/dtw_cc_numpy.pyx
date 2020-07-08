@@ -30,3 +30,12 @@ def dtw_series_from_numpy(np.ndarray[DTYPE_t, ndim=2] data):
             data = data.copy(order='C')
     ptrs = dtw_cc.DTWSeriesMatrix(data)
     return ptrs
+
+
+def dtw_series_from_numpy_ndim(np.ndarray[DTYPE_t, ndim=3] data):
+    if not data.flags.c_contiguous:
+            logger.debug("Warning: The numpy array or matrix passed to method distance_matrix is not C-contiguous. " +
+                         "The array will be copied.")
+            data = data.copy(order='C')
+    ptrs = dtw_cc.DTWSeriesMatrixNDim(data)
+    return ptrs

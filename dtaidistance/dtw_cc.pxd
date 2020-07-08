@@ -13,3 +13,6 @@ cdef class DTWSeriesPointers:
 
 cdef class DTWSeriesMatrix:
     cdef double[:,::1] _data
+
+cdef class DTWSeriesMatrixNDim:
+    cdef double[:,:,::1] _data

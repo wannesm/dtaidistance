@@ -401,7 +401,7 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
                 # None is represented as 0.0 for C
                 dist_opts[k] = 0.0
 
-    logger.info('Computing distances')
+    logger.info('Computing n-dim distances')
     if use_c and parallel and not use_mp and dtw_cc_omp is not None:
         logger.info("Compute distances in C (parallel=OMP)")
         dist_opts['block'] = block
@@ -416,7 +416,7 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     elif use_c and not parallel:
         logger.info("Compute distances in C (parallel=No)")
         dist_opts['block'] = block
-        dists = dtw_cc.distance_matrix(s, **dist_opts)
+        dists = dtw_cc.distance_matrix_ndim(s, ndim, **dist_opts)
 
     elif not use_c and parallel:
         logger.info("Compute distances in Python (parallel=MP)")
@@ -444,12 +444,12 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     return dists_matrix
 
 
-def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
+def distance_matrix_fast(s, ndim, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True):
     """Fast C version of :meth:`distance_matrix`."""
     _check_library(raise_exception=True, include_omp=parallel)
-    return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
+    return distance_matrix(s, ndim, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
                            use_c=True, show_progress=False)

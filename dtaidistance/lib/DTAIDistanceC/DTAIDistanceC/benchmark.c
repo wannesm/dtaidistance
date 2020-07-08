@@ -107,6 +107,25 @@ void benchmark6() {
     printf("d=%f\n", d);
 }
 
+void benchmark7() {
+    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s5[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double *s[] = {s1, s2, s3, s4, s5, s6};
+    size_t lengths[] = {4, 4, 4, 4, 4, 4};
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = dtw_block_empty();
+    double result[dtw_distances_length(&block, 6, false)];
+    dtw_distances_ndim_ptrs(s, 6, lengths, 2, result, &block, &settings);
+    for (int i=0; i<5; i++) {
+        printf("%.4f ", result[i]);
+    }
+    printf("\n");
+}
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -118,7 +137,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark3();
 //    benchmark4();
 //    benchmark5();
-    benchmark6();
+//    benchmark6();
+    benchmark7();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

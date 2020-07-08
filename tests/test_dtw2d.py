@@ -1,7 +1,11 @@
-import math
+import logging
+import sys
 import pytest
 import numpy as np
 from dtaidistance import dtw, dtw_ndim, dtw_ndim_visualisation as dtwvis
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 def test_distance1_a():
@@ -38,8 +42,62 @@ def test_visualisation_b():
     fig.show()
 
 
+def test_distances1_python():
+    s = np.array(
+        [[[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]],
+         [[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]]])
+    m = dtw_ndim.distance_matrix(s, 2, compact=True)
+    assert m[0] == pytest.approx(2.44948974, abs=1e-3)
+    assert m[1] == pytest.approx(3.0000)
+    assert m[2] == pytest.approx(0.0000)
+    assert m[3] == pytest.approx(2.4495, abs=1e-3)
+    assert m[4] == pytest.approx(3.0000)
+
+
+def test_distances1_fast():
+    s = np.array(
+        [[[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]],
+         [[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]]])
+    m = dtw_ndim.distance_matrix_fast(s, 2, compact=True, parallel=False)
+    print(m)
+    assert m[0] == pytest.approx(2.44948974, abs=1e-3)
+    assert m[1] == pytest.approx(3.0000)
+    assert m[2] == pytest.approx(0.0000)
+    assert m[3] == pytest.approx(2.4495, abs=1e-3)
+    assert m[4] == pytest.approx(3.0000)
+
+
+def test_distances1_fast_parallel():
+    s = np.array(
+        [[[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]],
+         [[0., 0], [1, 2], [1, 0], [1, 0]],
+         [[0., 1], [2, 0], [0, 0], [0, 0]],
+         [[1., 2], [0, 0], [0, 0], [0, 1]]])
+    m = dtw_ndim.distance_matrix_fast(s, 2, compact=True, parallel=True)
+    # print(m)
+    assert m[0] == pytest.approx(2.44948974, abs=1e-3)
+    assert m[1] == pytest.approx(3.0000)
+    assert m[2] == pytest.approx(0.0000)
+    assert m[3] == pytest.approx(2.4495, abs=1e-3)
+    assert m[4] == pytest.approx(3.0000)
+
+
 if __name__ == "__main__":
-    test_distance1_a()
-    test_distance1_b()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    # test_distance1_a()
+    # test_distance1_b()
     # test_visualisation_a()
     # test_visualisation_b()
+    # test_distances1_fast()
+    test_distances1_fast_parallel()
