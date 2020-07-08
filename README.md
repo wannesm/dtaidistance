@@ -19,7 +19,10 @@ Citing this work:
 - The `max_dist` argument turned out to be similar to Silva and Batista's work 
   on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
   since it prunes more distance measures. Additionally, a `use_pruning` argument
-  is added to automatically set `max_dist` to the Euclidean distance. 
+  is added to automatically set `max_dist` to the Euclidean distance, as suggested
+  by Silva and Batista, to speed up the computation.
+- Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
+  package.
 
 
 ## Installation
@@ -99,6 +102,7 @@ the distance measure computation:
 - `max_length_diff`: Return infinity if difference in length of two series is larger.
 - `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
 - `psi`: Psi relaxation to ignore begin and/or end of sequences (for cylical sequencies) [2].
+- `use_pruning`: Prune computations based on the Euclidean upper bound.
 
 
 #### DTW Distance Measure all warping paths
