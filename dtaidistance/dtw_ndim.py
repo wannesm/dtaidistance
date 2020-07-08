@@ -17,8 +17,12 @@ import array
 
 from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
     _distance_matrix_length
+from . import dtw_numpy
+from .exceptions import NumpyException
 
 try:
+    if dtw_numpy.test_without_numpy():
+        raise ImportError()
     import numpy as np
     array_min = np.min
 except ImportError:
@@ -53,6 +57,8 @@ inf = float("inf")
 
 
 def ub_euclidean(s1, s2):
+    if np is None:
+        raise NumpyException("Numpy is required for the ub_euclidean method.")
     n = min(len(s1), len(s2))
     ub = 0
     for i in range(n):
@@ -92,6 +98,9 @@ def distance(s1, s2, window=None, max_dist=None,
                                  penalty=penalty,
                                  psi=psi,
                                  use_pruning=use_pruning)
+    if np is None:
+        raise NumpyException("Numpy is required for the dtw_ndim.distance method "
+                             "(Numpy is not required for the distance_fast method that uses the C library")
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -214,10 +223,6 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     return d
 
 
-def _distance_with_params(t):
-    return distance(t[0], t[1], **t[2])
-
-
 def warping_paths(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None,):
     """
@@ -227,6 +232,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 
     See :py:meth:`dtaidistance.dtw.warping_paths` for parameters.
     """
+    if np is None:
+        raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf

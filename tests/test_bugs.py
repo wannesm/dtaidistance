@@ -1,10 +1,10 @@
-import pytest
-
+import logging
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+
+import pytest
+
 from dtaidistance import dtw, dtw_numpy
-from dtaidistance.exceptions import NumpyException
-import logging
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
