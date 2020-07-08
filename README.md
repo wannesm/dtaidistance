@@ -29,7 +29,8 @@ Citing this work:
 
 This packages is available on PyPI (requires Python 3):
 
-    $ pip install dtaidistance
+    $ pip install git+https://github.com/wannesm/dtaidistance@v2  # v2-beta
+    $ pip install dtaidistance  #v1
 
 In case the C based version is not available, see the documentation for
 alternative installation options. In case
