@@ -106,6 +106,17 @@ size_t dtw_distances_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* leng
 }
 
 
+/*!
+ Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays and in parallel.
+ 
+ @param ptrs Pointers to arrays. The order is defined by 1st dim is sequence entry, 2nd dim are the n-dimensional values. Thus the values for each n-dimensional entry are next to each other in the memory layout of the array.
+ @param nb_ptrs Length of ptrs array
+ @param lengths Array of length nb_ptrs with all lengths of the arrays in ptrs.
+ @param ndim The number of dimensions in each sequence entry
+ @param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+ @param block Restrict to a certain block of combinations of series.
+ @param settings DTW settings
+ */
 size_t dtw_distances_ndim_ptrs_parallel(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
                                         DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
@@ -164,6 +175,17 @@ size_t dtw_distances_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb
 }
 
 
+/*!
+Distance matrix for n-dimensional DTW, executed on a list of 3-dimensional array and in parallel.
+
+@param matrix 3-dimensional array. The order is defined by 1st dimension are the series, the 2nd dimension are the sequence entries, and the 3rd dimension are the n-dimensional values.
+@param nb_rows Number of series, size of the 1st dimension of matrix
+@param nb_cols Number of elements in each series, size of the 2nd dimension of matrix
+@param ndim The number of dimensions in each sequence entry, size of the 3rd dimension of matrix
+@param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+@param block Restrict to a certain block of combinations of series.
+@param settings DTW settings
+*/
 size_t dtw_distances_ndim_matrix_parallel(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output, DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     size_t r, c;
