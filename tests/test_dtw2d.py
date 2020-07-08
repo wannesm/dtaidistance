@@ -67,7 +67,7 @@ def test_distances1_fast():
          [[0., 1], [2, 0], [0, 0], [0, 0]],
          [[1., 2], [0, 0], [0, 0], [0, 1]]])
     m = dtw_ndim.distance_matrix_fast(s, 2, compact=True, parallel=False)
-    print(m)
+    # print(m)
     assert m[0] == pytest.approx(2.44948974, abs=1e-3)
     assert m[1] == pytest.approx(3.0000)
     assert m[2] == pytest.approx(0.0000)
@@ -101,7 +101,7 @@ def test_distances2_fast():
          [[1., 2], [0, 0], [0, 0], [0, 1]]]
     s = [np.array(a) for a in s]
     m = dtw_ndim.distance_matrix_fast(s, 2, compact=True, parallel=False)
-    print(m)
+    # print(m)
     assert m[0] == pytest.approx(2.44948974, abs=1e-3)
     assert m[1] == pytest.approx(3.0000)
     assert m[2] == pytest.approx(0.0000)
@@ -110,15 +110,14 @@ def test_distances2_fast():
 
 
 def test_distances2_fast_parallel():
-    s = [[[0., 0], [1, 2], [1, 0], [1, 0]],
-         [[0., 1], [2, 0], [0, 0], [0, 0]],
-         [[1., 2], [0, 0], [0, 0], [0, 1]],
-         [[0., 0], [1, 2], [1, 0], [1, 0]],
-         [[0., 1], [2, 0], [0, 0], [0, 0]],
-         [[1., 2], [0, 0], [0, 0], [0, 1]]]
-    s = [np.array(a) for a in s]
+    s = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+         np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+         np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
+         np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+         np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+         np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
     m = dtw_ndim.distance_matrix_fast(s, 2, compact=True, parallel=True)
-    print(m)
+    # print(m)
     assert m[0] == pytest.approx(2.44948974, abs=1e-3)
     assert m[1] == pytest.approx(3.0000)
     assert m[2] == pytest.approx(0.0000)
