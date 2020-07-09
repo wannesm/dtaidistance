@@ -394,7 +394,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
                        max_step=None, max_length_diff=None, penalty=None, psi=None):
-    """Fast C version of :meth:`distance`."""
+    """Fast C version of :meth:`warping_paths`."""
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths_fast method. "
                              "You can call the dtw_cc.warping_paths method directly with an array.array.")
