@@ -15,8 +15,8 @@ Dynamic Time Warping (DTW)
    :alt: DTW Example
 
 
-DTW Distance Measure Between Two Series
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW Distance Measure Between Two Time Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Only the distance measure based on two sequences of numbers:
 
@@ -29,7 +29,8 @@ Only the distance measure based on two sequences of numbers:
     print(distance)
 
 The fastest version (30-300 times) uses c directly but requires an array
-as input (with the double type, other data types are not yet supported):
+as input (with the double type), , and (optionally) also prunes computations
+by setting ``max_dist`` to the Euclidean upper bound:
 
 ::
 
@@ -37,7 +38,7 @@ as input (with the double type, other data types are not yet supported):
     import array
     s1 = array.array('d',[0, 0, 1, 2, 1, 0, 1, 0, 0])
     s2 = array.array('d',[0, 1, 2, 0, 0, 0, 0, 0, 0])
-    d = dtw.distance_fast(s1, s2)
+    d = dtw.distance_fast(s1, s2, use_pruning=True)
 
 Or you can use a numpy array (with dtype double or float):
 
@@ -47,7 +48,7 @@ Or you can use a numpy array (with dtype double or float):
     import numpy as np
     s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
     s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.double)
-    d = dtw.distance_fast(s1, s2)
+    d = dtw.distance_fast(s1, s2, use_pruning=True)
 
 Check the ``__doc__`` for information about the available arguments:
 
@@ -63,19 +64,28 @@ The ``distance`` function has linear space complexity but quadratic
 time complexity. To reduce the time complexity a number of options
 are available. The most used appraoch accros DTW implementations is
 to use a window that indicates the maximal shift that is allowed.
-This reduces the complexity to the product of window size and series length:
+This reduces the complexity to the product of window size and
+largest sequence length:
 
 -  ``window``: Only allow for shifts up to this amount away from the two
    diagonals.
 
+- ``psi``: Up to ``psi`` number of start and end points of a sequence can be
+  ignored if this would lead to a lower distance. This is also called
+  psi-relaxation.
+
 A number of other options are foreseen to early stop some or all paths the
 dynamic programming algorithm is exploring:
 
--  ``max_dist``: Stop if the returned distance measure will be larger
-   than this value.
--  ``max_step``: Do not allow steps larger than this value.
+-  ``max_dist``: Avoid computing partial paths that will be larger
+   than this value. If no solution is found that is smaller or equal
+   to this value, then return infinity.
+-  ``use_pruning``: A good way of pruning partial paths is to set ``max_dist`` to the
+   Euclidean upper bound. If this option is true, this is done automatically.
+-  ``max_step``: Do not allow steps larger than this value, replace them
+   with infinity.
 -  ``max_length_diff``: Return infinity if difference in length of two
-   series is larger.
+   sequences is larger.
 
 
 DTW Tuning
@@ -127,8 +137,8 @@ Notice the ``psi`` parameter that relaxes the matching at the beginning
 and end. In this example this results in a perfect match even though the
 sine waves are slightly shifted.
 
-DTW between set of series
-^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW between multiple Time series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To compute the DTW distance measures between all sequences in a list of
 sequences, use the method ``dtw.distance_matrix``. You can speed up the
@@ -143,23 +153,23 @@ list of lists/arrays:
 
     from dtaidistance import dtw
     import numpy as np
-    series = [
+    timeseries = [
         np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
         np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
         np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
-    ds = dtw.distance_matrix_fast(series)
+    ds = dtw.distance_matrix_fast(timeseries)
 
-or a matrix (in case all series have the same length):
+or a matrix (in case all time series have the same length):
 
 ::
 
     from dtaidistance import dtw
     import numpy as np
-    series = np.array([
+    timeseries = np.array([
         [0.0, 0, 1, 2, 1, 0, 1, 0, 0],
         [0.0, 1, 2, 0, 0, 0, 0, 0, 0],
         [0.0, 0, 1, 2, 1, 0, 0, 0, 0]])
-    ds = dtw.distance_matrix_fast(series)
+    ds = dtw.distance_matrix_fast(timeseries)
 
 The result is stored in a matrix representation. Since only the upper
 triangular matrix is required this representation more memory then necessary.
@@ -168,25 +178,25 @@ true. The method will then return a 1-dimensional array with all results.
 This array represents the concatenation of all upper triangular rows.
 
 
-DTW between set of series, limited to block
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW between multiple time series, limited to block
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can instruct the computation to only fill part of the distance
 measures matrix. For example to distribute the computations over
-multiple nodes, or to only compare source series to target series.
+multiple nodes, or to only compare source time series to target time series.
 
 ::
 
     from dtaidistance import dtw
     import numpy as np
-    series = np.array([
+    timeseries = np.array([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1],
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1]])
-    ds = dtw.distance_matrix_fast(series, block=((1, 4), (3, 5)))
+    ds = dtw.distance_matrix_fast(timeseries, block=((1, 4), (3, 5)))
 
 The output in this case will be:
 
@@ -207,14 +217,14 @@ memory. This can be avoided by setting the ``compact`` argument to true:
 
     from dtaidistance import dtw
     import numpy as np
-    series = np.array([
+    timeseries = np.array([
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1],
          [0., 0, 1, 2, 1, 0, 1, 0, 0],
          [0., 1, 2, 0, 0, 0, 0, 0, 0],
          [1., 2, 0, 0, 0, 0, 0, 1, 1]])
-    ds = dtw.distance_matrix_fast(series, block=((1, 4), (3, 5)), compact=True)
+    ds = dtw.distance_matrix_fast(timeseries, block=((1, 4), (3, 5)), compact=True)
 
 The result will now be:
 
@@ -228,7 +238,7 @@ DTW based on shape (z-normalization)
 
 If you are interested in comparing only the shape, and not the absolute
 differences and offset, you need to z-normalize the data first. This can be achieved
-using the numpy ``zscore`` function:
+using the SciPy ``zscore`` function:
 
 ::
 

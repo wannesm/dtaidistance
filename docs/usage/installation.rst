@@ -27,8 +27,8 @@ section below.
 If the C-library is not available after compilation you can try the following two strategies
 to identify the problem:
 
-1. Call the `dtw.try_import_c()` function that will print the exception message.
-2. Reinstall with `pip install -vvv --upgrade --force-reinstall dtaidistance` and inspect the output.
+1. Call the ``dtw.try_import_c()`` function that will print the exception message.
+2. Reinstall with ``pip install -vvv --upgrade --force-reinstall dtaidistance`` and inspect the output.
 
 
 
@@ -54,8 +54,17 @@ From source
 The library can also be compiled and/or installed directly from source.
 
 * Download the source from https://github.com/wannesm/dtaidistance
-* Compile the C extensions: ``python3 setup.py build_ext --inplace``
-* Install into your site-package directory: ``python3 setup.py install``
+* Compile the C extensions:
+
+::
+
+    python3 setup.py build_ext --inplace
+
+* Install into your site-package directory:
+
+::
+
+    python3 setup.py install
 
 This requires OpenMP to be available on your system. If this is not the case, use:
 

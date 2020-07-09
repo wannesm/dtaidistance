@@ -26,16 +26,16 @@ linkage method).
 
     # Custom Hierarchical clustering
     model1 = clustering.Hierarchical(dtw.distance_matrix_fast, {})
-    cluster_idx = model1.fit(series)
+    cluster_idx = model1.fit(timeseries)
     # Keep track of full tree by using the HierarchicalTree wrapper class
     model2 = clustering.HierarchicalTree(model1)
-    cluster_idx = model2.fit(series)
+    cluster_idx = model2.fit(timeseries)
     # You can also pass keyword arguments identical to instantiate a Hierarchical object
     model2 = clustering.HierarchicalTree(dists_fun=dtw.distance_matrix_fast, dists_options={})
-    cluster_idx = model2.fit(series)
+    cluster_idx = model2.fit(timeseries)
     # SciPy linkage clustering
     model3 = clustering.LinkageTree(dtw.distance_matrix_fast, {})
-    cluster_idx = model3.fit(series)
+    cluster_idx = model3.fit(timeseries)
 
 For models that keep track of the full clustering tree
 (``HierarchicalTree`` or ``LinkageTree``), the tree can be visualised (see figure at top of this page):
@@ -45,7 +45,8 @@ For models that keep track of the full clustering tree
     model2.plot("hierarchy.png")
 
 A number of options are also available to tune the layout of the figure. You can also pass your
-own set of axes. The only assumption is that the tree is printed to ``ax[0]`` and the series to ``ax[1]``.
+own set of axes. The only assumption is that the tree is printed to ``ax[0]`` and the
+time series to ``ax[1]``.
 
 ::
 
