@@ -10,6 +10,10 @@ Citing this work: [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo
 
 ## Installation
 
+*If you want to try the v2 beta version ([what's new?](https://github.com/wannesm/dtaidistance/tree/v2)):*
+
+    $ pip install git+https://github.com/wannesm/dtaidistance@v2
+
 This packages is available on PyPI (requires Python 3):
 
     $ pip install dtaidistance
