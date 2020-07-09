@@ -14,7 +14,7 @@ def test_distance1_array():
     s2 = array.array('d', [0, 1, 2, 0, 0, 0, 0, 0, 0])
     d = dtw_cc.distance(s1, s2)
     # print(f'd = {d}')
-    assert(d) == pytest.approx(math.sqrt(2))
+    assert d == pytest.approx(math.sqrt(2))
 
 
 @numpyonly
@@ -24,7 +24,7 @@ def test_distance1_numpy():
         s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0])
         d = dtw.distance_fast(s1, s2)
         # print(f'd = {d}')
-        assert(d) == pytest.approx(math.sqrt(2))
+        assert d == pytest.approx(math.sqrt(2))
 
 
 if __name__ == "__main__":

@@ -44,7 +44,10 @@ def plot_margins(serie, weights, clfs, importances=None):
     global directory
     if directory is None:
         directory = prepare_directory()
-    from sklearn import tree
+    try:
+        from sklearn import tree
+    except ImportError:
+        return
     feature_names = ["f{} ({}, {})".format(i // 2, i, '-' if (i % 2) == 0 else '+') for i in range(2 * len(serie))]
     out_str = io.StringIO()
     for clf in clfs:
@@ -186,26 +189,27 @@ def test_distance5():
 
 @pytest.mark.skip("Takes too long")
 def test_distance6():
-    s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
-    l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
+    with dtw_numpy.test_uses_numpy() as np:
+        s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
+        l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
 
-    if directory:
-        plot_series(s, l)
-        savefig = str(directory / "dts.dot")
-    else:
-        savefig = None
+        if directory:
+            plot_series(s, l)
+            savefig = str(directory / "dts.dot")
+        else:
+            savefig = None
 
-    prototypeidx = 3
-    labels = np.zeros(l.shape)
-    labels[l == l[prototypeidx]] = 1
-    ml_values, cl_values, clf, importances = \
-        dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1, savefig=savefig)
-    logger.debug(f"ml_values = {dict(ml_values)}")
-    logger.debug(f"cl_values = {dict(cl_values)}")
-    weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
-                                                   only_max=False, strict_cl=True)
-    if directory:
-        plot_margins(s[prototypeidx], weights, clf, prototypeidx)
+        prototypeidx = 3
+        labels = np.zeros(l.shape)
+        labels[l == l[prototypeidx]] = 1
+        ml_values, cl_values, clf, importances = \
+            dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1, savefig=savefig)
+        logger.debug(f"ml_values = {dict(ml_values)}")
+        logger.debug(f"cl_values = {dict(cl_values)}")
+        weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
+                                                       only_max=False, strict_cl=True)
+        if directory:
+            plot_margins(s[prototypeidx], weights, clf, prototypeidx)
 
 
 @numpyonly

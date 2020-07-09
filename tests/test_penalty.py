@@ -14,8 +14,8 @@ def test_penalty_cyclicalshift():
     # plt.show(block=True)
     d1 = dtw.distance(s1, s2)
     d2 = dtw.distance(s1, s2, penalty=1)
-    assert (d1) == pytest.approx(math.sqrt(10))
-    assert (d2) == pytest.approx(math.sqrt(14))
+    assert d1 == pytest.approx(math.sqrt(10))
+    assert d2 == pytest.approx(math.sqrt(14))
 
 
 if __name__ == "__main__":
