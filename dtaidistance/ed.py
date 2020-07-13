@@ -36,7 +36,8 @@ def distance(s1, s2):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
-    to the remaining elements in the longer series.
+    to the remaining elements in the longer series. This is compatible with Euclidean
+    distance being used as an upper bound for DTW.
 
     :param s1: Sequence of numbers
     :param s2: Sequence of numbers
