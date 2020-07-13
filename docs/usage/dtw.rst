@@ -62,17 +62,13 @@ DTW Complexity and Early-Stopping
 
 The ``distance`` function has linear space complexity but quadratic
 time complexity. To reduce the time complexity a number of options
-are available. The most used appraoch accros DTW implementations is
+are available. The most used approach accros DTW implementations is
 to use a window that indicates the maximal shift that is allowed.
 This reduces the complexity to the product of window size and
 largest sequence length:
 
 -  ``window``: Only allow for shifts up to this amount away from the two
    diagonals.
-
-- ``psi``: Up to ``psi`` number of start and end points of a sequence can be
-  ignored if this would lead to a lower distance. This is also called
-  psi-relaxation.
 
 A number of other options are foreseen to early stop some or all paths the
 dynamic programming algorithm is exploring:
@@ -95,9 +91,9 @@ A number of options are foreseen to tune how the cost is computed:
 
 -  ``penalty``: Penalty to add if compression or expansion is applied
    (on top of the distance).
--  ``psi``: Psi relaxation to ignore begin and/or end of sequences (for
-   cylical sequencies) [2].
-
+-  ``psi``: Up to ``psi`` number of start and end points of a sequence can be
+  ignored if this would lead to a lower distance. This is also called
+  psi-relaxation (for cyclical sequences) [2].
 
 
 DTW and keep all warping paths

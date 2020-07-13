@@ -22,6 +22,7 @@ Source available on https://github.com/wannesm/dtaidistance.
 
    usage/installation
    usage/dtw
+   usage/ed
    usage/clustering
    usage/sequence
 
@@ -33,6 +34,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    modules/dtw
    modules/dtw_visualisation
    modules/dtw_ndim
+   modules/ed
    modules/clustering
 
 

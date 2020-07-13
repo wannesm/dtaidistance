@@ -1,3 +1,15 @@
+# -*- coding: UTF-8 -*-
+"""
+dtaidistance.ed
+~~~~~~~~~~~~~~~
+
+Euclidean Distance (ED)
+
+:author: Wannes Meert
+:copyright: Copyright 2020 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
+
+"""
 import logging
 import math
 
