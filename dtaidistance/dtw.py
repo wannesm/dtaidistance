@@ -14,8 +14,9 @@ import logging
 import math
 import array
 
+from . import ed
 from . import util
-from . import dtw_numpy
+from . import util_numpy
 from .util import SeriesContainer
 from .exceptions import NumpyException
 
@@ -50,7 +51,7 @@ except ImportError:
     tqdm = None
 
 try:
-    if dtw_numpy.test_without_numpy():
+    if util_numpy.test_without_numpy():
         raise ImportError()
     import numpy as np
     DTYPE = np.double
@@ -77,6 +78,21 @@ def try_import_c():
 inf = float("inf")
 
 
+def _check_library(include_omp=False, raise_exception=True):
+    if dtw_cc is None:
+        msg = "The compiled dtaidistance C library is not available.\n" + \
+              "See the documentation for alternative installation options."
+        logger.error(msg)
+        if raise_exception:
+            raise Exception(msg)
+    if include_omp and dtw_cc_omp is None:
+        msg = "The compiled dtaidistance C-OMP library is not available.\n" + \
+              "See the documentation for alternative installation options."
+        logger.error(msg)
+        if raise_exception:
+            raise Exception(msg)
+
+
 def lb_keogh(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None):
     """Lowerbound LB_KEOGH"""
@@ -101,21 +117,8 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
 
 
 def ub_euclidean(s1, s2):
-    n = min(len(s1), len(s2))
-    ub = 0
-    for v1, v2 in zip(s1, s2):
-        ub += (v1 - v2)**2
-    # If the two series differ in length, compare the last element of the shortest series
-    # to the remaining elements in the longer series
-    if len(s1) > len(s2):
-        v2 = s2[n - 1]
-        for v1 in s1[n:]:
-            ub += (v1 - v2)**2
-    elif len(s1) < len(s2):
-        v1 = s1[n-1]
-        for v2 in s2[n:]:
-            ub += (v1 - v2)**2
-    return math.sqrt(ub)
+    """ See ed.euclidean_distance"""
+    return ed.distance(s1, s2)
 
 
 def distance(s1, s2,
@@ -255,17 +258,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     """
     _check_library(raise_exception=True)
     # Check that Numpy arrays for C contiguous
-    if np is not None:
-        if isinstance(s1, (np.ndarray, np.generic)):
-            if not s1.data.c_contiguous:
-                logger.debug("Warning: Sequence 1 passed to method distance is not C-contiguous. " +
-                             "The sequence will be copied.")
-                s1 = s1.copy(order='C')
-        if isinstance(s2, (np.ndarray, np.generic)):
-            if not s2.data.c_contiguous:
-                logger.debug("Warning: Sequence 2 passed to method distance is not C-contiguous. " +
-                             "The sequence will be copied.")
-                s2 = s2.copy(order='C')
+    s1 = util_numpy.verify_np_array(s1)
+    s2 = util_numpy.verify_np_array(s2)
     # Move data to C library
     d = dtw_cc.distance(s1, s2,
                         window=window,
@@ -395,9 +389,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
                        max_step=None, max_length_diff=None, penalty=None, psi=None):
     """Fast C version of :meth:`warping_paths`."""
-    if np is None:
-        raise NumpyException("Numpy is required for the warping_paths_fast method. "
-                             "You can call the dtw_cc.warping_paths method directly with an array.array.")
+    s1 = util_numpy.verify_np_array(s1)
+    s2 = util_numpy.verify_np_array(s2)
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
@@ -711,21 +704,6 @@ def warp(from_s, to_s, path=None, **kwargs):
     for i in range(len(to_s)):
         from_s2[i] /= from_s2_cnt[i]
     return from_s2, path
-
-
-def _check_library(include_omp=False, raise_exception=True):
-    if dtw_cc is None:
-        msg = "The compiled dtaidistance C library is not available.\n" + \
-              "See the documentation for alternative installation options."
-        logger.error(msg)
-        if raise_exception:
-            raise Exception(msg)
-    if include_omp and dtw_cc_omp is None:
-        msg = "The compiled dtaidistance C-OMP library is not available.\n" + \
-              "See the documentation for alternative installation options."
-        logger.error(msg)
-        if raise_exception:
-            raise Exception(msg)
 
 
 def best_path(paths):

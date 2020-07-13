@@ -3,17 +3,17 @@ import sys
 import os
 import math
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-from dtaidistance import dtw, dtw_numpy
+from dtaidistance import dtw, util_numpy
 
 
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 @numpyonly
 def test_numpymatrix():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 1, 2, 1, 0, 1, 0, 0],
             [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -34,7 +34,7 @@ def test_numpymatrix():
 def test_numpymatrix_compact():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 1, 2, 1, 0, 1, 0, 0],
             [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -52,7 +52,7 @@ def test_numpymatrix_compact():
 def test_numpymatrix_transpose():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0., 1.,],
             [0, 1, 2],
@@ -126,7 +126,7 @@ def test_negativedimensions2():
     Problem is with dividing an uneven number to optimize the computation and require smaller number.
     This dividing the uneven number should and can be avoided.
     """
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         # s = np.full((62706, 104), 1.0)
         s = np.full((10, 104), 1.0)
         window = 1
@@ -136,7 +136,7 @@ def test_negativedimensions2():
 
 @numpyonly
 def test_overflowdistance():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         maxvalthirtytwobit = 2147483647
         s = np.array([
             [maxvalthirtytwobit, maxvalthirtytwobit, 1, 2, 1, 0, 1, 0, 0],

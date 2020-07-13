@@ -12,13 +12,13 @@ except ImportError:
         raise ImportError("No pathlib or pathlib2 found")
 from dtaidistance import dtw_weighted as dtww
 from dtaidistance import dtw_visualisation as dtwvis
-from dtaidistance import dtw, dtw_numpy
+from dtaidistance import dtw, util_numpy
 from dtaidistance.util import prepare_directory
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 directory = None
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 def plot_series(s, l, idx=None):
@@ -60,7 +60,7 @@ def plot_margins(serie, weights, clfs, importances=None):
 
 @numpyonly
 def test_distance1():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         directory = prepare_directory()
 
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
@@ -81,7 +81,7 @@ def test_distance1():
 
 @numpyonly
 def test_distance2():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 1, 2, 1, 0, 1.3, 0, 0],
             [0., 0, 1, 2, 1, 0, 1,   0, 0],
@@ -111,7 +111,7 @@ def test_distance2():
 
 @numpyonly
 def test_distance3():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 1, 2, 1, 0, 1.3, 0, 0],
             [0., 1, 2, 0, 0, 0, 0, 0, 0]
@@ -135,7 +135,7 @@ def test_distance3():
 
 @numpyonly
 def test_distance4():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 1,    2,    1,   0,   1.3, 0, 0],  # 0
             [0., 1, 2,    0,    0,   0,   0,   0, 0],  # 1
@@ -166,7 +166,7 @@ def test_distance4():
 
 @numpyonly
 def test_distance5():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0., 0, 0, 2,  0, -2, 0, 0,  0, 0, 0, 0,  0, 0, 0],  # 0
             [0., 0, 2, 0, -2,  0, 2, 0, -2, 0, 2, 0, -2, 0, 0],  # 1
@@ -189,7 +189,7 @@ def test_distance5():
 
 @pytest.mark.skip("Takes too long")
 def test_distance6():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.loadtxt(Path(__file__).parent / "rsrc" / "series_0.csv", delimiter=',')
         l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
 
@@ -214,7 +214,7 @@ def test_distance6():
 
 @numpyonly
 def test_distance7():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
             [0.0, 0.3, 0.5, 0.8, 1.0, 0.1, 0.0, 0.1],
             [0.0, 0.2, 0.3, 0.7, 1.1, 0.0, 0.1, 0.0],

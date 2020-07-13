@@ -21,7 +21,7 @@ Citing this work:
   on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
   since it prunes more partial distances. Additionally, a `use_pruning` argument
   is added to automatically set `max_dist` to the Euclidean distance, as suggested
-  by Silva and Batista, to speed up the computation.
+  by Silva and Batista, to speed up the computation (a new method `ub_euclidean` is available).
 - Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
   package.
 

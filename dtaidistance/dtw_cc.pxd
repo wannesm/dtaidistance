@@ -1,10 +1,10 @@
-cimport dtaidistancec
+cimport dtaidistancec_dtw
 
 cdef class DTWBlock:
-    cdef dtaidistancec.DTWBlock _block
+    cdef dtaidistancec_dtw.DTWBlock _block
 
 cdef class DTWSettings:
-    cdef dtaidistancec.DTWSettings _settings
+    cdef dtaidistancec_dtw.DTWSettings _settings
 
 cdef class DTWSeriesPointers:
     cdef double **_ptrs

@@ -30,6 +30,11 @@ except ImportError:
     dtw_cc = None
 
 try:
+    from . import dtw_cc_omp
+except ImportError:
+    dtw_cc_omp = None
+
+try:
     from . import dtw_cc_numpy
 except ImportError:
     dtw_cc_numpy = None

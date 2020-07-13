@@ -4,14 +4,14 @@ sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.par
 
 import pytest
 
-from dtaidistance import dtw, dtw_numpy
+from dtaidistance import dtw, util_numpy
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 def test_distance1_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         # dist_opts = {'max_dist': 0.201, 'max_step': 0.011, 'max_length_diff': 8, 'window': 3}
         dist_opts = {'window': 3}
         s1 = np.array([ 0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.])
@@ -24,7 +24,7 @@ def test_distance1_a():
 
 
 def test_distance1_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {}
         s1 = np.array([ 0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.])
         s2 = np.array([ 0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.])
@@ -35,7 +35,7 @@ def test_distance1_b():
 
 
 def test_distance2_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_dist': 1.1}
         s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
         s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
@@ -46,7 +46,7 @@ def test_distance2_a():
 
 
 def test_distance2_aa():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_dist': 0.1}
         s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
         s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
@@ -58,7 +58,7 @@ def test_distance2_aa():
 
 
 def test_distance2_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_step': 1.1}
         s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
         s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
@@ -69,7 +69,7 @@ def test_distance2_b():
 
 
 def test_distance2_bb():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_step': 0.1}
         s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
         s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
@@ -81,7 +81,7 @@ def test_distance2_bb():
 
 
 def test_distance2_c():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {}
         s1 = np.array([0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0])
         s2 = np.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
@@ -92,7 +92,7 @@ def test_distance2_c():
 
 
 def test_distance3_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         dist_opts = {"penalty": 0.005, "max_step": 0.011, "window": 3}
         s = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
         p = np.array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.])
@@ -102,7 +102,7 @@ def test_distance3_a():
 
 
 def test_distance4():
-    with dtw_numpy.test_uses_numpy(strict=False) as np:
+    with util_numpy.test_uses_numpy(strict=False) as np:
         try:
             import pandas as pd
         except ImportError:
@@ -162,7 +162,7 @@ def test_distance4():
 
 
 def test_distance6():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
         s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
         d = dtw.distance_fast(s1, s2, window=2)
@@ -171,7 +171,7 @@ def test_distance6():
 
 def test_bug1():
     """Failed on Windows if pointer types are different."""
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         series = [np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
                   np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
                   np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
@@ -181,7 +181,7 @@ def test_bug1():
 
 def test_bug1_serial():
     """Failed on Windows if pointer types are different."""
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         series = [np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double),
                   np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0]),
                   np.array([0.0, 0, 1, 2, 1, 0, 0, 0])]
@@ -190,7 +190,7 @@ def test_bug1_serial():
 
 
 def test_bug1_psi():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [np.array([0., 0, 1, 2, 1, 0, 1, 0, 0]),
              np.array([9., 0, 1, 2, 1, 0, 1, 0, 9])]
         res1 = dtw.distance_matrix(s, compact=True, psi=1)

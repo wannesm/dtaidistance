@@ -22,8 +22,8 @@
 //----------------------------------------------------
 // MARK: DTW
 
-dtwvalue dtw_warping_paths_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings) {
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * (l1 + 1)*  (l2 + 1));
+seq_t dtw_warping_paths_distance(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings) {
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (l1 + 1)*  (l2 + 1));
     return dtw_warping_paths(wps, s1, l1, s2, l2, true, true, settings);
 }
 
@@ -242,7 +242,7 @@ Test(wps, test_b_a) {
     double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
     DTWSettings settings = dtw_settings_default();
     settings.window = 3;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 13*12);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 13*12);
     double d = dtw_warping_paths(wps, s1, 12, s2, 11, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 0.02, 0.001);
@@ -257,7 +257,7 @@ Test(wps, test_b_b) {
     double s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
     double s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
     DTWSettings settings = dtw_settings_default();
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 13*12);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 13*12);
     double d = dtw_warping_paths(wps, s1, 12, s2, 11, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 0.02, 0.001);
@@ -272,7 +272,7 @@ Test(wps, test_c_a) {
     double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
     DTWSettings settings = dtw_settings_default();
     settings.max_dist = 1.1;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 8*8);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
     double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 1.0, 0.001);
@@ -286,7 +286,7 @@ Test(wps, test_c_b) {
     double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
     DTWSettings settings = dtw_settings_default();
     settings.max_dist = 0.1;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 8*8);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
     double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
 //    dtw_print_wps(wps, 7, 7);
     free(wps);
@@ -301,7 +301,7 @@ Test(wps, test_c_c) {
     double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
     DTWSettings settings = dtw_settings_default();
     settings.max_step = 1.1;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 8*8);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
     double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 1.0, 0.001);
@@ -315,7 +315,7 @@ Test(wps, test_c_d) {
     double s2[] = {0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0};
     DTWSettings settings = dtw_settings_default();
     settings.max_step = 0.1;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 8*8);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
     double d = dtw_warping_paths(wps, s1, 7, s2, 7, true, true, &settings);
     free(wps);
     cr_assert(isinf(d));
@@ -329,7 +329,7 @@ Test(wps, test_d_a) {
     double s1[] = {maxval_thirtytwobit, maxval_thirtytwobit, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {1., 2, 0, 0, 0, 0, 0, 1, 0};
     DTWSettings settings = dtw_settings_default();
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 10*10);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 10*10);
     double d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 3037000496.440516, 0.001);
@@ -351,7 +351,7 @@ Test(wps_psi, test_a_a) {
                   -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
     DTWSettings settings = dtw_settings_default();
     settings.psi = 2;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 41*41);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 41*41);
     double d = dtw_warping_paths(wps, s1, 40, s2, 40, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 0.0, 0.001);
@@ -369,7 +369,7 @@ Test(wps_psi, test_a_b) {
                   -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
     DTWSettings settings = dtw_settings_default();
     settings.psi = 2;
-    dtwvalue * wps = (dtwvalue *)malloc(sizeof(dtwvalue) * 41*41);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 41*41);
     double d = dtw_warping_paths(wps, s2, 40, s1, 40, true, true, &settings);
     free(wps);
     cr_assert_float_eq(d, 0.0, 0.001);
@@ -384,7 +384,7 @@ Test(ndim, test_a) {
     double s1[] = {0, 0, 0, 1, 2, 1, 0,  1, 0, 0};
     double s2[] = {0, 0, 2, 1, 0, 1, 0, .5, 0, 0};
     DTWSettings settings = dtw_settings_default();
-    dtwvalue d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
+    seq_t d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
 //    printf("d=%f\n", d);
     cr_assert_float_eq(d, 1.118033988749895, 0.001);
 }

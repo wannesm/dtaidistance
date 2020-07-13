@@ -6,19 +6,19 @@ import pytest
 import logging
 from pathlib import Path
 import numpy as np
-from dtaidistance import dtw, clustering, dtw_numpy
+from dtaidistance import dtw, clustering, util_numpy
 from dtaidistance.exceptions import NumpyException
 import dtaidistance.dtw_visualisation as dtwvis
 
 
 directory = None
 logger = logging.getLogger("be.kuleuven.dtai.distance")
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 @numpyonly
 def test_bug1():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         series = np.array([
             [0., 0, 1, 2, 1, 0, 1, 0, 0],
             [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -40,7 +40,7 @@ def test_bug1():
 
 @numpyonly
 def test_bug2():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
         s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
         d1a = dtw.distance_fast(s1, s2, window=2)
@@ -62,7 +62,7 @@ def test_bug2():
 
 @numpyonly
 def test_bug3():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         series = np.array([
             np.array([1, 2, 1]),
             np.array([0., 1, 2, 0, 0, 0, 0, 0, 0]),
@@ -88,7 +88,7 @@ def test_bug3():
 
 @numpyonly
 def test_bug4():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
         s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
         path = dtw.warping_path(s1, s2)

@@ -89,12 +89,12 @@ void benchmark4() {
 }
 
 void benchmark5() {
-    dtwvalue s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
-    dtwvalue s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
     DTWSettings settings = dtw_settings_default();
     settings.max_dist = 1.415;
-    dtwvalue wps[10*10];
-    dtwvalue d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
+    seq_t wps[10*10];
+    seq_t d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
     printf("d=%f\n", d);
     dtw_print_wps(wps, 9, 9);
 }
@@ -103,7 +103,7 @@ void benchmark6() {
     double s1[] = {0, 0, 0, 1, 2, 1, 0,  1, 0, 0};
     double s2[] = {0, 0, 2, 1, 0, 1, 0, .5, 0, 0};
     DTWSettings settings = dtw_settings_default();
-    dtwvalue d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
+    seq_t d = dtw_distance_ndim(s1, 5, s2, 5, 2, &settings);
     printf("d=%f\n", d);
 }
 

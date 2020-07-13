@@ -3,18 +3,18 @@ from pathlib import Path
 
 import pytest
 
-from dtaidistance import alignment, dtw_numpy
+from dtaidistance import alignment, util_numpy
 from dtaidistance.util import read_substitution_matrix
 
 
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 directory = Path()
 
 
 @numpyonly
 def test_sequences1():
     """Example from https://en.wikipedia.org/wiki/Needleman–Wunsch_algorithm . """
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = "GATTACA"
         s2 = "GCATGCU"
         value, matrix = alignment.needleman_wunsch(s1, s2)

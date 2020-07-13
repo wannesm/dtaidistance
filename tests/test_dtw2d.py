@@ -1,16 +1,16 @@
 import logging
 import sys
 import pytest
-from dtaidistance import dtw, dtw_numpy, dtw_ndim, dtw_ndim_visualisation as dtwvis
+from dtaidistance import dtw, util_numpy, dtw_ndim, dtw_ndim_visualisation as dtwvis
 
 
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 @numpyonly
 def test_distance1_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1],  [0, 0]], dtype=np.double)
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1 = dtw_ndim.distance(s1, s2)
@@ -21,7 +21,7 @@ def test_distance1_a():
 
 @numpyonly
 def test_distance1_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1],  [0, 0]], dtype=np.double)
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1 = dtw_ndim.distance_fast(s1, s2)
@@ -30,7 +30,7 @@ def test_distance1_b():
 
 @numpyonly
 def test_visualisation_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1], [0, 0]], dtype=np.double)
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1p, paths = dtw_ndim.warping_paths(s1, s2)
@@ -41,7 +41,7 @@ def test_visualisation_a():
 
 @numpyonly
 def test_visualisation_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1], [0, 0]], dtype=np.double)
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1p, paths = dtw_ndim.warping_paths(s1, s2)
@@ -52,7 +52,7 @@ def test_visualisation_b():
 
 @numpyonly
 def test_distances1_python():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array(
             [[[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
@@ -70,7 +70,7 @@ def test_distances1_python():
 
 @numpyonly
 def test_distances1_fast():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array(
             [[[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
@@ -89,7 +89,7 @@ def test_distances1_fast():
 
 @numpyonly
 def test_distances1_fast_parallel():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array(
             [[[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
@@ -108,7 +108,7 @@ def test_distances1_fast_parallel():
 
 @numpyonly
 def test_distances2_fast():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
              [[1., 2], [0, 0], [0, 0], [0, 1]],
@@ -127,7 +127,7 @@ def test_distances2_fast():
 
 @numpyonly
 def test_distances2_fast_parallel():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
              np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
              np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),

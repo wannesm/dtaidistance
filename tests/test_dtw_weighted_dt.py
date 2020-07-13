@@ -3,10 +3,10 @@ import tempfile
 import logging
 import pytest
 from pathlib import Path
-from dtaidistance import dtw_numpy, dtw_weighted as dtww
+from dtaidistance import util_numpy, dtw_weighted as dtww
 
 
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
@@ -19,7 +19,7 @@ def get_directory(directory):
 
 @numpyonly
 def test_split():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         values = np.array([1, 2, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9])
         targets = np.array([1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0])
         ig, thr, _h0 = dtww.DecisionTreeClassifier.informationgain_continuous(targets, values)
@@ -28,7 +28,7 @@ def test_split():
 
 @numpyonly
 def test_split2():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         values = np.array([0., 0., 0.])
         targets = np.array([0, 1, 0])
         ig, thr, _h0 = dtww.DecisionTreeClassifier.informationgain_continuous(targets, values)
@@ -38,7 +38,7 @@ def test_split2():
 
 @numpyonly
 def test_kdistance():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         values = np.array([1, 2, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9])
         thr = 4.5
         kd = dtww.DecisionTreeClassifier.kdistance(values, thr)
@@ -47,7 +47,7 @@ def test_kdistance():
 
 @numpyonly
 def test_kdistance2():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         values = np.array([0., 0., 0.])
         thr = 0.0
         kd = dtww.DecisionTreeClassifier.kdistance(values, thr)
@@ -56,7 +56,7 @@ def test_kdistance2():
 
 @numpyonly
 def test_decisiontree(directory=None):
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         features = np.array([
             [0.5395256916996046, 0.5925000000000002],
             [0.507905138339921, 0.6900000000000002],

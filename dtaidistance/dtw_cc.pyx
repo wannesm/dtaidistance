@@ -15,7 +15,7 @@ import array
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdint cimport intptr_t
 
-cimport dtaidistancec
+cimport dtaidistancec_dtw
 
 
 cdef extern from "Python.h":
@@ -63,7 +63,7 @@ cdef class DTWSettings:
         self._settings.use_ssize_t = True  # adapt to Py_ssize_t
 
     def __init__(self, **kwargs):
-        self._settings = dtaidistancec.dtw_settings_default()
+        self._settings = dtaidistancec_dtw.dtw_settings_default()
         if "window" in kwargs:
             if kwargs["window"] is None:
                 self._settings.window = 0
@@ -213,6 +213,26 @@ def dtw_series_from_data(data, force_pointers=False):
         raise ValueError(f"Cannot convert data of type {type(data)}")
 
 
+def ub_euclidean(double[:] s1, double[:] s2):
+    """ See ed.euclidean_distance"""
+    return dtaidistancec_dtw.ub_euclidean(&s1[0], len(s1), &s2[0], len(s2))
+
+
+def ub_euclidean_ndim(double[:, :] s1, double[:, :] s2):
+    """ See ed.euclidean_distance_ndim"""
+    # Assumes C contiguous
+    if s1.shape[1] != s2.shape[1]:
+        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+    ndim = s1.shape[1]
+    return dtaidistancec_dtw.ub_euclidean_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim)
+
+
+def lb_keogh(double[:] s1, double[:] s2, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    return dtaidistancec_dtw.lb_keogh(&s1[0], len(s1), &s2[0], len(s2), &settings._settings)
+
+
 def distance(double[:] s1, double[:] s2, **kwargs):
     """DTW distance.
 
@@ -225,7 +245,7 @@ def distance(double[:] s1, double[:] s2, **kwargs):
     """
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    return dtaidistancec.dtw_distance(&s1[0], len(s1), &s2[0], len(s2), &settings._settings)
+    return dtaidistancec_dtw.dtw_distance(&s1[0], len(s1), &s2[0], len(s2), &settings._settings)
 
 
 def distance_ndim(double[:, :] s1, double[:, :] s2, **kwargs):
@@ -244,7 +264,7 @@ def distance_ndim(double[:, :] s1, double[:, :] s2, **kwargs):
     if s1.shape[1] != s2.shape[1]:
         raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
     ndim = s1.shape[1]
-    return dtaidistancec.dtw_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim, &settings._settings)
+    return dtaidistancec_dtw.dtw_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim, &settings._settings)
 
 
 def distance_ndim_assinglearray(double[:] s1, double[:] s2, int ndim, **kwargs):
@@ -260,13 +280,13 @@ def distance_ndim_assinglearray(double[:] s1, double[:] s2, int ndim, **kwargs):
     """
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    return dtaidistancec.dtw_distance_ndim(&s1[0], len(s1), &s2[0], len(s2), ndim, &settings._settings)
+    return dtaidistancec_dtw.dtw_distance_ndim(&s1[0], len(s1), &s2[0], len(s2), ndim, &settings._settings)
 
 
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    return dtaidistancec.dtw_warping_paths(&dtw[0, 0], &s1[0], len(s1), &s2[0], len(s2),
+    return dtaidistancec_dtw.dtw_warping_paths(&dtw[0, 0], &s1[0], len(s1), &s2[0], len(s2),
                                            True, True, &settings._settings)
 
 
@@ -318,12 +338,12 @@ def distance_matrix(cur, block=None, **kwargs):
 
     if isinstance(cur, DTWSeriesPointers):
         ptrs = cur
-        dtaidistancec.dtw_distances_ptrs(
+        dtaidistancec_dtw.dtw_distances_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
-        dtaidistancec.dtw_distances_matrix(
+        dtaidistancec_dtw.dtw_distances_matrix(
             &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
@@ -380,18 +400,18 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
     if isinstance(cur, DTWSeriesPointers):
         ptrs = cur
-        dtaidistancec.dtw_distances_ndim_ptrs(
+        dtaidistancec_dtw.dtw_distances_ndim_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         # This is not a n-dimensional case ?
         matrix = cur
-        dtaidistancec.dtw_distances_matrix(
+        dtaidistancec_dtw.dtw_distances_matrix(
             &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrixNDim):
         matrixnd = cur
-        dtaidistancec.dtw_distances_ndim_matrix(
+        dtaidistancec_dtw.dtw_distances_ndim_matrix(
             &matrixnd._data[0,0,0], matrixnd.nb_rows, matrixnd.nb_cols, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     else:
@@ -402,5 +422,5 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
 def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     cdef Py_ssize_t length
-    length = dtaidistancec.dtw_distances_length(&block._block, nb_series, True)
+    length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series, True)
     return length

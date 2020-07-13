@@ -11,11 +11,6 @@
 //#define DTWDEBUG
 
 
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define EDIST(x, y) ((x - y) * (x - y))
-
-
 // MARK: Settings
 
 /* Create settings struct with default values (all extras deactivated). */
@@ -57,8 +52,8 @@ Compute the DTW between two series.
 @param l2 Length of second sequence
 @param settings A DTWSettings struct with options for the DTW algorithm.
 */
-dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
-                      dtwvalue *s2, size_t l2,
+seq_t dtw_distance(seq_t *s1, size_t l1,
+                      seq_t *s2, size_t l2,
                       DTWSettings *settings) {
     assert(settings->psi < l1 && settings->psi < l2);
     size_t ldiff;
@@ -71,9 +66,9 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
-    dtwvalue max_step = settings->max_step;
-    dtwvalue max_dist = settings->max_dist;
-    dtwvalue penalty = settings->penalty;
+    seq_t max_step = settings->max_step;
+    seq_t max_dist = settings->max_dist;
+    seq_t penalty = settings->penalty;
     
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
@@ -109,7 +104,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     penalty = pow(penalty, 2);
     size_t length = MIN(l2+1, ldiff + 2*window + 1);
     assert(length > 0);
-    dtwvalue * dtw = (dtwvalue *)malloc(sizeof(dtwvalue) * length * 2);
+    seq_t * dtw = (seq_t *)malloc(sizeof(seq_t) * length * 2);
     if (!dtw) {
         printf("Error: dtw_distance - Cannot allocate memory (size=%zu)\n", length*2);
         return 0;
@@ -134,10 +129,10 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     if (l2 > l1) {
         ldiff_window += ldiff;
     }
-    dtwvalue minv;
-    dtwvalue d; // DTYPE_t
-    dtwvalue tempv;
-    dtwvalue psi_shortest = INFINITY;
+    seq_t minv;
+    seq_t d; // DTYPE_t
+    seq_t tempv;
+    seq_t psi_shortest = INFINITY;
     keepRunning = 1;
     for (i=0; i<l1; i++) {
         if (!keepRunning){
@@ -245,7 +240,7 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
     if (window - 1 < 0) {
         l2 += window - 1;
     }
-    dtwvalue result = sqrt(dtw[length * i1 + l2 - skip]);
+    seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     // Deal wit psi-relaxation
     if (settings->psi != 0) {
         for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
@@ -274,8 +269,8 @@ dtwvalue dtw_distance(dtwvalue *s1, size_t l1,
  @param ndim Number of dimensions
  @param settings A DTWSettings struct with options for the DTW algorithm.
 */
-dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
-                           dtwvalue *s2, size_t l2, int ndim,
+seq_t dtw_distance_ndim(seq_t *s1, size_t l1,
+                           seq_t *s2, size_t l2, int ndim,
                            DTWSettings *settings) {
     assert(settings->psi < l1 && settings->psi < l2);
     size_t ldiff;
@@ -288,9 +283,9 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
     signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
-    dtwvalue max_step = settings->max_step;
-    dtwvalue max_dist = settings->max_dist;
-    dtwvalue penalty = settings->penalty;
+    seq_t max_step = settings->max_step;
+    seq_t max_dist = settings->max_dist;
+    seq_t penalty = settings->penalty;
     
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
@@ -326,7 +321,7 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
     penalty = pow(penalty, 2);
     size_t length = MIN(l2+1, ldiff + 2*window + 1);
     assert(length > 0);
-    dtwvalue * dtw = (dtwvalue *)malloc(sizeof(dtwvalue) * length * 2);
+    seq_t * dtw = (seq_t *)malloc(sizeof(seq_t) * length * 2);
     if (!dtw) {
         printf("Error: dtw_distance - Cannot allocate memory (size=%zu)\n", length*2);
         return 0;
@@ -353,10 +348,10 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
     if (l2 > l1) {
         ldiff_window += ldiff;
     }
-    dtwvalue minv;
-    dtwvalue d; // DTYPE_t
-    dtwvalue tempv;
-    dtwvalue psi_shortest = INFINITY;
+    seq_t minv;
+    seq_t d; // DTYPE_t
+    seq_t tempv;
+    seq_t psi_shortest = INFINITY;
     keepRunning = 1;
     for (i=0; i<l1; i++) {
         if (!keepRunning){
@@ -469,7 +464,7 @@ dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1,
     if (window - 1 < 0) {
         l2 += window - 1;
     }
-    dtwvalue result = sqrt(dtw[length * i1 + l2 - skip]);
+    seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     // Deal wit psi-relaxation
     if (settings->psi != 0) {
         for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
@@ -506,9 +501,9 @@ Compute all warping paths between two series.
  
 @return The dtw value if return_dtw is true; Otherwise -1.
 */
-dtwvalue dtw_warping_paths(dtwvalue *wps,
-                         dtwvalue *s1, size_t l1,
-                         dtwvalue *s2, size_t l2,
+seq_t dtw_warping_paths(seq_t *wps,
+                         seq_t *s1, size_t l1,
+                         seq_t *s2, size_t l2,
                          bool return_dtw, bool do_sqrt,
                          DTWSettings *settings) {
     size_t ldiff;
@@ -517,13 +512,13 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     size_t ec = 0;
     bool smaller_found;
     size_t ec_next;
-    dtwvalue rvalue = 1;
+    seq_t rvalue = 1;
     signal(SIGINT, dtw_int_handler);
     
     size_t window = settings->window;
-    dtwvalue max_step = settings->max_step;
-    dtwvalue max_dist = settings->max_dist; // upper bound
-    dtwvalue penalty = settings->penalty;
+    seq_t max_step = settings->max_step;
+    seq_t max_dist = settings->max_dist; // upper bound
+    seq_t penalty = settings->penalty;
     
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
@@ -569,9 +564,9 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     size_t minj;
     size_t maxj;
     size_t dl;
-    dtwvalue minv;
-    dtwvalue d;
-    dtwvalue tempv;
+    seq_t minv;
+    seq_t d;
+    seq_t tempv;
     keepRunning = 1;
     for (i=0; i<l1; i++) {
         #ifdef DTWDEBUG
@@ -662,10 +657,10 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
     if (return_dtw && settings->psi == 0) {
         rvalue = wps[l1*(l2 + 1) + MIN(l2, l2 + window - 1)];
     } else if (return_dtw) {
-        dtwvalue mir_value = INFINITY;
+        seq_t mir_value = INFINITY;
         size_t curi;
         size_t mir_rel = 0;
-        dtwvalue mic_value = INFINITY;
+        seq_t mic_value = INFINITY;
         size_t mic = 0;
         // Find smallest value in last column
         for (size_t ri=l1 - settings->psi; ri<l1; ri++) {
@@ -714,67 +709,32 @@ dtwvalue dtw_warping_paths(dtwvalue *wps,
 
 // MARK: Bound
 
-dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2) {
-    size_t n = MIN(l1, l2);
-    dtwvalue ub = 0;
-    for (size_t i=0; i<n; i++) {
-        ub += EDIST(s1[i], s2[i]);
-    }
-    // If the two series differ in length, compare the last element of the shortest series
-    // to the remaining elements in the longer series
-    if (l1 > l2) {
-        for (size_t i=n; i<l1; i++) {
-            ub += EDIST(s1[i], s2[n-1]);
-        }
-    } else if (l1 < l2) {
-        for (size_t i=n; i<l2; i++) {
-            ub += EDIST(s1[n-1], s2[i]);
-        }
-    }
-    return sqrt(ub);
-}
-
-dtwvalue ub_euclidean_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim) {
-    size_t n = MIN(l1, l2);
-    size_t idx;
-    dtwvalue ub = 0;
-    for (size_t i=0; i<n; i++) {
-        idx = i*ndim;
-        for (int d=0; d<ndim; d++) {
-            ub += EDIST(s1[idx + d], s2[idx + d]);
-        }
-    }
-    // If the two series differ in length, compare the last element of the shortest series
-    // to the remaining elements in the longer series
-    if (l1 > l2) {
-        for (size_t i=n; i<l1; i++) {
-            idx = i*ndim;
-            for (int d=0; d<ndim; d++) {
-                ub += EDIST(s1[idx + d], s2[(n-1)*ndim]);
-            }
-        }
-    } else if (l1 < l2) {
-        for (size_t i=n; i<l2; i++) {
-            idx = i*ndim;
-            for (int d=0; d<ndim; d++) {
-                ub += EDIST(s1[(n-1)*ndim], s2[idx + d]);
-            }
-        }
-    }
-    return sqrt(ub);
+/*!
+ @see ed.euclidean_distance.
+ */
+seq_t ub_euclidean(seq_t *s1, size_t l1, seq_t *s2, size_t l2) {
+    return euclidean_distance(s1, l1, s2, l2);
 }
 
 
-dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings) {
+/*!
+@see ed.euclidean_distance_ndim.
+*/
+seq_t ub_euclidean_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim) {
+    return euclidean_distance_ndim(s1, l1, s2, l2, ndim);
+}
+
+
+seq_t lb_keogh(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings) {
     size_t window = settings->window;
     if (window == 0) {
         window = MAX(l1, l2);
     }
     size_t imin, imax;
     size_t t = 0;
-    dtwvalue ui;
-    dtwvalue li;
-    dtwvalue ci;
+    seq_t ui;
+    seq_t li;
+    seq_t ci;
     size_t ldiff12 = l1 + 1;
     if (ldiff12 > l2) {
         ldiff12 -= l2;
@@ -879,12 +839,22 @@ bool dtw_block_is_valid(DTWBlock *block, size_t nb_series) {
 // MARK: Distance Matrix
 
 
-size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
+/*!
+Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays.
+
+@param ptrs Pointers to arrays.  The arrays are expected to be 1-dimensional.
+@param nb_ptrs Length of ptrs array
+@param lengths Array of length nb_ptrs with all lengths of the arrays in ptrs.
+@param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+@param block Restrict to a certain block of combinations of series.
+@param settings DTW settings
+*/
+size_t dtw_distances_ptrs(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, seq_t* output,
                           DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
     size_t length;
     size_t i;
-    dtwvalue value;
+    seq_t value;
     
     length = dtw_distances_length(block, nb_ptrs, false);
     if (length == 0) {
@@ -917,12 +887,24 @@ size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwv
     return length;
 }
 
-size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output,
+/*!
+Distance matrix for n-dimensional DTW, executed on a 2-dimensional array.
+ 
+ The array is assumed to be C contiguous: C contiguous means that the array data is continuous in memory (see below) and that neighboring elements in the first dimension of the array are furthest apart in memory, whereas neighboring elements in the last dimension are closest together (from https://cython.readthedocs.io/en/latest/src/userguide/memoryviews.html#brief-recap-on-c-fortran-and-strided-memory-layouts).
+
+@param matrix 2-dimensional array. The order is defined by 1st dimension are the series, the 2nd dimension are the sequence entries.
+@param nb_rows Number of series, size of the 1st dimension of matrix
+@param nb_cols Number of elements in each series, size of the 2nd dimension of matrix
+@param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+@param block Restrict to a certain block of combinations of series.
+@param settings DTW settings
+*/
+size_t dtw_distances_matrix(seq_t *matrix, size_t nb_rows, size_t nb_cols, seq_t* output,
                            DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
     size_t length;
     size_t i;
-    dtwvalue value;
+    seq_t value;
     
     length = dtw_distances_length(block, nb_rows, settings->use_ssize_t);
     if (length == 0) {
@@ -956,13 +938,25 @@ size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dt
     return length;
 }
 
+/*!
+Distance matrix for n-dimensional DTW, executed on a 3-dimensional array and in parallel.
+ 
+ The array is assumed to be C contiguous: C contiguous means that the array data is continuous in memory (see below) and that neighboring elements in the first dimension of the array are furthest apart in memory, whereas neighboring elements in the last dimension are closest together (from https://cython.readthedocs.io/en/latest/src/userguide/memoryviews.html#brief-recap-on-c-fortran-and-strided-memory-layouts).
 
-size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output,
+@param matrix 3-dimensional array. The order is defined by 1st dimension are the series, the 2nd dimension are the sequence entries, and the 3rd dimension are the n-dimensional values.
+@param nb_rows Number of series, size of the 1st dimension of matrix
+@param nb_cols Number of elements in each series, size of the 2nd dimension of matrix
+@param ndim The number of dimensions in each sequence entry, size of the 3rd dimension of matrix
+@param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+@param block Restrict to a certain block of combinations of series.
+@param settings DTW settings
+*/
+size_t dtw_distances_ndim_matrix(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output,
                                  DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
     size_t length;
     size_t i;
-    dtwvalue value;
+    seq_t value;
     
     length = dtw_distances_length(block, nb_rows, settings->use_ssize_t);
     if (length == 0) {
@@ -998,12 +992,25 @@ size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_col
 }
 
 
-size_t dtw_distances_ndim_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+/*!
+Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays.
+
+The arrays are assumed to be C contiguous: C contiguous means that the array data is continuous in memory (see below) and that neighboring elements in the first dimension of the array are furthest apart in memory, whereas neighboring elements in the last dimension are closest together (from https://cython.readthedocs.io/en/latest/src/userguide/memoryviews.html#brief-recap-on-c-fortran-and-strided-memory-layouts).
+
+@param ptrs Pointers to arrays. The order is defined by 1st dim is sequence entry, 2nd dim are the n-dimensional values. Thus the values for each n-dimensional entry are next to each other in the memory layout of the array.
+@param nb_ptrs Length of ptrs array
+@param lengths Array of length nb_ptrs with all lengths of the arrays in ptrs.
+@param ndim The number of dimensions in each sequence entry
+@param output Array to store all outputs (should be (nb_ptrs-1)*nb_ptrs/2 if no block is given)
+@param block Restrict to a certain block of combinations of series.
+@param settings DTW settings
+*/
+size_t dtw_distances_ndim_ptrs(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
                                DTWBlock* block, DTWSettings* settings) {
     size_t r, c, cb;
     size_t length;
     size_t i;
-    dtwvalue value;
+    seq_t value;
     
     length = dtw_distances_length(block, nb_ptrs, false);
     if (length == 0) {
@@ -1113,7 +1120,7 @@ void dtw_printprecision_reset(void) {
 }
 
 /* Helper function for debugging. */
-void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2) {
+void dtw_print_wps(seq_t * wps, size_t l1, size_t l2) {
     char buffer[20];
     char format[5];
     snprintf(format, sizeof(format), "%%.%df", printPrecision);
@@ -1123,7 +1130,7 @@ void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2) {
         } else {
             printf(" [ ");
         }
-        for (int ci=0; ci<l1+1; ci++) {
+        for (size_t ci=0; ci<l1+1; ci++) {
             snprintf(buffer, sizeof(buffer), format, wps[ri*(l2+1)+ci]);
             printf("%-*s", printPrecision + 3, buffer);
         }
@@ -1136,7 +1143,7 @@ void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2) {
 }
 
 /* Helper function for debugging. */
-void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0, int i1, size_t skip, size_t skipp, size_t maxj, size_t minj) {
+void dtw_print_twoline(seq_t * dtw, size_t r, size_t c, size_t length, int i0, int i1, size_t skip, size_t skipp, size_t maxj, size_t minj) {
     char buffer[20];
     char format[5];
     snprintf(format, sizeof(format), "%%.%df ", printPrecision);

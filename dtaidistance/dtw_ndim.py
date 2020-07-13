@@ -17,11 +17,11 @@ import array
 
 from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
     _distance_matrix_length
-from . import dtw_numpy
+from . import util_numpy
 from .exceptions import NumpyException
 
 try:
-    if dtw_numpy.test_without_numpy():
+    if util_numpy.test_without_numpy():
         raise ImportError()
     import numpy as np
     array_min = np.min
@@ -57,6 +57,15 @@ inf = float("inf")
 
 
 def ub_euclidean(s1, s2):
+    """ Euclidean distance between two n-dimensional sequences. Supports different lengths.
+
+    If the two series differ in length, compare the last element of the shortest series
+    to the remaining elements in the longer series.
+
+    :param s1: Sequence of numbers, 1st dimension is sequence, 2nd dimension is n-dimensional value vector.
+    :param s2: Sequence of numbers, 1st dimension is sequence, 2nd dimension is n-dimensional value vector.
+    :return: Euclidean distance
+    """
     if np is None:
         raise NumpyException("Numpy is required for the ub_euclidean method.")
     n = min(len(s1), len(s2))

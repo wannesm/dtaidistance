@@ -1,9 +1,9 @@
 import math
 import pytest
-from dtaidistance import dtw, dtw_numpy
+from dtaidistance import dtw, util_numpy
 
 
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 def test_expected_length1():
@@ -56,7 +56,7 @@ def test_distance1_a():
 
 @numpyonly
 def test_distance1_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
         s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
         d2, _ = dtw.warping_paths(s1, s2)
@@ -65,7 +65,7 @@ def test_distance1_b():
 
 @numpyonly
 def test_distance1_d():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
         s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0])
         d = dtw.distance_fast(s1, s2)
@@ -74,7 +74,7 @@ def test_distance1_d():
 
 @numpyonly
 def test_distance1_c():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
         s2 = np.array([0, 1, 2, 0, 0, 0, 0, 0, 0], dtype=np.double)
         d3 = dtw.distance_fast(s1, s2)
@@ -83,7 +83,7 @@ def test_distance1_c():
 
 @numpyonly
 def test_distance_matrix1_a():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
              [0, 1, 2, 0, 0, 0, 0, 0, 0]]
         s = [np.array(si) for si in s]
@@ -93,7 +93,7 @@ def test_distance_matrix1_a():
 
 @numpyonly
 def test_distance_matrix1_b():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[0, 0, 1, 2, 1, 0, 1, 0, 0],
              [0, 1, 2, 0, 0, 0, 0, 0, 0]]
         s = [np.array(si) for si in s]
@@ -103,7 +103,7 @@ def test_distance_matrix1_b():
 
 @numpyonly
 def test_distance_matrix1_c():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0]]
         s = [np.array(si) for si in s]
@@ -113,7 +113,7 @@ def test_distance_matrix1_c():
 
 @numpyonly
 def test_distance_matrix1_d():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
              [1., 2, 0, 0, 0, 0, 0, 1]]
@@ -124,7 +124,7 @@ def test_distance_matrix1_d():
 
 @numpyonly
 def test_distance_matrix1_e():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
              [1., 2, 0, 0, 0, 0, 0, 1]]
@@ -136,7 +136,7 @@ def test_distance_matrix1_e():
 
 @numpyonly
 def test_distance_matrix2_e():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         n = 1
         nn = 1
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -150,7 +150,7 @@ def test_distance_matrix2_e():
 
 
 def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         # print(parallel, use_c, use_nogil)
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],

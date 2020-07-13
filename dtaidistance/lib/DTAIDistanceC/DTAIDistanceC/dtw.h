@@ -1,6 +1,6 @@
 /*!
 @header dtw.h
-@brief DTAIDistance.dtw
+@brief DTAIDistance.dtw : Dynamic Time Warping
 
 @author Wannes Meert
 @copyright Copyright © 2020 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
@@ -17,6 +17,8 @@
 #include <stddef.h>
 #include <assert.h>
 
+#include "globals.h"
+#include "ed.h"
 
 /**
  @var keepRunning
@@ -29,8 +31,6 @@ static volatile int keepRunning = 1;
  */
 static int printPrecision = 3;
 
-/* The dtwvalue type can be customized by changing the typedef. */
-typedef double dtwvalue;
 
 /**
 Settings for DTW operations:
@@ -55,10 +55,10 @@ Settings for DTW operations:
  */
 struct DTWSettings_s {
     size_t window;
-    dtwvalue max_dist;
-    dtwvalue max_step;
+    seq_t max_dist;
+    seq_t max_step;
     size_t max_length_diff;
-    dtwvalue penalty;
+    seq_t penalty;
     size_t psi;
     bool use_ssize_t;
     bool use_pruning;
@@ -87,16 +87,16 @@ DTWSettings dtw_settings_default(void);
 void        dtw_settings_print(DTWSettings *settings);
 
 // DTW
-typedef dtwvalue (*DTWFnPtr)(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
+typedef seq_t (*DTWFnPtr)(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings);
 
-dtwvalue dtw_distance(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
-dtwvalue dtw_distance_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim, DTWSettings *settings);
-dtwvalue dtw_warping_paths(dtwvalue *wps, dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
+seq_t dtw_distance(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings);
+seq_t dtw_distance_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim, DTWSettings *settings);
+seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, size_t l1, seq_t *s2, size_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
 
 // Bound
-dtwvalue ub_euclidean(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2);
-dtwvalue ub_euclidean_ndim(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, int ndim);
-dtwvalue lb_keogh(dtwvalue *s1, size_t l1, dtwvalue *s2, size_t l2, DTWSettings *settings);
+seq_t ub_euclidean(seq_t *s1, size_t l1, seq_t *s2, size_t l2);
+seq_t ub_euclidean_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim);
+seq_t lb_keogh(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings);
 
 // Block
 DTWBlock dtw_block_empty(void);
@@ -104,13 +104,13 @@ void     dtw_block_print(DTWBlock *block);
 bool     dtw_block_is_valid(DTWBlock *block, size_t nb_series);
 
 // Distance matrix
-size_t dtw_distances_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, dtwvalue* output,
+size_t dtw_distances_ptrs(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, seq_t* output,
                           DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_ndim_ptrs(dtwvalue **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, dtwvalue* output,
+size_t dtw_distances_ndim_ptrs(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
                                DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, dtwvalue* output,
+size_t dtw_distances_matrix(seq_t *matrix, size_t nb_rows, size_t nb_cols, seq_t* output,
                             DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_ndim_matrix(dtwvalue *matrix, size_t nb_rows, size_t nb_cols, int ndim, dtwvalue* output,
+size_t dtw_distances_ndim_matrix(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output,
                                  DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bool use_ssize_t);
 
@@ -120,7 +120,7 @@ void dtw_int_handler(int dummy);
 void dtw_printprecision_set(int precision);
 void dtw_printprecision_reset(void);
 
-void dtw_print_wps(dtwvalue * wps, size_t l1, size_t l2);
-void dtw_print_twoline(dtwvalue * dtw, size_t r, size_t c, size_t length, int i0, int i1, size_t skip, size_t skipp, size_t maxj, size_t minj);
+void dtw_print_wps(seq_t * wps, size_t l1, size_t l2);
+void dtw_print_twoline(seq_t * dtw, size_t r, size_t c, size_t length, int i0, int i1, size_t skip, size_t skipp, size_t maxj, size_t minj);
 
 #endif /* dtw_h */

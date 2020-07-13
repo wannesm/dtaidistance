@@ -76,8 +76,8 @@ This requires OpenMP to be available on your system. If this is not the case, us
 Changelist
 ~~~~~~~~~~
 
-Version 2
-'''''''''
+Version 2.0.0
+'''''''''''''
 
 - Numpy is now an optional dependency, also to compile the C library (only Cython is required).
 - Small optimizations throughout the C code to improve speed.

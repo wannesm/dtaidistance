@@ -13,8 +13,8 @@ from cpython cimport array
 import array
 from dtw_cc cimport DTWSeriesMatrix, DTWSeriesMatrixNDim, DTWSeriesPointers, DTWSettings, DTWBlock
 from dtw_cc import dtw_series_from_data, distance_matrix_length
-cimport dtaidistancec
-cimport dtaidistancec_omp
+cimport dtaidistancec_dtw
+cimport dtaidistancec_dtw_omp
 
 
 def distance_matrix(cur, block=None, **kwargs):
@@ -65,12 +65,12 @@ def distance_matrix(cur, block=None, **kwargs):
 
     if isinstance(cur, DTWSeriesPointers):
         ptrs = cur
-        dtaidistancec_omp.dtw_distances_ptrs_parallel(
+        dtaidistancec_dtw_omp.dtw_distances_ptrs_parallel(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
-        dtaidistancec_omp.dtw_distances_matrix_parallel(
+        dtaidistancec_dtw_omp.dtw_distances_matrix_parallel(
             &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
 
@@ -126,18 +126,18 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
     if isinstance(cur, DTWSeriesPointers):
         ptrs = cur
-        dtaidistancec_omp.dtw_distances_ndim_ptrs_parallel(
+        dtaidistancec_dtw_omp.dtw_distances_ndim_ptrs_parallel(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         # This is not a n-dimensional case ?
         matrix = cur
-        dtaidistancec_omp.dtw_distances_matrix_parallel(
+        dtaidistancec_dtw_omp.dtw_distances_matrix_parallel(
             &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrixNDim):
         matrixnd = cur
-        dtaidistancec_omp.dtw_distances_ndim_matrix_parallel(
+        dtaidistancec_dtw_omp.dtw_distances_ndim_matrix_parallel(
             &matrixnd._data[0,0,0], matrixnd.nb_rows, matrixnd.nb_cols, ndim,
             dists.data.as_doubles, &dtwblock._block, &settings._settings)
     else:

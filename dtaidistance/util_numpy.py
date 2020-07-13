@@ -1,7 +1,11 @@
 from contextlib import ContextDecorator
 import os
+import logging
 
 from .exceptions import NumpyException
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 try:
@@ -14,6 +18,16 @@ def test_without_numpy():
     if "DTAIDISTANCE_TESTWITHOUTNUMPY" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTNUMPY"] == "1":
         return True
     return False
+
+
+def verify_np_array(seq):
+    if np is not None:
+        if isinstance(seq, (np.ndarray, np.generic)):
+            if not seq.data.c_contiguous:
+                logger.debug("Warning: Sequence 1 passed to method distance is not C-contiguous. " +
+                             "The sequence will be copied.")
+                seq = seq.copy(order='C')
+    return seq
 
 
 class NumpyStub:

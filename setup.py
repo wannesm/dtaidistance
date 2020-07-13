@@ -242,6 +242,14 @@ if cythonize is not None:
             extra_link_args=[]))
     extensions.append(
         Extension(
+            "dtaidistance.ed_cc",
+            ["dtaidistance/ed_cc.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/ed.c"],
+            include_dirs=[],
+            extra_compile_args=[],
+            extra_link_args=[]))
+    extensions.append(
+        Extension(
             "dtaidistance.dtw_cc_omp",
             ["dtaidistance/dtw_cc_omp.pyx",
              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw_openmp.c"],
@@ -252,7 +260,7 @@ if cythonize is not None:
     if numpy is not None:
         extensions.append(
             Extension(
-                "dtaidistance.dtw_cc_numpy", ["dtaidistance/dtw_cc_numpy.pyx"],
+                "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
                 include_dirs=np_include_dirs,
                 extra_compile_args=[],
                 extra_link_args=[]))

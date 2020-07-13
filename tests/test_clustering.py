@@ -4,17 +4,17 @@ import tempfile
 import pytest
 import logging
 from pathlib import Path
-from dtaidistance import dtw, clustering, dtw_numpy
+from dtaidistance import dtw, clustering, util_numpy
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 directory = None
-numpyonly = pytest.mark.skipif("dtw_numpy.test_without_numpy()")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 @numpyonly
 def test_clustering():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
              [0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -34,7 +34,7 @@ def test_clustering():
 
 @numpyonly
 def test_clustering_tree():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
              [0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -68,7 +68,7 @@ def test_clustering_tree():
 
 @numpyonly
 def test_linkage_tree():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s = np.array([
              [0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
@@ -97,7 +97,7 @@ def test_linkage_tree():
 
 @numpyonly
 def test_controlchart():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         import matplotlib.pyplot as plt
         from matplotlib.colors import ListedColormap
         series = np.zeros((600, 60))
@@ -134,7 +134,7 @@ def test_controlchart():
 
 @numpyonly
 def test_plotbug1():
-    with dtw_numpy.test_uses_numpy() as np:
+    with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
         s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0])
 
