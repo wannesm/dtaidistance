@@ -12,6 +12,7 @@ cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw.h":
         size_t psi
         bint use_ssize_t
         bint use_pruning
+        bint only_ub
 
     ctypedef struct DTWBlock:
         size_t rb

@@ -52,6 +52,7 @@ Settings for DTW operations:
        library: https://www.python.org/dev/peps/pep-0353/
 @field use_pruning : Compute Euclidean distance first to set max_dist (current value in
        max_dist is ignored).
+@field only_ub : Only compute the upper bound (Euclidean) and return that value.
  */
 struct DTWSettings_s {
     size_t window;
@@ -62,6 +63,8 @@ struct DTWSettings_s {
     size_t psi;
     bool use_ssize_t;
     bool use_pruning;
+    bool only_ub;
+    
 };
 typedef struct DTWSettings_s DTWSettings;
 

@@ -98,7 +98,12 @@ cdef class DTWSettings:
             if kwargs["use_pruning"] is None:
                 self._settings.use_pruning = False
             else:
-                self._settings.use_pruning = kwargs["psi"]
+                self._settings.use_pruning = kwargs["use_pruning"]
+        if "only_ub" in kwargs:
+            if kwargs["only_ub"] is None:
+                self._settings.only_ub = False
+            else:
+                self._settings.only_ub = kwargs["only_ub"]
 
     @property
     def window(self):
@@ -128,6 +133,10 @@ cdef class DTWSettings:
     def use_pruning(self):
         return self._settings.use_pruning
 
+    @property
+    def only_ub(self):
+        return self._settings.only_ub
+
     def __str__(self):
         return (
             "DTWSettings {\n"
@@ -138,6 +147,7 @@ cdef class DTWSettings:
             f"  penalty = {self.penalty}\n"
             f"  psi = {self.psi}\n"
             f"  use_pruning = {self.use_pruning}\n"
+            f"  only_ub = {self.only_ub}\n"
             "}")
 
 

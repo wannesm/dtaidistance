@@ -85,7 +85,7 @@ def ub_euclidean(s1, s2):
 
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False):
+             use_c=False, use_pruning=False, only_ub=False):
     """Dynamic Time Warping using multidimensional sequences.
 
     Assumes first dimension to be the sequence item index, and the second
@@ -106,7 +106,8 @@ def distance(s1, s2, window=None, max_dist=None,
                                  max_length_diff=max_length_diff,
                                  penalty=penalty,
                                  psi=psi,
-                                 use_pruning=use_pruning)
+                                 use_pruning=use_pruning,
+                                 only_ub=only_ub)
     if np is None:
         raise NumpyException("Numpy is required for the dtw_ndim.distance method "
                              "(Numpy is not required for the distance_fast method that uses the C library")
@@ -119,8 +120,10 @@ def distance(s1, s2, window=None, max_dist=None,
         max_step = inf
     else:
         max_step *= max_step
-    if use_pruning:
+    if use_pruning or only_ub:
         max_dist = ub_euclidean(s1, s2) ** 2
+        if only_ub:
+            return max_dist
     elif not max_dist:
         max_dist = inf
     else:
@@ -202,7 +205,7 @@ def distance(s1, s2, window=None, max_dist=None,
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
     """Fast C version of :meth:`distance`.
 
     Note: the series are expected to be arrays of the type ``double``.
@@ -228,7 +231,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                              max_length_diff=max_length_diff,
                              penalty=penalty,
                              psi=psi,
-                             use_pruning=use_pruning)
+                             use_pruning=use_pruning,
+                             only_ub=only_ub)
     return d
 
 

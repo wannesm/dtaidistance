@@ -124,7 +124,7 @@ def ub_euclidean(s1, s2):
 def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False):
+             use_c=False, use_pruning=False, only_ub=False):
     """
     Dynamic Time Warping.
 
@@ -143,6 +143,7 @@ def distance(s1, s2,
     :param use_c: Use fast pure c compiled functions
     :param use_pruning: Prune values based on Euclidean distance.
         This is the same as passing ub_euclidean() to max_dist
+    :param only_ub: Only compute the upper bound (Euclidean).
 
     Returns: DTW distance
     """
@@ -156,7 +157,8 @@ def distance(s1, s2,
                                  max_length_diff=max_length_diff,
                                  penalty=penalty,
                                  psi=psi,
-                                 use_pruning=use_pruning)
+                                 use_pruning=use_pruning,
+                                 only_ub=only_ub)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -166,8 +168,10 @@ def distance(s1, s2,
         max_step = inf
     else:
         max_step *= max_step
-    if use_pruning:
+    if use_pruning or only_ub:
         max_dist = ub_euclidean(s1, s2)**2
+        if only_ub:
+            return max_dist
     elif not max_dist:
         max_dist = inf
     else:
@@ -249,7 +253,7 @@ def distance(s1, s2,
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
     """Fast C version of :meth:`distance`.
 
     Note: the series are expected to be arrays of the type ``double``.
@@ -268,7 +272,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                         max_length_diff=max_length_diff,
                         penalty=penalty,
                         psi=psi,
-                        use_pruning=use_pruning)
+                        use_pruning=use_pruning,
+                        only_ub=only_ub)
     return d
 
 

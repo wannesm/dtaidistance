@@ -23,7 +23,8 @@ DTWSettings dtw_settings_default(void) {
         .penalty = 0,
         .psi = 0,
         .use_ssize_t = false,
-        .use_pruning = false
+        .use_pruning = false,
+        .only_ub = false
     };
     return s;
 }
@@ -38,6 +39,7 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  psi = %zu\n", settings->psi);
     printf("  use_ssize_t = %d\n", settings->use_ssize_t);
     printf("  use_pruning = %d\n", settings->use_pruning);
+    printf("  only_ub = %d\n", settings->only_ub);
     printf("}\n");
 }
 
@@ -73,6 +75,16 @@ seq_t dtw_distance(seq_t *s1, size_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
+    if (settings->use_pruning || settings->only_ub) {
+        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+        if (settings->only_ub) {
+            return max_dist;
+        }
+    } else if (max_dist == 0) {
+        max_dist = INFINITY;
+    } else {
+        max_dist = pow(max_dist, 2);
+    }
     if (l1 > l2) {
         ldiff = l1 - l2;
     } else {
@@ -93,13 +105,6 @@ seq_t dtw_distance(seq_t *s1, size_t l1,
         max_step = INFINITY;
     } else {
         max_step = pow(max_step, 2);
-    }
-    if (settings->use_pruning) {
-        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
-    } else if (max_dist == 0) {
-        max_dist = INFINITY;
-    } else {
-        max_dist = pow(max_dist, 2);
     }
     penalty = pow(penalty, 2);
     size_t length = MIN(l2+1, ldiff + 2*window + 1);
@@ -290,6 +295,16 @@ seq_t dtw_distance_ndim(seq_t *s1, size_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
+    if (settings->use_pruning || settings->only_ub) {
+        max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
+        if (settings->only_ub) {
+            return max_dist;
+        }
+    } else if (max_dist == 0) {
+        max_dist = INFINITY;
+    } else {
+        max_dist = pow(max_dist, 2);
+    }
     if (l1 > l2) {
         ldiff = l1 - l2;
     } else {
@@ -310,13 +325,6 @@ seq_t dtw_distance_ndim(seq_t *s1, size_t l1,
         max_step = INFINITY;
     } else {
         max_step = pow(max_step, 2);
-    }
-    if (settings->use_pruning) {
-        max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
-    } else if (max_dist == 0) {
-        max_dist = INFINITY;
-    } else {
-        max_dist = pow(max_dist, 2);
     }
     penalty = pow(penalty, 2);
     size_t length = MIN(l2+1, ldiff + 2*window + 1);
@@ -523,6 +531,16 @@ seq_t dtw_warping_paths(seq_t *wps,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
+    if (settings->use_pruning || settings->only_ub) {
+        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+        if (settings->only_ub) {
+            return max_dist;
+        }
+    } else if (max_dist == 0) {
+        max_dist = INFINITY;
+    } else {
+        max_dist = pow(max_dist, 2);
+    }
     if (l1 > l2) {
         ldiff = l1 - l2;
     } else {
@@ -541,13 +559,6 @@ seq_t dtw_warping_paths(seq_t *wps,
         max_step = INFINITY;
     } else {
         max_step = pow(max_step, 2);
-    }
-    if (settings->use_pruning) {
-        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
-    } else if (max_dist == 0) {
-        max_dist = INFINITY;
-    } else {
-        max_dist = pow(max_dist, 2);
     }
     penalty = pow(penalty, 2);
     size_t i;
@@ -707,9 +718,11 @@ seq_t dtw_warping_paths(seq_t *wps,
 }
 
 
-// MARK: Bound
+// MARK: Bounds
 
 /*!
+ Euclidean upper bound for DTW.
+ 
  @see ed.euclidean_distance.
  */
 seq_t ub_euclidean(seq_t *s1, size_t l1, seq_t *s2, size_t l2) {
@@ -718,13 +731,18 @@ seq_t ub_euclidean(seq_t *s1, size_t l1, seq_t *s2, size_t l2) {
 
 
 /*!
-@see ed.euclidean_distance_ndim.
+ Euclidean upper bound for DTW.
+ 
+ @see ed.euclidean_distance_ndim.
 */
 seq_t ub_euclidean_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim) {
     return euclidean_distance_ndim(s1, l1, s2, l2, ndim);
 }
 
 
+/*!
+ Keogh lower bound for DTW.
+ */
 seq_t lb_keogh(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings) {
     size_t window = settings->window;
     if (window == 0) {
