@@ -10,6 +10,7 @@ Time series clustering.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
+import math
 import logging
 from pathlib import Path
 from collections import deque
@@ -413,7 +414,10 @@ class HierarchicalTree(BaseTree):
         else:
             self._model = model
         super().__init__(**kwargs)
-        self._model.max_dist = float('inf')
+        if not math.isinf(self._model.max_dist):
+            logger.info('Resetting max_dist to infinity. Otherwise the result is not guaranteed to '
+                        'be a single rooted tree and cannot be visualized.')
+            self._model.max_dist = float('inf')
 
     def fit(self, series, *args, **kwargs):
         self.series = SeriesContainer.wrap(series)
