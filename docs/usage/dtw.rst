@@ -11,7 +11,7 @@ Dynamic Time Warping (DTW)
     path = dtw.warping_path(s1, s2)
     dtwvis.plot_warping(s1, s2, path, filename="warp.png")
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=3
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=5
    :alt: DTW Example
 
 
@@ -92,8 +92,8 @@ A number of options are foreseen to tune how the cost is computed:
 -  ``penalty``: Penalty to add if compression or expansion is applied
    (on top of the distance).
 -  ``psi``: Up to ``psi`` number of start and end points of a sequence can be
-  ignored if this would lead to a lower distance. This is also called
-  psi-relaxation (for cyclical sequences) [2].
+   ignored if this would lead to a lower distance. This is also called
+   psi-relaxation (for cyclical sequences) [2].
 
 
 DTW and keep all warping paths
@@ -117,15 +117,20 @@ The matrix with all warping paths can be visualised as follows:
 
     from dtaidistance import dtw
     from dtaidistance import dtw_visualisation as dtwvis
+    import random
     import numpy as np
     x = np.arange(0, 20, .5)
     s1 = np.sin(x)
     s2 = np.sin(x - 1)
+    random.seed(1)
+    for idx in range(len(s2)):
+        if random.random() < 0.05:
+            s2[idx] += (random.random() - 0.5) / 2
     d, paths = dtw.warping_paths(s1, s2, window=25, psi=2)
     best_path = dtw.best_path(paths)
     dtwvis.plot_warpingpaths(s1, s2, paths, best_path)
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=2
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/warping_paths.png?v=3
    :alt: DTW Example
 
 

@@ -1,5 +1,6 @@
 import pytest
 import os
+import random
 from pathlib import Path
 from dtaidistance import dtw, util_numpy
 from dtaidistance import dtw_visualisation as dtwvis
@@ -46,9 +47,16 @@ def test_psi_dtw_1a():
         x = np.arange(0, 20, .5)
         s1 = np.sin(x)
         s2 = np.sin(x - 1)
-        d, paths = dtw.warping_paths(s1, s2, psi=2)
+        # Add noise
+        random.seed(1)
+        for idx in range(len(s2)):
+            if random.random() < 0.05:
+                s2[idx] += (random.random() - 0.5) / 2
+        d, paths = dtw.warping_paths(s1, s2, psi=2, window=25)
+        path = dtw.warping_path(s1, s2, psi=2)
+        if directory:
+            dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=str(directory / "test_psi_dtw_1a.png"))
         # print(paths[:5,:5])
-        # path = dtw.warping_path(s1, s2, psi=2)
         # dtwvis.plot_warping(s1, s2, path, filename=os.path.expanduser("~/Desktop/test_psi_dtw_1_1.png"))
         # path = dtw.best_path(paths)
         # dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=os.path.expanduser("~/Desktop/test_psi_dtw_1_2.png"))
