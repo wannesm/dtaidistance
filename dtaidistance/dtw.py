@@ -233,7 +233,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     """
     Dynamic Time Warping.
 
-    The full matrix of all warping paths is build.
+    The full matrix of all warping paths is built.
 
     :param s1: First sequence
     :param s2: Second sequence

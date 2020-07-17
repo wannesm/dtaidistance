@@ -10,7 +10,7 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 if dtw_c is None:
-    print('ERROR: dtw_c is not build')
+    print('ERROR: dtw_c is not built')
     sys.exit(1)
 
 def test_distance1_a():

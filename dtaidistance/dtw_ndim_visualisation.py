@@ -3,7 +3,7 @@
 dtaidistance.dtw_visualisation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Dynamic Time Warping (DTW) visualisations.
+Dynamic Time Warping (DTW) visualizations.
 
 :author: Wannes Meert
 :copyright: Copyright 2017 KU Leuven, DTAI Research Group.
