@@ -531,11 +531,8 @@ seq_t dtw_warping_paths(seq_t *wps,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {

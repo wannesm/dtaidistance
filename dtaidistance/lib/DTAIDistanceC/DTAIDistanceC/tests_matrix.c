@@ -17,7 +17,7 @@
 #include "dtw_openmp.h"
 
 
-//#define SKIPALL
+#define SKIPALL
 
 //----------------------------------------------------
 // MARK: MATRIX
@@ -40,7 +40,7 @@ Test(matrix, test_a) {
 
 Test(matrix, test_a_parallel) {
     #ifdef SKIPALL
-    cr_skip_test();
+//    cr_skip_test();
     #endif
     double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};

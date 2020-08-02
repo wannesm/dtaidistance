@@ -121,6 +121,17 @@ void benchmark7() {
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
+void benchmark8() {
+     double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+     double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+     double *s[] = {s1, s2};
+     size_t lengths[] = {9, 9};
+     double result[1];
+     DTWSettings settings = dtw_settings_default();
+     DTWBlock block = dtw_block_empty();
+     dtw_distances_ptrs_parallel(s, 2, lengths, result, &block, &settings);
+}
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -128,12 +139,13 @@ int main(int argc, const char * argv[]) {
     time(&start_t);
     
 //    benchmark1();
-//    benchmark2();
+    benchmark2();
 //    benchmark3();
 //    benchmark4();
 //    benchmark5();
 //    benchmark6();
-    benchmark7();
+//    benchmark7();
+//    benchmark8();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

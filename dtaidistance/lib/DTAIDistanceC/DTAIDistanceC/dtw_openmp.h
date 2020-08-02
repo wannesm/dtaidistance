@@ -15,8 +15,8 @@
 
 #include "dtw.h"
 
-int    dtw_distances_prepare(DTWBlock *block, size_t len_cur,
-                             size_t **irs, size_t **ics, size_t *length, DTWSettings *settings);
+int    dtw_distances_prepare(DTWBlock *block, size_t nb_series,
+                             size_t **cbs, size_t **rls, size_t *length, DTWSettings *settings);
 size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths,
                                    seq_t* output, DTWBlock* block, DTWSettings* settings);
 size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
