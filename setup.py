@@ -31,7 +31,10 @@ except ImportError:
 here = os.path.abspath(os.path.dirname(__file__))
 
 c_args = {
-    'unix': ['-fopenmp'],
+    # Xpreprocessor is required for the built-in CLANG on macos, but other
+    # installations of LLVM don't seem to be bothered by it (although it's
+    # not required.
+    'unix': ['-Xpreprocessor', '-fopenmp'],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og'],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native']
 }
@@ -122,6 +125,10 @@ def set_custom_envvars_for_homebrew():
             except Exception as exc:
                 print("Failed to check version")
                 print(exc)
+        else:
+            # The default clang in XCode is compatible with OpenMP when using -Xpreprocessor
+            pass
+
         if len(cppflags) > 0:
             os.environ["CPPFLAGS"] = " ".join(cppflags)
             print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
@@ -171,6 +178,10 @@ class MyBuildExtCommand(BuildExtCommand):
                 args = l_args[c]
             for e in self.extensions:
                 e.extra_link_args = args
+        if numpy is None:
+            self.extensions = [arg for arg in self.extensions if "numpy" not in str(arg)]
+        print(f'All extensions:')
+        print(self.extensions)
         BuildExtCommand.build_extensions(self)
 
     def initialize_options(self):
@@ -218,22 +229,57 @@ def check_openmp(cc_bin):
 
 
 # Set up extension
-if cythonize is not None and numpy is not None:
-    ext_modules = cythonize([
+extensions = []
+if cythonize is not None:
+    os.environ["CPPFLAGS"] = "-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC" + " " + os.environ["CPPFLAGS"]
+    extensions.append(
         Extension(
-            "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
-            include_dirs=np_include_dirs,
+            "dtaidistance.dtw_cc",
+            ["dtaidistance/dtw_cc.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw.c"],
+            include_dirs=[],
             extra_compile_args=[],
-            extra_link_args=[])])
-elif numpy is None:
-    print("WARNING: Numpy was not found, preparing a pure Python version.")
-    ext_modules = []
+            extra_link_args=[]))
+    extensions.append(
+        Extension(
+            "dtaidistance.ed_cc",
+            ["dtaidistance/ed_cc.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/ed.c"],
+            include_dirs=[],
+            extra_compile_args=[],
+            extra_link_args=[]))
+    extensions.append(
+        Extension(
+            "dtaidistance.dtw_cc_omp",
+            ["dtaidistance/dtw_cc_omp.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw_openmp.c"],
+            include_dirs=[],
+            extra_compile_args=[],
+            extra_link_args=[]))
+
+    if numpy is not None:
+        extensions.append(
+            Extension(
+                "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
+                include_dirs=np_include_dirs,
+                extra_compile_args=[],
+                extra_link_args=[]))
+        # extensions.append(
+        #     Extension(
+        #         "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
+        #         include_dirs=np_include_dirs,
+        #         extra_compile_args=[],
+        #         extra_link_args=[]))
+    else:
+        print("WARNING: Numpy was not found, preparing a version without Numpy support.")
+
+    ext_modules = cythonize(extensions)
 else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
 
-install_requires = ['numpy', 'cython']
-tests_require = ['pytest', 'matplotlib']
+install_requires = ['cython']
+tests_require = ['pytest']
 
 # Check version number
 with open('dtaidistance/__init__.py', 'r', encoding='utf-8') as fd:
@@ -270,11 +316,12 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require={
-        'vis': ['matplotlib']
+        'vis': ['matplotlib'],
+        'numpy': ['numpy']
     },
     include_package_data=True,
     package_data={
-        '': ['*.pyx', '*.pxd'],
+        '': ['*.pyx', '*.pxd', '*.c', '*.h'],
     },
     distclass=MyDistribution,
     cmdclass={

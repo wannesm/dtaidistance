@@ -18,7 +18,26 @@ from array import array
 from pathlib import Path
 import tempfile
 
-import numpy as np
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    from . import dtw_cc
+except ImportError:
+    dtw_cc = None
+
+try:
+    from . import dtw_cc_omp
+except ImportError:
+    dtw_cc_omp = None
+
+try:
+    from . import dtw_cc_numpy
+except ImportError:
+    dtw_cc_numpy = None
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -85,7 +104,7 @@ class SeriesContainer:
         """
         if isinstance(series, SeriesContainer):
             self.series = series.series
-        elif isinstance(series, np.ndarray) and len(series.shape) == 2:
+        elif np is not None and isinstance(series, np.ndarray) and len(series.shape) == 2:
             # A matrix always returns a 2D array, also if you select one row (to be consistent
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array.
@@ -104,10 +123,12 @@ class SeriesContainer:
             buffers are guaranteed to be C-contiguous and can thus be used
             as regular pointer-based arrays in C.
         """
+        if dtw_cc is None:
+            raise Exception('C library not loaded')
         if type(self.series) == list:
             for i in range(len(self.series)):
                 serie = self.series[i]
-                if isinstance(serie, np.ndarray):
+                if np is not None and isinstance(serie, np.ndarray):
                     if not serie.flags.c_contiguous:
                         serie = np.asarray(serie, order="C")
                         self.series[i] = serie
@@ -120,10 +141,19 @@ class SeriesContainer:
                             type(serie)
                         )
                     )
-        elif isinstance(self.series, np.ndarray):
+            return dtw_cc.dtw_series_from_data(self.series)
+        elif np is not None and isinstance(self.series, np.ndarray):
             if not self.series.flags.c_contiguous:
+                logger.warning("Numpy array not C contiguous, copying data.")
                 self.series = self.series.copy(order="C")
-        return self.series
+            if dtw_cc_numpy is None:
+                logger.warning("DTAIDistance C-extension for Numpy is not available. Proceeding anyway.")
+                return dtw_cc.dtw_series_from_data(self.series)
+            elif len(self.series.shape) == 3:
+                return dtw_cc_numpy.dtw_series_from_numpy_ndim(self.series)
+            else:
+                return dtw_cc_numpy.dtw_series_from_numpy(self.series)
+        return dtw_cc.dtw_series_from_data(self.series)
 
     def get_max_y(self):
         max_y = 0
@@ -154,3 +184,11 @@ def recompile():
     import subprocess as sp
 
     sp.run([sys.executable, "setup.py", "build_ext", "--inplace"], cwd=dtaidistance_dir)
+
+
+def argmin(a):
+    imin, vmin = 0, float("inf")
+    for i, v in enumerate(a):
+        if v < vmin:
+            imin, vmin = i, v
+    return imin

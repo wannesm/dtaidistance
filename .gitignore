@@ -2,6 +2,9 @@
 dtw_c.c
 dtw_c.py
 dtw_c.*.so
+dtw_cc*.c
+dtw_cc*.py
+dtw_cc*.so
 .cache
 .benchmarks
 .eggs

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>DTAIDistanceC.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>DTAIDistanceCBenchmark.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+		<key>DTAIDistanceCTestAll.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>4</integer>
+		</dict>
+		<key>DTAIDistanceCTestDTW.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>DTAIDistanceCTestMatrix.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>C06FD1D224A652B400892537</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C06FD1E524A8DF9900892537</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C06FD1F524A94A2600892537</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C06FD20624AA10F600892537</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>C0CD703D24AF4F1F00F1BB3B</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>

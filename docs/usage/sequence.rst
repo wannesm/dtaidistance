@@ -1,10 +1,12 @@
 Sequences
 ---------
 
-When the values in the time series are symbols rather than numbers dynamic programming
-can be used to find the globally optimal sequence alignment. This is the same basic
-algorithm as dynamic time warping but with a different cost function.
-In this toolbox the Needleman-Wunsch algorithm is available.
+For time series, it is assumed that it is a sequence of numerical values.
+If this is not the case, the same basic algorithm, dynamic programming,
+can still be used to find the globally optimal sequence alignment. The
+only difference is that it requires a custom cost function.
+In this toolbox the Needleman-Wunsch algorithm is available that works
+on sequences in general.
 
 Needleman-Wunsch sequence alignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

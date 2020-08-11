@@ -1,73 +1,79 @@
 import pytest
-import numpy as np
 import sys
 import os
 import math
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
-from dtaidistance import dtw, dtw_c
+from dtaidistance import dtw, util_numpy
 
 
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
+
+
+@numpyonly
 def test_numpymatrix():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    s = np.array([
-        [0., 0, 1, 2, 1, 0, 1, 0, 0],
-        [0., 1, 2, 0, 0, 0, 0, 0, 0],
-        [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-    m = dtw_c.distance_matrix_nogil(s)
-    m = dtw.distances_array_to_matrix(m, len(s))
-    m2 = dtw.distance_matrix(s)
-    correct = np.array([
-        [np.inf, 1.41421356, 1.73205081],
-        [np.inf, np.inf,     1.41421356],
-        [np.inf, np.inf,     np.inf]])
-    assert m[0, 1] == pytest.approx(math.sqrt(2))
-    assert m2[0, 1] == pytest.approx(math.sqrt(2))
-    np.testing.assert_almost_equal(correct, m, decimal=4)
-    np.testing.assert_almost_equal(correct, m2, decimal=4)
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array([
+            [0., 0, 1, 2, 1, 0, 1, 0, 0],
+            [0., 1, 2, 0, 0, 0, 0, 0, 0],
+            [1., 2, 0, 0, 0, 0, 0, 1, 0]])
+        m = dtw.distance_matrix_fast(s)
+        m2 = dtw.distance_matrix(s)
+        correct = np.array([
+            [np.inf, 1.41421356, 1.73205081],
+            [np.inf, np.inf,     1.41421356],
+            [np.inf, np.inf,     np.inf]])
+        assert m[0, 1] == pytest.approx(math.sqrt(2))
+        assert m2[0, 1] == pytest.approx(math.sqrt(2))
+        np.testing.assert_almost_equal(correct, m, decimal=4)
+        np.testing.assert_almost_equal(correct, m2, decimal=4)
 
 
+@numpyonly
 def test_numpymatrix_compact():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    s = np.array([
-        [0., 0, 1, 2, 1, 0, 1, 0, 0],
-        [0., 1, 2, 0, 0, 0, 0, 0, 0],
-        [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-    m = dtw_c.distance_matrix_nogil(s)
-    m2 = dtw.distance_matrix(s, compact=True)
-    correct = np.array([1.41421356, 1.73205081, 1.41421356])
-    assert m[0] == pytest.approx(math.sqrt(2))
-    assert m2[0] == pytest.approx(math.sqrt(2))
-    np.testing.assert_almost_equal(correct, m, decimal=4)
-    np.testing.assert_almost_equal(correct, m2, decimal=4)
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array([
+            [0., 0, 1, 2, 1, 0, 1, 0, 0],
+            [0., 1, 2, 0, 0, 0, 0, 0, 0],
+            [1., 2, 0, 0, 0, 0, 0, 1, 0]])
+        m = dtw.distance_matrix_fast(s, compact=True)
+        m2 = dtw.distance_matrix(s, compact=True)
+        correct = np.array([1.41421356, 1.73205081, 1.41421356])
+        assert m[0] == pytest.approx(math.sqrt(2))
+        assert m2[0] == pytest.approx(math.sqrt(2))
+        np.testing.assert_almost_equal(correct, m, decimal=4)
+        np.testing.assert_almost_equal(correct, m2, decimal=4)
 
 
+@numpyonly
 def test_numpymatrix_transpose():
     """Passing a matrix instead of a list failed because the array is now a
     view instead of the original data structure."""
-    s = np.array([
-        [0., 0., 1.,],
-        [0, 1, 2],
-        [1, 2, 0],
-        [2, 0, 0],
-        [1, 0, 0],
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, 0, 1],
-        [0, 0, 0]
-    ]).T
-    m = dtw_c.distance_matrix_nogil(s)
-    m = dtw.distances_array_to_matrix(m, len(s))
-    m2 = dtw.distance_matrix(s)
-    correct = np.array([
-        [np.inf, 1.41421356, 1.73205081],
-        [np.inf, np.inf,     1.41421356],
-        [np.inf, np.inf,     np.inf]])
-    assert m[0, 1] == pytest.approx(math.sqrt(2))
-    assert m2[0, 1] == pytest.approx(math.sqrt(2))
-    np.testing.assert_almost_equal(correct, m, decimal=4)
-    np.testing.assert_almost_equal(correct, m2, decimal=4)
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array([
+            [0., 0., 1.,],
+            [0, 1, 2],
+            [1, 2, 0],
+            [2, 0, 0],
+            [1, 0, 0],
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 0, 1],
+            [0, 0, 0]
+        ]).T
+        m = dtw.distance_matrix_fast(s)
+        m2 = dtw.distance_matrix(s)
+        correct = np.array([
+            [np.inf, 1.41421356, 1.73205081],
+            [np.inf, np.inf,     1.41421356],
+            [np.inf, np.inf,     np.inf]])
+        assert m[0, 1] == pytest.approx(math.sqrt(2))
+        assert m2[0, 1] == pytest.approx(math.sqrt(2))
+        np.testing.assert_almost_equal(correct, m, decimal=4)
+        np.testing.assert_almost_equal(correct, m2, decimal=4)
 
 
 # def test_negativedimensions():
@@ -109,6 +115,7 @@ def test_numpymatrix_transpose():
 #     print(wp)
 
 
+@numpyonly
 def test_negativedimensions2():
     """
     For length 62706, the computation (len_cur * (len_cur - 1)) is a number that is too large.
@@ -119,31 +126,34 @@ def test_negativedimensions2():
     Problem is with dividing an uneven number to optimize the computation and require smaller number.
     This dividing the uneven number should and can be avoided.
     """
-    # s = np.full((62706, 104), 1.0)
-    s = np.full((10, 104), 1.0)
-    window = 1
-    dists = dtw.distance_matrix_fast(s, window=int(0.01 * window * s.shape[1]))
-    print(dists)
+    with util_numpy.test_uses_numpy() as np:
+        # s = np.full((62706, 104), 1.0)
+        s = np.full((10, 104), 1.0)
+        window = 1
+        dists = dtw.distance_matrix_fast(s, window=int(0.01 * window * s.shape[1]))
+        print(dists)
 
 
+@numpyonly
 def test_overflowdistance():
-    maxvalthirtytwobit = 2147483647
-    s = np.array([
-        [maxvalthirtytwobit, maxvalthirtytwobit, 1, 2, 1, 0, 1, 0, 0],
-        [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-    d1 = dtw.distance(s[0], s[1], use_c=False)
-    d2 = dtw.distance(s[0], s[1], use_c=True)
-    print(d1)
-    print(d2)
-    # m = dtw_c.distance_matrix_nogil(s)
-    # m2 = dtw.distance_matrix(s, compact=True)
-    # print(m)
-    # print(m2)
-    # correct = np.array([1.41421356, 1.73205081, 1.41421356])
-    # assert m[0] == pytest.approx(math.sqrt(2))
-    # assert m2[0] == pytest.approx(math.sqrt(2))
-    # np.testing.assert_almost_equal(correct, m, decimal=4)
-    # np.testing.assert_almost_equal(correct, m2, decimal=4)
+    with util_numpy.test_uses_numpy() as np:
+        maxvalthirtytwobit = 2147483647
+        s = np.array([
+            [maxvalthirtytwobit, maxvalthirtytwobit, 1, 2, 1, 0, 1, 0, 0],
+            [1., 2, 0, 0, 0, 0, 0, 1, 0]])
+        d1 = dtw.distance(s[0], s[1], use_c=False)
+        d2 = dtw.distance(s[0], s[1], use_c=True)
+        print(d1)
+        print(d2)
+        # m = dtw_c.distance_matrix_nogil(s)
+        # m2 = dtw.distance_matrix(s, compact=True)
+        # print(m)
+        # print(m2)
+        # correct = np.array([1.41421356, 1.73205081, 1.41421356])
+        # assert m[0] == pytest.approx(math.sqrt(2))
+        # assert m2[0] == pytest.approx(math.sqrt(2))
+        # np.testing.assert_almost_equal(correct, m, decimal=4)
+        # np.testing.assert_almost_equal(correct, m2, decimal=4)
 
 
 if __name__ == "__main__":
