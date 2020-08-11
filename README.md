@@ -28,14 +28,7 @@ Citing this work:
 
 ## Installation
 
-*If you want to try the v2 beta version ([what's new?](https://github.com/wannesm/dtaidistance/tree/v2)):*
-
-    $ pip install git+https://github.com/wannesm/dtaidistance@v2
-
-This packages is available on PyPI (requires Python 3):
-
-    $ pip install git+https://github.com/wannesm/dtaidistance@v2  # v2-beta
-    $ pip install dtaidistance  #v1
+    $ pip install dtaidistance
 
 In case the C based version is not available, see the documentation for
 alternative installation options. In case
