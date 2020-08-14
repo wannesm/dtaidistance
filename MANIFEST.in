@@ -1,9 +1,11 @@
 include README.md examples/hierarchical_clustering.py
 recursive-include dtaidistance *.pyx
+recursive-include dtaidistance *.pxd
 recursive-include dtaidistance *.c
 recursive-include dtaidistance *.h
-global-include *.pyx
 include LICENSE
 graft tests
 include requirements.txt
 include Makefile
+prune experiments
+prune venv

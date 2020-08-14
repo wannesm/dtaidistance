@@ -62,6 +62,11 @@ analyze_build:
 	cd dtaidistance;cython dtw_c.pyx -a
 	open dtaidistance/dtw_c.html
 
+.PHONY: dist
+dist:
+	rm -rf dist/*
+	python3 setup.py sdist
+
 .PHONY: prepare_dist
 prepare_dist:
 	rm -rf dist/*

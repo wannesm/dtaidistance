@@ -321,7 +321,7 @@ setup(
     },
     include_package_data=True,
     package_data={
-        '': ['*.pyx', '*.pxd', '*.c', '*.h'],
+        'dtaidistance': ['*.pyx', '*.pxd', '*.c', '*.h'],
     },
     distclass=MyDistribution,
     cmdclass={
