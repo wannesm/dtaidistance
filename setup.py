@@ -15,6 +15,7 @@ import os
 import sys
 import re
 import subprocess as sp
+from pathlib import Path
 
 try:
     import numpy
@@ -29,17 +30,18 @@ except ImportError:
     cythonize = None
 
 here = os.path.abspath(os.path.dirname(__file__))
+dtaidistancec_path = Path('dtaidistance') / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'
 
 c_args = {
     # Xpreprocessor is required for the built-in CLANG on macos, but other
     # installations of LLVM don't seem to be bothered by it (although it's
     # not required.
     'unix': ['-Xpreprocessor', '-fopenmp',
-             '-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC'],
+             '-I'+str(dtaidistancec_path)],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
-             '/Idtaidistance\\lib\\DTAIDistanceC\\DTAIDistanceC'],
+             '/I'+str(dtaidistancec_path)],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native',
-                '-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC']
+                '-I'+str(dtaidistancec_path)]
 }
 l_args = {
     'unix': ['-fopenmp'],
@@ -61,7 +63,7 @@ class PyTest(TestCommand):
             self.pytest_args += ['--benchmark-skip']
         except ImportError:
             print("No benchmark library, ignore benchmarks")
-            self.pytest_args += ['--ignore', 'tests/test_benchmark.py']
+            self.pytest_args += ['--ignore', str(Path('tests') / 'test_benchmark.py')]
 
     def finalize_options(self):
         pass
@@ -98,55 +100,56 @@ class MyInstallCommand(install):
 
 def set_custom_envvars_for_homebrew():
     """Update environment variables automatically for Homebrew if CC is not set"""
-    if platform.system() == 'Darwin' and "CC" not in os.environ:
-        print("Set custom environment variables for Homebrew Clang because CC is not set")
-        cppflags = []
-        if "CPPFLAGS" in os.environ:
-            cppflags.append(os.environ["CPPFLAGS"])
-        cflags = []
-        if "CFLAGS" in os.environ:
-            cflags.append(os.environ["CFLAGS"])
-        ldflags = []
-        if "LDFLAGS" in os.environ:
-            ldflags.append(os.environ["LDFLAGS"])
-        if os.path.exists("/usr/local/opt/llvm/bin/clang"):
-            # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
-            # `brew install llvm`).
-            os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
-            print("CC={}".format(os.environ["CC"]))
-            ldflags += ["-L/usr/local/opt/llvm/lib"]
-            cppflags += ["-I/usr/local/opt/llvm/include"]
-            cflags += ["-I/usr/local/opt/llvm/include"]
-            try:
-                mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
-                if mac_ver[0] == 10 and mac_ver[1] >= 14:
-                    # From Mojave on, the header files are part of Xcode.app
-                    incpath = '-I/Applications/Xcode.app/Contents/Developer/Platforms/' + \
-                              'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include'
-                    cppflags += [incpath]
-                    cflags += [incpath]
-            except Exception as exc:
-                print("Failed to check version")
-                print(exc)
-        else:
-            # The default clang in XCode is compatible with OpenMP when using -Xpreprocessor
-            pass
-
-        if len(cppflags) > 0:
-            os.environ["CPPFLAGS"] = " ".join(cppflags)
-            print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
-        if len(cflags) > 0:
-            os.environ["CFLAGS"] = " ".join(cflags)
-            print("CFLAGS={}".format(os.environ["CFLAGS"]))
-        if len(ldflags) > 0:
-            os.environ["LDFLAGS"] = " ".join(ldflags)
-            print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
-    else:
-        print("Using the following environment variables:")
-        print("CC={}".format(os.environ.get("CC", "")))
-        print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
-        print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
-        print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
+    # DEPRECATED. OpenMP is now supported through -Xpreprocessor
+    # if platform.system() == 'Darwin' and "CC" not in os.environ:
+    #     print("Set custom environment variables for Homebrew Clang because CC is not set")
+    #     cppflags = []
+    #     if "CPPFLAGS" in os.environ:
+    #         cppflags.append(os.environ["CPPFLAGS"])
+    #     cflags = []
+    #     if "CFLAGS" in os.environ:
+    #         cflags.append(os.environ["CFLAGS"])
+    #     ldflags = []
+    #     if "LDFLAGS" in os.environ:
+    #         ldflags.append(os.environ["LDFLAGS"])
+    #     if os.path.exists("/usr/local/opt/llvm/bin/clang"):
+    #         # We have a recent version of LLVM that probably supports openmp to compile parallel C code (installed using
+    #         # `brew install llvm`).
+    #         os.environ["CC"] = "/usr/local/opt/llvm/bin/clang"
+    #         print("CC={}".format(os.environ["CC"]))
+    #         ldflags += ["-L/usr/local/opt/llvm/lib"]
+    #         cppflags += ["-I/usr/local/opt/llvm/include"]
+    #         cflags += ["-I/usr/local/opt/llvm/include"]
+    #         try:
+    #             mac_ver = [int(nb) for nb in platform.mac_ver()[0].split(".")]
+    #             if mac_ver[0] == 10 and mac_ver[1] >= 14:
+    #                 # From Mojave on, the header files are part of Xcode.app
+    #                 incpath = '-I/Applications/Xcode.app/Contents/Developer/Platforms/' + \
+    #                           'MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include'
+    #                 cppflags += [incpath]
+    #                 cflags += [incpath]
+    #         except Exception as exc:
+    #             print("Failed to check version")
+    #             print(exc)
+    #     else:
+    #         # The default clang in XCode is compatible with OpenMP when using -Xpreprocessor
+    #         pass
+    #
+    #     if len(cppflags) > 0:
+    #         os.environ["CPPFLAGS"] = " ".join(cppflags)
+    #         print("CPPFLAGS={}".format(os.environ["CPPFLAGS"]))
+    #     if len(cflags) > 0:
+    #         os.environ["CFLAGS"] = " ".join(cflags)
+    #         print("CFLAGS={}".format(os.environ["CFLAGS"]))
+    #     if len(ldflags) > 0:
+    #         os.environ["LDFLAGS"] = " ".join(ldflags)
+    #         print("LDFLAGS={}".format(os.environ["LDFLAGS"]))
+    # else:
+    #     print("Using the following environment variables:")
+    #     print("CC={}".format(os.environ.get("CC", "")))
+    #     print("CPPFLAGS={}".format(os.environ.get("CPPFLAGS", "")))
+    #     print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
+    #     print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
 
 
 class MyBuildExtCommand(BuildExtCommand):
@@ -237,24 +240,24 @@ if cythonize is not None:
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
-            ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw.c"],
+            [str(Path("dtaidistance") / "dtw_cc.pyx"), str(Path("dtaidistance") / "dtw_cc.pxd"),
+             str(dtaidistancec_path / "dtw.c")],
             include_dirs=[],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.ed_cc",
-            ["dtaidistance/ed_cc.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/ed.c"],
+            [str(Path("dtaidistance") / "ed_cc.pyx"),
+             str(dtaidistancec_path / "ed.c")],
             include_dirs=[],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc_omp",
-            ["dtaidistance/dtw_cc_omp.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw_openmp.c"],
+            [str(Path("dtaidistance") / "dtw_cc_omp.pyx"),
+             str(dtaidistancec_path / "dtw_openmp.c")],
             include_dirs=[],
             extra_compile_args=[],
             extra_link_args=[]))
@@ -262,16 +265,10 @@ if cythonize is not None:
     if numpy is not None:
         extensions.append(
             Extension(
-                "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
+                "dtaidistance.dtw_cc_numpy", [str(Path("dtaidistance") / "util_numpy_cc.pyx")],
                 include_dirs=np_include_dirs,
                 extra_compile_args=[],
                 extra_link_args=[]))
-        # extensions.append(
-        #     Extension(
-        #         "dtaidistance.dtw_c", ["dtaidistance/dtw_c.pyx"],
-        #         include_dirs=np_include_dirs,
-        #         extra_compile_args=[],
-        #         extra_link_args=[]))
     else:
         print("WARNING: Numpy was not found, preparing a version without Numpy support.")
 
