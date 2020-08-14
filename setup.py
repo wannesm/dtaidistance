@@ -34,9 +34,12 @@ c_args = {
     # Xpreprocessor is required for the built-in CLANG on macos, but other
     # installations of LLVM don't seem to be bothered by it (although it's
     # not required.
-    'unix': ['-Xpreprocessor', '-fopenmp'],
-    'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og'],
-    'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native']
+    'unix': ['-Xpreprocessor', '-fopenmp',
+             '-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC'],
+    'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
+             '/Idtaidistance\\lib\\DTAIDistanceC\\DTAIDistanceC'],
+    'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native',
+                '-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC']
 }
 l_args = {
     'unix': ['-fopenmp'],
@@ -231,7 +234,6 @@ def check_openmp(cc_bin):
 # Set up extension
 extensions = []
 if cythonize is not None:
-    os.environ["CPPFLAGS"] = "-Idtaidistance/lib/DTAIDistanceC/DTAIDistanceC" + " " + os.environ["CPPFLAGS"]
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
