@@ -235,7 +235,7 @@ if cythonize is not None:
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
-            ["dtaidistance/dtw_cc.pyx",
+            ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dtw.c"],
             include_dirs=[],
             extra_compile_args=[],
