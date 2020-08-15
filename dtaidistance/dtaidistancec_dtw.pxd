@@ -2,7 +2,7 @@
 from dtaidistancec_globals cimport seq_t
 
 
-cdef extern from "lib/DTAIDistanceC/DTAIDistanceC/dtw.h":
+cdef extern from "dtw.h":
     ctypedef struct DTWSettings:
         size_t window
         seq_t max_dist
