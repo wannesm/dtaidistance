@@ -241,7 +241,7 @@ if cythonize is not None:
         Extension(
             "dtaidistance.dtw_cc",
             [str(Path("dtaidistance") / "dtw_cc.pyx"), str(Path("dtaidistance") / "dtw_cc.pxd"),
-             str(dtaidistancec_path / "dtw.c")],
+             str(dtaidistancec_path / "dd_dtw.c")],
             include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
@@ -249,7 +249,7 @@ if cythonize is not None:
         Extension(
             "dtaidistance.ed_cc",
             [str(Path("dtaidistance") / "ed_cc.pyx"),
-             str(dtaidistancec_path / "ed.c")],
+             str(dtaidistancec_path / "dd_ed.c")],
             include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
@@ -257,7 +257,7 @@ if cythonize is not None:
         Extension(
             "dtaidistance.dtw_cc_omp",
             [str(Path("dtaidistance") / "dtw_cc_omp.pyx"),
-             str(dtaidistancec_path / "dtw_openmp.c")],
+             str(dtaidistancec_path / "dd_dtw_openmp.c")],
             include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
