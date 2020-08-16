@@ -9,3 +9,5 @@ include requirements.txt
 include Makefile
 prune experiments
 prune venv
+prune tests/__pycache__
+prune tests/output
