@@ -5,6 +5,9 @@ dtw_c.*.so
 dtw_cc*.c
 dtw_cc*.py
 dtw_cc*.so
+ed_cc*.c
+ed_cc*.py
+ed_cc*.so
 .cache
 .benchmarks
 .eggs
