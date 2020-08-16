@@ -30,8 +30,7 @@ except ImportError:
     cythonize = None
 
 here = os.path.abspath(os.path.dirname(__file__))
-dtaidistancec_path = Path('dtaidistance') / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'  # Mac clang uses this
-dtaidistance_relpath = Path('dtaidistance')  # Linux GCC runs from dtaidistancec_path, add both
+dtaidistancec_path = Path('dtaidistance') / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'
 
 c_args = {
     # Xpreprocessor is required for the built-in CLANG on macos, but other
@@ -243,7 +242,7 @@ if cythonize is not None:
             "dtaidistance.dtw_cc",
             [str(Path("dtaidistance") / "dtw_cc.pyx"), str(Path("dtaidistance") / "dtw_cc.pxd"),
              str(dtaidistancec_path / "dd_dtw.c")],
-            include_dirs=[str(dtaidistancec_path), str(dtaidistance_relpath)],
+            include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
@@ -251,7 +250,7 @@ if cythonize is not None:
             "dtaidistance.ed_cc",
             [str(Path("dtaidistance") / "ed_cc.pyx"),
              str(dtaidistancec_path / "dd_ed.c")],
-            include_dirs=[str(dtaidistancec_path), str(dtaidistance_relpath)],
+            include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
@@ -259,7 +258,7 @@ if cythonize is not None:
             "dtaidistance.dtw_cc_omp",
             [str(Path("dtaidistance") / "dtw_cc_omp.pyx"),
              str(dtaidistancec_path / "dd_dtw_openmp.c")],
-            include_dirs=[str(dtaidistancec_path), str(dtaidistance_relpath)],
+            include_dirs=[str(dtaidistancec_path)],
             extra_compile_args=[],
             extra_link_args=[]))
 
