@@ -340,5 +340,6 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     keywords='dtw',
+    zip_safe=False,
     ext_modules=ext_modules
 )
