@@ -237,39 +237,40 @@ def check_openmp(cc_bin):
 # Set up extension
 extensions = []
 if cythonize is not None:
+    # Cython uses the glob package to find files, thus use unix-style paths
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
-            [str(Path("dtaidistance") / "dtw_cc.pyx"), str(Path("dtaidistance") / "dtw_cc.pxd"),
-             str(dtaidistancec_path / "dd_dtw.c")],
-            depends=[str(dtaidistancec_path / "dd_globals.h")],
-            include_dirs=[str(dtaidistancec_path)],
+            ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c"],
+            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.ed_cc",
-            [str(Path("dtaidistance") / "ed_cc.pyx"),
-             str(dtaidistancec_path / "dd_ed.c")],
-            depends=[str(dtaidistancec_path / "dd_globals.h")],
-            include_dirs=[str(dtaidistancec_path)],
+            ["dtaidistance/ed_cc.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc_omp",
-            [str(Path("dtaidistance") / "dtw_cc_omp.pyx"),
-             str(dtaidistancec_path / "dd_dtw_openmp.c")],
-            depends=[str(dtaidistancec_path / "dd_globals.h")],
-            include_dirs=[str(dtaidistancec_path)],
+            ["dtaidistance/dtw_cc_omp.pyx",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw_openmp.c"],
+            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
 
     if numpy is not None:
         extensions.append(
             Extension(
-                "dtaidistance.dtw_cc_numpy", [str(Path("dtaidistance") / "util_numpy_cc.pyx")],
-                depends=[str(dtaidistancec_path / "dd_globals.h")],
+                "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
+                depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
                 include_dirs=np_include_dirs,
                 extra_compile_args=[],
                 extra_link_args=[]))
