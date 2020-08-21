@@ -40,7 +40,7 @@ c_args = {
              '-I'+str(dtaidistancec_path)],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
              '/I'+str(dtaidistancec_path)],
-    'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native',
+    'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)]
 }
 l_args = {
