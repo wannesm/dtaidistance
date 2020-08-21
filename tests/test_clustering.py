@@ -186,13 +186,48 @@ def test_plotbug1():
         print("Figure save to", hierarchy_fn)
 
 
+@numpyonly
+def test_clustering_centroid():
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array([
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1]])
+
+        # def test_hook(from_idx, to_idx, distance):
+        #     assert (from_idx, to_idx) in [(3, 0), (4, 1), (5, 2), (6, 2), (1, 0), (2, 0)]
+        model = clustering.KMedoids(dtw.distance_matrix_fast, {}, k=3,
+                                    show_progress=False)
+        cluster_idx = model.fit(s)
+        print(cluster_idx)
+        # assert cluster_idx[0] == {0, 1, 2, 3, 4, 5, 6}
+
+        # if directory:
+        #     hierarchy_fn = os.path.join(directory, "centroid.png")
+        #     graphviz_fn = os.path.join(directory, "centroid.dot")
+        # else:
+        #     file = tempfile.NamedTemporaryFile()
+        #     hierarchy_fn = file.name + "_centroid.png"
+        #     graphviz_fn = file.name + "_centroid.dot"
+        # model.plot(hierarchy_fn)
+        # print("Figure saved to", hierarchy_fn)
+        # with open(graphviz_fn, "w") as ofile:
+        #     print(model.to_dot(), file=ofile)
+        # print("Dot saved to", graphviz_fn)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_clustering_tree()
-    test_clustering_tree_maxdist()
+    # test_clustering_tree_maxdist()
     # test_linkage_tree()
     # test_controlchart()
     # test_plotbug1()
+    test_clustering_centroid()
