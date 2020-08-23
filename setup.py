@@ -240,7 +240,8 @@ if cythonize is not None:
         Extension(
             "dtaidistance.dtw_cc",
             ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c"],
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
+             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
             depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
                      "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
             include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
