@@ -86,9 +86,11 @@ size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths
                      DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
     #ifdef _WINDOWS
-        int r, c, r_i, c_i;
+    int r, c, r_i, c_i;
+    #elif defined(_WIN32) || defined(WIN32)
+    int r, c, r_i, c_i;
     #else
-        size_t r, c, r_i, c_i;
+    size_t r, c, r_i, c_i;
     #endif
     size_t length;
     size_t *cbs, *rls;
