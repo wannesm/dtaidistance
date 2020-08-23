@@ -85,7 +85,11 @@ Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays 
 size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, seq_t* output,
                      DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
-    size_t r, c, r_i, c_i;
+    #ifdef _WINDOWS
+        int r, c, r_i, c_i;
+    #else
+        size_t r, c, r_i, c_i;
+    #endif
     size_t length;
     size_t *cbs, *rls;
 
