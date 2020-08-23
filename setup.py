@@ -45,7 +45,7 @@ c_args = {
 }
 l_args = {
     'unix': ['-fopenmp'],
-    'msvc': [],
+    'msvc': ['\DLL'],
     'mingw32': ['-fopenmp']
 }
 
@@ -242,7 +242,6 @@ if cythonize is not None:
         Extension(
             "dtaidistance.dtw_cc",
             ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
-             "dtaidistance/ed_cc.pyx",
              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c"],
             depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
             include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
