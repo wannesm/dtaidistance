@@ -85,7 +85,13 @@ Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays 
 size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, seq_t* output,
                      DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    // TODO: check overflow on windows
+    // https://developercommunity.visualstudio.com/content/problem/822384/openmp-compiler-errors-introduced-after-visual-stu.html
+    int r, c, r_i, c_i;
+    #else
     size_t r, c, r_i, c_i;
+    #endif
     size_t length;
     size_t *cbs, *rls;
 
@@ -129,7 +135,12 @@ size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths
 size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
                                         DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    // TODO: check overflow on windows
+    int r, c, r_i, c_i;
+    #else
     size_t r, c, r_i, c_i;
+    #endif
     size_t length;
     size_t *cbs, *rls;
 
@@ -165,7 +176,12 @@ size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* le
  */
 size_t dtw_distances_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols, seq_t* output, DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    // TODO: check overflow on windows
+    int r, c, r_i, c_i;
+    #else
     size_t r, c, r_i, c_i;
+    #endif
     size_t length;
     size_t *cbs, *rls;
 
@@ -199,7 +215,12 @@ Distance matrix for n-dimensional DTW, executed on a 3-dimensional array and in 
 */
 size_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output, DTWBlock* block, DTWSettings* settings) {
     // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    // TODO: check overflow on windows
+    int r, c, r_i, c_i;
+    #else
     size_t r, c, r_i, c_i;
+    #endif
     size_t length;
     size_t *cbs, *rls;
 
