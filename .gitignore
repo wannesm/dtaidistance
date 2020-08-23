@@ -8,6 +8,7 @@ dtw_cc*.so
 ed_cc*.c
 ed_cc*.py
 ed_cc*.so
+util_numpy_cc.c
 .cache
 .benchmarks
 .eggs
@@ -19,6 +20,8 @@ dtaidistance/*html
 dtaidistance/*so
 dtaidistance/__pycache__/
 dtaidistance/dtw_c.*.pyd
+dtaidistance/dtw_cc*.pyd
+dtaidistance/ed_cc*.pyd
 README
 README.rst
 benchmark*.svg
