@@ -4,6 +4,7 @@ import logging
 import pytest
 from pathlib import Path
 from dtaidistance import util_numpy, dtw_weighted as dtww
+import dtaidistance.dtw_visualisation as dtwvis
 
 
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
@@ -101,7 +102,7 @@ def test_decisiontree(directory=None):
         ])
         targets = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        if directory:
+        if directory and not dtwvis.test_without_visualization():
             try:
                 import matplotlib.pyplot as plt
             except ImportError:
