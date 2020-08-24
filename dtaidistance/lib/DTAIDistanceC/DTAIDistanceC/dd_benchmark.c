@@ -117,7 +117,7 @@ void benchmark7() {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6, false)];
+    double result[dtw_distances_length(&block, 6)];
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
