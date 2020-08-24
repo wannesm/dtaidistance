@@ -47,10 +47,6 @@ Settings for DTW operations:
 @field penalty : Customize the cost for expansion or compression.
 @field psi: Psi relaxation allows to ignore this number of entries at the beginning
        and/or end of both sequences.
-@field use_sidx_t : Internal variable. Check if array size would exceed SIZE_MAX (true)
-       or PTRDIFF_MAX (false).
-       This can be used to be compatible with Python's Py_sidx_t when wrapping this
-       library: https://www.python.org/dev/peps/pep-0353/
 @field use_pruning : Compute Euclidean distance first to set max_dist (current value in
        max_dist is ignored).
 @field only_ub : Only compute the upper bound (Euclidean) and return that value.
@@ -62,7 +58,6 @@ struct DTWSettings_s {
     idx_t max_length_diff;
     seq_t penalty;
     idx_t psi;
-    bool use_sidx_t;
     bool use_pruning;
     bool only_ub;
     
@@ -116,7 +111,7 @@ idx_t dtw_distances_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* o
                             DTWBlock* block, DTWSettings* settings);
 idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output,
                                  DTWBlock* block, DTWSettings* settings);
-idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series, bool use_sidx_t);
+idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series);
 
 // Auxiliary functions
 void dtw_int_handler(int dummy);

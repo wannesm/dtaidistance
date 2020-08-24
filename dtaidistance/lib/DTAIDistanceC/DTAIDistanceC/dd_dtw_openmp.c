@@ -24,7 +24,7 @@
 int dtw_distances_prepare(DTWBlock *block, idx_t nb_series, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
     idx_t cb, rs, ir;
     
-    *length = dtw_distances_length(block, nb_series, settings->use_sidx_t);
+    *length = dtw_distances_length(block, nb_series);
     if (length == 0) {
         return 1;
     }

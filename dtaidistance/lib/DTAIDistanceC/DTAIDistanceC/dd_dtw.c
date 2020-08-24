@@ -22,7 +22,6 @@ DTWSettings dtw_settings_default(void) {
         .max_length_diff = 0,
         .penalty = 0,
         .psi = 0,
-        .use_sidx_t = false,
         .use_pruning = false,
         .only_ub = false
     };
@@ -37,7 +36,6 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  max_length_diff = %zu\n", settings->max_length_diff);
     printf("  penalty = %f\n", settings->penalty);
     printf("  psi = %zu\n", settings->psi);
-    printf("  use_sidx_t = %d\n", settings->use_sidx_t);
     printf("  use_pruning = %d\n", settings->use_pruning);
     printf("  only_ub = %d\n", settings->only_ub);
     printf("}\n");
@@ -871,7 +869,7 @@ idx_t dtw_distances_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* out
     idx_t i;
     seq_t value;
     
-    length = dtw_distances_length(block, nb_ptrs, false);
+    length = dtw_distances_length(block, nb_ptrs);
     if (length == 0) {
         return 0;
     }
@@ -921,7 +919,7 @@ idx_t dtw_distances_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* o
     idx_t i;
     seq_t value;
     
-    length = dtw_distances_length(block, nb_rows, settings->use_sidx_t);
+    length = dtw_distances_length(block, nb_rows);
     if (length == 0) {
         return 0;
     }
@@ -973,7 +971,7 @@ idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int
     idx_t i;
     seq_t value;
     
-    length = dtw_distances_length(block, nb_rows, settings->use_sidx_t);
+    length = dtw_distances_length(block, nb_rows);
     if (length == 0) {
         return 0;
     }
@@ -1027,7 +1025,7 @@ idx_t dtw_distances_ndim_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int n
     idx_t i;
     seq_t value;
     
-    length = dtw_distances_length(block, nb_ptrs, false);
+    length = dtw_distances_length(block, nb_ptrs);
     if (length == 0) {
         return 0;
     }
@@ -1059,7 +1057,7 @@ idx_t dtw_distances_ndim_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int n
     return length;
 }
 
-idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series, bool use_sidx_t) {
+idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
     // Note: int is usually 32-bit even on 64-bit systems
     idx_t ir;
     idx_t length = 0;  // Should be sidx_t but not available on all platforms
@@ -1068,11 +1066,7 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series, bool use_sidx_t) {
     
     if (block->re == 0 || block->ce == 0) {
         // Check for overflow
-        if (use_sidx_t) {
-            max_nb_series = floor(sqrt(idx_t_max));
-        } else {
-            max_nb_series = floor(sqrt(idx_t_max));
-        }
+        max_nb_series = floor(sqrt(idx_t_max));
         if (nb_series > max_nb_series) {
             printf("ERROR: Length of array needed to represent the distance matrix for %zu series is larger than the maximal value allowed (unsigned %zu)\n", nb_series, idx_t_max);
             return 0;
