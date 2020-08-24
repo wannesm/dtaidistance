@@ -35,7 +35,6 @@ import math
 from collections import defaultdict, deque
 import io
 import numpy as np
-from matplotlib import pyplot as plt
 
 from .dtw import best_path
 
@@ -573,6 +572,11 @@ def _clean_min(cls, mls, keep_largest=True):
 
 def plot_margins(serie, weights, filename=None, ax=None, origin=(0, 0), scaling=(1, 1), y_limit=None,
                  importances=None):
+    try:
+        from matplotlib import pyplot as plt
+    except ImportError:
+        print("Matplotlib not installed")
+        return
     if weights is None:
         return
     if y_limit is None:
