@@ -11,19 +11,21 @@
 
 #include <stdio.h>
 #include <assert.h>
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 
 #include "dd_dtw.h"
 
-int    dtw_distances_prepare(DTWBlock *block, size_t nb_series,
-                             size_t **cbs, size_t **rls, size_t *length, DTWSettings *settings);
-size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths,
+int    dtw_distances_prepare(DTWBlock *block, idx_t nb_series,
+                             idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings);
+idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
                                    seq_t* output, DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
+idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int ndim, seq_t* output,
                                         DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols,
+idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
                                      seq_t* output, DTWBlock* block, DTWSettings* settings);
-size_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output,
+idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output,
                                           DTWBlock* block, DTWSettings* settings);
 
 

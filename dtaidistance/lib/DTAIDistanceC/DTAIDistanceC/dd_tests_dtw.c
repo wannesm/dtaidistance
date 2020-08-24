@@ -22,7 +22,7 @@
 //----------------------------------------------------
 // MARK: DTW
 
-seq_t dtw_warping_paths_distance(seq_t *s1, size_t l1, seq_t *s2, size_t l2, DTWSettings *settings) {
+seq_t dtw_warping_paths_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) {
     seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (l1 + 1)*  (l2 + 1));
     return dtw_warping_paths(wps, s1, l1, s2, l2, true, true, settings);
 }
@@ -39,7 +39,7 @@ ParameterizedTestParameters(dtw, test_series1) {
         {.fn = dtw_warping_paths_distance, .settings={.window=0}},
         {.fn = dtw_distance, .settings={.window=0, .use_pruning=true}}
     };
-    size_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
     return cr_make_param_array(struct dtw_test_params, params, nb_params);
 }
 
@@ -64,7 +64,7 @@ ParameterizedTestParameters(dtw, test_series2) {
         {.fn = dtw_warping_paths_distance, .settings={.window=3}},
         {.fn = dtw_distance, .settings={.window=3, .use_pruning=true}}
     };
-    size_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
     return cr_make_param_array(struct dtw_test_params, params, nb_params);
 }
 
