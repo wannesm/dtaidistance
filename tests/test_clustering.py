@@ -132,8 +132,6 @@ def test_linkage_tree():
 @numpyonly
 def test_controlchart():
     with util_numpy.test_uses_numpy() as np:
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import ListedColormap
         series = np.zeros((600, 60))
         rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'synthetic_control.data')
         with open(rsrc_fn, 'r') as ifile:
@@ -146,6 +144,10 @@ def test_controlchart():
         model = clustering.LinkageTree(dtw.distance_matrix_fast, {'parallel': True})
         cluster_idx = model.fit(s)
 
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            return
         if directory:
             hierarchy_fn = os.path.join(directory, "hierarchy.png")
         else:
