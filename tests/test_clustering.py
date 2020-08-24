@@ -4,7 +4,9 @@ import tempfile
 import pytest
 import logging
 from pathlib import Path
+
 from dtaidistance import dtw, clustering, util_numpy
+from dtaidistance.exceptions import MatplotlibException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -59,8 +61,12 @@ def test_clustering_tree():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        modelw.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+
+        try:
+            modelw.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+        except MatplotlibException:
+            pass
         with open(graphviz_fn, "w") as ofile:
             print(modelw.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
@@ -93,8 +99,12 @@ def test_clustering_tree_maxdist():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        modelw.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+
+        try:
+            modelw.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+        except MatplotlibException:
+            pass
         with open(graphviz_fn, "w") as ofile:
             print(modelw.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
@@ -122,8 +132,11 @@ def test_linkage_tree():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        model.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+        try:
+            model.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+        except MatplotlibException:
+            pass
         with open(graphviz_fn, "w") as ofile:
             print(model.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
@@ -146,26 +159,26 @@ def test_controlchart():
 
         try:
             import matplotlib.pyplot as plt
+            if directory:
+                hierarchy_fn = os.path.join(directory, "hierarchy.png")
+            else:
+                file = tempfile.NamedTemporaryFile()
+                hierarchy_fn = file.name + "_hierarchy.png"
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+            show_ts_label = lambda idx: "ts-" + str(idx)
+            # show_ts_label = list(range(len(s)))
+
+            def curcmap(idx):
+                if idx % 2 == 0:
+                    return 'r'
+                return 'g'
+
+            model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
+                       show_tr_label=True, ts_label_margin=-10,
+                       ts_left_margin=10, ts_sample_length=1, ts_color=curcmap)
+            print("Figure saved to", hierarchy_fn)
         except ImportError:
-            return
-        if directory:
-            hierarchy_fn = os.path.join(directory, "hierarchy.png")
-        else:
-            file = tempfile.NamedTemporaryFile()
-            hierarchy_fn = file.name + "_hierarchy.png"
-        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
-        show_ts_label = lambda idx: "ts-" + str(idx)
-        # show_ts_label = list(range(len(s)))
-
-        def curcmap(idx):
-            if idx % 2 == 0:
-                return 'r'
-            return 'g'
-
-        model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
-                   show_tr_label=True, ts_label_margin=-10,
-                   ts_left_margin=10, ts_sample_length=1, ts_color=curcmap)
-        print("Figure saved to", hierarchy_fn)
+            pass
 
 
 @numpyonly
@@ -179,13 +192,16 @@ def test_plotbug1():
         m = clustering.LinkageTree(dtw.distance_matrix, {})
         m.fit(series)
 
-        if directory:
-            hierarchy_fn = os.path.join(directory, "clustering.png")
-        else:
-            file = tempfile.NamedTemporaryFile()
-            hierarchy_fn = file.name + "_clustering.png"
-        m.plot(hierarchy_fn)
-        print("Figure save to", hierarchy_fn)
+        try:
+            if directory:
+                hierarchy_fn = os.path.join(directory, "clustering.png")
+            else:
+                file = tempfile.NamedTemporaryFile()
+                hierarchy_fn = file.name + "_clustering.png"
+            m.plot(hierarchy_fn)
+            print("Figure save to", hierarchy_fn)
+        except MatplotlibException:
+            pass
 
 
 if __name__ == "__main__":

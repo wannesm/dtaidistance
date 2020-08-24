@@ -5,9 +5,9 @@ import tempfile
 import pytest
 import logging
 from pathlib import Path
-import numpy as np
+
 from dtaidistance import dtw, clustering, util_numpy
-from dtaidistance.exceptions import NumpyException
+from dtaidistance.exceptions import NumpyException, MatplotlibException
 import dtaidistance.dtw_visualisation as dtwvis
 
 
@@ -34,8 +34,11 @@ def test_bug1():
         else:
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = Path(file.name + "_hierarchy.png")
-        model.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+        try:
+            model.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+        except MatplotlibException:
+            pass
 
 
 @numpyonly
@@ -53,8 +56,11 @@ def test_bug2():
             fn = Path(file.name + "_warpingpaths.png")
         d2, paths = dtw.warping_paths(s1, s2, window=2)
         best_path = dtw.best_path(paths)
-        dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=fn, shownumbers=False)
-        print("Figure saved to", fn)
+        try:
+            dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=fn, shownumbers=False)
+            print("Figure saved to", fn)
+        except MatplotlibException:
+            pass
 
         assert d1a == pytest.approx(d2)
         assert d1b == pytest.approx(d2)
@@ -83,7 +89,10 @@ def test_bug3():
             file = tempfile.NamedTemporaryFile()
             fn = Path(file.name + "_bug3.png")
 
-        model.plot(fn, show_ts_label=True)
+        try:
+            model.plot(fn, show_ts_label=True)
+        except MatplotlibException:
+            pass
 
 
 @numpyonly
@@ -99,7 +108,10 @@ def test_bug4():
             file = tempfile.NamedTemporaryFile()
             fn = Path(file.name + "_bug4.png")
 
-        dtwvis.plot_warping(s1, s2, path, filename=str(fn))
+        try:
+            dtwvis.plot_warping(s1, s2, path, filename=str(fn))
+        except MatplotlibException:
+            pass
 
 
 if __name__ == "__main__":
