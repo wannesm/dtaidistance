@@ -22,6 +22,9 @@ typedef double seq_t;
  that requires a signed integer type for the variables in the loops.
  The disadvantage is that ssize_t is a POXIS standard definition and
  not a C standard library definition.
+ 
+ https://developercommunity.visualstudio.com/content/problem/822384/openmp-compiler-errors-introduced-after-visual-stu.html
+ https://developercommunity.visualstudio.com/idea/539086/openmp-unsigned-typed-induction-variables-in-paral.html
  */
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
