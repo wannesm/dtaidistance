@@ -3,13 +3,8 @@ import sys
 import logging
 import io
 import pytest
-try:
-    from pathlib import Path
-except ImportError:
-    try:
-        from pathlib2 import Path  # For Python2
-    except ImportError:
-        raise ImportError("No pathlib or pathlib2 found")
+from pathlib import Path
+
 from dtaidistance import dtw_weighted as dtww
 from dtaidistance import dtw_visualisation as dtwvis
 from dtaidistance import dtw, util_numpy
@@ -62,6 +57,7 @@ def plot_margins(serie, weights, clfs, importances=None):
     dtww.plot_margins(serie, weights, filename=str(directory / "margins.png"), importances=importances)
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance1():
     with util_numpy.test_uses_numpy() as np:
@@ -83,6 +79,7 @@ def test_distance1():
         dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp2.png")
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance2():
     with util_numpy.test_uses_numpy() as np:
@@ -113,6 +110,7 @@ def test_distance2():
             plot_margins(s[prototypeidx], weights, clfs)
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance3():
     with util_numpy.test_uses_numpy() as np:
@@ -137,6 +135,7 @@ def test_distance3():
             dtwvis.plot_warpingpaths(s[0], s[1], paths, path, filename=wp_fn)
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance4():
     with util_numpy.test_uses_numpy() as np:
@@ -168,6 +167,7 @@ def test_distance4():
             plot_margins(s[prototypeidx], weights, clf)
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance5():
     with util_numpy.test_uses_numpy() as np:
@@ -216,6 +216,7 @@ def test_distance6():
             plot_margins(s[prototypeidx], weights, clf, prototypeidx)
 
 
+@pytest.mark.skip("Ignore weighted")
 @numpyonly
 def test_distance7():
     with util_numpy.test_uses_numpy() as np:

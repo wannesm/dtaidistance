@@ -3,6 +3,7 @@ import sys
 import os
 import math
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+
 from dtaidistance import dtw, util_numpy
 
 

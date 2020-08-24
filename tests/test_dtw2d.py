@@ -1,7 +1,9 @@
 import logging
 import sys
 import pytest
+
 from dtaidistance import dtw, util_numpy, dtw_ndim, dtw_ndim_visualisation as dtwvis
+from dtaidistance.exceptions import MatplotlibException
 
 
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
@@ -35,8 +37,11 @@ def test_visualisation_a():
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1p, paths = dtw_ndim.warping_paths(s1, s2)
         path = dtw.best_path(paths)
-        fig, ax = dtwvis.plot_warping(s1, s2, path)
-        fig.show()
+        try:
+            fig, ax = dtwvis.plot_warping(s1, s2, path)
+            fig.show()
+        except MatplotlibException:
+            pass
 
 
 @numpyonly
@@ -46,8 +51,11 @@ def test_visualisation_b():
         s2 = np.array([[0, 0], [2, 1], [0, 1], [0, .5], [0, 0]], dtype=np.double)
         d1p, paths = dtw_ndim.warping_paths(s1, s2)
         path = dtw.best_path(paths)
-        fig, ax = dtwvis.plot_warpingpaths(s2, s1, paths, path=path)
-        fig.show()
+        try:
+            fig, ax = dtwvis.plot_warpingpaths(s2, s1, paths, path=path)
+            fig.show()
+        except MatplotlibException:
+            pass
 
 
 @numpyonly
