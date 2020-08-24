@@ -25,7 +25,11 @@ def plot_series(s, l, idx=None):
     global directory
     if directory is None:
         directory = prepare_directory()
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print('Matplotlib not installed')
+        return
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     fig1, ax1 = plt.subplots(nrows=len(s), ncols=1)
     fig2, ax2 = plt.subplots(nrows=1, ncols=1)

@@ -24,6 +24,11 @@
 		C06FD20824AA10F600892537 /* dd_dtw.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD1DE24A652F100892537 /* dd_dtw.c */; };
 		C06FD20924AA10F600892537 /* dd_dtw_openmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20024A9DB1F00892537 /* dd_dtw_openmp.c */; };
 		C06FD20A24AA10F600892537 /* dd_tests_matrix.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20424AA0BBC00892537 /* dd_tests_matrix.c */; };
+		C0CAB7A824F3C5A000762BE3 /* dd_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = C0CAB7A724F3C5A000762BE3 /* dd_globals.c */; };
+		C0CAB7A924F3C5A000762BE3 /* dd_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = C0CAB7A724F3C5A000762BE3 /* dd_globals.c */; };
+		C0CAB7AA24F3C5A000762BE3 /* dd_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = C0CAB7A724F3C5A000762BE3 /* dd_globals.c */; };
+		C0CAB7AB24F3C5A000762BE3 /* dd_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = C0CAB7A724F3C5A000762BE3 /* dd_globals.c */; };
+		C0CAB7AC24F3C5A000762BE3 /* dd_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = C0CAB7A724F3C5A000762BE3 /* dd_globals.c */; };
 		C0CD703F24AF4F1F00F1BB3B /* dd_dtw.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD1DE24A652F100892537 /* dd_dtw.c */; };
 		C0CD704024AF4F1F00F1BB3B /* dd_dtw_openmp.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20024A9DB1F00892537 /* dd_dtw_openmp.c */; };
 		C0CD704124AF4F1F00F1BB3B /* dd_tests_matrix.c in Sources */ = {isa = PBXBuildFile; fileRef = C06FD20424AA0BBC00892537 /* dd_tests_matrix.c */; };
@@ -94,6 +99,7 @@
 		C06FD20024A9DB1F00892537 /* dd_dtw_openmp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dd_dtw_openmp.c; sourceTree = "<group>"; };
 		C06FD20424AA0BBC00892537 /* dd_tests_matrix.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dd_tests_matrix.c; sourceTree = "<group>"; };
 		C06FD21124AA10F600892537 /* DTAIDistanceCTestMatrix */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestMatrix; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0CAB7A724F3C5A000762BE3 /* dd_globals.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dd_globals.c; sourceTree = "<group>"; };
 		C0CD704724AF4F1F00F1BB3B /* DTAIDistanceCTestAll */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestAll; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -170,6 +176,7 @@
 				C043A85224BC69AC00BFCF3E /* dd_ed.h */,
 				C043A85324BC69AC00BFCF3E /* dd_ed.c */,
 				C043A85924BC6A2D00BFCF3E /* dd_globals.h */,
+				C0CAB7A724F3C5A000762BE3 /* dd_globals.c */,
 			);
 			path = DTAIDistanceC;
 			sourceTree = "<group>";
@@ -311,6 +318,7 @@
 			files = (
 				C06FD1D724A652B400892537 /* main.c in Sources */,
 				C06FD20124A9DB1F00892537 /* dd_dtw_openmp.c in Sources */,
+				C0CAB7A824F3C5A000762BE3 /* dd_globals.c in Sources */,
 				C043A85424BC69AC00BFCF3E /* dd_ed.c in Sources */,
 				C06FD1DF24A652F100892537 /* dd_dtw.c in Sources */,
 			);
@@ -322,6 +330,7 @@
 			files = (
 				C06FD1EE24A8E20300892537 /* dd_dtw.c in Sources */,
 				C06FD20224A9DB1F00892537 /* dd_dtw_openmp.c in Sources */,
+				C0CAB7AA24F3C5A000762BE3 /* dd_globals.c in Sources */,
 				C043A85624BC69AC00BFCF3E /* dd_ed.c in Sources */,
 				C06FD1ED24A8E1FD00892537 /* dd_tests_dtw.c in Sources */,
 			);
@@ -333,6 +342,7 @@
 			files = (
 				C06FD1FE24A94A7100892537 /* dd_benchmark.c in Sources */,
 				C06FD20324A9DB1F00892537 /* dd_dtw_openmp.c in Sources */,
+				C0CAB7A924F3C5A000762BE3 /* dd_globals.c in Sources */,
 				C043A85524BC69AC00BFCF3E /* dd_ed.c in Sources */,
 				C06FD1FD24A94A6E00892537 /* dd_dtw.c in Sources */,
 			);
@@ -344,6 +354,7 @@
 			files = (
 				C06FD20824AA10F600892537 /* dd_dtw.c in Sources */,
 				C06FD20924AA10F600892537 /* dd_dtw_openmp.c in Sources */,
+				C0CAB7AB24F3C5A000762BE3 /* dd_globals.c in Sources */,
 				C043A85724BC69AC00BFCF3E /* dd_ed.c in Sources */,
 				C06FD20A24AA10F600892537 /* dd_tests_matrix.c in Sources */,
 			);
@@ -355,6 +366,7 @@
 			files = (
 				C0CD703F24AF4F1F00F1BB3B /* dd_dtw.c in Sources */,
 				C0CD704024AF4F1F00F1BB3B /* dd_dtw_openmp.c in Sources */,
+				C0CAB7AC24F3C5A000762BE3 /* dd_globals.c in Sources */,
 				C0CD704824AF4F3500F1BB3B /* dd_tests_dtw.c in Sources */,
 				C043A85824BC69AC00BFCF3E /* dd_ed.c in Sources */,
 				C0CD704124AF4F1F00F1BB3B /* dd_tests_matrix.c in Sources */,

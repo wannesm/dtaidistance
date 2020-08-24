@@ -8,8 +8,6 @@
 
 #include "dd_dtw_openmp.h"
 
-// TODO: Check if the _OPENMP macro is set
-
 /**
  Check the arguments passed to dtw_distances_* and prepare the array of indices to be used.
  The indices are created upfront to allow for easy parallelization.
@@ -23,10 +21,10 @@
  
  @return 0 if all is ok, other number if not.
  */
-int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **cbs, size_t **rls, size_t *length, DTWSettings *settings) {
-    size_t cb, rs, ir;
+int dtw_distances_prepare(DTWBlock *block, idx_t nb_series, idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings) {
+    idx_t cb, rs, ir;
     
-    *length = dtw_distances_length(block, nb_series, settings->use_ssize_t);
+    *length = dtw_distances_length(block, nb_series);
     if (length == 0) {
         return 1;
     }
@@ -47,13 +45,13 @@ int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **cbs, size_
         return 1;
     }
 
-    *cbs = (size_t *)malloc(sizeof(size_t) * (block->re - block->rb));
+    *cbs = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
     if (!cbs) {
         printf("Error: dtw_distances_* - cannot allocate memory (cbs length = %zu)", block->re - block->rb);
         *length = 0;
         return 1;
     }
-    *rls = (size_t *)malloc(sizeof(size_t) * (block->re - block->rb));
+    *rls = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
     if (!rls) {
         printf("Error: dtw_distances_* - cannot allocate memory (rls length = %zu)", block->re - block->rb);
         *length = 0;
@@ -62,7 +60,7 @@ int dtw_distances_prepare(DTWBlock *block, size_t nb_series, size_t **cbs, size_
     ir = 0;
     rs = 0;
     assert(block->rb < block->re);
-    for (size_t r=block->rb; r<block->re; r++) {
+    for (idx_t r=block->rb; r<block->re; r++) {
         if (r + 1 > block->cb) {
             cb = r+1;
         } else {
@@ -82,18 +80,12 @@ Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays 
 
 @see dtw_distances_ptrs
 */
-size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, seq_t* output,
+idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* output,
                      DTWBlock* block, DTWSettings* settings) {
-    // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    // TODO: check overflow on windows
-    // https://developercommunity.visualstudio.com/content/problem/822384/openmp-compiler-errors-introduced-after-visual-stu.html
-    int r, c, r_i, c_i;
-    #else
-    size_t r, c, r_i, c_i;
-    #endif
-    size_t length;
-    size_t *cbs, *rls;
+#if defined(_OPENMP)
+    idx_t r, c, r_i, c_i;
+    idx_t length;
+    idx_t *cbs, *rls;
 
     if (dtw_distances_prepare(block, nb_ptrs, &cbs, &rls, &length, settings) != 0) {
         return 0;
@@ -124,6 +116,10 @@ size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths
     free(cbs);
     free(rls);
     return length;
+#else
+    printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    return 0;
+#endif
 }
 
 
@@ -132,17 +128,12 @@ size_t dtw_distances_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths
  
 @see dtw_distances_ndim_ptrs
  */
-size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* lengths, int ndim, seq_t* output,
+idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int ndim, seq_t* output,
                                         DTWBlock* block, DTWSettings* settings) {
-    // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    // TODO: check overflow on windows
-    int r, c, r_i, c_i;
-    #else
-    size_t r, c, r_i, c_i;
-    #endif
-    size_t length;
-    size_t *cbs, *rls;
+#if defined(_OPENMP)
+    idx_t r, c, r_i, c_i;
+    idx_t length;
+    idx_t *cbs, *rls;
 
     if (dtw_distances_prepare(block, nb_ptrs, &cbs, &rls, &length, settings) != 0) {
        return 0;
@@ -166,6 +157,10 @@ size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* le
     free(cbs);
     free(rls);
     return length;
+#else
+    printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    return 0;
+#endif
 }
 
 
@@ -174,16 +169,11 @@ size_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, size_t nb_ptrs, size_t* le
   
 @see dtw_distances_matrix
  */
-size_t dtw_distances_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols, seq_t* output, DTWBlock* block, DTWSettings* settings) {
-    // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    // TODO: check overflow on windows
-    int r, c, r_i, c_i;
-    #else
-    size_t r, c, r_i, c_i;
-    #endif
-    size_t length;
-    size_t *cbs, *rls;
+idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* output, DTWBlock* block, DTWSettings* settings) {
+#if defined(_OPENMP)
+    idx_t r, c, r_i, c_i;
+    idx_t length;
+    idx_t *cbs, *rls;
 
     if (dtw_distances_prepare(block, nb_rows, &cbs, &rls, &length, settings) != 0) {
         return 0;
@@ -205,6 +195,10 @@ size_t dtw_distances_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_co
     free(cbs);
     free(rls);
     return length;
+#else
+    printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    return 0;
+#endif
 }
 
 
@@ -213,16 +207,11 @@ Distance matrix for n-dimensional DTW, executed on a 3-dimensional array and in 
  
 @see dtw_distances_ndim_matrix
 */
-size_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output, DTWBlock* block, DTWSettings* settings) {
-    // Requires openmp which is not supported for clang on mac by default (use newer version of clang)
-    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
-    // TODO: check overflow on windows
-    int r, c, r_i, c_i;
-    #else
-    size_t r, c, r_i, c_i;
-    #endif
-    size_t length;
-    size_t *cbs, *rls;
+idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output, DTWBlock* block, DTWSettings* settings) {
+#if defined(_OPENMP)
+    idx_t r, c, r_i, c_i;
+    idx_t length;
+    idx_t *cbs, *rls;
 
     if (dtw_distances_prepare(block, nb_rows, &cbs, &rls, &length, settings) != 0) {
         return 0;
@@ -246,4 +235,8 @@ size_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, size_t nb_rows, size_t 
     free(cbs);
     free(rls);
     return length;
+#else
+    printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    return 0;
+#endif
 }

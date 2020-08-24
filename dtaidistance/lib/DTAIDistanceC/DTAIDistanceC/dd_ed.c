@@ -20,20 +20,20 @@
  @return Euclidean distance
  
  */
-seq_t euclidean_distance(seq_t *s1, size_t l1, seq_t *s2, size_t l2) {
-    size_t n = MIN(l1, l2);
+seq_t euclidean_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2) {
+    idx_t n = MIN(l1, l2);
     seq_t ub = 0;
-    for (size_t i=0; i<n; i++) {
+    for (idx_t i=0; i<n; i++) {
         ub += EDIST(s1[i], s2[i]);
     }
     // If the two series differ in length, compare the last element of the shortest series
     // to the remaining elements in the longer series
     if (l1 > l2) {
-        for (size_t i=n; i<l1; i++) {
+        for (idx_t i=n; i<l1; i++) {
             ub += EDIST(s1[i], s2[n-1]);
         }
     } else if (l1 < l2) {
-        for (size_t i=n; i<l2; i++) {
+        for (idx_t i=n; i<l2; i++) {
             ub += EDIST(s1[n-1], s2[i]);
         }
     }
@@ -55,11 +55,11 @@ assumed to be c-contiguous with as 1st dimension the sequence and the
 @param s2 : Sequence of numbers.
 @return Euclidean distance
 */
-seq_t euclidean_distance_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim) {
-    size_t n = MIN(l1, l2);
-    size_t idx;
+seq_t euclidean_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim) {
+    idx_t n = MIN(l1, l2);
+    idx_t idx;
     seq_t ub = 0;
-    for (size_t i=0; i<n; i++) {
+    for (idx_t i=0; i<n; i++) {
         idx = i*ndim;
         for (int d=0; d<ndim; d++) {
             ub += EDIST(s1[idx + d], s2[idx + d]);
@@ -68,14 +68,14 @@ seq_t euclidean_distance_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int nd
     // If the two series differ in length, compare the last element of the shortest series
     // to the remaining elements in the longer series
     if (l1 > l2) {
-        for (size_t i=n; i<l1; i++) {
+        for (idx_t i=n; i<l1; i++) {
             idx = i*ndim;
             for (int d=0; d<ndim; d++) {
                 ub += EDIST(s1[idx + d], s2[(n-1)*ndim]);
             }
         }
     } else if (l1 < l2) {
-        for (size_t i=n; i<l2; i++) {
+        for (idx_t i=n; i<l2; i++) {
             idx = i*ndim;
             for (int d=0; d<ndim; d++) {
                 ub += EDIST(s1[(n-1)*ndim], s2[idx + d]);

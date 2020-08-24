@@ -60,7 +60,7 @@ cdef class DTWBlock:
 
 cdef class DTWSettings:
     def __cinit__(self):
-        self._settings.use_ssize_t = True  # adapt to Py_ssize_t
+        pass
 
     def __init__(self, **kwargs):
         self._settings = dtaidistancec_dtw.dtw_settings_default()
@@ -432,5 +432,5 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
 def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     cdef Py_ssize_t length
-    length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series, True)
+    length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series)
     return length
