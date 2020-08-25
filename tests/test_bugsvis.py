@@ -13,8 +13,10 @@ import dtaidistance.dtw_visualisation as dtwvis
 directory = None
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
+scipyonly = pytest.mark.skipif("util_numpy.test_without_scipy()")
 
 
+@scipyonly
 @numpyonly
 def test_bug1():
     with util_numpy.test_uses_numpy() as np:
@@ -61,6 +63,7 @@ def test_bug2():
         assert d1b == pytest.approx(d2)
 
 
+@scipyonly
 @numpyonly
 def test_bug3():
     with util_numpy.test_uses_numpy() as np:

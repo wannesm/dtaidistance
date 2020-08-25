@@ -13,9 +13,7 @@ Dynamic Time Warping (DTW) visualisations.
 import os
 import logging
 
-from .util import dtaidistance_dir
 from . import util_numpy
-from . import dtw_visualisation as dtwvis
 
 
 try:

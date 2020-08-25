@@ -6,13 +6,13 @@ import logging
 from pathlib import Path
 
 from dtaidistance import dtw, clustering, util_numpy
-from dtaidistance.exceptions import MatplotlibException
 import dtaidistance.dtw_visualisation as dtwvis
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 directory = None
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
+scipyonly = pytest.mark.skipif("util_numpy.test_without_scipy()")
 
 
 @numpyonly
@@ -109,6 +109,7 @@ def test_clustering_tree_maxdist():
         print("Dot saved to", graphviz_fn)
 
 
+@scipyonly
 @numpyonly
 def test_linkage_tree():
     with util_numpy.test_uses_numpy() as np:
@@ -139,6 +140,7 @@ def test_linkage_tree():
         print("Dot saved to", graphviz_fn)
 
 
+@scipyonly
 @numpyonly
 def test_controlchart():
     with util_numpy.test_uses_numpy() as np:
@@ -176,6 +178,7 @@ def test_controlchart():
             print("Figure saved to", hierarchy_fn)
 
 
+@scipyonly
 @numpyonly
 def test_plotbug1():
     with util_numpy.test_uses_numpy() as np:

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from dtaidistance import dtw, util_numpy
 from dtaidistance import dtw_visualisation as dtwvis
-from dtaidistance.exceptions import MatplotlibException
 
 
 directory = None
@@ -16,14 +15,13 @@ def test_normalize():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
         s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
-        r, path = dtw.warp(s1, s2)
+        r, path1 = dtw.warp(s1, s2)
+        path2 = dtw.warping_path(s1, s2, psi=2)
         if not dtwvis.test_without_visualization():
             if directory:
-                dtwvis.plot_warp(s1, s2, r, path, filename=str(directory / "test_normalize1.png"))
-            r_c = np.array([0., 1., 2., 2., 1., 0.5, 0., 0., 2., 1., 0., 0., 0.])
-            if directory:
-                path = dtw.warping_path(s1, s2, psi=2)
-                dtwvis.plot_warping(s1, s2, path, filename=str(directory / "test_normalize2.png"))
+                dtwvis.plot_warp(s1, s2, r, path1, filename=str(directory / "test_normalize1.png"))
+                dtwvis.plot_warping(s1, s2, path2, filename=str(directory / "test_normalize2.png"))
+        r_c = np.array([0., 1., 2., 2., 1., 0.5, 0., 0., 2., 1., 0., 0., 0.])
         np.testing.assert_almost_equal(r, r_c, decimal=4)
 
 
