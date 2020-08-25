@@ -67,7 +67,8 @@ def test_distance1():
         s2 = np.array([0., 1, 2, 3, 1, 10, 1, 0, 2, 1, 0, 0, 0])
         d, paths = dtw.warping_paths(s1, s2)
         # print(d, "\n", paths)
-        dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp1.png")
+        if not dtwvis.test_without_visualization():
+            dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp1.png")
 
         weights = np.full((len(s1), 8), np.inf)
         weights[:, 2:4] = 0.0
@@ -76,7 +77,8 @@ def test_distance1():
         weights[4:7, 4:6] = 10.0
         d, paths = dtww.warping_paths(s1, s2, weights)
         # print(d, "\n", paths)
-        dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp2.png")
+        if not dtwvis.test_without_visualization():
+            dtwvis.plot_warpingpaths(s1, s2, paths, filename=directory / "temp2.png")
 
 
 @pytest.mark.skip("Ignore weighted")
@@ -94,7 +96,8 @@ def test_distance2():
         l = np.array([1, 1, 1, 1, 0, 0, 0])
 
         if directory:
-            plot_series(s, l)
+            if not dtwvis.test_without_visualization():
+                plot_series(s, l)
             savefig = str(directory / "dts.dot")
         else:
             savefig = None
@@ -106,8 +109,9 @@ def test_distance2():
         logger.debug(f"cl_values = {dict(cl_values)}")
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values, only_max=False, strict_cl=True)
 
-        if directory:
-            plot_margins(s[prototypeidx], weights, clfs)
+        if not dtwvis.test_without_visualization():
+            if directory:
+                plot_margins(s[prototypeidx], weights, clfs)
 
 
 @pytest.mark.skip("Ignore weighted")
@@ -130,9 +134,10 @@ def test_distance3():
 
         d, paths = dtww.warping_paths(s[0], s[1], w, window=0)
         path = dtw.best_path(paths)
-        if directory:
-            wp_fn = directory / "warping_paths.png"
-            dtwvis.plot_warpingpaths(s[0], s[1], paths, path, filename=wp_fn)
+        if not dtwvis.test_without_visualization():
+            if directory:
+                wp_fn = directory / "warping_paths.png"
+                dtwvis.plot_warpingpaths(s[0], s[1], paths, path, filename=wp_fn)
 
 
 @pytest.mark.skip("Ignore weighted")
@@ -151,7 +156,8 @@ def test_distance4():
         l = np.array([1, 0, 0, 1, 0, 0, 0, 0])
 
         if directory:
-            plot_series(s, l)
+            if not dtwvis.test_without_visualization():
+                plot_series(s, l)
             savefig = str(directory / "dts.dot")
         else:
             savefig = None
@@ -164,7 +170,8 @@ def test_distance4():
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
-            plot_margins(s[prototypeidx], weights, clf)
+            if not dtwvis.test_without_visualization():
+                plot_margins(s[prototypeidx], weights, clf)
 
 
 @pytest.mark.skip("Ignore weighted")
@@ -179,7 +186,8 @@ def test_distance5():
         l = np.array([1, 1, 0])
 
         if directory:
-            plot_series(s, l)
+            if not dtwvis.test_without_visualization():
+                plot_series(s, l)
 
         prototypeidx = 0
         ml_values, cl_values, clf, importances = dtww.series_to_dt(s, l, prototypeidx, window=4)
@@ -188,7 +196,8 @@ def test_distance5():
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
-            plot_margins(s[prototypeidx], weights, clf)
+            if not dtwvis.test_without_visualization():
+                plot_margins(s[prototypeidx], weights, clf)
 
 
 @pytest.mark.skip("Takes too long")
@@ -198,7 +207,8 @@ def test_distance6():
         l = np.loadtxt(Path(__file__).parent / "rsrc" / "labels_0.csv", delimiter=',')
 
         if directory:
-            plot_series(s, l)
+            if not dtwvis.test_without_visualization():
+                plot_series(s, l)
             savefig = str(directory / "dts.dot")
         else:
             savefig = None
@@ -213,7 +223,8 @@ def test_distance6():
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
-            plot_margins(s[prototypeidx], weights, clf, prototypeidx)
+            if not dtwvis.test_without_visualization():
+                plot_margins(s[prototypeidx], weights, clf, prototypeidx)
 
 
 @pytest.mark.skip("Ignore weighted")
@@ -233,7 +244,8 @@ def test_distance7():
         prototypeidx = 0
 
         if directory:
-            plot_series(s, l, prototypeidx)
+            if not dtwvis.test_without_visualization():
+                plot_series(s, l, prototypeidx)
             savefig = str(directory / "dts.dot")
         else:
             savefig = None
@@ -245,7 +257,8 @@ def test_distance7():
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
-            plot_margins(s[prototypeidx], weights, clf, imp)
+            if not dtwvis.test_without_visualization():
+                plot_margins(s[prototypeidx], weights, clf, imp)
 
 
 if __name__ == "__main__":

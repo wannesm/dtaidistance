@@ -16,16 +16,13 @@ def test_normalize():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
         s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
-        r, path = dtw.warp(s1, s2)
-        try:
+        r, path1 = dtw.warp(s1, s2)
+        path2 = dtw.warping_path(s1, s2, psi=2)
+        if not dtwvis.test_without_visualization():
             if directory:
-                dtwvis.plot_warp(s1, s2, r, path, filename=str(directory / "test_normalize1.png"))
-            r_c = np.array([0., 1., 2., 2., 1., 0.5, 0., 0., 2., 1., 0., 0., 0.])
-            if directory:
-                path = dtw.warping_path(s1, s2, psi=2)
-                dtwvis.plot_warping(s1, s2, path, filename=str(directory / "test_normalize2.png"))
-        except MatplotlibException:
-            pass
+                dtwvis.plot_warp(s1, s2, r, path1, filename=str(directory / "test_normalize1.png"))
+                dtwvis.plot_warping(s1, s2, path2, filename=str(directory / "test_normalize2.png"))
+        r_c = np.array([0., 1., 2., 2., 1., 0.5, 0., 0., 2., 1., 0., 0., 0.])
         np.testing.assert_almost_equal(r, r_c, decimal=4)
 
 
@@ -38,11 +35,9 @@ def test_normalize2():
         d2, paths2 = dtw.warping_paths_fast(s1, s2, psi=2)
         path1 = dtw.best_path(paths1)
         path2 = dtw.best_path(paths2)
-        try:
+        if not dtwvis.test_without_visualization():
             if directory:
                 dtwvis.plot_warpingpaths(s1, s2, paths1, path1, filename=directory / "normalize.png")
-        except MatplotlibException:
-            pass
         np.testing.assert_almost_equal(d1, d2, decimal=4)
         np.testing.assert_almost_equal(paths1, paths2, decimal=4)
         np.testing.assert_almost_equal(path1, path2, decimal=4)
@@ -61,15 +56,13 @@ def test_psi_dtw_1a():
         #         s2[idx] += (random.random() - 0.5) / 2
         d, paths = dtw.warping_paths(s1, s2, psi=2, window=25)
         path = dtw.warping_path(s1, s2, psi=2)
-        try:
+        if not dtwvis.test_without_visualization():
             if directory:
                 dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=str(directory / "test_psi_dtw_1a.png"))
             # print(paths[:,:])
             # dtwvis.plot_warping(s1, s2, path, filename=os.path.expanduser("~/Desktop/test_psi_dtw_1_1.png"))
             # path = dtw.best_path(paths)
             # dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=os.path.expanduser("~/Desktop/test_psi_dtw_1_2.png"))
-        except MatplotlibException:
-            pass
         np.testing.assert_equal(d, 0.0)
 
 
@@ -137,13 +130,11 @@ def test_twoleadecg_1(directory=None):
         s2 = np.array([1,0.93163,0.094486,0.094486,0.038006,0.080366,0.080366,0.052126,0.080366,0.12273,0.22157,0.29217,0.41925,0.48985,0.39101,0.39101,0.30629,0.24981,0.19333,0.080366,-0.0043544,-0.018474,-0.089075,-0.11731,-0.14555,-0.17379,-0.21615,-0.27263,-0.20203,-0.315,-0.25851,-0.17379,-0.28675,-0.24439,0.16509,-0.11731,-1.0069,-1.9812,-2.4895,-2.786,-2.9272,-2.4612,-2.0518,-1.8964,-1.8258,-1.7411,-1.6705,-1.2893,-0.99276,-0.65388,-0.37148,-0.30087,-0.046714,0.30629,0.53221,0.65929,0.65929,0.72989,0.74401,0.87109,0.89933,0.95581,0.96993,1.0546,1.1394,1.2523,1.2523,1.2947,1.3088,1.3512,1.2806,1.2806,1.1394,1.097,0.89933,0.72989,0.67341,0.54633,0.37689,0.23569,0.10861,0.080366,-0.074955])
         d, paths = dtw.warping_paths(s1, s2, psi=2, window=5)
         path = dtw.warping_path(s1, s2, psi=2)
-        try:
+        if not dtwvis.test_without_visualization():
             if directory:
                 dtwvis.plot_warping(s1, s2, path, filename=str(directory / "warping.png"))
                 path = dtw.best_path(paths)
                 dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=str(directory / "warpingpaths.png"))
-        except MatplotlibException:
-            pass
 
 
 if __name__ == "__main__":

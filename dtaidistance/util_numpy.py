@@ -20,6 +20,14 @@ def test_without_numpy():
     return False
 
 
+def test_without_scipy():
+    if test_without_numpy():
+        return True
+    if "DTAIDISTANCE_TESTWITHOUTSCIPY" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTSCIPY"] == "1":
+        return True
+    return False
+
+
 def verify_np_array(seq):
     if np is not None:
         if isinstance(seq, (np.ndarray, np.generic)):

@@ -235,7 +235,10 @@ def check_openmp(cc_bin):
 # Set up extension
 extensions = []
 if cythonize is not None:
-    # Cython uses the glob package to find files, thus use unix-style paths
+    # - Cython uses the glob package to find files, thus use unix-style paths
+    # - Multiple extensions are created to have a sub-package per type of distance
+    #   and per functionality (e.g. with or without OpenMP).
+    #   The disadvantage is that the same C-files are reused for multiple extensions
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
@@ -289,7 +292,7 @@ else:
     ext_modules = []
 
 install_requires = ['cython']
-tests_require = ['pytest']
+tests_require = ['pytest', 'pytest-benchmark']
 
 # Check version number
 with open('dtaidistance/__init__.py', 'r', encoding='utf-8') as fd:
@@ -327,7 +330,8 @@ setup(
     tests_require=tests_require,
     extras_require={
         'vis': ['matplotlib'],
-        'numpy': ['numpy']
+        'numpy': ['numpy', 'scipy'],
+        'all': ['matplotlib', 'numpy', 'scipy']
     },
     include_package_data=True,
     package_data={
