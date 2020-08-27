@@ -39,48 +39,8 @@ class Medoids:
         self.dists_options = dists_options
         self.show_progress = show_progress
         self.k = k
-
-class KMedoids(Medoids):
-    """KMedoids based on PyClustering KMedoids.
-
-    https://pyclustering.github.io/docs/0.9.0/html/d0/dd3/classpyclustering_1_1cluster_1_1kmedoids_1_1kmedoids.html
-
-    """
-    def __init__(self, dists_fun, dists_options, k=None, initial_medoids=None, show_progress=True):
-        dists_options['compact'] = False
-        self.initial_medoids = initial_medoids
-        if k is None:
-            if initial_medoids is None:
-                raise AttributeError('Both k and initial_medoids cannot be None')
-            k = len(initial_medoids)
-        elif initial_medoids is not None and k != len(initial_medoids):
-            raise AttributeError('The length of initial_medoids and k should be identical (or one of the two None)')
-        super().__init__(dists_fun, dists_options, k, show_progress)
-        self.cluster_idx = None
         self.series = None
-
-    def fit(self, series):
-        try:
-            from pyclustering.cluster.kmedoids import kmedoids
-            from pyclustering.utils import calculate_distance_matrix
-        except ImportError:
-            raise PyClusteringException("The fit function requires the PyClustering package to be installed.")
-        if np is None:
-            raise NumpyException("The fit function requires Numpy to be installed.")
-        self.series = SeriesContainer.wrap(series)
-        dists = self.dists_fun(self.series, **self.dists_options)
-        # Make the matrix symmetric
-        i_lower = np.tril_indices(len(self.series), -1)
-        dists[i_lower] = dists.T[i_lower]
-        dists[np.isinf(dists)] = 0
-        if self.initial_medoids is None:
-            self.initial_medoids = random.sample(range(len(series)), k=self.k)
-        kmedoids_instance = kmedoids(dists, self.initial_medoids, data_type='distance_matrix')
-        kmedoids_instance.process()
-        clusters = kmedoids_instance.get_clusters()
-        medoids = kmedoids_instance.get_medoids()
-        self.cluster_idx = {medoid: {inst for inst in instances} for medoid, instances in zip(medoids, clusters)}
-        return self.cluster_idx
+        self.cluster_idx = None
 
     def plot(self, filename=None, axes=None, ts_height=10,
              bottom_margin=2, top_margin=2, ts_left_margin=0, ts_sample_length=1,
@@ -151,3 +111,47 @@ class KMedoids(Medoids):
             fig, ax = None, None
 
         return fig, ax
+
+
+class KMedoids(Medoids):
+    """KMedoids using the PyClustering package.
+
+    Novikov, A., 2019. PyClustering: Data Mining Library. Journal of Open Source Software, 4(36), p.1230.
+    Available at: http://dx.doi.org/10.21105/joss.01230.
+
+    https://pyclustering.github.io/docs/0.9.0/html/d0/dd3/classpyclustering_1_1cluster_1_1kmedoids_1_1kmedoids.html
+
+    """
+    def __init__(self, dists_fun, dists_options, k=None, initial_medoids=None, show_progress=True):
+        dists_options['compact'] = False
+        self.initial_medoids = initial_medoids
+        if k is None:
+            if initial_medoids is None:
+                raise AttributeError('Both k and initial_medoids cannot be None')
+            k = len(initial_medoids)
+        elif initial_medoids is not None and k != len(initial_medoids):
+            raise AttributeError('The length of initial_medoids and k should be identical (or one of the two None)')
+        super().__init__(dists_fun, dists_options, k, show_progress)
+
+    def fit(self, series):
+        try:
+            from pyclustering.cluster.kmedoids import kmedoids
+            from pyclustering.utils import calculate_distance_matrix
+        except ImportError:
+            raise PyClusteringException("The fit function requires the PyClustering package to be installed.")
+        if np is None:
+            raise NumpyException("The fit function requires Numpy to be installed.")
+        self.series = SeriesContainer.wrap(series)
+        dists = self.dists_fun(self.series, **self.dists_options)
+        # Make the matrix symmetric
+        i_lower = np.tril_indices(len(self.series), -1)
+        dists[i_lower] = dists.T[i_lower]
+        dists[np.isinf(dists)] = 0
+        if self.initial_medoids is None:
+            self.initial_medoids = random.sample(range(len(series)), k=self.k)
+        kmedoids_instance = kmedoids(dists, self.initial_medoids, data_type='distance_matrix')
+        kmedoids_instance.process()
+        clusters = kmedoids_instance.get_clusters()
+        medoids = kmedoids_instance.get_medoids()
+        self.cluster_idx = {medoid: {inst for inst in instances} for medoid, instances in zip(medoids, clusters)}
+        return self.cluster_idx
