@@ -12,10 +12,17 @@ Dynamic Time Warping (DTW) visualisations.
 """
 import os
 import logging
-import math
-import numpy as np
 
-from .util import dtaidistance_dir
+from . import util_numpy
+
+
+try:
+    if util_numpy.test_without_numpy():
+        raise ImportError()
+    import numpy as np
+except ImportError:
+    np = None
+
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
@@ -31,6 +38,12 @@ try:
 except ImportError:
     logger.info('tqdm library not available')
     tqdm = None
+
+
+def test_without_visualization():
+    if "DTAIDISTANCE_TESTWITHOUTVIZ" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTVIZ"] == "1":
+        return True
+    return False
 
 
 def plot_warp(from_s, to_s, new_s, path, filename=None):

@@ -47,11 +47,11 @@ void benchmark2() {
         s[i*6+4] = s5;
         s[i*6+5] = s6;
     }
-    size_t lengths[6*n];
+    idx_t lengths[6*n];
     for (int i=0; i<6*n; i++) {
         lengths[i] = 9;
     }
-    size_t rl = 6*n*(6*n - 1) / 2;
+    idx_t rl = 6*n*(6*n - 1) / 2;
     printf("Creating result array of size %zu\n", rl);
     double *result = (double *)malloc(sizeof(double) * rl);
     if (!result) {
@@ -117,7 +117,7 @@ void benchmark7() {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6, false)];
+    double result[dtw_distances_length(&block, 6)];
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
@@ -129,17 +129,17 @@ void benchmark8() {
          double s5[] = {0., 1, 2, 0, 0, 0, 0, 0, 0};
          double s6[] = {1., 2, 0, 0, 0, 0, 0, 1, 1};
          double *s[] = {s1, s2, s3, s4, s5, s6};
-         size_t lengths[] = {9, 9, 9, 9, 9, 9};
+         idx_t lengths[] = {9, 9, 9, 9, 9, 9};
          double result[5];
          DTWSettings settings = dtw_settings_default();
          DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
          for (int j=0; j<1000; j++) {
-             printf("---START---\n");
+//             printf("---START---\n");
              dtw_distances_ptrs_parallel(s, 6, lengths, result, &block, &settings);
-             for (int i=0; i<5; i++) {
-                 printf("%.4f ", result[i]);
-             }
-             printf("\n");
+//             for (int i=0; i<5; i++) {
+//                 printf("%.4f ", result[i]);
+//             }
+//             printf("\n");
 //             cr_assert_float_eq(result[0], 1.41421356, 0.001);
 //             cr_assert_float_eq(result[1], 0.00000000, 0.001);
 //             cr_assert_float_eq(result[2], 2.23606798, 0.001);

@@ -18,7 +18,7 @@
 #define EDIST(x, y) ((x - y) * (x - y))
 
 
-seq_t euclidean_distance(seq_t *s1, size_t l1, seq_t *s2, size_t l2);
-seq_t euclidean_distance_ndim(seq_t *s1, size_t l1, seq_t *s2, size_t l2, int ndim);
+seq_t euclidean_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2);
+seq_t euclidean_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim);
 
 #endif /* ed_h */

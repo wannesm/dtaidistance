@@ -10,7 +10,6 @@ cdef extern from "dd_dtw.h":
         size_t max_length_diff
         seq_t penalty
         size_t psi
-        bint use_ssize_t
         bint use_pruning
         bint only_ub
 
@@ -43,4 +42,4 @@ cdef extern from "dd_dtw.h":
                             DTWBlock* block, DTWSettings* settings)
     size_t dtw_distances_ndim_matrix(seq_t *matrix, size_t nb_rows, size_t nb_cols, int ndim, seq_t* output,
                                      DTWBlock* block, DTWSettings* settings)
-    size_t dtw_distances_length(DTWBlock *block, size_t nb_series, bint use_ssize_t)
+    size_t dtw_distances_length(DTWBlock *block, size_t nb_series)

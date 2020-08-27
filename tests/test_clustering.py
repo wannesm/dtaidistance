@@ -4,12 +4,15 @@ import tempfile
 import pytest
 import logging
 from pathlib import Path
+
 from dtaidistance import dtw, clustering, util_numpy
+import dtaidistance.dtw_visualisation as dtwvis
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 directory = None
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
+scipyonly = pytest.mark.skipif("util_numpy.test_without_scipy()")
 
 
 @numpyonly
@@ -59,8 +62,11 @@ def test_clustering_tree():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        modelw.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+
+        if not dtwvis.test_without_visualization():
+            modelw.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+
         with open(graphviz_fn, "w") as ofile:
             print(modelw.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
@@ -93,13 +99,17 @@ def test_clustering_tree_maxdist():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        modelw.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+
+        if not dtwvis.test_without_visualization():
+            modelw.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
+
         with open(graphviz_fn, "w") as ofile:
             print(modelw.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
 
 
+@scipyonly
 @numpyonly
 def test_linkage_tree():
     with util_numpy.test_uses_numpy() as np:
@@ -122,18 +132,18 @@ def test_linkage_tree():
             file = tempfile.NamedTemporaryFile()
             hierarchy_fn = file.name + "_hierarchy.png"
             graphviz_fn = file.name + "_hierarchy.dot"
-        model.plot(hierarchy_fn)
-        print("Figure saved to", hierarchy_fn)
+        if not dtwvis.test_without_visualization():
+            model.plot(hierarchy_fn)
+            print("Figure saved to", hierarchy_fn)
         with open(graphviz_fn, "w") as ofile:
             print(model.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
 
 
+@scipyonly
 @numpyonly
 def test_controlchart():
     with util_numpy.test_uses_numpy() as np:
-        import matplotlib.pyplot as plt
-        from matplotlib.colors import ListedColormap
         series = np.zeros((600, 60))
         rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'synthetic_control.data')
         with open(rsrc_fn, 'r') as ifile:
@@ -146,26 +156,29 @@ def test_controlchart():
         model = clustering.LinkageTree(dtw.distance_matrix_fast, {'parallel': True})
         cluster_idx = model.fit(s)
 
-        if directory:
-            hierarchy_fn = os.path.join(directory, "hierarchy.png")
-        else:
-            file = tempfile.NamedTemporaryFile()
-            hierarchy_fn = file.name + "_hierarchy.png"
-        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
-        show_ts_label = lambda idx: "ts-" + str(idx)
-        # show_ts_label = list(range(len(s)))
+        if not dtwvis.test_without_visualization():
+            import matplotlib.pyplot as plt
+            if directory:
+                hierarchy_fn = os.path.join(directory, "hierarchy.png")
+            else:
+                file = tempfile.NamedTemporaryFile()
+                hierarchy_fn = file.name + "_hierarchy.png"
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+            show_ts_label = lambda idx: "ts-" + str(idx)
+            # show_ts_label = list(range(len(s)))
 
-        def curcmap(idx):
-            if idx % 2 == 0:
-                return 'r'
-            return 'g'
+            def curcmap(idx):
+                if idx % 2 == 0:
+                    return 'r'
+                return 'g'
 
-        model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
-                   show_tr_label=True, ts_label_margin=-10,
-                   ts_left_margin=10, ts_sample_length=1, ts_color=curcmap)
-        print("Figure saved to", hierarchy_fn)
+            model.plot(hierarchy_fn, axes=ax, show_ts_label=show_ts_label,
+                       show_tr_label=True, ts_label_margin=-10,
+                       ts_left_margin=10, ts_sample_length=1, ts_color=curcmap)
+            print("Figure saved to", hierarchy_fn)
 
 
+@scipyonly
 @numpyonly
 def test_plotbug1():
     with util_numpy.test_uses_numpy() as np:
@@ -177,13 +190,14 @@ def test_plotbug1():
         m = clustering.LinkageTree(dtw.distance_matrix, {})
         m.fit(series)
 
-        if directory:
-            hierarchy_fn = os.path.join(directory, "clustering.png")
-        else:
-            file = tempfile.NamedTemporaryFile()
-            hierarchy_fn = file.name + "_clustering.png"
-        m.plot(hierarchy_fn)
-        print("Figure save to", hierarchy_fn)
+        if not dtwvis.test_without_visualization():
+            if directory:
+                hierarchy_fn = os.path.join(directory, "clustering.png")
+            else:
+                file = tempfile.NamedTemporaryFile()
+                hierarchy_fn = file.name + "_clustering.png"
+            m.plot(hierarchy_fn)
+            print("Figure save to", hierarchy_fn)
 
 
 @numpyonly
