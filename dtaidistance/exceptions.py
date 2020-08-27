@@ -1,15 +1,25 @@
 
 
-class NumpyException(Exception):
+class PackageMissingException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
 
-class MatplotlibException(Exception):
+class NumpyException(PackageMissingException):
     def __init__(self, message):
         super().__init__(message)
 
 
-class ScipyException(Exception):
+class MatplotlibException(PackageMissingException):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class ScipyException(PackageMissingException):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class PyClusteringException(PackageMissingException):
     def __init__(self, message):
         super().__init__(message)

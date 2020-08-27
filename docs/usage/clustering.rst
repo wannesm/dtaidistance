@@ -57,6 +57,34 @@ time series to ``ax[1]``.
                ts_left_margin=10, ts_sample_length=1)
 
 
+K-Medoids clustering
+~~~~~~~~~~~~~~~~~~~~
+
+The distance matrix can also be used for k-medoid time series clustering.
+The ``kmedoids`` class from the `pyclustering <https://pyclustering.github.io>`_ package supports
+a distance matrix as input. It is wrapped in the ``dtaidistance.clustering.medoids.KMedoids``
+class.
+
+
+::
+    from dtaidistance import dtw, clustering
+    s = np.array([
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1]])
+
+    model = clustering.KMedoids(dtw.distance_matrix_fast, {}, k=3)
+    cluster_idx = model.fit(s)
+    model.plot("kmedoids.png")
+
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmedoids.png?v=1
+   :alt: KMedoids clustering
+
 
 Active semi-supervised clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -220,18 +220,14 @@ def test_clustering_centroid():
         print(cluster_idx)
         # assert cluster_idx[0] == {0, 1, 2, 3, 4, 5, 6}
 
-        # if directory:
-        #     hierarchy_fn = os.path.join(directory, "centroid.png")
-        #     graphviz_fn = os.path.join(directory, "centroid.dot")
-        # else:
-        #     file = tempfile.NamedTemporaryFile()
-        #     hierarchy_fn = file.name + "_centroid.png"
-        #     graphviz_fn = file.name + "_centroid.dot"
-        # model.plot(hierarchy_fn)
-        # print("Figure saved to", hierarchy_fn)
-        # with open(graphviz_fn, "w") as ofile:
-        #     print(model.to_dot(), file=ofile)
-        # print("Dot saved to", graphviz_fn)
+        if not dtwvis.test_without_visualization():
+            if directory:
+                png_fn = os.path.join(directory, "centroid.png")
+            else:
+                file = tempfile.NamedTemporaryFile()
+                png_fn = file.name + "_centroid.png"
+            model.plot(png_fn)
+            print("Figure saved to", png_fn)
 
 
 if __name__ == "__main__":
