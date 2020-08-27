@@ -1,12 +1,12 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.clustering
-~~~~~~~~~~~~~~~~~~~~~~~
+dtaidistance.hierarchical
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Time series clustering.
 
 :author: Wannes Meert
-:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2020 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -20,8 +20,8 @@ try:
 except ImportError:
     np = None
 
-from .util import SeriesContainer
-from .exceptions import NumpyException, MatplotlibException, ScipyException
+from dtaidistance.util import SeriesContainer
+from dtaidistance.exceptions import NumpyException, MatplotlibException, ScipyException
 
 try:
     from tqdm import tqdm
