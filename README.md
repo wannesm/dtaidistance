@@ -9,6 +9,10 @@ Documentation: http://dtaidistance.readthedocs.io
 Citing this work:
 [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
+> Wannes Meert, Kilian Hendrickx, & Toon Van Craenendonck. 
+> wannesm/dtaidistance (Version v2.0.0). Zenodo. 
+> http://doi.org/10.5281/zenodo.3981067
+
 **New in v2**:
 
 - Numpy is now an optional dependency, also to compile the C library
