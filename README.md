@@ -2,7 +2,7 @@
 
 Library for time series distances (e.g. Dynamic Time Warping) used in the
 [DTAI Research Group](https://dtai.cs.kuleuven.be). The library offers a pure
-Python implementation and a faster implementation in C.
+Python implementation and a fast implementation in C.
 
 Documentation: http://dtaidistance.readthedocs.io
 
@@ -232,7 +232,9 @@ Optional:
 - [Cython](http://cython.org)
 - [Numpy](http://www.numpy.org)
 - [tqdm](https://github.com/tqdm/tqdm)
-- [matplotlib](https://matplotlib.org)
+- [Matplotlib](https://matplotlib.org)
+- [SciPy](https://www.scipy.org)
+- [PyClustering](https://pyclustering.github.io)
 
 Development:
 
@@ -242,8 +244,7 @@ Development:
 
 ## Contact
 
-- [Wannes Meert](https://people.cs.kuleuven.be/wannes.meert)  
-  <[Wannes.Meert@cs.kuleuven.be](mailto:Wannes.Meert@cs.kuleuven.be)>
+- https://people.cs.kuleuven.be/wannes.meert
 
 
 ## References
