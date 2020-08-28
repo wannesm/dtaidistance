@@ -27,7 +27,7 @@ try:
 except ImportError:
     cythonize = None
 
-here = os.path.abspath(os.path.dirname(__file__))
+here = Path(__file__).parent
 dtaidistancec_path = Path('dtaidistance') / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'
 
 c_args = {
@@ -295,16 +295,17 @@ install_requires = ['cython']
 tests_require = ['pytest', 'pytest-benchmark']
 
 # Check version number
-with open('dtaidistance/__init__.py', 'r', encoding='utf-8') as fd:
+init_fn = here / 'dtaidistance' / '__init__.py'
+with init_fn.open('r', encoding='utf-8') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 if not version:
     raise RuntimeError('Cannot find version information')
 
 # Set up readme file
-readme_path = os.path.join(here, 'README.md')
+readme_path = here / 'README.md'
 if os.path.exists(readme_path):
-    with open(readme_path, 'r', encoding='utf-8') as f:
+    with readme_path.open('r', encoding='utf-8') as f:
         long_description = f.read()
 else:
     long_description = ""
