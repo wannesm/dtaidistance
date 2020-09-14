@@ -3,7 +3,7 @@
 """
  python3 setup.py build_ext --inplace
 """
-from setuptools import setup, Command
+from setuptools import setup, Command, find_packages
 from setuptools.extension import Extension
 from setuptools.command.test import test as TestCommand
 from setuptools.command.sdist import sdist as SDistCommand
@@ -325,7 +325,7 @@ setup(
         'DTAIDistance documentation': 'http://dtaidistance.readthedocs.io/en/latest/',
         'DTAIDistance source': 'https://github.com/wannesm/dtaidistance'
     },
-    packages=["dtaidistance"],
+    packages=['dtaidistance', 'dtaidistance.clustering'],
     python_requires='>=3.5',
     install_requires=install_requires,
     tests_require=tests_require,
