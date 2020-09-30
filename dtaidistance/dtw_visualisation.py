@@ -59,32 +59,32 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
     try:
         import matplotlib.pyplot as plt
         import matplotlib as mpl
+        from matplotlib.patches import ConnectionPatch
     except ImportError:
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
-    fig, ax = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
+    fig, ax = plt.subplots(nrows=3, ncols=1, sharex='all', sharey='all')
     ax[0].plot(from_s, label="From")
     ax[0].legend()
     ax[1].plot(to_s, label="To")
     ax[1].legend()
-    transFigure = fig.transFigure.inverted()
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        coord1 = transFigure.transform(ax[0].transData.transform([r_c, from_s[r_c]]))
-        coord2 = transFigure.transform(ax[1].transData.transform([c_c, to_s[c_c]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
+        con = ConnectionPatch(xyA=[r_c, from_s[r_c]], coordsA=ax[0].transData,
+                              xyB=[c_c, to_s[c_c]], coordsB=ax[1].transData, **line_options)
+
+        lines.append(con)
     ax[2].plot(new_s, label="From-warped")
     ax[2].legend()
     for i in range(len(to_s)):
-        coord1 = transFigure.transform(ax[1].transData.transform([i, to_s[i]]))
-        coord2 = transFigure.transform(ax[2].transData.transform([i, new_s[i]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
-    fig.lines = lines
+        con = ConnectionPatch(xyA=[i, to_s[i]], coordsA=ax[1].transData,
+                              xyB=[i, new_s[i]], coordsB=ax[2].transData, **line_options)
+        lines.append(con)
+    for line in lines:
+        fig.add_artist(line)
     if filename:
         plt.savefig(filename)
         plt.close()
@@ -100,23 +100,27 @@ def plot_warping(s1, s2, path, filename=None):
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
     """
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        from matplotlib.patches import ConnectionPatch
+    except ImportError:
+        logger.error("The plot_warp function requires the matplotlib package to be installed.")
+        return
+    fig, ax = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
     ax[0].plot(s1)
     ax[1].plot(s2)
     plt.tight_layout()
-    transFigure = fig.transFigure.inverted()
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        coord1 = transFigure.transform(ax[0].transData.transform([r_c, s1[r_c]]))
-        coord2 = transFigure.transform(ax[1].transData.transform([c_c, s2[c_c]]))
-        lines.append(mpl.lines.Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
-                                      transform=fig.transFigure, **line_options))
-    fig.lines = lines
+        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=ax[0].transData,
+                              xyB=[c_c, s2[c_c]], coordsB=ax[1].transData, **line_options)
+        lines.append(con)
+    for line in lines:
+        fig.add_artist(line)
     if filename:
         plt.savefig(filename)
         plt.close()
