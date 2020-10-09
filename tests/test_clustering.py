@@ -5,7 +5,7 @@ import pytest
 import logging
 from pathlib import Path
 
-from dtaidistance import dtw, clustering, util_numpy
+from dtaidistance import dtw, dtw_ndim, clustering, util_numpy
 import dtaidistance.dtw_visualisation as dtwvis
 
 
@@ -70,6 +70,20 @@ def test_clustering_tree():
         with open(graphviz_fn, "w") as ofile:
             print(modelw.to_dot(), file=ofile)
         print("Dot saved to", graphviz_fn)
+
+
+@numpyonly
+def test_clustering_tree_ndim():
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array([
+             [[0.,0.], [0,0], [1,0], [2,0], [1,0], [0,0], [1,0], [0,0], [0,0]],
+             [[0.,0.], [1,0], [2,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0]],
+             [[1.,0.], [2,0], [0,0], [0,0], [0,0], [0,0], [0,0], [1,0], [1,0]]])
+
+        model = clustering.Hierarchical(dtw_ndim.distance_matrix_fast, {'ndim':2},
+                                        show_progress=False)
+        cluster_idx = model.fit(s)
+        assert cluster_idx[0] == {0, 1, 2}
 
 
 @numpyonly
@@ -236,8 +250,9 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_clustering_tree()
+    test_clustering_tree_ndim()
     # test_clustering_tree_maxdist()
     # test_linkage_tree()
     # test_controlchart()
     # test_plotbug1()
-    test_clustering_centroid()
+    # test_clustering_centroid()

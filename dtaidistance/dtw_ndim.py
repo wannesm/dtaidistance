@@ -57,7 +57,7 @@ inf = float("inf")
 
 
 def ub_euclidean(s1, s2):
-    """ Euclidean distance between two n-dimensional sequences. Supports different lengths.
+    """ Euclidean (dependent) distance between two n-dimensional sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
     to the remaining elements in the longer series.
@@ -86,14 +86,31 @@ def ub_euclidean(s1, s2):
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
              use_c=False, use_pruning=False, only_ub=False):
-    """Dynamic Time Warping using multidimensional sequences.
+    """(Dependent) Dynamic Time Warping using multidimensional sequences.
 
     Assumes first dimension to be the sequence item index, and the second
     dimension to be the dimension in the sequence item.
 
-    cost = EuclideanDistance(s1[i], s2[j])
-
     See :py:meth:`dtaidistance.dtw.distance` for parameters.
+
+    This method returns the dependent DTW (DTW_D) [1] distance between two
+    n-dimensional sequences. If you want to compute the independent DTW
+    (DTW_I) distance, use the 1-dimensional version:
+
+        dtw_i = 0
+        for dim in range(ndim):
+            dtw_i += dtw.distance(s1[:,dim], dtw.distance(s2[:,dim])
+
+    Note:
+    If you are using the C-optimized code, the above snippet will trigger a
+    copy operation to guarantee the arrays to be C-ordered and will thus create
+    time and memory overhead. This can be avoided
+    by storing the dimensions as separate arrays or by flipping the array dimensions
+    and use dtw.distance(s1[dim,:], dtw.distance(s2[dim,:]).
+
+    [1] M. Shokoohi-Yekta, B. Hu, H. Jin, J. Wang, and E. Keogh.
+    Generalizing dtw to the multi-dimensional case requires an adaptive approach.
+    Data Mining and Knowledge Discovery, 31:1–31, 2016.
     """
     if use_c:
         if dtw_cc is None:
@@ -366,7 +383,18 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
                     use_c=False, use_mp=False, show_progress=False):
-    """Distance matrix for all sequences in s.
+    """Distance matrix for all n-dimensional sequences in s.
+
+    This method returns the dependent DTW (DTW_D) [1] distance between two
+    n-dimensional sequences. If you want to compute the independent DTW
+    (DTW_I) distance, use the 1-dimensional version and sum the distance matrices:
+
+        dtw_i = dtw.distance_matrix(series_sep_dim[0])
+        for dim in range(1, ndim):
+            dtw_i += dtw.distance_matrix(series_sep_dim(dim)
+
+    Where series_sep_dim is a datastructure that returns a list of the sequences that
+    represents the i-th dimension of each sequence in s.
 
     :param s: Iterable of series
     :param window: see :meth:`distance`
@@ -384,6 +412,10 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
+
+    [1] M. Shokoohi-Yekta, B. Hu, H. Jin, J. Wang, and E. Keogh.
+    Generalizing dtw to the multi-dimensional case requires an adaptive approach.
+    Data Mining and Knowledge Discovery, 31:1–31, 2016.
     """
     # Check whether multiprocessing is available
     if use_c:
