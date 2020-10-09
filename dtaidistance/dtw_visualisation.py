@@ -128,7 +128,7 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False):
+def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -137,20 +137,34 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     :param path: Path to draw (typically this is the best path)
     :param filename: Filename for the image (optional)
     :param shownumbers: Show distances also as numbers
+    :param showlegend: Show colormap legend
     """
-    from matplotlib import pyplot as plt
-    from matplotlib import gridspec
-    from matplotlib.ticker import FuncFormatter
-
+    try:
+        from matplotlib import pyplot as plt
+        from matplotlib import gridspec
+        from matplotlib.ticker import FuncFormatter
+    except ImportError:
+        logger.error("The plot_warpingpaths function requires the matplotlib package to be installed.")
+        return
     ratio = max(len(s1), len(s2))
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
 
     fig = plt.figure(figsize=(10, 10), frameon=True)
-    gs = gridspec.GridSpec(2, 2, wspace=1, hspace=1,
-                           left=0, right=1.0, bottom=0, top=1.0,
-                           height_ratios=[1, 6],
-                           width_ratios=[1, 6])
+    if showlegend:
+        grows = 3
+        gcols = 3
+        height_ratios = [1, 6, 1]
+        width_ratios = [1, 6, 1]
+    else:
+        grows = 2
+        gcols = 2
+        height_ratios = [1, 6]
+        width_ratios = [1, 6]
+    gs = gridspec.GridSpec(grows, gcols, wspace=1, hspace=1,
+                           left=0, right=10.0, bottom=0, top=1.0,
+                           height_ratios=height_ratios,
+                           width_ratios=width_ratios)
     max_s2_x = np.max(s2)
     max_s2_y = len(s2)
     max_s1_x = np.max(s1)
@@ -174,7 +188,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax0.xaxis.set_major_locator(plt.NullLocator())
     ax0.yaxis.set_major_locator(plt.NullLocator())
 
-    ax1 = fig.add_subplot(gs[0, 1:])
+    ax1 = fig.add_subplot(gs[0, 1])
     ax1.set_ylim([min_y, max_y])
     ax1.set_axis_off()
     ax1.xaxis.tick_top()
@@ -183,7 +197,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax1.xaxis.set_major_locator(plt.NullLocator())
     ax1.yaxis.set_major_locator(plt.NullLocator())
 
-    ax2 = fig.add_subplot(gs[1:, 0])
+    ax2 = fig.add_subplot(gs[1, 0])
     ax2.set_xlim([-max_y, -min_y])
     ax2.set_axis_off()
     # ax2.set_aspect(0.8)
@@ -193,9 +207,9 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
 
-    ax3 = fig.add_subplot(gs[1:, 1:])
+    ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
-    ax3.matshow(paths[1:, 1:])
+    img = ax3.matshow(paths[1:, 1:])
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
     py, px = zip(*p)
@@ -209,6 +223,11 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
     # fig.subplots_adjust(hspace=0, wspace=0)
+
+    if showlegend:
+        # ax4 = fig.add_subplot(gs[0:, 2])
+        ax4 = fig.add_axes([0.9, 0.25, 0.015, 0.5])
+        fig.colorbar(img, cax=ax4)
 
     ax = fig.axes
 
