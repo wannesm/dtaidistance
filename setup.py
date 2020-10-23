@@ -10,6 +10,7 @@ from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
 from setuptools.command.install import install
 from setuptools import Distribution
+from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 import platform
 import os
 import sys
@@ -312,7 +313,12 @@ else:
 long_description_content_type = "text/markdown"
 
 # Create setup
-setup(
+setup_kwargs = {}
+def set_setup_kwargs(**kwargs):
+    global setup_kwargs
+    setup_kwargs = kwargs
+
+set_setup_kwargs(
     name='dtaidistance',
     version=version,
     description='Distance measures for time series',
@@ -352,6 +358,18 @@ setup(
         'Programming Language :: Python :: 3'
     ],
     keywords='dtw',
-    zip_safe=False,
-    ext_modules=ext_modules
+    zip_safe=False
 )
+
+try:
+    setup(ext_modules=ext_modules, **setup_kwargs)
+except (CCompilerError, DistutilsExecError, DistutilsPlatformError, IOError, SystemExit) as exc:
+    print("ERROR: The C extension could not be compiled")
+    print(exc)
+
+    if 'build_ext' in setup_kwargs['cmdclass']:
+        del setup_kwargs['cmdclass']['build_ext']
+
+    setup(**setup_kwargs)
+    print("Installed the plain Python version of the package.")
+    print("If you need the C extension, try reinstalling.")
