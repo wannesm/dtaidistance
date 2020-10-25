@@ -143,7 +143,7 @@ DTW between multiple Time series
 
 To compute the DTW distance measures between all sequences in a list of
 sequences, use the method ``dtw.distance_matrix``. You can speed up the
-computation by using the ``dtw.distance_matrix_fact`` method that tries
+computation by using the ``dtw.distance_matrix_fast`` method that tries
 to run all algorithms in C. Also parallelization can be activated using
 the ``parallel`` argument.
 
@@ -248,3 +248,37 @@ using the SciPy ``zscore`` function:
     from scipy import stats
     az = stats.zscore(a)
     # az = array([-0.90453403,  1.50755672,  0.30151134, -0.90453403])
+
+Multi-dimensionsal DTW
+^^^^^^^^^^^^^^^^^^^^^^
+
+Compare two multi-dimensional sequences.
+
+Assumes the first dimension to be the sequence item index, and the second
+dimension to be the series index (thus timestep).
+
+Example:
+
+::
+
+    s1 = np.array([[0, 0],
+                   [0, 1],
+                   [2, 1],
+                   [0, 1],
+                   [0, 0]], dtype=np.double)
+    s2 = np.array([[0, 0],
+                   [2, 1],
+                   [0, 1],
+                   [0, .5],
+                   [0, 0]], dtype=np.double)
+    d = distance(s1, s2)
+
+This method returns the dependent DTW (DTW_D) distance between two
+n-dimensional sequences. If you want to compute the independent DTW
+(DTW_I) distance, use the 1-dimensional version:
+
+::
+
+    dtw_i = 0
+    for dim in range(ndim):
+        dtw_i += dtw.distance(s1[:,dim], dtw.distance(s2[:,dim])

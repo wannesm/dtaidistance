@@ -88,8 +88,22 @@ def distance(s1, s2, window=None, max_dist=None,
              use_c=False, use_pruning=False, only_ub=False):
     """(Dependent) Dynamic Time Warping using multidimensional sequences.
 
-    Assumes first dimension to be the sequence item index, and the second
-    dimension to be the dimension in the sequence item.
+    Assumes the first dimension to be the sequence item index, and the second
+    dimension to be the series index (thus timestep).
+
+    Example:
+
+        s1 = np.array([[0, 0],
+                       [0, 1],
+                       [2, 1],
+                       [0, 1],
+                       [0, 0]], dtype=np.double)
+        s2 = np.array([[0, 0],
+                       [2, 1],
+                       [0, 1],
+                       [0, .5],
+                       [0, 0]], dtype=np.double)
+        d = distance(s1, s2)
 
     See :py:meth:`dtaidistance.dtw.distance` for parameters.
 
