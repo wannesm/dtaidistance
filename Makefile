@@ -78,6 +78,7 @@ deploy: prepare_dist
 	git diff-index --quiet HEAD
 	@echo "Add tag"
 	git tag "v$$(python3 setup.py --version)"
+	git push --tags
 	@echo "Start uploading"
 	twine upload --repository dtaidistance dist/*
 
