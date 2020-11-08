@@ -537,10 +537,14 @@ def distances_array_to_matrix(dists, nb_series, block=None):
     The upper triangular matrix will contain all the distances.
     """
     if np is None:
-        raise NumpyException("Numpy is required for the distances_array_to_matrix method")
+        raise NumpyException("Numpy is required for the distances_array_to_matrix method, "
+                             "set compact to true")
     dists_matrix = np.full((nb_series, nb_series), inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists
+    i_lower = np.tril_indices(nb_series, -1)
+    dists_matrix[i_lower] = dists_matrix[idxs]
+    np.fill_diagonal(dists_matrix, 0)
     # dists_cond = np.zeros(self._size_cond(len(series)))
     # idx = 0
     # for r in range(len(series) - 1):
