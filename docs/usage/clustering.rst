@@ -91,6 +91,6 @@ Active semi-supervised clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The recommended method for perform active semi-supervised clustering using
-DTAIDistance is to use the COBRAS for time series clustering: https://bitbucket.org/toon_vc/cobras_ts.
+DTAIDistance is to use the COBRAS for time series clustering: https://github.com/ML-KULeuven/cobras.
 COBRAS is a library for semi-supervised time series clustering using pairwise constraints,
 which natively supports both dtaidistance.dtw and kshape.
