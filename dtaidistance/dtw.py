@@ -486,7 +486,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
         for k, v in dist_opts.items():
             if v is None:
                 # None is represented as 0.0 for C
-                dist_opts[k] = 0.0
+                dist_opts[k] = 0
 
     logger.info('Computing distances')
     if use_c and parallel and not use_mp and dtw_cc_omp is not None:
@@ -542,8 +542,7 @@ def distances_array_to_matrix(dists, nb_series, block=None):
     dists_matrix = np.full((nb_series, nb_series), inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists
-    i_lower = np.tril_indices(nb_series, -1)
-    dists_matrix[i_lower] = dists_matrix[idxs]
+    dists_matrix.T[idxs] = dists
     np.fill_diagonal(dists_matrix, 0)
     # dists_cond = np.zeros(self._size_cond(len(series)))
     # idx = 0

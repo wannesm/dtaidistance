@@ -141,7 +141,7 @@ def test_distance_matrix2_e():
         nn = 1
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
              [0., 1, 2, 0, 0, 0, 0, 0, 0] * n,
-             [1., 2, 0, 0, 0, 0, 0, 1] * n] * nn
+             [1., 2, 0, 0, 0, 0, 0, 1] * n] * 3
         s = [np.array(si) for si in s]
         m1 = dtw.distance_matrix_fast(s, parallel=True)
         m2 = dtw.distance_matrix(s, parallel=True, use_c=True)
