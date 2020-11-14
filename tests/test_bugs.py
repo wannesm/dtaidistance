@@ -30,7 +30,10 @@ def test_distance1_b():
         s2 = np.array([ 0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.])
         d1 = dtw.distance(s1, s2, **dist_opts)
         d2 = dtw.distance_fast(s1, s2, **dist_opts)
+        d3, wps = dtw.warping_paths(s1, s2, **dist_opts)
+        print(np.power(wps,2))
         assert d1 == d2
+        assert d1 == d3
         assert d1 == pytest.approx(0.02)
 
 
@@ -201,11 +204,14 @@ def test_bug1_psi():
 
 
 if __name__ == "__main__":
+    with util_numpy.test_uses_numpy() as np:
+        np.set_printoptions(precision=6, linewidth=120)
     logger.setLevel(logging.WARNING)
     sh = logging.StreamHandler(sys.stdout)
     logger.addHandler(sh)
     # test_bug1()
-    test_distance1_a()
+    # test_distance1_a()
+    test_distance1_b()
     # test_distance2_a()
     # test_distance2_b()
     # test_distance2_c()

@@ -278,3 +278,42 @@ def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
         plt.close()
         fig, ax = None, None
     return fig, ax
+
+def plot_average(s1, s2, avg, path1, path2, filename=None, ax=None):
+    """Plot how s1 and s2 relate to the avg.
+
+    :param s1: Seq 1.
+    :param s2: Seq 2.
+    :param path: Average sequence.
+    :param filename: Filename path (optional).
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        from matplotlib.patches import ConnectionPatch
+    except ImportError:
+        logger.error("The plot_warp function requires the matplotlib package to be installed.")
+        return
+    if ax is None:
+        fig, ax = plt.subplots(nrows=1, ncols=1, sharex='all', sharey='all')
+    else:
+        fig = None
+    ax.plot(s1, color='blue', alpha=0.5)
+    ax.plot(s2, color='blue', alpha=0.5)
+    ax.plot(avg, color='orange', linestyle='dashed', alpha=0.5)
+    # plt.tight_layout()
+    # lines = []
+    # line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    # for r_c, c_c in path:
+    #     if r_c < 0 or c_c < 0:
+    #         continue
+    #     con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=ax[0].transData,
+    #                           xyB=[c_c, s2[c_c]], coordsB=ax[1].transData, **line_options)
+    #     lines.append(con)
+    # for line in lines:
+    #     fig.add_artist(line)
+    if filename:
+        plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
+    return fig, ax

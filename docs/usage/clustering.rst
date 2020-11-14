@@ -87,6 +87,30 @@ class.
    :alt: KMedoids clustering
 
 
+K-Means DBA clustering
+~~~~~~~~~~~~~~~~~~~~~~
+
+K-means clustering for time series requires an averaging strategy for
+time series. One possibility is DTW Barycenter Averaging (DBA).
+
+::
+
+    model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40}, )
+    cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmeans.png?v=2
+   :alt: KMeans clustering
+
+If you only want to run DTW Barycenter Averaging once or multiple times:
+
+::
+
+    new_center = dtw_barycenter.dba(series, center, use_c=True)
+    new_center = dtw_barycenter.dba_loop(series, center, max_it=10, thr=0.0001, use_c=True)
+
+
+
 Active semi-supervised clustering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

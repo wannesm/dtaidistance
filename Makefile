@@ -28,6 +28,10 @@ benchmark:
 benchmark-parallelc:
 	export PYTHONPATH=.;py.test -k 'matrix1 or distance1' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
 
+.PHONY: benchmark-distancec
+benchmark-distancec:
+	export PYTHONPATH=.;py.test -k 'distance1' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+
 .PHONY: benchmark-matrixc
 benchmark-matrixc:
 	export PYTHONPATH=.;py.test -k 'matrix1 and _c' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only

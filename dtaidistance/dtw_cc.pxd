@@ -8,8 +8,8 @@ cdef class DTWSettings:
 
 cdef class DTWSeriesPointers:
     cdef double **_ptrs
-    cdef size_t *_lengths
-    cdef size_t _nb_ptrs
+    cdef Py_ssize_t *_lengths
+    cdef Py_ssize_t _nb_ptrs
 
 cdef class DTWSeriesMatrix:
     cdef double[:,::1] _data

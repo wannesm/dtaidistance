@@ -89,14 +89,49 @@ void benchmark4() {
 }
 
 void benchmark5() {
-    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
-    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
+    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0};
+//    seq_t s1[] = {0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0};
+//    seq_t s2[] = {0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0};
+//    seq_t s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
+//    seq_t s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
+    idx_t l1 = 11;
+    idx_t l2 = 11;
     DTWSettings settings = dtw_settings_default();
-    settings.max_dist = 1.415;
-    seq_t wps[10*10];
-    seq_t d = dtw_warping_paths(wps, s1, 9, s2, 9, true, true, &settings);
+//    settings.max_dist = 1.415;
+    settings.window = 0;
+    settings.psi = 0;
+    settings.use_pruning = false;
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    printf("wps_length=%zu\n", wps_length);
+    seq_t wps[wps_length];
+//    for (idx_t i=0; i<wps_length; i++) {
+//        wps[i] = i;
+//    }
+    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, &settings);
     printf("d=%f\n", d);
-    dtw_print_wps(wps, 9, 9);
+    dtw_print_wps_compact(wps, l1, l2, &settings);
+    printf("\n\n");
+    dtw_print_wps(wps, l1, l2, &settings);
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    dtw_best_path(wps, i1, i2, l1, l2, &settings);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
+    seq_t full[(l1+1)*(l2+1)];
+    dtw_expand_wps(wps, full, l1, l2, &settings);
+    for (idx_t i=0; i<(l1+1); i++) {
+        printf("[ ");
+        for (idx_t j=0; j<(l2+1); j++) {
+            printf("%7.3f ", full[i*(l2+1)+j]);
+        }
+        printf("]\n");
+    }
 }
 
 void benchmark6() {
@@ -148,6 +183,34 @@ void benchmark8() {
          }
 }
 
+void benchmark9() {
+    double s[] = {
+        0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0, // Row 0
+        0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0 // Row 1
+    };
+    double exp_avg[] = {0.3, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+    idx_t nb_cols = 10;
+    idx_t nb_rows = 2;
+    seq_t c[nb_cols];
+    for (idx_t i=0; i<nb_cols; i++) { // Copy first series
+        c[i] = s[i];
+    }
+//    bit_array(mask, nb_rows)
+    ba_t mask[bit_bytes(nb_rows)];
+    for (int i=0; i<nb_rows; i++) {mask[i]=0;}
+    bit_set(mask, 0);
+    bit_set(mask, 1);
+    DTWSettings settings = dtw_settings_default();
+    
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, &settings);
+    
+    printf("Computed avg:\n");
+    for (int i=0; i<nb_cols; i++) {
+        printf("%f ", c[i]);
+    }
+    printf("\n");
+}
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -161,7 +224,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
-    benchmark8();
+//    benchmark8();
+    benchmark9();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

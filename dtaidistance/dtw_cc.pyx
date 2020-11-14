@@ -10,10 +10,12 @@ Dynamic Time Warping (DTW), C implementation.
 
 """
 from cpython cimport array
-from cython import Py_ssize_t
 import array
+from cython import Py_ssize_t
+from cython.view cimport array as cvarray
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdint cimport intptr_t
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport dtaidistancec_dtw
 
@@ -158,7 +160,7 @@ cdef class DTWSeriesPointers:
         if not self._ptrs:
             self._ptrs = NULL
             raise MemoryError()
-        self._lengths = <size_t *> malloc(nb_series * sizeof(size_t))
+        self._lengths = <Py_ssize_t *> malloc(nb_series * sizeof(Py_ssize_t))
         if not self._lengths:
             self._lengths = NULL
             raise MemoryError()
@@ -293,11 +295,68 @@ def distance_ndim_assinglearray(double[:] s1, double[:] s2, int ndim, **kwargs):
     return dtaidistancec_dtw.dtw_distance_ndim(&s1[0], len(s1), &s2[0], len(s2), ndim, &settings._settings)
 
 
+def wps_length(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
+    settings = DTWSettings(**kwargs)
+    return dtaidistancec_dtw.dtw_settings_wps_length(l1, l2, &settings._settings)
+
+
+def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
+    settings = DTWSettings(**kwargs)
+    return dtaidistancec_dtw.dtw_settings_wps_width(l1, l2, &settings._settings)
+
+
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    return dtaidistancec_dtw.dtw_warping_paths(&dtw[0, 0], &s1[0], len(s1), &s2[0], len(s2),
-                                           True, True, &settings._settings)
+    # Use cython.view.array to avoid numpy dependency
+    wps = cvarray(shape=(len(s1) + 1, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings)), itemsize=sizeof(double), format="d")
+    cdef double [:, :] wps_view = wps
+    # cdef array.array wps = array.array('d', [0] * dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
+    # cdef array.array wps = array.array('d')
+    # array.resize(wps, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
+    # wps.data.as_doubles
+    cdef double d
+    # print(wps)
+    # print(settings)
+    d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                            True, True, &settings._settings)
+    # print('---')
+    # print(wps)
+    # print('---')
+    dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
+    # print("end dtw_cc warping_paths")
+    return d
+
+def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    cdef double d
+    d = dtaidistancec_dtw.dtw_warping_paths(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                            True, True, &settings._settings)
+    return d
+
+
+def warping_path(double[:] s1, double[:] s2, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        path = []
+        for i in range(len(s1) + len(s2)):
+            path.append((i1[i], i2[i]))
+            if i1[i] == 0 and i2[i] == 0:
+                break
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
 
 
 def distance_matrix(cur, block=None, **kwargs):
@@ -342,7 +401,7 @@ def distance_matrix(cur, block=None, **kwargs):
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
-        cur = cur.c_data()
+        cur = cur.c_data_compat()
     else:
         cur = dtw_series_from_data(cur)
 
@@ -403,9 +462,8 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesMatrixNDim) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
-        cur = cur.c_data()
+        cur = cur.c_data_compat()
     else:
-        # Matrix representation not (yet) implemented for n-dimensional sequences
         cur = dtw_series_from_data(cur, force_pointers=True)
 
     if isinstance(cur, DTWSeriesPointers):
@@ -434,3 +492,35 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     cdef Py_ssize_t length
     length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series)
     return length
+
+
+def dba(cur, double[:] c, char[:] mask, **kwargs):
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesPointers ptrs
+    cdef double *c_ptr;
+    cdef double *matrix_ptr;
+    cdef char *mask_ptr;
+    settings = DTWSettings(**kwargs)
+
+    if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
+        pass
+    elif cur.__class__.__name__ == "SeriesContainer":
+        cur = cur.c_data_compat()
+    else:
+        cur = dtw_series_from_data(cur)
+
+    if isinstance(cur, DTWSeriesPointers):
+        ptrs = cur
+        ptrs = cur
+        dtaidistancec_dtw.dtw_dba_ptrs(
+            ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
+            c_ptr, len(c), mask_ptr, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrix):
+        matrix = cur
+        c_ptr = &c[0]
+        mask_ptr = &mask[0]
+        matrix_ptr = &matrix._data[0,0]
+        dtaidistancec_dtw.dtw_dba_matrix(
+            matrix_ptr, matrix.nb_rows, matrix.nb_cols,
+            c_ptr, len(c), mask_ptr, &settings._settings)
+    return c

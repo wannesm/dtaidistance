@@ -115,7 +115,7 @@ class SeriesContainer:
         else:
             self.series = series
 
-    def c_data(self):
+    def c_data_compat(self):
         """Return a datastructure that the C-component knows how to handle.
         The method tries to avoid copying or reallocating memory.
 
@@ -163,6 +163,25 @@ class SeriesContainer:
             for serie in self.series:
                 max_y = max(max_y, np.max(serie), abs(np.min(serie)))
         return max_y
+
+    def get_max_length(self):
+        max_length = 0
+        if isinstance(self.series, np.ndarray) and len(self.series.shape) == 2:
+            max_length = self.series.shape[1]
+        else:
+            for serie in self.series:
+                max_length = max(max_length, len(serie))
+        return max_length
+
+    def get_avg_length(self):
+        max_length = 0
+        if isinstance(self.series, np.ndarray) and len(self.series.shape) == 2:
+            max_length = self.series.shape[1]
+        else:
+            for serie in self.series:
+                max_length += len(serie)
+            max_length /= len(self.series)
+        return max_length
 
     def __getitem__(self, item):
         return self.series[item]

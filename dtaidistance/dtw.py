@@ -133,7 +133,7 @@ def distance(s1, s2,
     :param s1: First sequence
     :param s2: Second sequence
     :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
-        It includes the diagonal, meaning that an Euclidean distance is obtained by setting weight=1.
+        It includes the diagonal, meaning that an Euclidean distance is obtained by setting window=1.
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger
@@ -376,15 +376,17 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     else:
         ir = i1
         ic = min(c, c + window - 1)
-        vr = dtw[ir-psi:ir+1, ic]
-        vc = dtw[ir, ic-psi:ic+1]
+        vr = dtw[ir:ir-psi-1:-1, ic]
+        vc = dtw[ir, ic:ic-psi-1:-1]
+        print(vc)
         mir = argmin(vr)
         mic = argmin(vc)
+        print(mic)
         if vr[mir] < vc[mic]:
-            dtw[ir-psi+mir+1:ir+1, ic] = -1
+            dtw[ir:ir-mir:-1, ic] = -1
             d = vr[mir]
         else:
-            dtw[ir, ic - psi + mic + 1:ic+1] = -1
+            dtw[ir, ic:ic-mic:-1] = -1
             d = vc[mic]
     if max_dist and d > max_dist:
         d = inf
@@ -392,8 +394,14 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
-                       max_step=None, max_length_diff=None, penalty=None, psi=None):
-    """Fast C version of :meth:`warping_paths`."""
+                       max_step=None, max_length_diff=None, penalty=None, psi=None, compact=False):
+    """Fast C version of :meth:`warping_paths`.
+
+    Additional parameters:
+     :param compact: Return a compact warping paths matrix.
+        Size is ((l1 + 1), min(l2 + 1, abs(l1 - l2) + 2*window + 1)).
+        This option is meant for internal use. For more details, see the C code.
+    """
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     r = len(s1)
@@ -411,14 +419,22 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
         penalty = 0
     if psi is None:
         psi = 0
+    settings_kwargs = {
+        'window': window,
+        'max_dist': max_dist,
+        'max_step': max_step,
+        'max_length_diff': max_length_diff,
+        'penalty': penalty,
+        'psi': psi
+    }
+    if compact:
+        wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
+        wps_compact = np.full((len(s1)+1, wps_width), inf)
+        d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, **settings_kwargs)
+        return d, wps_compact
+
     dtw = np.full((r + 1, c + 1), inf)
-    d = dtw_cc.warping_paths(dtw, s1, s2,
-                             window=window,
-                             max_dist=max_dist,
-                             max_step=max_step,
-                             max_length_diff=max_length_diff,
-                             penalty=penalty,
-                             psi=psi)
+    d = dtw_cc.warping_paths(dtw, s1, s2, **settings_kwargs)
     return d, dtw
 
 
@@ -644,6 +660,13 @@ def warping_path(from_s, to_s, **kwargs):
     return path
 
 
+def warping_path_fast(from_s, to_s, **kwargs):
+    """Compute warping path between two sequences."""
+    from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
+    path = dtw_cc.warping_path(from_s, to_s, **settings_kwargs)
+    return path
+
+
 def warping_amount(path):
     """
         Returns the number of compressions and expansions performed to obtain the best path.
@@ -756,3 +779,17 @@ def best_path2(paths):
         r, c = r_c, c_c
     path.reverse()
     return path
+
+
+def warping_path_args_to_c(s1, s2, **kwargs):
+    s1 = util_numpy.verify_np_array(s1)
+    s2 = util_numpy.verify_np_array(s2)
+    _check_library(raise_exception=True)
+    def get(key):
+        value = kwargs.get(key, None)
+        if value is None:
+            return 0
+        return value
+    settings_kwargs = {key: get(key) for key in
+        ['window', 'max_dist', 'max_step', 'max_length_diff', 'penalty', 'psi']}
+    return s1, s2, settings_kwargs

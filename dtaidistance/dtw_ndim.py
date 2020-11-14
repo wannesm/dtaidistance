@@ -465,7 +465,7 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
         for k, v in dist_opts.items():
             if v is None:
                 # None is represented as 0.0 for C
-                dist_opts[k] = 0.0
+                dist_opts[k] = 0
 
     logger.info('Computing n-dim distances')
     if use_c and parallel and not use_mp and dtw_cc_omp is not None:

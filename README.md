@@ -18,7 +18,7 @@ Citing this work:
 - Numpy is now an optional dependency, also to compile the C library
   (only Cython is required).
 - Small optimizations throughout the C code to improve speed.
-- The consistent use of `size_t` instead of `int` allows for larger data structures on 64 bit 
+- The consistent use of `ssize_t` instead of `int` allows for larger data structures on 64 bit 
   machines and be more compatible with Numpy.
 - The parallelization is now implemented directly in C (included if OpenMP is installed).
 - The `max_dist` argument turned out to be similar to Silva and Batista's work 

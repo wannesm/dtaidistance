@@ -59,7 +59,8 @@ def test_distance1_b():
     with util_numpy.test_uses_numpy() as np:
         s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
         s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
-        d2, _ = dtw.warping_paths(s1, s2)
+        d2, wps = dtw.warping_paths(s1, s2)
+        print(wps)
         assert d2 == pytest.approx(math.sqrt(2))
 
 
@@ -160,7 +161,6 @@ def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
              [1., 2, 0, 0, 0, 0, 0, 1, 1]]
         s = np.array(s)
         m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c)
-        print(m)
         assert m[1, 3] == pytest.approx(math.sqrt(2))
         assert np.isinf(m[1, 2])
 
@@ -174,8 +174,11 @@ def test_distance_matrix_block():
 
 
 if __name__ == "__main__":
+    with util_numpy.test_uses_numpy() as np:
+        np.set_printoptions(precision=3, linewidth=120)
     # test_distance1_a()
-    test_distance_matrix2_e()
+    test_distance1_b()
+    # test_distance_matrix2_e()
     # run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
     # test_expected_length1()
     # test_condensed_index1()

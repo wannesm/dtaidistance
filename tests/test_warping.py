@@ -44,6 +44,20 @@ def test_normalize2():
 
 
 @numpyonly
+def test_warping_path1():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 0, 0])
+        s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0, 0, 0])
+        path1 = dtw.warping_path(s1, s2)
+        path2 = dtw.warping_path_fast(s1, s2)
+        path3 = [(0, 0), (1, 0), (2, 1), (3, 2), (4, 3), (5, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9), (10, 10)]
+        assert len(path1) == len(path3)
+        assert len(path2) == len(path3)
+        assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path1, path3))
+        assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path2, path3))
+
+
+@numpyonly
 def test_psi_dtw_1a():
     with util_numpy.test_uses_numpy() as np:
         x = np.arange(0, 20, .5)
@@ -143,7 +157,8 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_normalize()
-    test_normalize2()
+    # test_normalize2()
+    test_warping_path1()
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()

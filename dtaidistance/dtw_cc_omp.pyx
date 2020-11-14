@@ -59,7 +59,7 @@ def distance_matrix(cur, block=None, **kwargs):
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
-        cur = cur.c_data()
+        cur = cur.c_data_compat()
     else:
         cur = dtw_series_from_data(cur)
 
@@ -120,7 +120,7 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
-        cur = cur.c_data()
+        cur = cur.c_data_compat()
     else:
         cur = dtw_series_from_data(cur, force_pointers=True)
 
