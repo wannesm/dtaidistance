@@ -116,7 +116,7 @@ def test_trace_mask():
         print(series.shape)
 
         tic = time.perf_counter()
-        avg = dtw_barycenter.dba_loop(series, c=None, nb_it=100, thr=0.000001, mask=mask, use_c=False)
+        avg = dtw_barycenter.dba_loop(series, c=None, max_it=100, thr=0.000001, mask=mask, use_c=True)
         toc = time.perf_counter()
         print(f'DBA: {toc - tic:0.4f} sec')
 
@@ -207,5 +207,5 @@ if __name__ == "__main__":
     print(f"Saving files to {directory}")
     # test_pair()
     # test_trace()
-    # test_trace_mask()
-    test_trace_kmeans()
+    test_trace_mask()
+    # test_trace_kmeans()

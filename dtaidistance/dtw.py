@@ -448,7 +448,7 @@ def distance_matrix_func(use_c=False, parallel=False, show_progress=False):
 def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
-                    use_c=False, use_mp=False, show_progress=False):
+                    use_c=False, use_mp=False, show_progress=False, only_triu=False):
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
@@ -542,12 +542,12 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
         return dists
 
     # Create full matrix and fill upper triangular matrix with distance values (or only block if specified)
-    dists_matrix = distances_array_to_matrix(dists, nb_series=len(s), block=block)
+    dists_matrix = distances_array_to_matrix(dists, nb_series=len(s), block=block, only_triu=only_triu)
 
     return dists_matrix
 
 
-def distances_array_to_matrix(dists, nb_series, block=None):
+def distances_array_to_matrix(dists, nb_series, block=None, only_triu=False):
     """Transform a condensed distances array to a full matrix representation.
 
     The upper triangular matrix will contain all the distances.
@@ -558,8 +558,9 @@ def distances_array_to_matrix(dists, nb_series, block=None):
     dists_matrix = np.full((nb_series, nb_series), inf, dtype=DTYPE)
     idxs = _distance_matrix_idxs(block, nb_series)
     dists_matrix[idxs] = dists
-    dists_matrix.T[idxs] = dists
-    np.fill_diagonal(dists_matrix, 0)
+    if not only_triu:
+        dists_matrix.T[idxs] = dists
+        np.fill_diagonal(dists_matrix, 0)
     # dists_cond = np.zeros(self._size_cond(len(series)))
     # idx = 0
     # for r in range(len(series) - 1):
@@ -644,13 +645,13 @@ def _distance_matrix_length(block, nb_series):
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True):
+                         block=None, compact=False, parallel=True, only_triu=False):
     """Fast C version of :meth:`distance_matrix`."""
     _check_library(raise_exception=True, include_omp=parallel)
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, show_progress=False)
+                           use_c=True, show_progress=False, only_triu=only_triu)
 
 
 def warping_path(from_s, to_s, **kwargs):

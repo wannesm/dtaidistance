@@ -134,7 +134,7 @@ def dba(s, c, mask=None, use_c=False, **kwargs):
     cp = array.array('d', [0] * t)
     for i, values in enumerate(assoctab):
         if len(values) == 0:
-            print('XXX zero values XXX')
+            print('WARNING: zero values in assoctab')
             print(c)
             for seq in s:
                 print(seq)

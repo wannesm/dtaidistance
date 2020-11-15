@@ -19,8 +19,8 @@ def test_numpymatrix():
             [0., 0, 1, 2, 1, 0, 1, 0, 0],
             [0., 1, 2, 0, 0, 0, 0, 0, 0],
             [1., 2, 0, 0, 0, 0, 0, 1, 0]])
-        m = dtw.distance_matrix_fast(s)
-        m2 = dtw.distance_matrix(s)
+        m = dtw.distance_matrix_fast(s, only_triu=True)
+        m2 = dtw.distance_matrix(s, only_triu=True)
         correct = np.array([
             [np.inf, 1.41421356, 1.73205081],
             [np.inf, np.inf,     1.41421356],
@@ -65,8 +65,8 @@ def test_numpymatrix_transpose():
             [0, 0, 1],
             [0, 0, 0]
         ]).T
-        m = dtw.distance_matrix_fast(s)
-        m2 = dtw.distance_matrix(s)
+        m = dtw.distance_matrix_fast(s, only_triu=True)
+        m2 = dtw.distance_matrix(s, only_triu=True)
         correct = np.array([
             [np.inf, 1.41421356, 1.73205081],
             [np.inf, np.inf,     1.41421356],

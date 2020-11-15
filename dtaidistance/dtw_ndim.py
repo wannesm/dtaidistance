@@ -396,7 +396,7 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
 def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
-                    use_c=False, use_mp=False, show_progress=False):
+                    use_c=False, use_mp=False, show_progress=False, only_triu=False):
     """Distance matrix for all n-dimensional sequences in s.
 
     This method returns the dependent DTW (DTW_D) [1] distance between two
@@ -425,6 +425,7 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     :param use_mp: Use Multiprocessing for parallel operations (not OpenMP)
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
+    :param only_triu: Only fill the upper triangle
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
 
     [1] M. Shokoohi-Yekta, B. Hu, H. Jin, J. Wang, and E. Keogh.
@@ -505,17 +506,17 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
         return dists
 
     # Create full matrix and fill upper triangular matrix with distance values (or only block if specified)
-    dists_matrix = distances_array_to_matrix(dists, nb_series=len(s), block=block)
+    dists_matrix = distances_array_to_matrix(dists, nb_series=len(s), block=block, only_triu=only_triu)
 
     return dists_matrix
 
 
 def distance_matrix_fast(s, ndim, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True):
+                         block=None, compact=False, parallel=True, only_triu=False):
     """Fast C version of :meth:`distance_matrix`."""
     _check_library(raise_exception=True, include_omp=parallel)
     return distance_matrix(s, ndim, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, show_progress=False)
+                           use_c=True, show_progress=False, only_triu=only_triu)

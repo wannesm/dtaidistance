@@ -67,6 +67,7 @@ class Hierarchical:
             raise NumpyException("The fit function requires Numpy to be installed.")
         nb_series = len(series)
         cluster_idx = dict()
+        self.dists_options['only_triu'] = True
         dists = self.dists_fun(series, **self.dists_options)
         min_value = np.min(dists)
         min_idxs = np.argwhere(dists == min_value)
