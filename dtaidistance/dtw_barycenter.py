@@ -13,8 +13,9 @@ Dynamic Time Warping (DTW) Barycenter
 import logging
 import math
 import array
+import random
 
-from .dtw import warping_path
+from .dtw import warping_path, distance_matrix
 from . import ed
 from . import util
 from . import util_numpy
@@ -41,22 +42,46 @@ except ImportError:
     np = None
 
 
+def get_good_c(s, mask, nb_initial_samples, use_c=False, **kwargs):
+    if nb_initial_samples > s.shape[0]:
+        nb_initial_samples = s.shape[0]
+    mask_size = np.sum(mask)
+    cs = []
+    randthr = nb_initial_samples / mask_size
+    for i in range(len(s)):
+        if mask[i]:
+            if random.random() <= randthr:
+                cs.append(s[i])
+        if len(cs) == nb_initial_samples:
+            break
+        else:
+            randthr = (nb_initial_samples - len(cs)) / (mask_size - i - 1)
+    d = distance_matrix(cs, use_c=use_c,  **kwargs)
+    d = d.sum(axis=1)
+    best_i = np.argmin(d)
+    return s[best_i]
+
+
 def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
-             keep_averages=False, use_c=False, **kwargs):
+             keep_averages=False, use_c=False, nb_initial_samples=None, **kwargs):
+    if np is None:
+        raise NumpyException('The method dba_loop requires Numpy to be available')
     s = SeriesContainer.wrap(s)
     avg = None
     avgs = None
     if keep_averages:
         avgs = []
+    if mask is None:
+        mask = np.full((len(s),), True, dtype=bool)
     if c is None:
-        # If no initial sequence is given, use the first one.
-        if mask is None:
-            c = s[0]
-        else:
+        if nb_initial_samples is None:
             curi = 0
             while mask[curi] is False:
                 curi += 1
             c = s[curi]
+        else:
+            c = get_good_c(s, mask, nb_initial_samples, use_c=use_c, **kwargs)
+
         # You can also use a constant function, but this gives worse performance.
         # After the first iteration, this will be the average of all
         # sequences. The disadvantage is that this might create e.g. multiple
@@ -65,8 +90,6 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         # in the first average and converge to that as a local optimum.
         # t = s.get_avg_length()
         # c = array.array('d', [0] * t)
-    if mask is None:
-        mask = np.full((len(s),), True, dtype=bool)
     for it in range(max_it):
         logger.debug(f'DBA Iteration {it}')
         if use_c:

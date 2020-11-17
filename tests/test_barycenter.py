@@ -82,7 +82,8 @@ def test_trace():
         print(series.shape)
 
         tic = time.perf_counter()
-        avg = dtw_barycenter.dba_loop(series, c=None, max_it=100, thr=0.000001, use_c=False)
+        avg = dtw_barycenter.dba_loop(series, c=None, max_it=100, thr=0.000001,
+                                      nb_initial_samples=4, use_c=True)
         toc = time.perf_counter()
         print(f'DBA: {toc - tic:0.4f} sec')
 
