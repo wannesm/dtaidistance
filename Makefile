@@ -1,3 +1,8 @@
+
+# BENCHMARKSETTINGS = --ignore=venv -vv --benchmark-autosave --benchmark-storage=file://./benchmark-results --benchmark-disable-gc --benchmark-histogram=./benchmark-results/benchmark_$(shell date +%Y%m%d_%H%M%S) --benchmark-only
+BENCHMARKSETTINGS = --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram=./benchmark-results/benchmark_$(shell date +%Y%m%d_%H%M%S) --benchmark-only
+
+
 .PHONY: default
 default:
 	@echo "Possible actions:"
@@ -22,23 +27,23 @@ testall:
 
 .PHONY: benchmark
 benchmark:
-	export PYTHONPATH=.;py.test --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test ${BENCHMARKSETTINGS}
 
 .PHONY: benchmark-parallelc
 benchmark-parallelc:
-	export PYTHONPATH=.;py.test -k 'matrix1 or distance1' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test -k 'matrix1 or distance1' ${BENCHMARKSETTINGS}
 
 .PHONY: benchmark-distancec
 benchmark-distancec:
-	export PYTHONPATH=.;py.test -k 'distance1' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test -k 'distance1' ${BENCHMARKSETTINGS}
 
 .PHONY: benchmark-matrixc
 benchmark-matrixc:
-	export PYTHONPATH=.;py.test -k 'matrix1 and _c' --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test -k 'matrix1 and _c' ${BENCHMARKSETTINGS}
 
 .PHONY: benchmark-clustering
 benchmark-clustering:
-	export PYTHONPATH=.;py.test -k cluster --ignore=venv -vv --benchmark-autosave --benchmark-disable-gc --benchmark-histogram --benchmark-only
+	export PYTHONPATH=.;py.test -k cluster ${BENCHMARKSETTINGS}
 
 
 .PHONY: clean

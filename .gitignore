@@ -32,3 +32,4 @@ experiments/input
 experiments/output
 experiments/plots
 experiments/tmp
+venv*
