@@ -7,6 +7,7 @@ from pathlib import Path
 
 from dtaidistance import dtw, dtw_ndim, clustering, util_numpy
 import dtaidistance.dtw_visualisation as dtwvis
+from dtaidistance.exceptions import PyClusteringException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -230,8 +231,10 @@ def test_clustering_centroid():
         #     assert (from_idx, to_idx) in [(3, 0), (4, 1), (5, 2), (6, 2), (1, 0), (2, 0)]
         model = clustering.KMedoids(dtw.distance_matrix_fast, {}, k=3,
                                     show_progress=False)
-        cluster_idx = model.fit(s)
-        print(cluster_idx)
+        try:
+            cluster_idx = model.fit(s)
+        except PyClusteringException:
+            return
         # assert cluster_idx[0] == {0, 1, 2, 3, 4, 5, 6}
 
         if not dtwvis.test_without_visualization():
