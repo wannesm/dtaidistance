@@ -207,6 +207,6 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_pair()
-    # test_trace()
-    test_trace_mask()
+    test_trace()
+    # test_trace_mask()
     # test_trace_kmeans()

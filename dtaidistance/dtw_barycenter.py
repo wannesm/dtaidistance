@@ -43,8 +43,8 @@ except ImportError:
 
 
 def get_good_c(s, mask, nb_initial_samples, use_c=False, **kwargs):
-    if nb_initial_samples > s.shape[0]:
-        nb_initial_samples = s.shape[0]
+    if nb_initial_samples > len(s):
+        nb_initial_samples = len(s)
     mask_size = np.sum(mask)
     cs = []
     randthr = nb_initial_samples / mask_size
