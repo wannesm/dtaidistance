@@ -1027,9 +1027,10 @@ void dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSett
  */
 void warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
-    seq_t wps[wps_length];
+    seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, settings);
     dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
+    free(wps);
 }
 
 
