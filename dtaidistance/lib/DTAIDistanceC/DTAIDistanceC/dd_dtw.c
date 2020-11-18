@@ -1511,8 +1511,9 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
  */
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
                   seq_t *c, idx_t t, ba_t *mask, DTWSettings *settings) {
-    seq_t assoctab[t];
-    seq_t assoctab_cnt[t];
+    seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
+    idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
+    
     idx_t r_idx = 0;
     idx_t max_length = 0;
     for (r_idx=0; r_idx<nb_ptrs; r_idx++) {
@@ -1520,9 +1521,9 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
             max_length = lengths[r_idx];
         }
     }
-    
-    idx_t ci[max_length + t];
-    idx_t mi[max_length + t];
+
+    idx_t *ci = (idx_t *)malloc((max_length + t) * sizeof(idx_t));
+    idx_t *mi = (idx_t *)malloc((max_length + t) * sizeof(idx_t));
     idx_t pi;
     seq_t *sequence;
     
@@ -1551,6 +1552,10 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
             c[i] = 0;
         }
     }
+    free(assoctab);
+    free(assoctab_cnt);
+    free(ci);
+    free(mi);
 }
 
 /*!
@@ -1571,11 +1576,11 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
  */
 void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
                     seq_t *c, idx_t t, ba_t *mask, DTWSettings *settings) {
-    seq_t assoctab[t];
-    seq_t assoctab_cnt[t];
+    seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
+    idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
     idx_t r_idx = 0;
-    idx_t ci[nb_cols + t];
-    idx_t mi[nb_cols + t];
+    idx_t *ci = (idx_t *)malloc((nb_cols + t) * sizeof(idx_t));
+    idx_t *mi = (idx_t *)malloc((nb_cols + t) * sizeof(idx_t));
     idx_t pi;
     seq_t *sequence;
     
@@ -1605,6 +1610,10 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
             c[i] = 0;
         }
     }
+    free(assoctab);
+    free(assoctab_cnt);
+    free(ci);
+    free(mi);
 }
 
 // MARK: Auxiliary functions
