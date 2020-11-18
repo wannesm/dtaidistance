@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dtaidistance import dtw_barycenter, util_numpy
 import dtaidistance.dtw_visualisation as dtwvis
-from dtaidistance.exceptions import MatplotlibException
+from dtaidistance.exceptions import MatplotlibException, PyClusteringException
 from dtaidistance.clustering.kmeans import KMeans
 
 
@@ -167,7 +167,10 @@ def test_trace_kmeans():
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=1,
                        dists_options={"window": window},
                        initialize_with_kmedoids=True)
-        cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+        try:
+            cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+        except PyClusteringException:
+            return
         toc = time.perf_counter()
         print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
 
