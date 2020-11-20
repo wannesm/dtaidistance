@@ -76,7 +76,7 @@ def test_trace():
         data = np.loadtxt(rsrc_fn)
         labels = data[:, 0]
         # series = data[:, 1:]
-        series = data[labels == 1, :][:2,:].copy()
+        series = data[labels == 1, 1:][:2,:].copy()
         # c = series[0, :]
         print(type(series))
         print(series.shape)
