@@ -9,6 +9,9 @@ Welcome to DTAIDistance's documentation!
 Library for time series distances (e.g. Dynamic Time Warping) used in
 the `DTAI Research Group <https://dtai.cs.kuleuven.be>`__. The library
 offers a pure Python implementation and a faster implementation in C.
+The C implementation has only Cython as a dependency. It is compatible
+with Numpy and Pandas and implemented to avoid unnecessary data copy
+operations
 
 Citing this work: |DOI|
 
@@ -34,6 +37,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    modules/dtw
    modules/dtw_visualisation
    modules/dtw_ndim
+   modules/dtw_barycenter
    modules/ed
    modules/clustering
 
