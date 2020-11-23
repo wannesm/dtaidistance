@@ -97,7 +97,6 @@ class KMeans(Medoids):
         """
         if dists_options is None:
             dists_options = {}
-        dists_options['compact'] = False
         self.means = [None] * k
         self.max_it = max_it
         self.max_dba_it = max_dba_it
@@ -150,7 +149,7 @@ class KMeans(Medoids):
                 fn_dm = distance_matrix_fast
             else:
                 fn_dm = distance_matrix
-            model = KMedoids(fn_dm, self.dists_options, k=self.k)
+            model = KMedoids(fn_dm, {**self.dists_options, **{'compact': False}}, k=self.k)
             cluster_idx = model.fit(sample)
             self.means = [self.series[idx] for idx in cluster_idx.keys()]
             logger.debug('... Done')
