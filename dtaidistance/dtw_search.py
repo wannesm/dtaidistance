@@ -347,7 +347,6 @@ def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, distParams={}, use_c=
         best_fits = array.array('i', [-1]*len(t))
         for ti in range(len(t)):
             loc, dist = dtw_search_cc.nearest_neighbour_lb_keogh(s, t[ti], **distParams)
-            print(loc, dist)
             best_fits[ti] = loc
     else:
         lb = lb_keogh(s, t, t_envelope, use_c, use_parallel)
