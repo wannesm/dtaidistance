@@ -121,8 +121,8 @@ int deque_empty(deque_t* d) {
 /// "Faster Retrieval with a Two-Pass Dynamic-Time-Warping Lower Bound", Pattern Recognition 42(9), 2009.
 void lower_upper_lemire(seq_t *t, int len, seq_t *l, seq_t *u, DTWSettings *settings) {
     idx_t window = settings->window;
-    if (window == 0) {
-        window = len;
+    if (window == 0 || window > len - 1) {
+        window = len - 1;
     }
     struct deque du, dl;
     int i;
@@ -169,6 +169,126 @@ void lower_upper_lemire(seq_t *t, int len, seq_t *l, seq_t *u, DTWSettings *sett
     }
     deque_free(&du);
     deque_free(&dl);
+}
+
+struct pairs_double {
+  double value;
+  int death;
+};
+
+void lower_upper_ascending_minima(seq_t *t, int len, seq_t *l, seq_t *h, DTWSettings *settings) {
+  idx_t window = settings->window;
+  if (window == 0 || window > len - 1) {
+    window = len - 1;
+  }
+  int i,j,ii;
+  int kk = window*2+1;
+  if(len<1) printf("ERROR: n must be > 0\n");
+
+  /* structs  */
+  struct pairs_double * ring_l;
+  struct pairs_double * minpair;
+  struct pairs_double * end_l;
+  struct pairs_double * last_l;
+
+  struct pairs_double * ring_h;
+  struct pairs_double * maxpair;
+  struct pairs_double * end_h;
+  struct pairs_double * last_h;
+
+
+  /* init l env */
+  ring_l = malloc(kk * sizeof *ring_l);
+  if (!ring_l) printf("ERROR: malloc error\n");
+  end_l  = ring_l + kk;
+  last_l = ring_l;
+  minpair = ring_l;
+  minpair->value = t[0];
+  minpair->death = kk;
+
+
+  /* init upper env */
+  ring_h = malloc(kk * sizeof *ring_h);
+  if (!ring_h) printf("ERROR: malloc error\n");
+  end_h  = ring_h + kk;
+  last_h = ring_h;
+  maxpair = ring_h;
+  maxpair->value = t[0];
+  maxpair->death = kk;
+
+  /* start and main window  */
+  ii = 0;
+  for (i=1;i<=len+window;i++) {
+    if(ii<len-1) ii++;
+    if(i>window){
+      l[i-window-1] = minpair->value;
+      h[i-window-1] = maxpair->value;
+    }
+
+    /* lower */
+    if (minpair->death == i) {
+      minpair++;
+      if (minpair >= end_l) minpair = ring_l;
+    }
+    if (t[ii] <= minpair->value) {
+      minpair->value = t[ii];
+      minpair->death = i+kk;
+      last_l = minpair;
+    } else {
+      while (last_l->value >= t[ii]) {
+        if (last_l == ring_l) last_l = end_l;
+        --last_l;
+      }
+      ++last_l;
+      if (last_l == end_l) last_l = ring_l;
+      last_l->value = t[ii];
+      last_l->death = i+kk;
+    }
+
+    /* upper */
+    if (maxpair->death == i) {
+      maxpair++;
+      if (maxpair >= end_h) maxpair = ring_h;
+    }
+    if (t[ii] >= maxpair->value) {
+      maxpair->value = t[ii];
+      maxpair->death = i+kk;
+      last_h = maxpair;
+    } else {
+      while (last_h->value <= t[ii]) {
+        if (last_h == ring_h) last_h = end_h;
+        --last_h;
+      }
+      ++last_h;
+      if (last_h == end_h) last_h = ring_h;
+      last_h->value = t[ii];
+      last_h->death = i+kk;
+    }
+  }
+  free(ring_l);
+  free(ring_h);
+}
+
+void lower_upper_naive(seq_t *t, int len, seq_t *l, seq_t *u, DTWSettings *settings) {
+    idx_t window = settings->window;
+    if (window == 0) {
+        window = len;
+    }
+    idx_t imin, imax;
+    for (idx_t i=0; i<len; i++) {
+        imin = max(0, i - window);
+        imax = min(i + window + 1, len);
+        u[i] = 0;
+        l[i] = INF;
+        for (idx_t j=imin; j<imax; j++) {
+            if (t[j] > u[i]) {
+                u[i] = t[j];
+            }
+            if (t[j] < l[i]) {
+                l[i] = t[j];
+            }
+        }
+    }
 }
 
 
@@ -378,6 +498,54 @@ seq_t dtw(seq_t* A, seq_t* B, seq_t *cb, int m, double best_so_far, DTWSettings 
 }
 
 
+int nn_lb_keogh(seq_t *data, idx_t data_size, int skip, seq_t *query, seq_t *L, seq_t *U, idx_t query_size, int verbose, idx_t *location, seq_t *distance, DTWSettings *settings) {
+    idx_t m = query_size;
+
+    seq_t bsf = INF;
+    idx_t di;
+    seq_t lb = 0;
+    seq_t score = 0;
+    seq_t skip_size = (skip) ? query_size : 1;
+
+    idx_t i = 0;
+    idx_t loc = 0;
+    int keogh = 0;
+    double t1 = 0, t2;
+    if (verbose) {
+        t1 = clock();
+    }
+
+    for (di=0; di<data_size; di+=skip_size) {
+        lb = lb_keogh_from_envelope(&data[di], query_size, L, U, settings);
+        if (bsf > lb) {
+            settings->use_pruning = true;
+            settings->max_dist = bsf;
+            score = dtw_distance(&data[di], query_size, query, query_size, settings);
+            if (score < bsf) {
+                loc = di;
+                bsf = score;
+            }
+        } else {
+          keogh++;
+        }
+        i++;
+    }
+
+    if (verbose) {
+        t2 = clock();
+        printf("Location : %ld\n", (skip) ? (loc / m) : (loc));
+        printf("Distance : %.6f\n", bsf);
+        printf("Data Scanned : %ld\n", i);
+        printf("Total Execution Time : %.4f secs\n", (t2 - t1) / CLOCKS_PER_SEC);
+        printf("\n");
+        printf("Pruned by LB_Keogh  : %6.2f%%\n", ((double) keogh / i) * 100);
+        printf("DTW Calculation     : %6.2f%%\n", 100 - (((double) keogh) / i * 100));
+    }
+    *location = (skip) ? (loc / m) : (loc);
+    *distance = bsf;
+    return 0;
+}
+
 /// Calculate the nearest neighbor of a times series in a larger time series expressed as location and distance,
 /// using the UCR suite optimizations.
 int ucrdtw(double* data, long long data_size, int skip, double* query, long query_size, int verbose, long long* location, double* distance, DTWSettings *settings) {
@@ -393,7 +561,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
     double ex, ex2, mean, std;
 
     long long loc = 0, loc2 = 0;
-    double t1, t2;
+    double t1 = 0, t2;
     int kim = 0, keogh = 0, keogh2 = 0;
     double dist = 0, lb_kim = 0, lb_k = 0, lb_k2 = 0;
     double *buffer, *u_buff, *l_buff;
@@ -531,7 +699,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
         q[i] = (q[i] - mean) / std;
 
     /// Create envelope of the query: lower envelope, l, and upper envelope, u
-    lower_upper_lemire(q, m, l, u, settings);
+    lower_upper_ascending_minima(q, m, l, u, settings);
 
     /// Sort the query one time by abs(z-norm(q[i]))
     for (i = 0; i < m; i++) {
@@ -587,7 +755,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
         if (ep <= m - 1) {
             done = 1;
         } else {
-            lower_upper_lemire(buffer, ep, l_buff, u_buff, settings);
+            lower_upper_ascending_minima(buffer, ep, l_buff, u_buff, settings);
             /// Do main task here..
             ex = 0;
             ex2 = 0;

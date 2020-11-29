@@ -8,14 +8,13 @@ from .dtw_cc cimport DTWSeriesMatrix, DTWSettings
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
-
 cimport dtaidistancec_dtw_search
 cimport dtaidistancec_dtw
 
 
 def lb_keogh_envelope(double[:] s1,  double[:] L, double[:] U, **kwargs):
     settings = DTWSettings(**kwargs)
-    dtaidistancec_dtw_search.lower_upper_lemire(&s1[0], len(s1), &L[0], &U[0], &settings._settings)
+    dtaidistancec_dtw_search.lower_upper_ascending_minima(&s1[0], len(s1), &L[0], &U[0], &settings._settings)
 
 
 def lb_keogh_envelope_parallel(s1, **kwargs):
@@ -26,7 +25,7 @@ def lb_keogh_envelope_parallel(s1, **kwargs):
     cdef int d
     cdef int l = len(s1)
     for d in prange(l, nogil=True):
-        dtaidistancec_dtw_search.lower_upper_lemire(&matrix._data[d,0], matrix._data.shape[1], &L[d,0], &U[d,0], &settings._settings)
+        dtaidistancec_dtw_search.lower_upper_ascending_minima(&matrix._data[d,0], matrix._data.shape[1], &L[d,0], &U[d,0], &settings._settings)
     return list(zip(list(L.base), list(U.base)))
 
 
@@ -74,12 +73,24 @@ def lb_keogh_parallel(s1, s2, **kwargs):
                 lb[i,j] = dtaidistancec_dtw.lb_keogh(&matrix1._data[i,0], matrix1._data.shape[1], &matrix2._data[j,0], matrix2._data.shape[1], &settings._settings)
     return lb.base
 
+def nearest_neighbour_lb_keogh(data, double[:] query, query_envelope, **kwargs):
+    cdef int verbose = 0
+    cdef int skip = 1
+    cdef Py_ssize_t location = 0
+    cdef double distance = 0
+    cdef DTWSeriesMatrix matrix = data.c_data_compat()
+    cdef double[:] L = query_envelope[0]
+    cdef double[:] U = query_envelope[1]
+    settings = DTWSettings(**kwargs)
+    dtaidistancec_dtw_search.nn_lb_keogh(&matrix._data[0,0], matrix.nb_rows*matrix.nb_cols, skip, &query[0], &L[0], &U[0], len(query), verbose, &location, &distance, &settings._settings)
+    return location, distance
 
-def nearest_neighbour_lb_keogh(data, double[:] query, **kwargs):
-    cdef int verbose = 1
+def nearest_neighbour_ucr(data, double[:] query, **kwargs):
+    cdef int verbose = 0
+    cdef int skip = 1
     cdef long long location = 0
     cdef double distance = 0
     settings = DTWSettings(**kwargs)
     cdef DTWSeriesMatrix matrix = data.c_data_compat()
-    dtaidistancec_dtw_search.ucrdtw(&matrix._data[0,0], matrix.nb_rows*matrix.nb_cols, matrix.nb_cols, &query[0], len(query), verbose, &location, &distance, &settings._settings);
+    dtaidistancec_dtw_search.ucrdtw(&matrix._data[0,0], matrix.nb_rows*matrix.nb_cols, skip, &query[0], len(query), verbose, &location, &distance, &settings._settings);
     return location, distance
