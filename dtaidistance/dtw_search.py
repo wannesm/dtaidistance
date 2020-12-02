@@ -307,7 +307,7 @@ def lb_keogh(s1, s2=None, s2_envelope=None, window=None, parallel=False, use_c=F
     elif parallel and use_mp:
         logger.info("Compute LB Keogh distances in {} (parallel=MP)".format(lang))
         with mp.Pool() as p:
-            lb = p.map(__lb_keogh, [(s1[di], s2[ei], s2_envelope[ei], window, use_c) for (di, ei) in itertools.product(range(len(s1)), range(len(s2_envelope)))])
+            lb = p.starmap(__lb_keogh, [(s1[di], s2[ei], s2_envelope[ei], window, use_c) for (di, ei) in itertools.product(range(len(s1)), range(len(s2_envelope)))])
             lb = np.array(lb).reshape((len(s1), len(s2)))
     else:
         logger.info("Compute LB Keogh distances in {} (parallel=No)".format(lang))
@@ -382,6 +382,7 @@ def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, dist_params={}, use_c
     .. [1] Rakthanmanon, T. et al. Searching and Mining Trillions of Time
      Series Subsequences under Dynamic Time Warping. In proc. of SIGKDD, 2012.
     """
+
     if use_c:
         if dtw_search_cc is None:
             logger.warning("C-library not available, using the Python version")
@@ -433,7 +434,7 @@ def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, dist_params={}, use_c
         s = SeriesContainer.wrap(s)
  
         # Compute LB Keogh
-        lb = lb_keogh(s, t, t_envelope, use_c, parallel)
+        lb = lb_keogh(s, t, t_envelope, dist_params.get('window', None), parallel, use_c, use_mp)
 
         # There is only one query
         if not isinstance(t[0], list_types):
@@ -449,7 +450,7 @@ def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, dist_params={}, use_c
         elif parallel and use_mp:
             logger.info("Compute nearest neighbors in {} (parallel=MP)".format(lang))
             with mp.Pool() as p:
-                return p.starmap(__nearest_neighbor_lb_keogh, [[s, t[ti], lb[:, ti], dist_params, use_c] for ti in range(d)])
+                return p.starmap(__nearest_neighbor_lb_keogh, [(s, t[ti], lb[:, ti], dist_params, use_c) for ti in range(d)])
         else:
             logger.info("Compute nearest neighbors in {} (parallel=No)".format(lang))
             best_fits = array.array('i', [0]*d)

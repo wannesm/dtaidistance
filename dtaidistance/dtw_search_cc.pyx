@@ -94,7 +94,7 @@ def nearest_neighbour_lb_keogh_parallel(data, queries, double[:,:] lb, **kwargs)
     cdef double[:] distances = np.ones(nq) * np.inf
     cdef DTWSeriesMatrix matrix = data.c_data_compat()
     cdef DTWSeriesMatrix qmatrix = queries.c_data_compat()
-    for i in prange(nq, nogil=True):
+    for i in range(nq): #FIXME: does not work with prange
         dtaidistancec_dtw_search.nn_lb_keogh(&matrix._data[0,0], matrix._data.shape[0]*matrix._data.shape[1], &qmatrix._data[i,0], &lb[0,i], lq, verbose, &locations[i], &distances[i], &settings._settings)
     return locations.base
 
