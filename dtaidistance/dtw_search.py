@@ -5,9 +5,9 @@ dtaidistance.dtw_search
 
 Dynamic Time Warping (DTW) Nearest Neighbor Search
 
-This module implementing the LB_Keogh algorithm as a lower bounding measure to
-improve the DTW distance function for nearest neighbor search classification
-in time series data.
+This module implements nearest neighbor search classification in time series
+data using the LB_Keogh algorithm as a lower bounding measure to speed up the
+DTW distance computations.
 
 :author: Pieter Robberechts, Wannes Meert, Kenneth Devloo
 :copyright: Copyright 2020 KU Leuven, DTAI Research Group.
@@ -16,7 +16,6 @@ in time series data.
 """
 import itertools
 import array
-import math
 import logging
 
 from . import util_numpy
@@ -47,7 +46,6 @@ except ImportError:
     array_max = max
 
 
-
 def _check_library(raise_exception=True):
     if dtw_search_cc is None:
         msg = "The compiled dtaidistance C library is not available.\n" + \
@@ -74,6 +72,7 @@ def __lb_keogh_envelope(s, window, use_c):
                 u[i] = array_max(s[imin:imax])
         return l, u
 
+
 def lb_keogh_envelope_fast(data, window=None):
     """Compute time-series envelope as required by LB_Keogh.
 
@@ -93,8 +92,8 @@ def lb_keogh_envelope(s, window=None, parallel=False, use_c=False, use_mp=False)
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
     :param use_mp: Use Multiprocessing for parallel operations (not OpenMP)
-    :returns: Lower-side of the envelope of each series in s.
-    :returns: Upper-side of the envelope of each series in s.
+    :returns: A tuple or list tuples containg the lower- and uppper-side of
+    the envelope of each series in s.
 
     .. seealso:: :method:`lb_keogh`: Compute LB_Keogh similarity
 
@@ -145,68 +144,67 @@ def lb_keogh_envelope(s, window=None, parallel=False, use_c=False, use_mp=False)
     return envelopes
 
 
-
-def __lb_keogh_equal(s1, s2_envelope, use_c):
+def __lb_keogh(s1, s2, s2_envelope, window, use_c):
     """Compute LB Keogh of a single series."""
-    if use_c:
-        return dtw_search_cc.lb_keogh_from_envelope(s1, s2_envelope)
-    lb = 0
-    L, U = s2_envelope
-    for i in range(len(s1)):
-        ci = s1[i]
-        dif = 0
-        if ci > U[i]:
-            dif = ci - U[i]
-        elif ci < L[i]:
-            dif = - ci + L[i]
-        lb += dif
-    return lb
-
-def __lb_keogh_unequal(s1, s2, window, use_c):
-    """Compute LB Keogh of a single series."""
-    l1 = len(s1)
-    l2 = len(s2)
-    window = max(l1, l2) if window is None else window
-    if use_c:
-        return dtw_search_cc.lb_keogh(s1, s2, window=window)
-
-    lb = 0
-    ldiff12 = l1 + 1;
-    if (ldiff12 > l2): 
-        ldiff12 -= l2;
-        if (ldiff12 > window):
-            ldiff12 -= window
-        else: 
-            ldiff12 = 0
+    if s2_envelope is not None:
+        if use_c:
+            return dtw_search_cc.lb_keogh_from_envelope(s1, s2_envelope)
+        lb = 0
+        L, U = s2_envelope
+        for i in range(len(s1)):
+            ci = s1[i]
+            dif = 0
+            if ci > U[i]:
+                dif = ci - U[i]
+            elif ci < L[i]:
+                dif = - ci + L[i]
+            lb += dif
+        return lb
     else:
-        ldiff12 = 0
-    ldiff21 = l2 + window
-    if (ldiff21 > l1):
-        ldiff21 -= l1
-    else:
-        ldiff21 = 0
+        l1 = len(s1)
+        l2 = len(s2)
+        window = max(l1, l2) if window is None else window
+        if use_c:
+            return dtw_search_cc.lb_keogh(s1, s2, window=window)
 
-    for i in range(l1):
-        if (i > ldiff12):
-            imin = i - ldiff12
+        lb = 0
+        ldiff12 = l1 + 1;
+        if (ldiff12 > l2): 
+            ldiff12 -= l2;
+            if (ldiff12 > window):
+                ldiff12 -= window
+            else: 
+                ldiff12 = 0
         else:
-            imin = 0
-        imax = max(l2, ldiff21)
-        ui = array_max(s2[imin:imax])
-        li = array_min(s2[imin:imax])
-        ci = s1[i]
-        if (ci > ui):
-            lb += ci - ui
-        elif (ci < li):
-            lb += li - ci
-    return lb
+            ldiff12 = 0
+        ldiff21 = l2 + window
+        if (ldiff21 > l1):
+            ldiff21 -= l1
+        else:
+            ldiff21 = 0
+
+        for i in range(l1):
+            if (i > ldiff12):
+                imin = i - ldiff12
+            else:
+                imin = 0
+            imax = max(l2, ldiff21)
+            ui = array_max(s2[imin:imax])
+            li = array_min(s2[imin:imax])
+            ci = s1[i]
+            if (ci > ui):
+                lb += ci - ui
+            elif (ci < li):
+                lb += li - ci
+        return lb
+
 
 def lb_keogh_fast(s1, s2=None, s2_envelope=None, window=None):
     """Compute LB_Keogh distance.
 
     .. seealso:: :method:`lb_keogh`
     """
-    return lb_keogh(s1, s2, s2_envelop, window, True, True)
+    return lb_keogh(s1, s2, s2_envelope, window, True, True)
 
 
 def lb_keogh(s1, s2=None, s2_envelope=None, window=None, parallel=False, use_c=False, use_mp=False):
@@ -249,41 +247,54 @@ def lb_keogh(s1, s2=None, s2_envelope=None, window=None, parallel=False, use_c=F
     else:
         mp = None
 
-    # Check whether all series are of equal length
+    # Check whether s1 and s2 are iterators and 
+    # whether all series are of equal length
     if isinstance(s1[0], list_types):
         l1 = [len(s) for s in s1]
+        s1_iterator = True
     else:
         l1 = [len(s1)]
+        s1_iterator = False
     if s2 is not None and isinstance(s2[0], list_types):
         l2 = [len(s) for s in s2]
+        s2_iterator = True
     elif s2 is not None:
         l2 = [len(s2)]
+        s2_iterator = False
     elif s2_envelope is not None and isinstance(s2_envelope[0][0], list_types):
         l2 = [len(l) for (l, _) in s2_envelope]
+        s2_iterator = True
     else:
         l2 = [len(s2_envelope[0])]
+        s2_iterator = False
     equal_series = all(l == l1[0] for l in l1 + l2)
 
-    # Compute the envelopes
+    # Precompute the envelopes if all input series are equal in length
     if s2_envelope is None and equal_series:
+        logger.info('Precomputing LB Keogh envelope for each series in s2')
         s2_envelope = lb_keogh_envelope(s2, window, parallel, use_c)
     elif s2_envelope is not None and not equal_series:
         raise ValueError("If you provide an envelope, all series should be equal in lenght.")
 
     # Both s1 and s2(_envelope) are a single series
-    if (not isinstance(s1[0], list_types) and s2 is not None and not isinstance(s2[0], list_types)
-            or s2_envelope and len(s2_envelope) == 2
-            and not isinstance(s2_envelope[0][0], list_types)):
-        if equal_series:
-            logger.info('Computing LB Keogh distance between two series of equal lenghts')
-            return __lb_keogh_equal(s1, s2_envelope, use_c)
-        else:
-            logger.info('Computing LB Keogh distance between two series of unequal lenghts')
-            return __lb_keogh_unequal(s1, s2, window, use_c)
+    if (not s1_iterator and not s2_iterator):
+        return __lb_keogh(s1, s2, s2_envelope, window, use_c)
 
-    s1 = SeriesContainer.wrap(s1)
-    if s2 is not None:
-        s2 = SeriesContainer.wrap(s2)
+    # Make user s1, s2 and s2_envelope are iterators
+    if not s1_iterator:
+        s1 = [s1]
+    if s2 is None:
+        s2 = [None] * len(l2)
+    elif not s2_iterator:
+        s2 = [s2]
+    if s2_envelope is None:
+        s2_envelope = [None] * len(l2)
+    elif not s2_iterator:
+        s2_envelope = [s2_envelope]
+
+    # Compute distance between each pair of timeseries
+    s1 = SeriesContainer.wrap(np.asarray(s1))
+    s2 = SeriesContainer.wrap(np.asarray(s2))   # FIXME: only compatible with DTWSeriesMatrix for now
     d = len(s1)
 
     lang = 'C' if use_c else 'Python'
@@ -296,70 +307,153 @@ def lb_keogh(s1, s2=None, s2_envelope=None, window=None, parallel=False, use_c=F
     elif parallel and use_mp:
         logger.info("Compute LB Keogh distances in {} (parallel=MP)".format(lang))
         with mp.Pool() as p:
-            if equal_series:
-                lb = p.map(__lb_keogh_equal, [(s1[di], s2_envelope[ei], use_c) for (di, ei) in itertools.product(range(len(s1)), range(len(s2_envelope)))])
-            else:
-                lb = p.map(__lb_keogh_unequal, [(s1[di], s2[ei], window, use_c) for (di, ei) in itertools.product(range(len(s1)), range(len(s2)))])
+            lb = p.map(__lb_keogh, [(s1[di], s2[ei], s2_envelope[ei], window, use_c) for (di, ei) in itertools.product(range(len(s1)), range(len(s2_envelope)))])
             lb = np.array(lb).reshape((len(s1), len(s2)))
     else:
         logger.info("Compute LB Keogh distances in {} (parallel=No)".format(lang))
-        lb = np.zeros((d, len(s2_envelope) if s2_envelope else len(s2)))
+        lb = np.zeros((d, len(l2)))
         for di in range(d):
-            for ei in range(len(s2_envelope) if s2_envelope else len(s2)):
-                if equal_series:
-                    lb[di, ei] = __lb_keogh_equal(s1[di], s2_envelope[ei], use_c)
-                else:
-                    lb[di, ei] = __lb_keogh_unequal(s1[di], s2[ei], window, use_c)
+            for ei in range(len(l2)):
+                    lb[di, ei] = __lb_keogh(s1[di], s2[ei], s2_envelope[ei], window, use_c)
 
-    return lb
+    return lb.copy(order='F') #FIXME: this is needed to make the C version of __nearest_neighbor_lb_keogh work properly
 
 
-def nearest_neighbour_lb_keogh_fast(data, target, t_envelope, distParams={}):
+def __nearest_neighbor_lb_keogh(s, t, lb, dist_params, use_c):
+    """Compute nearest neighbor with LB Keogh pruning for a single query series."""
+    if use_c:
+        loc, _ = dtw_search_cc.nearest_neighbour_lb_keogh(s, t, lb, **dist_params)
+    else:
+        loc = 0
+        best_score_so_far = np.inf
+        for di in range(len(s)):
+            if best_score_so_far > lb[di]:
+                score = distance(s[di], t, max_dist=best_score_so_far, **dist_params)
+                if score < best_score_so_far:
+                    best_score_so_far = score
+                    loc = di
+    return loc
+
+
+def __nearest_neighbor_lb_keogh_subsequence(s, t, t_envelope, dist_params, use_c, use_ucr):
+    """Compute nearest neighbor subsequence with LB Keogh pruning for a single query series."""
+    if use_c:
+        loc, _ = dtw_search_cc.nearest_neighbour_lb_keogh_subsequence(s, t, t_envelope[0], t_envelope[1], use_ucr, **dist_params)
+    else:
+        loc = 0
+        best_score_so_far = np.inf
+        for di in range(0, len(s)-len(t)+1):
+            lb = __lb_keogh(s[di:di+len(t)], None, t_envelope, None, use_c=use_c)
+            if best_score_so_far > lb:
+                score = distance(s[di:di+len(t)], t, **dist_params, max_dist=best_score_so_far)
+                if score < best_score_so_far:
+                    best_score_so_far = score
+                    loc = di
+    return loc
+
+
+ 
+def nearest_neighbour_lb_keogh_fast(data, target, t_envelope, dist_params={}):
+    """LB Keogh nearest neighbour (1NN)
+
+    .. seealso:: :method:`nearest_neighbour_lb_keogh`
     """
-    lb_keogh nearest neighbour_fast (1NN)
-    See nearest_neighbour_lb_keogh
-    """
-    return nearest_neighbour_lb_keogh(data, target, t_envelope, distParams, True, True)
+    return nearest_neighbour_lb_keogh(data, target, t_envelope, dist_params, True, True)
 
 
-def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, distParams={}, use_c=False, use_parallel=False):
-    """
-    lb_keogh nearest neighbour (1NN)
-    Return 1NN result,s ped up by early stopping and lower bound
-    :param data: 2D Array of 1D time series
-    :param L: Lower envelope part, calculated by lb_keogh_envelopes
-    :param U: Upper envelope part, calculated by lb_keogh_envelopes
-    :param distParams: Distance function paraneters. For correctness, 'window' should match the envelope window
+def nearest_neighbour_lb_keogh(s, t=None, t_envelope=None, dist_params={}, use_c=False, parallel=False, use_mp=False, use_ucr=False):
+    """LB Keogh nearest neighbour (1NN)
+
+    :param s: 2D Array of 1D series or 1D series for subsequence search.
+    :param t: A series or iterable of query series. None means the
+        envelope is provided via `t_envelope` parameter and hence does not
+        need to be computed again.
+    :param t_envelope: Pre-computed envelope(s) of the query series.
+        If set to None, it is computed based on `t`.
+    :param dist_params: Distance function paraneters. For correctness, 'window' should match the envelope window.
     :param use_c: Use fast pure c compiled functions
-    :param use_parallel: Use fast parallel version (only in C version)
-    Returns: 1D array of nearest neighbours indices from the envelopes
+    :param parallel: Use fast parallel version (only in C version)
+    :param use_mp: Use Multiprocessing for parallel operations (not OpenMP)
+    :param use_ucr: Uses the UCR Suite optimizations for fast subsequence search. Only supported in the C version.
+    :returns: 1D array of nearest neighbours indices from `t` or `t_envelope`.
+
+    :References:
+
+    .. [1] Rakthanmanon, T. et al. Searching and Mining Trillions of Time
+     Series Subsequences under Dynamic Time Warping. In proc. of SIGKDD, 2012.
     """
     if use_c:
         if dtw_search_cc is None:
             logger.warning("C-library not available, using the Python version")
             use_c = False
-
-    s = SeriesContainer.wrap(s)
-    t = SeriesContainer.wrap(t)
-    d = len(s)
-
-    if use_c:
-        best_fits = array.array('i', [-1]*len(t))
-        for ti in range(len(t)):
-            loc, dist = dtw_search_cc.nearest_neighbour_lb_keogh(s, t[ti], **distParams)
-            best_fits[ti] = loc
+    if parallel and (use_mp or not use_c):
+        try:
+            import multiprocessing as mp
+            logger.info('Using multiprocessing')
+        except ImportError:
+            msg = 'Cannot load multiprocessing'
+            logger.error(msg)
+            raise Exception(msg)
     else:
-        lb = lb_keogh(s, t, t_envelope, use_c, use_parallel)
-        best_fits = array.array('i', [0]*len(t))
+        mp = None
 
-        for ti in range(len(t)):
-            best_score_so_far = np.inf
-            for di in range(d):
-                if best_score_so_far > lb[di, ti]:
-                    score = distance(s[di], t[ti], **distParams, max_dist=best_score_so_far)
-                    if score < best_score_so_far:
-                        best_score_so_far = score
-                        best_fits[ti] = di
 
-    return best_fits
+    if not isinstance(s[0], list_types):
+        logger.info("Starting subsequence nearest neighbors search")
+
+        if t_envelope is None and not use_ucr:
+            t_envelope = lb_keogh_envelope(t, dist_params.get('window', None), parallel, use_c, use_mp)
+
+        # There is only one query
+        if not isinstance(t[0], list_types):
+            return __nearest_neighbor_lb_keogh_subsequence(s, t, t_envelope, dist_params, use_c, use_ucr)
+
+        t = SeriesContainer.wrap(t)
+        d = len(t)
+        t_envelope = [(np.array([np.nan]), np.array([np.nan]))] * len(t) if t_envelope is None else t_envelope #FIXME
+
+        lang = 'C' if use_c else 'Python'
+        if use_c and parallel and not use_mp:
+            logger.info("Compute nearest neighbors in C (parallel=OMP)")
+            return dtw_search_cc.nearest_neighbour_lb_keogh_subsequence_parallel(s, t, t_envelope, use_ucr, **dist_params)
+        elif parallel and use_mp:
+            logger.info("Compute nearest neighbors in {} (parallel=MP)".format(lang))
+            with mp.Pool() as p:
+                return p.starmap(__nearest_neighbor_lb_keogh_subsequence, [(s, t[ti], t_envelope[ti], dist_params, use_c, use_ucr) for ti in range(d)])
+        else:
+            logger.info("Compute nearest neighbors in {} (parallel=No)".format(lang))
+            best_fits = array.array('i', [0]*d)
+            for ti in range(d):
+                best_fits[ti] = __nearest_neighbor_lb_keogh_subsequence(s, t[ti], t_envelope[ti], dist_params, use_c, use_ucr)
+            return best_fits
+
+    else:
+        logger.info("Starting nearest neighbors search")
+
+        s = SeriesContainer.wrap(s)
+ 
+        # Compute LB Keogh
+        lb = lb_keogh(s, t, t_envelope, use_c, parallel)
+
+        # There is only one query
+        if not isinstance(t[0], list_types):
+            return __nearest_neighbor_lb_keogh(s, t, lb[:, 0], dist_params, use_c)
+
+        t = SeriesContainer.wrap(t)
+        d = len(t)
+
+        lang = 'C' if use_c else 'Python'
+        if use_c and parallel and not use_mp:
+            logger.info("Compute nearest neighbors in C (parallel=OMP)")
+            return dtw_search_cc.nearest_neighbour_lb_keogh_parallel(s, t, lb, **dist_params)
+        elif parallel and use_mp:
+            logger.info("Compute nearest neighbors in {} (parallel=MP)".format(lang))
+            with mp.Pool() as p:
+                return p.starmap(__nearest_neighbor_lb_keogh, [[s, t[ti], lb[:, ti], dist_params, use_c] for ti in range(d)])
+        else:
+            logger.info("Compute nearest neighbors in {} (parallel=No)".format(lang))
+            best_fits = array.array('i', [0]*d)
+            for ti in range(d):
+                best_fits[ti] = __nearest_neighbor_lb_keogh(s, t[ti, :], lb[:, ti], dist_params, use_c)
+            return best_fits
 

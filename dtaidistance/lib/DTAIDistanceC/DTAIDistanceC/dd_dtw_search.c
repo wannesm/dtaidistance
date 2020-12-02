@@ -498,14 +498,10 @@ seq_t dtw(seq_t* A, seq_t* B, seq_t *cb, int m, double best_so_far, DTWSettings 
 }
 
 
-int nn_lb_keogh(seq_t *data, idx_t data_size, int skip, seq_t *query, seq_t *L, seq_t *U, idx_t query_size, int verbose, idx_t *location, seq_t *distance, DTWSettings *settings) {
-    idx_t m = query_size;
-
+int nn_lb_keogh(seq_t *data, idx_t data_size, seq_t *query, seq_t *lb, idx_t query_size, int verbose, idx_t *location, seq_t *distance, DTWSettings *settings) {
     seq_t bsf = INF;
     idx_t di;
-    seq_t lb = 0;
     seq_t score = 0;
-    seq_t skip_size = (skip) ? query_size : 1;
 
     idx_t i = 0;
     idx_t loc = 0;
@@ -515,10 +511,52 @@ int nn_lb_keogh(seq_t *data, idx_t data_size, int skip, seq_t *query, seq_t *L, 
         t1 = clock();
     }
 
-    for (di=0; di<data_size; di+=skip_size) {
-        lb = lb_keogh_from_envelope(&data[di], query_size, L, U, settings);
+    for (di=0; di<data_size-query_size+1; di+=query_size) {
+        if (bsf > lb[i]) {
+            settings->max_dist = bsf;
+            score = dtw_distance(&data[di], query_size, query, query_size, settings);
+            if (score < bsf) {
+                loc = i;
+                bsf = score;
+            }
+        } else {
+          keogh++;
+        }
+        i++;
+    }
+
+    if (verbose) {
+        t2 = clock();
+        printf("Location : %ld\n", loc);
+        printf("Distance : %.6f\n", bsf);
+        printf("Data Scanned : %ld\n", i);
+        printf("Total Execution Time : %.4f secs\n", (t2 - t1) / CLOCKS_PER_SEC);
+        printf("\n");
+        printf("Pruned by LB_Keogh  : %6.2f%%\n", ((double) keogh / i) * 100);
+        printf("DTW Calculation     : %6.2f%%\n", 100 - (((double) keogh) / i * 100));
+    }
+    *location = loc;
+    *distance = bsf;
+    return 0;
+}
+
+int nn_lb_keogh_subsequence(seq_t *data, idx_t data_size, seq_t *query, seq_t *l, seq_t *u, idx_t query_size, int verbose, idx_t *location, seq_t *distance, DTWSettings *settings) {
+    seq_t bsf = INF;
+    idx_t di;
+    seq_t score = 0;
+
+    idx_t i = 0;
+    idx_t loc = 0;
+    seq_t lb;
+    int keogh = 0;
+    double t1 = 0, t2;
+    if (verbose) {
+        t1 = clock();
+    }
+
+    for (di=0; di<data_size-query_size+1; di++) {
+        lb = lb_keogh_from_envelope(&data[di], query_size, l, u, settings);
         if (bsf > lb) {
-            settings->use_pruning = true;
             settings->max_dist = bsf;
             score = dtw_distance(&data[di], query_size, query, query_size, settings);
             if (score < bsf) {
@@ -533,7 +571,7 @@ int nn_lb_keogh(seq_t *data, idx_t data_size, int skip, seq_t *query, seq_t *L, 
 
     if (verbose) {
         t2 = clock();
-        printf("Location : %ld\n", (skip) ? (loc / m) : (loc));
+        printf("Location : %ld\n", loc);
         printf("Distance : %.6f\n", bsf);
         printf("Data Scanned : %ld\n", i);
         printf("Total Execution Time : %.4f secs\n", (t2 - t1) / CLOCKS_PER_SEC);
@@ -541,14 +579,14 @@ int nn_lb_keogh(seq_t *data, idx_t data_size, int skip, seq_t *query, seq_t *L, 
         printf("Pruned by LB_Keogh  : %6.2f%%\n", ((double) keogh / i) * 100);
         printf("DTW Calculation     : %6.2f%%\n", 100 - (((double) keogh) / i * 100));
     }
-    *location = (skip) ? (loc / m) : (loc);
+    *location = loc;
     *distance = bsf;
     return 0;
 }
 
 /// Calculate the nearest neighbor of a times series in a larger time series expressed as location and distance,
 /// using the UCR suite optimizations.
-int ucrdtw(double* data, long long data_size, int skip, double* query, long query_size, int verbose, long long* location, double* distance, DTWSettings *settings) {
+int ucrdtw(double* data, long long data_size, int skip, double* query, long query_size, int verbose, idx_t* location, double* distance, DTWSettings *settings) {
     long m = query_size;
 
     double bsf; /// best-so-far
@@ -560,7 +598,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
     long long i, j;
     double ex, ex2, mean, std;
 
-    long long loc = 0, loc2 = 0;
+    idx_t loc = 0, loc2 = 0;
     double t1 = 0, t2;
     int kim = 0, keogh = 0, keogh2 = 0;
     double dist = 0, lb_kim = 0, lb_k = 0, lb_k2 = 0;
@@ -789,54 +827,53 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
                         loc2 = (it)*(EPOCH-m+1) + i-m+1;
                     if (!skip || (skip & (loc2 % m == 0))){
 
-                    /// Use a constant lower bound to prune the obvious subsequence
-                    lb_kim = lb_kim_hierarchy(t, q, j, m, mean, std, bsf);
+                        /// Use a constant lower bound to prune the obvious subsequence
+                        lb_kim = lb_kim_hierarchy(t, q, j, m, mean, std, bsf);
 
-                    if (lb_kim < bsf) {
-                        /// Use a linear time lower bound to prune; z_normalization of t will be computed on the fly.
-                        /// uo, lo are envelope of the query.
-                        lb_k = lb_keogh_cumulative(order, t, uo, lo, cb1, j, m, mean, std, bsf);
-                        if (lb_k < bsf) {
-                            /// Take another linear time to compute z_normalization of t.
-                            /// Note that for better optimization, this can merge to the previous function.
-                            for (k = 0; k < m; k++) {
-                                tz[k] = (t[(k + j)] - mean) / std;
-                            }
-
-                            /// Use another lb_keogh to prune
-                            /// qo is the sorted query. tz is unsorted z_normalized data.
-                            /// l_buff, u_buff are big envelope for all data in this chunk
-                            lb_k2 = lb_keogh_data_cumulative(order, tz, qo, cb2, l_buff + I, u_buff + I, m, mean, std, bsf);
-                            if (lb_k2 < bsf) {
-                                /// Choose better lower bound between lb_keogh and lb_keogh2 to be used in early abandoning DTW
-                                /// Note that cb and cb2 will be cumulative summed here.
-                                if (lb_k > lb_k2) {
-                                    cb[m - 1] = cb1[m - 1];
-                                    for (k = m - 2; k >= 0; k--)
-                                        cb[k] = cb[k + 1] + cb1[k];
-                                } else {
-                                    cb[m - 1] = cb2[m - 1];
-                                    for (k = m - 2; k >= 0; k--)
-                                        cb[k] = cb[k + 1] + cb2[k];
+                        if (lb_kim < bsf) {
+                            /// Use a linear time lower bound to prune; z_normalization of t will be computed on the fly.
+                            /// uo, lo are envelope of the query.
+                            lb_k = lb_keogh_cumulative(order, t, uo, lo, cb1, j, m, mean, std, bsf);
+                            if (lb_k < bsf) {
+                                /// Take another linear time to compute z_normalization of t.
+                                /// Note that for better optimization, this can merge to the previous function.
+                                for (k = 0; k < m; k++) {
+                                    tz[k] = (t[(k + j)] - mean) / std;
                                 }
 
-                                /// Compute DTW and early abandoning if possible
-                                settings->use_pruning = true;
-                                settings->max_dist = bsf;
-                                dist = dtw_distance(tz, m, q, m, settings);
-                                // dist = dtw(tz, q, cb, m, bsf, settings);
+                                /// Use another lb_keogh to prune
+                                /// qo is the sorted query. tz is unsorted z_normalized data.
+                                /// l_buff, u_buff are big envelope for all data in this chunk
+                                lb_k2 = lb_keogh_data_cumulative(order, tz, qo, cb2, l_buff + I, u_buff + I, m, mean, std, bsf);
+                                if (lb_k2 < bsf) {
+                                    /// Choose better lower bound between lb_keogh and lb_keogh2 to be used in early abandoning DTW
+                                    /// Note that cb and cb2 will be cumulative summed here.
+                                    if (lb_k > lb_k2) {
+                                        cb[m - 1] = cb1[m - 1];
+                                        for (k = m - 2; k >= 0; k--)
+                                            cb[k] = cb[k + 1] + cb1[k];
+                                    } else {
+                                        cb[m - 1] = cb2[m - 1];
+                                        for (k = m - 2; k >= 0; k--)
+                                            cb[k] = cb[k + 1] + cb2[k];
+                                    }
 
-                                if (dist < bsf) {   /// Update best_so_far
-                                                    /// loc is the real starting location of the nearest neighbor in the file
-                                    bsf = dist;
-                                    loc = (it) * (EPOCH - m + 1) + i - m + 1;
-                                }
+                                    /// Compute DTW and early abandoning if possible
+                                    settings->max_dist = bsf;
+                                    dist = dtw_distance(tz, m, q, m, settings);
+                                    // dist = dtw(tz, q, cb, m, bsf, settings);
+
+                                    if (dist < bsf) {   /// Update best_so_far
+                                                        /// loc is the real starting location of the nearest neighbor in the file
+                                        bsf = dist;
+                                        loc = (it) * (EPOCH - m + 1) + i - m + 1;
+                                    }
+                                } else
+                                    keogh2++;
                             } else
-                                keogh2++;
+                                keogh++;
                         } else
-                            keogh++;
-                    } else
-                        kim++;
+                            kim++;
                     }
 
                     /// Reduce absolute points from sum and sum square
@@ -876,7 +913,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
 
     if (verbose) {
         t2 = clock();
-        printf("Location : %lld\n", (skip) ? (loc / m) : (loc));
+        printf("Location : %ld\n", (skip) ? (loc / m) : (loc));
         printf("Distance : %.6f\n", sqrt(bsf));
         printf("Data Scanned : %lld\n", i);
         printf("Total Execution Time : %.4f secs\n", (t2 - t1) / CLOCKS_PER_SEC);
@@ -886,7 +923,7 @@ int ucrdtw(double* data, long long data_size, int skip, double* query, long quer
         printf("Pruned by LB_Keogh2 : %6.2f%%\n", ((double) keogh2 / i) * 100);
         printf("DTW Calculation     : %6.2f%%\n", 100 - (((double) kim + keogh + keogh2) / i * 100));
     }
-    *location = (skip) ? (loc / m) : (loc);
+    *location = (idx_t)((skip) ? (loc / m) : (loc));
     *distance = sqrt(bsf);
     return 0;
 }
