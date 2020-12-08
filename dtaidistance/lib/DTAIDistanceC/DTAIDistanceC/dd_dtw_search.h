@@ -1,3 +1,4 @@
+#include <math.h>
 #include "dd_dtw.h"
 
 

@@ -17,6 +17,7 @@ DTW distance computations.
 import itertools
 import array
 import logging
+import math
 
 from . import util_numpy
 from .dtw import distance
@@ -149,17 +150,17 @@ def __lb_keogh(s1, s2, s2_envelope, window, use_c):
     if s2_envelope is not None:
         if use_c:
             return dtw_search_cc.lb_keogh_from_envelope(s1, s2_envelope)
-        lb = 0
-        L, U = s2_envelope
+
+        l, u = s2_envelope
+        t = 0
         for i in range(len(s1)):
             ci = s1[i]
-            dif = 0
-            if ci > U[i]:
-                dif = ci - U[i]
-            elif ci < L[i]:
-                dif = - ci + L[i]
-            lb += dif
-        return lb
+            if (ci > u[i]):
+                t += (ci - u[i]) ** 2
+            elif (ci < l[i]):
+                t += (l[i] - ci) ** 2
+        return math.sqrt(t)
+
     else:
         l1 = len(s1)
         l2 = len(s2)
@@ -345,7 +346,7 @@ def __nearest_neighbor_lb_keogh_subsequence(s, t, t_envelope, dist_params, use_c
         for di in range(0, len(s)-len(t)+1):
             lb = __lb_keogh(s[di:di+len(t)], None, t_envelope, None, use_c=use_c)
             if best_score_so_far > lb:
-                score = distance(s[di:di+len(t)], t, **dist_params, max_dist=best_score_so_far)
+                score = distance(s[di:di+len(t)], t, max_dist=best_score_so_far, **dist_params)
                 if score < best_score_so_far:
                     best_score_so_far = score
                     loc = di

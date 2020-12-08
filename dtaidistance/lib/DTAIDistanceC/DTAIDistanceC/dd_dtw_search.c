@@ -302,12 +302,12 @@ seq_t lb_keogh_from_envelope(seq_t *s1, idx_t l1, seq_t *l, seq_t *u, DTWSetting
     for (idx_t i=0; i<l1; i++) {
         ci = s1[i];
         if (ci > u[i]) {
-            t += ci - u[i];
+            t += pow(ci - u[i], 2);
         } else if (ci < l[i]) {
-            t += l[i] - ci;
+            t += pow(l[i] - ci, 2);
         }
     }
-    return t;
+    return sqrt(t);
 }
 
 /// Calculate quick lower bound
