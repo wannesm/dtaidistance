@@ -77,7 +77,8 @@ def _dba_loop_with_params(t):
 
 class KMeans(Medoids):
     def __init__(self, k, max_it=10, max_dba_it=10, thr=0.0001, drop_stddev=None,
-                 dists_options=None, show_progress=True, initialize_with_kmedoids=True):
+                 dists_options=None, show_progress=True,
+                 initialize_with_kmedoids=False, initialize_with_kmeanspp=True):
         """K-means clustering algorithm for time series using Dynamic Barycenter
         Averaging.
 
@@ -94,6 +95,7 @@ class KMeans(Medoids):
         :param show_progress:
         :param initialize_with_kmedoids: Cluster a sample of the dataset first using
             K-medoids.
+        :param initialize_with_kmeanspp: Use k-means++
         """
         if dists_options is None:
             dists_options = {}
@@ -104,7 +106,58 @@ class KMeans(Medoids):
         self.drop_stddev = drop_stddev
         self.initialize_with_kmedoids = initialize_with_kmedoids
         self.initialize_with_kmedoids_sample_size = k * 20
+        self.initialize_with_kmeanspp = initialize_with_kmeanspp
         super().__init__(None, dists_options, k, show_progress)
+
+    def kmedoids_centers(self, series, use_c=False):
+        logger.debug('Start K-medoid initialization ... ')
+        sample_size = min(self.initialize_with_kmedoids_sample_size, len(self.series))
+        indices = np.random.choice(range(0, len(self.series)), sample_size, replace=False)
+        sample = self.series[indices, :].copy()
+        if use_c:
+            fn_dm = distance_matrix_fast
+        else:
+            fn_dm = distance_matrix
+        model = KMedoids(fn_dm, {**self.dists_options, **{'compact': False}}, k=self.k)
+        cluster_idx = model.fit(sample)
+        means = [self.series[idx] for idx in cluster_idx.keys()]
+        logger.debug('... Done')
+        return means
+
+    def kmeansplusplus_centers(self, series, use_c=False):
+        if np is None:
+            raise NumpyException("Numpy is required for the KMeans.kmeansplusplus_centers method.")
+        logger.debug('Start K-means++ initialization ... ')
+        indices = []
+        means = []
+        dists = np.full((self.k - 1, len(series)), np.inf)
+        min_dists = np.zeros((len(series),))
+        # First center is chosen randomly
+        idx = np.random.randint(0, len(series))
+        indices.append(idx)
+        if use_c:
+            fn = distance_matrix_fast
+        else:
+            fn = distance_matrix
+
+        for k_idx in range(1, self.k):
+            # Compute the distance between each series and the nearest center that has already been chosen.
+            res = fn(series, block=((0, idx), (idx, idx + 1)), compact=True, **self.dists_options)
+            dists[k_idx - 1, 0:idx] = res
+            dists[k_idx - 1, idx] = 0
+            res = fn(series, block=((idx, idx + 1), (0, len(series))), compact=True, **self.dists_options)
+            dists[k_idx - 1, idx + 1:len(series)] = res
+            # Choose one new series at random as a new center, using a weighted probability distribution
+            min_dists = np.min(dists, axis=0)
+            min_dists = np.square(min_dists)
+            min_dists /= np.sum(min_dists)
+            idx = np.random.choice(len(min_dists), size=1, replace=False, p=min_dists)[0]
+            indices.append(idx)
+
+        means = [series[i] for i in indices]
+        assert(len(means) == self.k)
+        logger.debug('... Done')
+        return means
 
     def fit_fast(self, series):
         return self.fit(series, use_c=True, use_parallel=True)
@@ -140,19 +193,10 @@ class KMeans(Medoids):
             fn = _distance_with_params
 
         # Initialisations
-        if self.initialize_with_kmedoids:
-            logger.debug('Start K-medoid initialization ... ')
-            sample_size = min(self.initialize_with_kmedoids_sample_size, len(self.series))
-            indices = np.random.choice(range(0, len(self.series)), sample_size, replace=False)
-            sample = self.series[indices, :].copy()
-            if use_c:
-                fn_dm = distance_matrix_fast
-            else:
-                fn_dm = distance_matrix
-            model = KMedoids(fn_dm, {**self.dists_options, **{'compact': False}}, k=self.k)
-            cluster_idx = model.fit(sample)
-            self.means = [self.series[idx] for idx in cluster_idx.keys()]
-            logger.debug('... Done')
+        if self.initialize_with_kmeanspp:
+            self.means = self.kmeansplusplus_centers(series, use_c=use_c)
+        elif self.initialize_with_kmedoids:
+            self.means = self.kmedoids_centers(series, use_c=use_c)
         else:
             indices = np.random.choice(range(0, len(self.series)), self.k, replace=False)
             self.means = [self.series[random.randint(0, len(self.series) - 1)] for _ki in indices]
