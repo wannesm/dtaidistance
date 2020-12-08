@@ -8,6 +8,9 @@ dtw_cc*.{so,pyd}
 ed_cc*.c
 ed_cc*.py
 ed_cc*.{so,pyd}
+dtw_search_cc*.c
+dtw_search_cc*.py
+dtw_search_cc*.{so,pyd}
 util_numpy_cc*.c
 util_numpy_cc*.py
 util_numpy_cc*.{so,pyd}

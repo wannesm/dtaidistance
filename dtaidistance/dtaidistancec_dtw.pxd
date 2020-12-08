@@ -38,7 +38,7 @@ cdef extern from "dd_dtw.h":
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)
     seq_t ub_euclidean_ndim(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, int ndim)
-    seq_t lb_keogh(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, DTWSettings *settings)
+    seq_t lb_keogh(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, DTWSettings *settings) nogil
 
     void dtw_dba_ptrs(seq_t **ptrs, Py_ssize_t nb_ptrs, Py_ssize_t* lengths,
                   seq_t *c, Py_ssize_t t, char *mask, DTWSettings *settings)
