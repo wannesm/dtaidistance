@@ -21,6 +21,10 @@ runtest:
 test:
 	export PYTHONPATH=.;py.test --ignore=venv --benchmark-skip -vv
 
+.PHONY: test-windows
+test:
+	pytest --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
+
 .PHONY: testall
 testall:
 	export PYTHONPATH=.;py.test --ignore=venv -vv

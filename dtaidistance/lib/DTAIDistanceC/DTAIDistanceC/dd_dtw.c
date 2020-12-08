@@ -557,7 +557,7 @@ seq_t dtw_warping_paths(seq_t *wps,
         wps[wpsi] = 0;
         wpsi += p.width;
     }
-    for (; ri<(p.overlap_left_ri + 1); ri++) {
+    for (; ri<l1; ri++) {
         wps[wpsi] = INFINITY;
         wpsi += p.width;
     }

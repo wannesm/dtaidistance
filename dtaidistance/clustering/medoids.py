@@ -142,6 +142,7 @@ class KMedoids(Medoids):
         if np is None:
             raise NumpyException("The fit function requires Numpy to be installed.")
         self.series = SeriesContainer.wrap(series)
+        logger.debug(f'KMedoid: Compute distances between {len(self.series)} series')
         dists = self.dists_fun(self.series, **self.dists_options)
         # Make the matrix symmetric
         i_lower = np.tril_indices(len(self.series), -1)

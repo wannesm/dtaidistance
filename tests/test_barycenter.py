@@ -76,7 +76,7 @@ def test_trace():
         data = np.loadtxt(rsrc_fn)
         labels = data[:, 0]
         # series = data[:, 1:]
-        series = data[labels == 1, :][:2,:].copy()
+        series = data[labels == 1, 1:][:2,:].copy()
         # c = series[0, :]
         print(type(series))
         print(series.shape)
@@ -166,7 +166,8 @@ def test_trace_kmeans():
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=1,
                        dists_options={"window": window},
-                       initialize_with_kmedoids=True)
+                       initialize_with_kmedoids=False,
+                       initialize_with_kmeanspp=True)
         try:
             cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
         except PyClusteringException:
@@ -210,6 +211,6 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_pair()
-    test_trace()
+    # test_trace()
     # test_trace_mask()
-    # test_trace_kmeans()
+    test_trace_kmeans()

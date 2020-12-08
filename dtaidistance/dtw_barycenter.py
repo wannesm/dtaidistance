@@ -64,6 +64,23 @@ def get_good_c(s, mask, nb_initial_samples, use_c=False, **kwargs):
 
 def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
              keep_averages=False, use_c=False, nb_initial_samples=None, **kwargs):
+    """Loop around the DTW Barycenter Averaging (DBA) method until convergence.
+
+    :param s: Container of sequences
+    :param c: Initial averaging sequence.
+        If none is given, the first one is used (unless if nb_initial_samples is set).
+        Better performance can be achieved by starting from an informed
+        starting point (Petitjean et al. 2011).
+    :param max_it: Maximal number of calls to DBA.
+    :param thr: Convergence if the DBA is changing less than this value.
+    :param mask: Boolean array with the series in s to use. If None, use all.
+    :param keep_averages: Keep all DBA values (for visualisation or debugging).
+    :param nb_initial_samples: If c is None, and this argument is not None, select
+        nb_initial_samples samples and select the series closest to all other samples
+        as c.
+    :param use_c: Use a fast C implementation instead of a Python version.
+    :param kwargs: Arguments for dtw.distance
+    """
     if np is None:
         raise NumpyException('The method dba_loop requires Numpy to be available')
     s = SeriesContainer.wrap(s)
@@ -122,8 +139,8 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     return avg
 
 
-def dba(s, c, mask=None, use_c=False, **kwargs):
-    """
+def dba(s, c, mask=None, use_c=False, nb_initial_samples=None, **kwargs):
+    """DTW Barycenter Averaging.
 
     F. Petitjean, A. Ketterlin, and P. Gan ̧carski.
     A global averaging method for dynamic time warping, with applications to clustering.
@@ -131,18 +148,33 @@ def dba(s, c, mask=None, use_c=False, **kwargs):
 
     :param s: Container of sequences
     :param c: Initial averaging sequence.
-        If none is given, the first one is used.
+        If none is given, the first one is used (unless if nb_initial_samples is set).
         Better performance can be achieved by starting from an informed
         starting point (Petitjean et al. 2011).
+    :param mask: Boolean array with the series in s to use. If None, use all.
+    :param nb_initial_samples: If c is None, and this argument is not None, select
+        nb_initial_samples samples and select the series closest to all other samples
+        as c.
+    :param use_c: Use a fast C implementation instead of a Python version.
     :param kwargs: Arguments for dtw.distance
     :return: Bary-center of length len(c).
     """
     s = SeriesContainer.wrap(s)
     if mask is not None and not mask.any():
-        # Mask has not selected any cluster
+        # Mask has not selected any series
         print("Empty mask, returning zero-constant average")
         c = array.array('d', [0] * len(s[0]))
         return c
+    if mask is None:
+        mask = np.full((len(s),), True, dtype=bool)
+    if c is None:
+        if nb_initial_samples is None:
+            curi = 0
+            while mask[curi] is False:
+                curi += 1
+            c = s[curi]
+        else:
+            c = get_good_c(s, mask, nb_initial_samples, use_c=use_c, **kwargs)
     t = len(c)
     assoctab = [[] for _ in range(t)]
     for idx, seq in enumerate(s):

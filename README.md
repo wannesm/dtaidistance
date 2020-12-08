@@ -2,7 +2,9 @@
 
 Library for time series distances (e.g. Dynamic Time Warping) used in the
 [DTAI Research Group](https://dtai.cs.kuleuven.be). The library offers a pure
-Python implementation and a fast implementation in C.
+Python implementation and a fast implementation in C. The C implementation
+has only Cython as a dependency. It is compatible with Numpy and Pandas and
+implemented to avoid unnecessary data copy operations.
 
 Documentation: http://dtaidistance.readthedocs.io
 
@@ -28,6 +30,7 @@ Citing this work:
   by Silva and Batista, to speed up the computation (a new method `ub_euclidean` is available).
 - Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
   package.
+- DTW Barycenter Averaging for clustering (v2.2).
 
 
 ## Installation

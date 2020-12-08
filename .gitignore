@@ -24,6 +24,9 @@ dist
 dtaidistance/*html
 dtaidistance/*so
 dtaidistance/__pycache__/
+__pycache__
+*.pyd
+*.o
 dtaidistance/dtw_c.*.pyd
 README
 README.rst
@@ -36,3 +39,4 @@ experiments/output
 experiments/plots
 experiments/tmp
 venv*
+*.supp
