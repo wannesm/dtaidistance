@@ -194,10 +194,10 @@ def __lb_keogh(s1, s2, s2_envelope, window, use_c):
             li = array_min(s2[imin:imax])
             ci = s1[i]
             if (ci > ui):
-                lb += ci - ui
+                lb += (ci - ui) ** 2
             elif (ci < li):
-                lb += li - ci
-        return lb
+                lb += (li - ci) ** 2
+        return math.sqrt(lb)
 
 
 def lb_keogh_fast(s1, s2=None, s2_envelope=None, window=None):
@@ -317,7 +317,7 @@ def lb_keogh(s1, s2=None, s2_envelope=None, window=None, parallel=False, use_c=F
             for ei in range(len(l2)):
                     lb[di, ei] = __lb_keogh(s1[di], s2[ei], s2_envelope[ei], window, use_c)
 
-    return lb.copy(order='F') #FIXME: this is needed to make the C version of __nearest_neighbor_lb_keogh work properly
+    return lb.copy(order='F') # This is needed to make the C version of __nearest_neighbor_lb_keogh work properly
 
 
 def __nearest_neighbor_lb_keogh(s, t, lb, dist_params, use_c):
