@@ -158,13 +158,13 @@ def test_trace_kmeans():
         # Z-normalize sequences
         series = (series - series.mean(axis=1)[:, None]) / series.std(axis=1)[:, None]
         # Align start and/or end values
-        avg_start = series[:, :20].mean(axis=1)
-        avg_end = series[:, 20:].mean(axis=1)
-        series = (series - avg_end[:, None])
+        # avg_start = series[:, :20].mean(axis=1)
+        # avg_end = series[:, 20:].mean(axis=1)
+        # series = (series - avg_end[:, None])
 
         # Perform k-means
         tic = time.perf_counter()
-        model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=1,
+        model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
                        dists_options={"window": window},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=True)
