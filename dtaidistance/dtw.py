@@ -485,6 +485,9 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
             raise Exception(msg)
     else:
         mp = None
+    if block is not None:
+        if (block[0][1] - block[0][0]) < 1 or (block[1][1] - block[1][0]) < 1:
+            return []
     # Prepare options and data to pass to distance method
     dist_opts = {
         'max_dist': max_dist,
