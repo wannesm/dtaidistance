@@ -241,14 +241,14 @@ def distance(s1, s2,
         if psi != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi:
             psi_shortest = min(psi_shortest, dtw[i1 * length + length - 1])
     if psi == 0:
-        d = math.sqrt(dtw[i1 * length + min(c, c + window - 1) - skip])
+        d = dtw[i1 * length + min(c, c + window - 1) - skip]
     else:
         ic = min(c, c + window - 1) - skip
         vc = dtw[i1 * length + ic - psi:i1 * length + ic + 1]
         d = min(array_min(vc), psi_shortest)
-        d = math.sqrt(d)
     if max_dist and d > max_dist:
         d = inf
+    d = math.sqrt(d)
     return d
 
 
@@ -343,7 +343,6 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             j_start = sc
         smaller_found = False
         ec_next = i
-        # print('i =', i, 'skip =',skip, 'skipp =', skipp)
         # jmin = max(0, i - max(0, r - c) - window + 1)
         # jmax = min(c, i + max(0, c - r) + window)
         # print(i,jmin,jmax)
@@ -370,7 +369,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             else:
                 smaller_found = True
                 ec_next = j + 1
-    dtw = np.sqrt(dtw)
+        ec = ec_next
     if psi == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
@@ -390,6 +389,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
             d = vc[mic]
     if max_dist and d > max_dist:
         d = inf
+    dtw = np.sqrt(dtw)
+    d = np.sqrt(d)
     return d, dtw
 
 
