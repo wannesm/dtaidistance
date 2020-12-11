@@ -502,6 +502,7 @@ int nn_lb_keogh(seq_t *data, idx_t data_size, seq_t *query, seq_t *lb, idx_t que
     seq_t bsf = INF;
     idx_t di;
     seq_t score = 0;
+    DTWSettings cur_settings = *settings;
 
     idx_t i = 0;
     idx_t loc = 0;
@@ -513,8 +514,8 @@ int nn_lb_keogh(seq_t *data, idx_t data_size, seq_t *query, seq_t *lb, idx_t que
 
     for (di=0; di<data_size-query_size+1; di+=query_size) {
         if (bsf > lb[i]) {
-            settings->max_dist = bsf;
-            score = dtw_distance(&data[di], query_size, query, query_size, settings);
+            cur_settings.max_dist = bsf;
+            score = dtw_distance(&data[di], query_size, query, query_size, &cur_settings);
             if (score < bsf) {
                 loc = i;
                 bsf = score;
