@@ -275,21 +275,22 @@ if cythonize is not None:
             include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
-    extensions.append(
-        Extension(
-            "dtaidistance.dtw_search_cc",
-            ["dtaidistance/dtw_search_cc.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw_search.c",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
-            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
-                     "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h"
-                     "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
-            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
-            extra_compile_args=[],
-            extra_link_args=[]))
 
     if numpy is not None:
+        extensions.append(
+            Extension(
+                "dtaidistance.dtw_search_cc",
+                ["dtaidistance/dtw_search_cc.pyx",
+                 "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw_search.c",
+                 "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
+                 "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+                depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
+                         "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h"
+                         "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
+                include_dirs=[numpy.get_include(), str(dtaidistancec_path),
+                              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+                extra_compile_args=[],
+                extra_link_args=[]))
         extensions.append(
             Extension(
                 "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
