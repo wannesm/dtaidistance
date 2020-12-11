@@ -286,6 +286,20 @@ def test_nn_keogh_subsequence_trace(benchmark, data_trace):
     npt.assert_equal(Y, np.array([7976, 7149]))
 
 
+def test_nn_keogh_parallel_bug(data_trace):
+
+    nb_query = 10
+    query = data_trace[:nb_query,:].astype(np.double)
+    space = data_trace[nb_query:,:].astype(np.double)
+    dist_params = {'window': 10, 'psi': 0}
+
+    envelopes = dtw_search.lb_keogh_envelope(query, window=dist_params.get('window', None), use_c=True, parallel=True)
+    Y = dtw_search.nearest_neighbour_lb_keogh(space, query, envelopes, dist_params=dist_params, use_c=True, parallel=True)
+    truth = nn_dtw(space, query, dist_params)
+
+    npt.assert_equal(Y, truth)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
