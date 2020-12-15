@@ -99,7 +99,7 @@ Test(matrix, test_c_block_ptrs) {
     idx_t lengths[] = {9, 9, 9, 9, 9, 9};
     double result[5];
     DTWSettings settings = dtw_settings_default();
-    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=true};
     
     dtw_distances_ptrs(s, 6, lengths, result, &block, &settings);
     cr_assert_float_eq(result[0], sqrt(2), 0.001);
@@ -123,7 +123,7 @@ Test(matrix, test_c_block_matrix) {
     idx_t nb_rows = 6;
     double result[5];
     DTWSettings settings = dtw_settings_default();
-    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=true};
     dtw_distances_matrix(s, nb_rows, nb_cols, result, &block, &settings);
     cr_assert_float_eq(result[0], sqrt(2), 0.001);
     cr_assert_float_eq(result[1], 0, 0.001);
@@ -146,8 +146,8 @@ Test(matrix, test_c_block_ptrs_parallel) {
     idx_t lengths[] = {9, 9, 9, 9, 9, 9};
     double result[5];
     DTWSettings settings = dtw_settings_default();
-    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
-    for (int j=0; j<1000; j++) {
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=true};
+    for (int j=0; j<100; j++) {
 //        printf("---START---\n");
         dtw_distances_ptrs_parallel(s, 6, lengths, result, &block, &settings);
 //        for (int i=0; i<5; i++) {
@@ -176,7 +176,7 @@ Test(matrix, test_c_block_matrix_parallel) {
     idx_t nb_rows = 6;
     double result[5];
     DTWSettings settings = dtw_settings_default();
-    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5};
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=true};
     dtw_distances_matrix_parallel(s, nb_rows, nb_cols, result, &block, &settings);
 //    for (int i=0; i<5; i++) {
 //        printf("%f ", result[i]);
@@ -188,6 +188,31 @@ Test(matrix, test_c_block_matrix_parallel) {
     cr_assert_float_eq(result[3], 1.73205081, 0.001);
     cr_assert_float_eq(result[4], sqrt(2), 0.001);
 }
+
+Test(matrix, test_c_block_triu_matrix_parallel) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s[] = {0., 0, 1, 2, 1, 0, 1, 0, 0,
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,
+                  1., 2, 0, 0, 0, 0, 0, 1, 1,
+                  0., 0, 1, 2, 1, 0, 1, 0, 0,
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,
+                  1., 2, 0, 0, 0, 0, 0, 1, 1};
+    idx_t nb_cols = 9;
+    idx_t nb_rows = 6;
+    double result[6];
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=false};
+    dtw_distances_matrix_parallel(s, nb_rows, nb_cols, result, &block, &settings);
+    cr_assert_float_eq(result[0], sqrt(2), 0.001);
+    cr_assert_float_eq(result[1], 0, 0.001);
+    cr_assert_float_eq(result[2], 2.23606798, 0.001);
+    cr_assert_float_eq(result[3], 1.73205081, 0.001);
+    cr_assert_float_eq(result[4], 0.0, 0.001);
+    cr_assert_float_eq(result[5], sqrt(2), 0.001);
+}
+
 
 //----------------------------------------------------
 // MARK: NDIM
@@ -301,7 +326,7 @@ Test(aux, test_length_overflow_noblock) {
     #ifdef SKIPALL
     cr_skip_test();
     #endif
-    DTWBlock block = {.rb=0, .re=0, .cb=0, .ce=0};
+    DTWBlock block = dtw_block_empty();
     idx_t length, expected_length;
     idx_t nb_series;
     
@@ -357,7 +382,7 @@ Test(aux, test_length_overflow_block) {
     
     // Maximal overflow, fastest test
     nb_series = SIZE_MAX;
-    DTWBlock block = {.rb=0, .re=nb_series, .cb=0, .ce=nb_series};
+    DTWBlock block = {.rb=0, .re=nb_series, .cb=0, .ce=nb_series, .triu=true};
     length = dtw_distances_length(&block, nb_series);
     expected_length = 0;
     cr_assert_eq(length, expected_length); // overflow
@@ -372,7 +397,7 @@ Test(aux, test_length_nooverflow_block) {
     
     idx_t b = 10;
     nb_series = 2*b + 1;
-    DTWBlock block = {.rb=0, .re=b, .cb=b+1, .ce=2*b+1};
+    DTWBlock block = {.rb=0, .re=b, .cb=b+1, .ce=2*b+1, .triu=true};
     length = dtw_distances_length(&block, nb_series);
     expected_length = b*b;
 //    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);

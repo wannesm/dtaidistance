@@ -18,6 +18,7 @@ cdef extern from "dd_dtw.h":
         Py_ssize_t re
         Py_ssize_t cb
         Py_ssize_t ce
+        bint triu
 
     DTWSettings dtw_settings_default()
     Py_ssize_t dtw_settings_wps_length(Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)

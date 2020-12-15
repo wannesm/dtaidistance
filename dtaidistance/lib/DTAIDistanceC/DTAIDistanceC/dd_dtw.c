@@ -1191,7 +1191,8 @@ DTWBlock dtw_block_empty(void) {
         .rb = 0,  // row-begin
         .re = 0,  // row-end
         .cb = 0,  // column-begin
-        .ce = 0   // column-end
+        .ce = 0,  // column-end
+        .triu = true // only fill upper triangular marix
     };
     return b;
 }
@@ -1203,6 +1204,7 @@ void dtw_block_print(DTWBlock *block) {
     printf("  re = %zu\n", block->re);
     printf("  cb = %zu\n", block->cb);
     printf("  ce = %zu\n", block->ce);
+    printf("  triu = %s\n", block->triu ? "true" : "false");
     printf("}\n");
 }
 
@@ -1271,7 +1273,7 @@ idx_t dtw_distances_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* out
 
     i = 0;
     for (r=block->rb; r<block->re; r++) {
-        if (r + 1 > block->cb) {
+        if (block->triu && r + 1 > block->cb) {
             cb = r+1;
         } else {
             cb = block->cb;
@@ -1321,7 +1323,7 @@ idx_t dtw_distances_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* o
     
     i = 0;
     for (r=block->rb; r<block->re; r++) {
-        if (r + 1 > block->cb) {
+        if (block->triu && r + 1 > block->cb) {
             cb = r+1;
         } else {
             cb = block->cb;
@@ -1373,7 +1375,7 @@ idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int
     
     i = 0;
     for (r=block->rb; r<block->re; r++) {
-        if (r + 1 > block->cb) {
+        if (block->triu && r + 1 > block->cb) {
             cb = r+1;
         } else {
             cb = block->cb;
@@ -1427,7 +1429,7 @@ idx_t dtw_distances_ndim_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int n
 
     i = 0;
     for (r=block->rb; r<block->re; r++) {
-        if (r + 1 > block->cb) {
+        if (block->triu && r + 1 > block->cb) {
             cb = r+1;
         } else {
             cb = block->cb;
@@ -1458,35 +1460,51 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
             printf("ERROR: Length of array needed to represent the distance matrix for %zu series is larger than the maximal value allowed (unsigned %zu)\n", nb_series, idx_t_max);
             return 0;
         }
-        // First divide the even number to avoid overflowing
-        if (nb_series % 2 == 0) {
-            length = (nb_series / 2) * (nb_series - 1);
-        } else {
-            length = nb_series * ((nb_series - 1) / 2);
+        if (block->triu) {
+            // First divide the even number to avoid overflowing
+            if (nb_series % 2 == 0) {
+                length = (nb_series / 2) * (nb_series - 1);
+            } else {
+                length = nb_series * ((nb_series - 1) / 2);
+            }
+        } else { // triu=false
+            length = nb_series * nb_series;
         }
     } else {
         if (!dtw_block_is_valid(block, nb_series)) {
             return 0;
         }
-        for (ir=block->rb; ir<block->re; ir++) {
-            if (ir < block->cb) {
-                delta = block->ce - block->cb;
-            } else { // ir >= block->cb
-                if (block->ce <= ir) {
-                    // ir only increases so block->ce will always be < ir
-                    // delta = 0
-                    break;
-                } else { // block->ce > ir
-                    delta = block->ce - ir - 1;
+        if (block->triu) {
+            for (ir=block->rb; ir<block->re; ir++) {
+                if (ir < block->cb) {
+                    delta = block->ce - block->cb;
+                } else { // ir >= block->cb
+                    if (block->ce <= ir) {
+                        // ir only increases so block->ce will always be < ir
+                        // delta = 0
+                        break;
+                    } else { // block->ce > ir
+                        delta = block->ce - ir - 1;
+                    }
                 }
+                overflow_buffer = idx_t_max - length;
+                if (overflow_buffer < delta) {
+                    printf("Trying to execute %zu + %zu > %zu\n", length, delta, idx_t_max);
+                    printf("ERROR: Length of array needed to represent the distance matrix for %zu series and block {%zu, %zu, %zu, %zu} is larger than the maximal value allowed (unsigned %zu)\n", nb_series, block->rb, block->re, block->cb, block->ce, idx_t_max);
+                    return 0;
+                }
+                length += delta;
             }
-            overflow_buffer = idx_t_max - length;
-            if (overflow_buffer < delta) {
-                printf("Trying to execute %zu + %zu > %zu\n", length, delta, idx_t_max);
-                printf("ERROR: Length of array needed to represent the distance matrix for %zu series and block {%zu, %zu, %zu, %zu} is larger than the maximal value allowed (unsigned %zu)\n", nb_series, block->rb, block->re, block->cb, block->ce, idx_t_max);
+        } else { // triu=false
+            // Check for overflow
+            max_nb_series = idx_t_max / (block->re - block->rb);
+            if ((block->ce - block->cb) > max_nb_series) {
+                printf("ERROR: Length of array needed to represent the distance matrix for %zu series ", nb_series);
+                printf("(in block %zd x %zd) is larger than the maximal value allowed (unsigned %zd)\n",
+                        (block->re - block->rb), (block->ce - block->cb), idx_t_max);
                 return 0;
             }
-            length += delta;
+            length = (block->re - block->rb) * (block->ce - block->cb);
         }
     }
     return length;

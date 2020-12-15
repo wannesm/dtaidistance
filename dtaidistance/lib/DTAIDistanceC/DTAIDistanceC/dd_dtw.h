@@ -80,6 +80,7 @@ struct DTWBlock_s {
     idx_t re;
     idx_t cb;
     idx_t ce;
+    bool triu;
 };
 typedef struct DTWBlock_s DTWBlock;
 

@@ -486,6 +486,8 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     else:
         mp = None
     if block is not None:
+        if len(block) > 2 and block[2] is False and compact is False:
+            raise Exception(f'Block cannot have a third argument triu=false with compact=false')
         if (block[0][1] - block[0][0]) < 1 or (block[1][1] - block[1][0]) < 1:
             return []
     # Prepare options and data to pass to distance method
@@ -599,6 +601,8 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
     for r in it_r:
         if block is None:
             it_c = range(r + 1, len(s))
+        elif len(block) > 2 and block[2] is False:
+            it_c = range(block[1][0], min(len(s), block[1][1]))
         else:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
         for c in it_c:
@@ -615,10 +619,20 @@ def _distance_matrix_idxs(block, nb_series):
             return idxs
         # Numpy is not available
         block = ((0, nb_series), (0, nb_series))
+        triu = True
+    else:
+        if len(block) > 2 and block[2] is False:
+            triu = False
+        else:
+            triu = True
     idxsl_r = []
     idxsl_c = []
     for r in range(block[0][0], block[0][1]):
-        for c in range(max(r + 1, block[1][0]), min(nb_series, block[1][1])):
+        if triu:
+            it_c = range(max(r + 1, block[1][0]), min(nb_series, block[1][1]))
+        else:
+            it_c = range(block[1][0], min(nb_series, block[1][1]))
+        for c in it_c:
             idxsl_r.append(r)
             idxsl_c.append(c)
     if np is not None:
@@ -635,13 +649,16 @@ def _distance_matrix_length(block, nb_series):
         block_cb = block[1][0]
         block_ce = block[1][1]
         length = 0
-        for ri in range(block_rb, block_re):
-            if block_cb <= ri:
-                if block_ce > ri:
-                    length += (block_ce - ri - 1)
-            else:
-                if block_ce > ri:
-                    length += (block_ce - block_cb)
+        if len(block) > 2 and block[2] is False:
+            length = (block_re - block_rb) * (block_ce - block_cb)
+        else:
+            for ri in range(block_rb, block_re):
+                if block_cb <= ri:
+                    if block_ce > ri:
+                        length += (block_ce - ri - 1)
+                else:
+                    if block_ce > ri:
+                        length += (block_ce - block_cb)
     else:
         length = int(nb_series * (nb_series - 1) / 2)
     return length

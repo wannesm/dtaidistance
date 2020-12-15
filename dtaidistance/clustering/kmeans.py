@@ -171,11 +171,8 @@ class KMeans(Medoids):
 
         # First center is chosen randomly
         idx = np.random.randint(0, len(series))
-        res = fn(series, block=((0, idx), (idx, idx + 1)), compact=True, **self.dists_options)
-        min_dists[0:idx] = np.power(res, 2)
-        min_dists[idx] = 0
-        res = fn(series, block=((idx, idx + 1), (0, len(series))), compact=True, **self.dists_options)
-        min_dists[idx + 1:len(series)] = np.power(res, 2)
+        min_dists = np.power(fn(series, block=((idx, idx + 1), (0, len(series)), False),
+                                compact=True, **self.dists_options), 2)
         indices.append(idx)
 
         for k_idx in range(1, self.k):
@@ -185,11 +182,8 @@ class KMeans(Medoids):
             weights = min_dists / np.sum(min_dists)
             idx_cand = np.random.choice(len(min_dists), size=n_samples, replace=False, p=weights)
             for s_idx, idx in enumerate(idx_cand):
-                res = fn(series, block=((0, idx), (idx, idx + 1)), compact=True, **self.dists_options)
-                dists[s_idx, 0:idx] = np.power(res, 2)
-                dists[s_idx, idx] = 0
-                res = fn(series, block=((idx, idx + 1), (0, len(series))), compact=True, **self.dists_options)
-                dists[s_idx, idx + 1:len(series)] = np.power(res, 2)
+                dists[s_idx, :] = np.power(fn(series, block=((idx, idx + 1), (0, len(series)), False),
+                                              compact=True, **self.dists_options), 2)
                 np.minimum(dists[s_idx, :], min_dists, out=dists[s_idx, :])
             potentials = np.sum(dists, axis=1)
             best_pot_idx = np.argmin(potentials)
