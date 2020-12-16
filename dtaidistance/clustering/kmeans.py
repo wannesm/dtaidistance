@@ -163,11 +163,10 @@ class KMeans(Medoids):
             fn = distance_matrix
         indices = []
         if self.initialize_sample_size is None:
-            n_samples = 2 + int(math.log(self.k))
+            n_samples = min(2 + int(math.log(self.k)), len(series) - self.k)
         else:
             n_samples = self.initialize_sample_size
         dists = np.empty((n_samples, len(series)))
-        min_dists = np.full((len(series),), np.inf)
 
         # First center is chosen randomly
         idx = np.random.randint(0, len(series))
@@ -179,7 +178,12 @@ class KMeans(Medoids):
             # Compute the distance between each series and the nearest center that has already been chosen.
             # (Choose one new series at random as a new center, using a weighted probability distribution)
             # Select several new centers and then greedily chose the one that decreases pot as much as possible
-            weights = min_dists / np.sum(min_dists)
+            sum_min_dists = np.sum(min_dists)
+            if sum_min_dists == 0.0:
+                logger.warning(f'There are only {k_idx} < k={self.k} different series')
+                weights = None
+            else:
+                weights = min_dists / sum_min_dists
             idx_cand = np.random.choice(len(min_dists), size=n_samples, replace=False, p=weights)
             for s_idx, idx in enumerate(idx_cand):
                 dists[s_idx, :] = np.power(fn(series, block=((idx, idx + 1), (0, len(series)), False),
@@ -211,7 +215,7 @@ class KMeans(Medoids):
         """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.fit method.")
-        self.series = SeriesContainer.wrap(series)
+        self.series = SeriesContainer.wrap(series, ndim=False)
         mask = np.full((self.k, len(self.series)), False, dtype=bool)
         mask_new = np.full((self.k, len(self.series)), False, dtype=bool)
         means = [None] * self.k
