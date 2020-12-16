@@ -215,7 +215,7 @@ class KMeans(Medoids):
         """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.fit method.")
-        self.series = SeriesContainer.wrap(series, ndim=False)
+        self.series = SeriesContainer.wrap(series, support_ndim=False)
         mask = np.full((self.k, len(self.series)), False, dtype=bool)
         mask_new = np.full((self.k, len(self.series)), False, dtype=bool)
         means = [None] * self.k

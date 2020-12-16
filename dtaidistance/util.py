@@ -89,7 +89,7 @@ def read_substitution_matrix(file):
 
 
 class SeriesContainer:
-    def __init__(self, series, ndim=True):
+    def __init__(self, series, support_ndim=True):
         """Container for a list of series.
 
         This wrapper class knows how to deal with multiple types of datastructures to represent
@@ -102,18 +102,27 @@ class SeriesContainer:
 
         When using the C-based extensions, the data is automatically verified and converted.
         """
-        self.ndim = ndim
+        self.support_ndim = support_ndim
+        self.detected_ndim = False
         if isinstance(series, SeriesContainer):
             self.series = series.series
         elif np is not None and isinstance(series, np.ndarray):
             self.series = np.asarray(series, order="C")
-            if not self.ndim and self.series.ndim > 2:
-                raise Exception(f'N-dimensional series are not supported (series.ndim = {self.series.ndim})')
+            if self.series.ndim > 2:
+                if not self.support_ndim:
+                    raise Exception(f'N-dimensional series are not supported '
+                                    f'(series.ndim = {self.series.ndim})')
+                else:
+                    self.detected_ndim = True
         elif type(series) == set or type(series) == tuple or type(series) == list:
             self.series = list(series)
             if np is not None and isinstance(self.series[0], np.ndarray):
-                if not self.ndim and self.series[0].ndim > 1:
-                    raise Exception(f'N-dimensional series are not supported (series[0].ndim = {self.series[0].ndim})')
+                if self.series[0].ndim > 1:
+                    if not self.support_ndim:
+                        raise Exception(f'N-dimensional series are not supported '
+                                        f'(series[0].ndim = {self.series[0].ndim})')
+                    else:
+                        self.detected_ndim = True
         else:
             self.series = series
 
@@ -131,7 +140,7 @@ class SeriesContainer:
             for i in range(len(self.series)):
                 serie = self.series[i]
                 if np is not None and isinstance(serie, np.ndarray):
-                    if not self.ndim and serie.ndim != 1:
+                    if not self.support_ndim and serie.ndim != 1:
                         raise Exception(f'N-dimensional arrays are not supported (serie.ndim = {serie.ndim})')
                     if not serie.flags.c_contiguous:
                         serie = np.asarray(serie, order="C")
@@ -150,7 +159,7 @@ class SeriesContainer:
             if not self.series.flags.c_contiguous:
                 logger.warning("Numpy array not C contiguous, copying data.")
                 self.series = self.series.copy(order="C")
-            if not self.ndim and self.series.ndim > 2:
+            if not self.support_ndim and self.series.ndim > 2:
                 raise Exception(f'N-dimensional series are not supported (series.ndim = {self.series.ndim})')
             if dtw_cc_numpy is None:
                 logger.warning("DTAIDistance C-extension for Numpy is not available. Proceeding anyway.")
@@ -199,11 +208,11 @@ class SeriesContainer:
         return "SeriesContainer:\n{}".format(self.series)
 
     @staticmethod
-    def wrap(series, ndim=True):
+    def wrap(series, support_ndim=True):
         if isinstance(series, SeriesContainer):
-            series.ndim = ndim
+            series.support_ndim = support_ndim
             return series
-        return SeriesContainer(series, ndim=ndim)
+        return SeriesContainer(series, support_ndim=support_ndim)
 
 
 def recompile():
