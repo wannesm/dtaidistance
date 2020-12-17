@@ -235,9 +235,9 @@ class KMeans(Medoids):
 
         # Initialisations
         if self.initialize_with_kmeanspp:
-            self.means = self.kmeansplusplus_centers(series, use_c=use_c)
+            self.means = self.kmeansplusplus_centers(self.series, use_c=use_c)
         elif self.initialize_with_kmedoids:
-            self.means = self.kmedoids_centers(series, use_c=use_c)
+            self.means = self.kmedoids_centers(self.series, use_c=use_c)
         else:
             indices = np.random.choice(range(0, len(self.series)), self.k, replace=False)
             self.means = [self.series[random.randint(0, len(self.series) - 1)] for _ki in indices]
