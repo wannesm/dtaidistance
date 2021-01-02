@@ -128,7 +128,7 @@ noise.
 
     series = np.diff(series, n=1, axis=1)  # Numpy differencing
     fs = 100  # sample rate, Hz
-    cutoff = 5  # cut off frequency, Hz
+    cutoff = 10  # cut off frequency, Hz
     nyq = 0.5 * fs  # Nyquist frequency
     b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
     series = signal.filtfilt(b, a, series, axis=1)

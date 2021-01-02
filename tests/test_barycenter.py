@@ -237,7 +237,7 @@ def test_trace_kmeans_differencing():
         series_orig = series.copy()
         series = np.diff(series, n=1, axis=1)
         fs = 100  # sample rate, Hz
-        cutoff = 5  # cut off frequency, Hz
+        cutoff = 10  # cut off frequency, Hz
         nyq = 0.5 * fs  # Nyquist frequency
         b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
         series = signal.filtfilt(b, a, series, axis=1)
@@ -275,10 +275,14 @@ def test_trace_kmeans_differencing():
                     if idx in all_idx:
                         raise Exception(f'Series in multiple clusters: {idx}')
                     all_idx.add(idx)
-            for ki in range(k):
-                dba = dba_loop(series_orig, c=None, mask=mask[ki, :],
-                               max_it=max_it, thr=None, use_c=use_c,
-                               nb_prob_samples=nb_prob_samples)
+
+            series_orig = (series_orig - series_orig.mean(axis=1)[:, None]) / series_orig.std(axis=1)[:, None]
+            for ki, mean in enumerate(model.means):
+                # dba = dba_loop(series_orig, c=None, mask=mask[ki, :],
+                #                max_it=max_it, thr=None, use_c=use_c,
+                #                nb_prob_samples=nb_prob_samples)
+                print(mean.shape)
+                dba = np.r_[0, mean].cumsum()
                 ax[ki, 1].plot(dba)
             assert(len(all_idx) == len(series))
             ax[0, 0].set_title("DBA Differencing + LP")
