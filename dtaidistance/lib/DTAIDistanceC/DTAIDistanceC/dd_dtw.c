@@ -1906,6 +1906,7 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     free(assoctab_cnt);
     free(ci);
     free(mi);
+    free(wps);
 }
 
 // MARK: Auxiliary functions
