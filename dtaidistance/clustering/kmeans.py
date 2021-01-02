@@ -71,12 +71,14 @@ def _distance_c_with_params(t):
 
 
 def _dba_loop_with_params(t):
-    series, c, mask, max_it, thr, use_c = t
-    return dba_loop(series, c=c, mask=mask, max_it=max_it, thr=thr, use_c=use_c)
+    series, c, mask, max_it, thr, use_c, nb_prob_samples = t
+    return dba_loop(series, c=c, mask=mask, max_it=max_it, thr=thr, use_c=use_c,
+                    nb_prob_samples=nb_prob_samples)
 
 
 class KMeans(Medoids):
     def __init__(self, k, max_it=10, max_dba_it=10, thr=0.0001, drop_stddev=None,
+                 nb_prob_samples=None,
                  dists_options=None, show_progress=True,
                  initialize_with_kmedoids=False, initialize_with_kmeanspp=True,
                  initialize_sample_size=None):
@@ -92,6 +94,7 @@ class KMeans(Medoids):
             the instances that are further away than stddev*drop_stddev from the
             prototype (this is a gradual effect, the algorithm starts with drop_stddev
             is 3).
+        :param nb_prob_samples: Probabilistically sample best path this number of times.
         :param dists_options:
         :param show_progress:
         :param initialize_with_kmedoids: Cluster a sample of the dataset first using
@@ -111,6 +114,7 @@ class KMeans(Medoids):
         self.initialize_with_kmeanspp = initialize_with_kmeanspp
         self.initialize_with_kmedoids = initialize_with_kmedoids
         self.initialize_sample_size = initialize_sample_size
+        self.nb_prob_samples = nb_prob_samples
         super().__init__(None, dists_options, k, show_progress)
 
     def kmedoids_centers(self, series, use_c=False):
@@ -321,11 +325,11 @@ class KMeans(Medoids):
                 with mp.Pool() as p:
                     means = p.map(_dba_loop_with_params,
                                   [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                                    self.max_dba_it, self.thr, use_c) for ki in range(self.k)])
+                                    self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)])
             else:
                 means = list(map(_dba_loop_with_params,
                              [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                               self.max_dba_it, self.thr, use_c) for ki in range(self.k)]))
+                               self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)]))
             # for ki in range(self.k):
             #     means[ki] = dba_loop(self.series, c=None, mask=mask[:, ki], use_c=True)
             for ki in range(self.k):

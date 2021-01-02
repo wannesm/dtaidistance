@@ -165,6 +165,7 @@ def test_trace_kmeans():
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
+                       nb_prob_samples=0,
                        dists_options={"window": window},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=True)
@@ -301,6 +302,6 @@ if __name__ == "__main__":
     # test_pair()
     # test_trace()
     # test_trace_mask()
-    # test_trace_kmeans()
+    test_trace_kmeans()
     # test_nparray_kmeans()
-    test_ndim_kmeans()
+    # test_ndim_kmeans()

@@ -689,6 +689,13 @@ def warping_path_fast(from_s, to_s, **kwargs):
     return path
 
 
+def warping_path_prob_fast(from_s, to_s, avg, **kwargs):
+    """Compute warping path between two sequences."""
+    from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
+    path = dtw_cc.warping_path_prob(from_s, to_s, avg, **settings_kwargs)
+    return path
+
+
 def warping_amount(path):
     """
         Returns the number of compressions and expansions performed to obtain the best path.

@@ -16,4 +16,3 @@ bool is_openmp_supported() {
     return false;
 #endif
 }
-

@@ -535,7 +535,11 @@ seq_t dtw_warping_paths(seq_t *wps,
     if (settings->use_pruning || settings->only_ub) {
         p.max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
         if (settings->only_ub) {
-            return p.max_dist;
+            if (do_sqrt) {
+                return sqrt(p.max_dist);
+            } else {
+                return p.max_dist;
+            }
         }
     }
     
@@ -760,12 +764,6 @@ seq_t dtw_warping_paths(seq_t *wps,
         ri_width += p.width;
     }
     
-    if (do_sqrt) {
-        for (idx_t i=0; i<p.length ; i++) {
-            wps[i] = sqrt(wps[i]);
-        }
-    }
-    
 //    dtw_print_wps_compact(wps, l1, l2, settings);
 //    dtw_print_wps(wps, l1, l2, settings);
     
@@ -826,6 +824,16 @@ seq_t dtw_warping_paths(seq_t *wps,
         // DTWPruned keeps the last value larger than max_dist. Correct for this.
         rvalue = INFINITY;
     }
+    
+    if (do_sqrt) {
+        for (idx_t i=0; i<p.length ; i++) {
+            wps[i] = sqrt(wps[i]);
+        }
+        if (return_dtw) {
+            rvalue = sqrt(rvalue);
+        }
+    }
+    
     return rvalue;
 }
 
@@ -920,8 +928,9 @@ Compute best path between two series.
  @param l1 Length of first array.
  @param l2 Length of second array.
  @param settings for Dynamic Time Warping.
+ @return length of path
  */
-void dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings) {
+idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings) {
     DTWWps p = dtw_wps_parts(l1, l2, settings);
     
     idx_t i = 0;
@@ -1020,17 +1029,219 @@ void dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSett
             }
         }
     }
+    return i;
+}
+
+void dtw_srand(unsigned int seed) {
+    if (seed == 0) {
+        seed = (unsigned int)time(NULL);
+    }
+    // default for srand is 1
+    srand(seed);
+}
+
+/*!
+Sample a likely best path between two series.
+ 
+ @param wps Array of length `(l1+1)*min(l2+1, abs(l1-l2) + 2*window-1)` with the warping paths.
+ @param i1 Array of length l1+l2 to store the indices for the first sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param i2 Array of length l1+l2 to store the indices for the second sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param l1 Length of first array.
+ @param l2 Length of second array.
+ @param avg Average value for difference in values (order of magnitude to decide probabilities)
+ @param settings for Dynamic Time Warping.
+ @return length of path
+ */
+idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings) {
+    DTWWps p = dtw_wps_parts(l1, l2, settings);
+    
+    idx_t i = 0;
+    idx_t rip = l1;
+    idx_t cip = l2;
+    idx_t ri_widthp = p.width * (l1 - 1);
+    idx_t ri_width = p.width * l1;
+    idx_t min_ci;
+    idx_t wpsi_start, wpsi;
+    float probs[3];
+    float probs_sum;
+    float rnum;
+    seq_t prev;
+    seq_t min_diff;
+    if (avg == 0.0) {
+        avg = 1.0;
+    }
+    // printf("avg = %f\n", avg);
+    
+    // D. ri3 <= ri < l1
+    min_ci = p.ri3 + 1 - p.window - p.ldiff;
+    wpsi_start = 2;
+    if (p.ri2 == p.ri3) {
+        wpsi_start = min_ci + 1;
+    }
+    wpsi = wpsi_start + (l2 - min_ci) - 1;
+    while (rip > p.ri3 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        prev = wps[ri_width + wpsi];
+        probs[0] = prev - wps[ri_widthp + wpsi - 1]; // Diagonal
+        probs[1] = prev - wps[ri_width + wpsi - 1];  // Left
+        probs[2] = prev - wps[ri_widthp + wpsi];     // Right
+        min_diff = MAX3(probs[0], probs[1], probs[2]);
+        if (min_diff < 0) {  min_diff = 0; }
+        probs[0] = 1.0 / (avg + min_diff - probs[0]);
+        probs[1] = 1.0 / (avg + min_diff - probs[1]);
+        probs[2] = 1.0 / (avg + min_diff - probs[2]);
+        probs_sum = probs[0] + probs[1] + probs[2];
+        probs[2] = 1.0;
+        probs[1] = (probs[0] + probs[1]) / probs_sum;
+        probs[0] = probs[0] / probs_sum;
+        rnum = (float)(rand()%1000) / 1000.0; // Never select 1.0 to not select cumulative prob of 1.0
+        // printf("Probs = [%f, %f, %f] , rnum=%f\n", probs[0], probs[1], probs[2], rnum);
+        // printf("%f, %f, %f, %f\n", prev, wps[ri_widthp + wpsi - 1], wps[ri_width + wpsi - 1], wps[ri_widthp + wpsi]);
+
+        if (rnum < probs[0]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if (rnum < probs[1]) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+    
+    // C. ri2 <= ri < ri3
+    while (rip > p.ri2 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        prev = wps[ri_width + wpsi];
+        probs[0] = prev - wps[ri_widthp + wpsi];     // Diagonal
+        probs[1] = prev - wps[ri_width + wpsi - 1];  // Left
+        probs[2] = prev - wps[ri_widthp + wpsi + 1]; // Right
+        min_diff = MAX3(probs[0], probs[1], probs[2]);
+        if (min_diff < 0) {  min_diff = 0; }
+        probs[0] = 1.0 / (avg + min_diff - probs[0]);
+        probs[1] = 1.0 / (avg + min_diff - probs[1]);
+        probs[2] = 1.0 / (avg + min_diff - probs[2]);
+        probs_sum = probs[0] + probs[1] + probs[2];
+        probs[2] = 1.0;
+        probs[1] = (probs[0] + probs[1]) / probs_sum;
+        probs[0] = probs[0] / probs_sum;
+        rnum = (float)(rand()%1000) / 1000.0;
+        // printf("Probs = [%f, %f, %f] , rnum=%f\n", probs[0], probs[1], probs[2], rnum);
+        // printf("%f, %f, %f, %f\n", prev, wps[ri_widthp + wpsi], wps[ri_width + wpsi - 1], wps[ri_widthp + wpsi + 1]);
+        
+        if (rnum < probs[0]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if (rnum < probs[1]) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            wpsi++;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+    
+    // A-B. 0 <= ri < ri2
+    while (rip > 0 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        prev = wps[ri_width + wpsi];
+        probs[0] = prev - wps[ri_widthp + wpsi - 1]; // Diagonal
+        probs[1] = prev - wps[ri_width  + wpsi - 1]; // Left
+        probs[2] = prev - wps[ri_widthp + wpsi];     // Right
+        min_diff = MAX3(probs[0], probs[1], probs[2]);
+        if (min_diff < 0) {  min_diff = 0; }
+        probs[0] = 1.0 / (avg + min_diff - probs[0]);
+        probs[1] = 1.0 / (avg + min_diff - probs[1]);
+        probs[2] = 1.0 / (avg + min_diff - probs[2]);
+        probs_sum = probs[0] + probs[1] + probs[2];
+        probs[2] = 1.0;
+        probs[1] = (probs[0] + probs[1]) / probs_sum;
+        probs[0] = probs[0] / probs_sum;
+        rnum = (float)(rand()%1000) / 1000.0;
+        // printf("Probs = [%f, %f, %f] , rnum=%f\n", probs[0], probs[1], probs[2], rnum);
+        // printf("prev=%f, dists=%f, %f, %f, min_diff=%f, avg=%f\n",
+        //        prev, wps[ri_widthp + wpsi - 1], wps[ri_width  + wpsi - 1], wps[ri_widthp + wpsi], min_diff, avg);
+        
+        if (rnum < probs[0]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else {
+            if (rnum < probs[1]) {
+                // Go left
+                cip--;
+                wpsi--;
+            } else {
+                // Go up
+                rip--;
+                ri_width = ri_widthp;
+                ri_widthp -= p.width;
+            }
+        }
+    }
+    return i;
 }
 
 /*!
  Compute warping path between two sequences.
+ 
+ @return length of path
  */
-void warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings) {
+idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings) {
+    idx_t path_length;
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, settings);
-    dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
+    path_length = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
     free(wps);
+    return path_length;
+}
+
+/*!
+ Sample probabilistically warping path between two sequences.
+ 
+ @return length of path
+ */
+idx_t warping_path_prob(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, DTWSettings * settings) {
+    idx_t path_length;
+    idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
+    seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
+    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, settings);
+    path_length = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
+    free(wps);
+    return path_length;
 }
 
 
@@ -1526,13 +1737,14 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
  @param c Initial average, afterwards the updated average
  @param t Length of average (typically this is the same as nb_cols)
  @param mask Bit-array
+ @param prob_samples Probabilistically sample the best path samples number of times.
+        Uses deterministic best path if samples is 0.
  @param settings Settings for distance functions
  */
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
-                  seq_t *c, idx_t t, ba_t *mask, DTWSettings *settings) {
+                  seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings) {
     seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
     idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
-    
     idx_t r_idx = 0;
     idx_t max_length = 0;
     for (r_idx=0; r_idx<nb_ptrs; r_idx++) {
@@ -1545,20 +1757,42 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     idx_t *mi = (idx_t *)malloc((max_length + t) * sizeof(idx_t));
     idx_t pi;
     seq_t *sequence;
+    seq_t *wps;
+    seq_t avg_step;
+    idx_t path_length;
+    
+    idx_t wps_length = dtw_settings_wps_length(t, max_length, settings);
+    wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     
     for (pi=0; pi<t; pi++) {
         assoctab[pi] = 0;
         assoctab_cnt[pi] = 0;
     }
-    for (idx_t r=0; r<nb_ptrs; r++) {
-        sequence = ptrs[r];
-        if (bit_test(mask, r)) {
-            warping_path(c, t, sequence, lengths[r], ci, mi, settings);
-            for (pi=0; pi<(max_length + t); pi++) {
-                assoctab[ci[pi]] += sequence[mi[pi]];
-                assoctab_cnt[ci[pi]] += 1;
-                if (mi[pi] == 0 || ci[pi] == 0) {
-                    break;
+    if (prob_samples == 0) {
+        for (idx_t r=0; r<nb_ptrs; r++) {
+            sequence = ptrs[r];
+            if (bit_test(mask, r)) {
+                // warping_path(c, t, sequence, lengths[r], ci, mi, settings);
+                dtw_warping_paths(wps, c, t, sequence, lengths[r], false, false, settings);
+                path_length = dtw_best_path(wps, ci, mi, t, lengths[r], settings);
+                for (pi=0; pi<path_length; pi++) {
+                    assoctab[ci[pi]] += sequence[mi[pi]];
+                    assoctab_cnt[ci[pi]] += 1;
+                }
+            }
+        }
+    } else {
+        for (idx_t r=0; r<nb_ptrs; r++) {
+            sequence = ptrs[r];
+            if (bit_test(mask, r)) {
+                avg_step = dtw_warping_paths(wps, c, t, sequence, lengths[r], true, false, settings);
+                avg_step /= t;
+                for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
+                    path_length = dtw_best_path_prob(wps, ci, mi, t, lengths[r], avg_step, settings);
+                    for (pi=0; pi<path_length; pi++) {
+                        assoctab[ci[pi]] += sequence[mi[pi]];
+                        assoctab_cnt[ci[pi]] += 1;
+                    }
                 }
             }
         }
@@ -1575,6 +1809,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     free(assoctab_cnt);
     free(ci);
     free(mi);
+    free(wps);
 }
 
 /*!
@@ -1591,10 +1826,12 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
  @param c Initial average, afterwards the updated average
  @param t Length of average (typically this is the same as nb_cols)
  @param mask Bit-array
+ @param prob_samples Probabilistically sample the best path samples number of times.
+        Uses deterministic best path if samples is 0.
  @param settings Settings for distance functions
  */
 void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
-                    seq_t *c, idx_t t, ba_t *mask, DTWSettings *settings) {
+                    seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings) {
     seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
     idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
     idx_t r_idx = 0;
@@ -1602,28 +1839,64 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     idx_t *mi = (idx_t *)malloc((nb_cols + t) * sizeof(idx_t));
     idx_t pi;
     seq_t *sequence;
+    seq_t *wps;
+    seq_t avg_step;
+    idx_t path_length;
+    
+    idx_t wps_length = dtw_settings_wps_length(t, nb_cols, settings);
+    wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     
     for (pi=0; pi<t; pi++) {
         assoctab[pi] = 0;
         assoctab_cnt[pi] = 0;
     }
-    for (idx_t r=0; r<nb_rows; r++) {
-        sequence = &matrix[r_idx];
-        if (bit_test(mask, r)) {
-            warping_path(c, t, sequence, nb_cols, ci, mi, settings);
-            for (pi=0; pi<(nb_cols + t); pi++) {
-                assoctab[ci[pi]] += sequence[mi[pi]];
-                assoctab_cnt[ci[pi]] += 1;
-                if (mi[pi] == 0 || ci[pi] == 0) {
-                    break;
+    if (prob_samples == 0) {
+        for (idx_t r=0; r<nb_rows; r++) {
+            sequence = &matrix[r_idx];
+            if (bit_test(mask, r)) {
+                // warping_path(c, t, sequence, nb_cols, ci, mi, settings);
+                dtw_warping_paths(wps, c, t, sequence, nb_cols, false, false, settings);
+                path_length = dtw_best_path(wps, ci, mi, t, nb_cols, settings);
+//                printf("best_path = [");
+//                for (idx_t i=0; i<path_length; i++) {
+//                    printf("(%zu,%zu)", ci[i], mi[i]);
+//                }
+//                printf("]\n");
+                for (pi=0; pi<path_length; pi++) {
+                    assoctab[ci[pi]] += sequence[mi[pi]];
+                    assoctab_cnt[ci[pi]] += 1;
+//                    printf("[%zu] = [%zu] += %f\n", ci[pi], mi[pi], sequence[mi[pi]]);
                 }
             }
+            r_idx += nb_cols;
         }
-        r_idx += nb_cols;
+    } else {
+        for (idx_t r=0; r<nb_rows; r++) {
+            sequence = &matrix[r_idx];
+            if (bit_test(mask, r)) {
+                avg_step = dtw_warping_paths(wps, c, t, sequence, nb_cols, true, false, settings);
+                avg_step /= t;
+                for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
+                    path_length = dtw_best_path_prob(wps, ci, mi, t, nb_cols, avg_step, settings);
+//                    printf("best_path_prob = [");
+//                    for (idx_t i=0; i<path_length; i++) {
+//                        printf("(%zu,%zu)", ci[i], mi[i]);
+//                    }
+//                    printf("]\n");
+                    for (pi=0; pi<path_length; pi++) {
+                        assoctab[ci[pi]] += sequence[mi[pi]];
+                        assoctab_cnt[ci[pi]] += 1;
+                    }
+                }
+            }
+            r_idx += nb_cols;
+        }
     }
+
     for (idx_t i=0; i<t; i++) {
         if (assoctab_cnt[i] != 0) {
             c[i] = assoctab[i] / assoctab_cnt[i];
+//            printf("c[%zu] = %f = %f / %zd\n", i, c[i], assoctab[i], assoctab_cnt[i]);
         } else {
             printf("WARNING: assoctab_cnt[%zu] == 0\n", i);
             c[i] = 0;

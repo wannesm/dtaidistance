@@ -11,6 +11,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
+
 
 /* The sequence type type can be customized by changing the typedef. */
 typedef double seq_t;
@@ -45,6 +48,7 @@ typedef ssize_t idx_t;
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #define ARGMIN(a, x, b, y) (((a) < (b)) ? (x) : (y))
 #define MIN3(a, b, c) MIN(MIN(a, b), c)
+#define MAX3(a, b, c) MAX(MAX(a, b), c)
 #define ARGMIN3(a, b, c) (((a) < (b)) ? ((((a) < (c)) ? (0) : (2))) : ((((b) < (c)) ? (1) : (2))))
 
 // Bit operations (based on 8 bit)
@@ -58,6 +62,5 @@ typedef unsigned char ba_t;
 
 // OpenMP functionality
 bool is_openmp_supported(void);
-
 
 #endif /* globals_h */

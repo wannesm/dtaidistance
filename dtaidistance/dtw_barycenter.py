@@ -63,7 +63,7 @@ def get_good_c(s, mask, nb_initial_samples, use_c=False, **kwargs):
 
 
 def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
-             keep_averages=False, use_c=False, nb_initial_samples=None, **kwargs):
+             keep_averages=False, use_c=False, nb_initial_samples=None, nb_prob_samples=None, **kwargs):
     """Loop around the DTW Barycenter Averaging (DBA) method until convergence.
 
     :param s: Container of sequences
@@ -78,6 +78,8 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     :param nb_initial_samples: If c is None, and this argument is not None, select
         nb_initial_samples samples and select the series closest to all other samples
         as c.
+    :param nb_prob_samples: Probabilistically sample the best path instead of the
+        deterministic version.
     :param use_c: Use a fast C implementation instead of a Python version.
     :param kwargs: Arguments for dtw.distance
     """
@@ -90,6 +92,8 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         avgs = []
     if mask is None:
         mask = np.full((len(s),), True, dtype=bool)
+    if nb_prob_samples is None:
+        nb_prob_samples = 0
     if c is None:
         if nb_initial_samples is None:
             curi = 0
@@ -107,21 +111,25 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         # in the first average and converge to that as a local optimum.
         # t = s.get_avg_length()
         # c = array.array('d', [0] * t)
+    if use_c:
+        if np is not None and isinstance(mask, np.ndarray):
+            # The C code requires a bit array of uint8 (or unsigned char)
+            mask_copy = np.packbits(mask, bitorder='little')
+        else:
+            raise Exception('Mask only implemented for C when passing a Numpy array. '
+                            f'Got {type(mask)}')
+    else:
+        mask_copy = mask
+
     for it in range(max_it):
         logger.debug(f'DBA Iteration {it}')
         if use_c:
             assert(c is not None)
             c_copy = c.copy()  # The C code reuses this array
-            if np is not None and isinstance(mask, np.ndarray):
-                # The C code requires a bit array of uint8 (or unsigned char)
-                mask_copy = np.packbits(mask, bitorder='little')
-            else:
-                raise Exception('Mask only implemented for C when passing a Numpy array. '
-                                f'Got {type(mask)}')
-            dtw_cc.dba(s, c_copy, mask=mask_copy, **kwargs)
+            dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
             avg = c_copy
         else:
-            avg = dba(s, c, mask=mask, use_c=use_c, **kwargs)
+            avg = dba(s, c, mask=mask, nb_prob_samples=nb_prob_samples, use_c=use_c, **kwargs)
         if keep_averages:
             avgs.append(avg)
         if thr is not None and c is not None:
@@ -139,7 +147,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     return avg
 
 
-def dba(s, c, mask=None, use_c=False, nb_initial_samples=None, **kwargs):
+def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **kwargs):
     """DTW Barycenter Averaging.
 
     F. Petitjean, A. Ketterlin, and P. Gan ̧carski.
@@ -159,6 +167,9 @@ def dba(s, c, mask=None, use_c=False, nb_initial_samples=None, **kwargs):
     :param kwargs: Arguments for dtw.distance
     :return: Bary-center of length len(c).
     """
+    if samples is not None and samples > 0:
+        # TODO
+        raise Exception("Prob sampling for DBA not yet implemented for Python")
     s = SeriesContainer.wrap(s)
     if mask is not None and not mask.any():
         # Mask has not selected any series
