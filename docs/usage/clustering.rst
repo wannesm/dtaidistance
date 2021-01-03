@@ -57,6 +57,63 @@ time series to ``ax[1]``.
                ts_left_margin=10, ts_sample_length=1)
 
 
+K-Means DBA clustering
+~~~~~~~~~~~~~~~~~~~~~~
+
+K-means clustering for time series requires an averaging strategy for
+time series. One possibility is DTW Barycenter Averaging (DBA).
+
+**Example**:
+
+For example, to cluster the `Trace <https://timeseriesclassification.com/description.php?Dataset=Trace>`_
+dataset by Davide Roverso.
+
+::
+
+    model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40})
+    cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmeans.png?v=2
+   :alt: KMeans clustering
+
+**DTW Barycenter Averaging**:
+
+If you only want to run DTW Barycenter Averaging once or multiple times:
+
+::
+
+    new_center = dtw_barycenter.dba(series, center, use_c=True)
+    new_center = dtw_barycenter.dba_loop(series, center, max_it=10, thr=0.0001, use_c=True)
+
+
+**Example with differencing**:
+
+For the Trace example above, the clustering is not perfect because the different
+series have slightly different baselines that cannot be corrected with
+normalization. This causes an accumulated error that is larger than the
+subtle sine wave in one of the types of series. A possible solution is to
+apply differencing on the signals to focus on the changes in the series.
+Additionally, we also apply a low-pass filter the avoid accumulation of
+noise.
+
+::
+
+    series = np.diff(series, n=1, axis=1)  # Numpy differencing
+    fs = 100  # sample rate, Hz
+    cutoff = 10  # cut off frequency, Hz
+    nyq = 0.5 * fs  # Nyquist frequency
+    b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
+    series = signal.filtfilt(b, a, series, axis=1)
+
+    model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40})
+    cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmeans_differencing.png?v=1
+   :alt: KMeans clustering with differencing and low-pass filter
+
+
 K-Medoids clustering
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -85,60 +142,6 @@ class.
 
 .. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmedoids.png?v=1
    :alt: KMedoids clustering
-
-
-K-Means DBA clustering
-~~~~~~~~~~~~~~~~~~~~~~
-
-**Example**:
-
-K-means clustering for time series requires an averaging strategy for
-time series. One possibility is DTW Barycenter Averaging (DBA).
-
-::
-
-    model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40})
-    cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
-
-
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmeans.png?v=2
-   :alt: KMeans clustering
-
-**DTW Barycenter Averaging**:
-
-If you only want to run DTW Barycenter Averaging once or multiple times:
-
-::
-
-    new_center = dtw_barycenter.dba(series, center, use_c=True)
-    new_center = dtw_barycenter.dba_loop(series, center, max_it=10, thr=0.0001, use_c=True)
-
-
-**Example with differencing**:
-
-For the example above, the clustering is not perfect because the different
-series have slightly different baselines that cannot be corrected with
-normalization. This causes an accumulated error that is larger than the
-subtle sine wave in one of the types of series. A possible solution is to
-apply differencing on the signals to focus on the changes in the series.
-Additionally, we also apply a low-pass filter the avoid accumulation of
-noise.
-
-::
-
-    series = np.diff(series, n=1, axis=1)  # Numpy differencing
-    fs = 100  # sample rate, Hz
-    cutoff = 10  # cut off frequency, Hz
-    nyq = 0.5 * fs  # Nyquist frequency
-    b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
-    series = signal.filtfilt(b, a, series, axis=1)
-
-    model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40})
-    cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
-
-
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmeans_differencing.png?v=1
-   :alt: KMeans clustering with differencing and low-pass filter
 
 
 Active semi-supervised clustering
