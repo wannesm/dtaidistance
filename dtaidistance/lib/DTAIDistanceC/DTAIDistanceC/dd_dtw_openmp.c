@@ -45,31 +45,36 @@ int dtw_distances_prepare(DTWBlock *block, idx_t nb_series, idx_t **cbs, idx_t *
         return 1;
     }
 
-    *cbs = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
-    if (!cbs) {
-        printf("Error: dtw_distances_* - cannot allocate memory (cbs length = %zu)", block->re - block->rb);
-        *length = 0;
-        return 1;
-    }
-    *rls = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
-    if (!rls) {
-        printf("Error: dtw_distances_* - cannot allocate memory (rls length = %zu)", block->re - block->rb);
-        *length = 0;
-        return 1;
-    }
-    ir = 0;
-    rs = 0;
-    assert(block->rb < block->re);
-    for (idx_t r=block->rb; r<block->re; r++) {
-        if (r + 1 > block->cb) {
-            cb = r+1;
-        } else {
-            cb = block->cb;
+    if (block->triu) {
+        *cbs = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
+        if (!cbs) {
+            printf("Error: dtw_distances_* - cannot allocate memory (cbs length = %zu)", block->re - block->rb);
+            *length = 0;
+            return 1;
         }
-        (*cbs)[ir] = cb;
-        (*rls)[ir] = rs;
-        rs += block->ce - cb;
-        ir += 1;
+        *rls = (idx_t *)malloc(sizeof(idx_t) * (block->re - block->rb));
+        if (!rls) {
+            printf("Error: dtw_distances_* - cannot allocate memory (rls length = %zu)", block->re - block->rb);
+            *length = 0;
+            return 1;
+        }
+        ir = 0;
+        rs = 0;
+        assert(block->rb < block->re);
+        for (idx_t r=block->rb; r<block->re; r++) {
+            if (r + 1 > block->cb) {
+                cb = r+1;
+            } else {
+                cb = block->cb;
+            }
+            (*cbs)[ir] = cb;
+            (*rls)[ir] = rs;
+            rs += block->ce - cb;
+            ir += 1;
+        }
+    } else { // triu=false
+        *cbs = NULL;
+        *rls = NULL;
     }
     return 0;
 }
@@ -102,19 +107,27 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, s
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
         r = block->rb + r_i;
         c_i = 0;
-        for (c=cbs[r_i]; c<block->ce; c++) {
-            // printf("r_i=%zu - r=%zu - c_i=%zu - c=%zu\n", r_i, r, c_i, c);
+        if (block->triu) {
+            c = cbs[r_i];
+        } else {
+            c = block->cb;
+        }
+        for (; c<block->ce; c++) {
             double value = dtw_distance(ptrs[r], lengths[r],
                                         ptrs[c], lengths[c], settings);
-//            printf("r_i=%zu - r=%zu - c_i=%zu - c=%zu - value=%.4f\n", r_i, r, c_i, c, value);
-//            printf("rls[r_i] + c_i = %zu + %zu\n", rls[r_i], c_i);
-            output[rls[r_i] + c_i] = value;
+            if (block->triu) {
+                output[rls[r_i] + c_i] = value;
+            } else {
+                output[(block->ce - block->cb) * r_i + c_i] = value;
+            }
             c_i++;
         }
     }
     
-    free(cbs);
-    free(rls);
+    if (block->triu) {
+        free(cbs);
+        free(rls);
+    }
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
@@ -144,18 +157,28 @@ idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengt
    for (r_i=0; r_i < (block->re - block->rb); r_i++) {
         r = block->rb + r_i;
         c_i = 0;
-        for (c=cbs[r_i]; c<block->ce; c++) {
-           double value = dtw_distance_ndim(ptrs[r], lengths[r],
+       if (block->triu) {
+           c = cbs[r_i];
+       } else {
+           c = block->cb;
+       }
+        for (; c<block->ce; c++) {
+            double value = dtw_distance_ndim(ptrs[r], lengths[r],
                           ptrs[c], lengths[c],
                           ndim, settings);
-           //        printf("pi=%zu - r=%zu - c=%zu - value=%.4f\n", pi, r, c, value);
-           output[rls[r_i] + c_i] = value;
-           c_i++;
+            if (block->triu) {
+                output[rls[r_i] + c_i] = value;
+            } else {
+                output[(block->ce - block->cb) * r_i + c_i] = value;
+            }
+            c_i++;
         }
     }
    
-    free(cbs);
-    free(rls);
+    if (block->triu) {
+        free(cbs);
+        free(rls);
+    }
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
@@ -182,18 +205,29 @@ idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     r_i = 0;
     #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
-         r = block->rb + r_i;
-         c_i = 0;
-         for (c=cbs[r_i]; c<block->ce; c++) {
-             double value = dtw_distance(&matrix[r*nb_cols], nb_cols,
+        r = block->rb + r_i;
+        c_i = 0;
+        if (block->triu) {
+            c = cbs[r_i];
+        } else {
+            c = block->cb;
+        }
+        for (; c<block->ce; c++) {
+            double value = dtw_distance(&matrix[r*nb_cols], nb_cols,
                                          &matrix[c*nb_cols], nb_cols, settings);
-             output[rls[r_i] + c_i] = value;
-             c_i++;
-         }
+            if (block->triu) {
+                output[rls[r_i] + c_i] = value;
+            } else {
+                output[(block->ce - block->cb) * r_i + c_i] = value;
+            }
+            c_i++;
+        }
     }
     
-    free(cbs);
-    free(rls);
+    if (block->triu) {
+        free(cbs);
+        free(rls);
+    }
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
@@ -220,20 +254,31 @@ idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_
     r_i = 0;
     #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
-         r = block->rb + r_i;
-         c_i = 0;
-         for (c=cbs[r_i]; c<block->ce; c++) {
-             double value = dtw_distance_ndim(&matrix[r*nb_cols*ndim], nb_cols,
-                                                      &matrix[c*nb_cols*ndim], nb_cols,
-                                                      ndim, settings);
-             //        printf("pi=%zu - r=%zu->%zu - c=%zu - value=%.4f\n", pi, r, r*nb_cols, c, value);
+        r = block->rb + r_i;
+        c_i = 0;
+        if (block->triu) {
+            c = cbs[r_i];
+        } else {
+            c = block->cb;
+        }
+        for (; c<block->ce; c++) {
+            double value = dtw_distance_ndim(&matrix[r*nb_cols*ndim], nb_cols,
+                                             &matrix[c*nb_cols*ndim], nb_cols,
+                                             ndim, settings);
             output[rls[r_i] + c_i] = value;
-            c_i++;
-         }
+            if (block->triu) {
+                output[rls[r_i] + c_i] = value;
+            } else {
+                output[(block->ce - block->cb) * r_i + c_i] = value;
+            }
+        c_i++;
+        }
     }
     
-    free(cbs);
-    free(rls);
+    if (block->triu) {
+        free(cbs);
+        free(rls);
+    }
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");

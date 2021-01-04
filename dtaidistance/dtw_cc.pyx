@@ -18,6 +18,7 @@ from libc.stdint cimport intptr_t
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport dtaidistancec_dtw
+cimport dtaidistancec_globals
 
 
 cdef extern from "Python.h":
@@ -28,11 +29,12 @@ cdef class DTWBlock:
     def __cinit__(self):
         pass
 
-    def __init__(self, rb, re, cb, ce):
+    def __init__(self, rb, re, cb, ce, triu=True):
         self._block.rb = rb
         self._block.re = re
         self._block.cb = cb
         self._block.ce = ce
+        self._block.triu = triu
 
     @property
     def rb(self):
@@ -56,8 +58,15 @@ cdef class DTWBlock:
     def ce_set(self, value):
         self._block.ce = value
 
+    @property
+    def triu(self):
+        return self._block.triu
+
+    def triu_set(self, value):
+        self._block.triu = value
+
     def __str__(self):
-        return f'DTWBlock(rb={self.rb},re={self.re},cb={self.cb},ce={self.ce})'
+        return f'DTWBlock(rb={self.rb},re={self.re},cb={self.cb},ce={self.ce},triu={self.triu})'
 
 
 cdef class DTWSettings:
@@ -338,6 +347,7 @@ def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs
 
 def warping_path(double[:] s1, double[:] s2, **kwargs):
     # Assumes C contiguous
+    cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
     cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
     if not i1:
@@ -346,12 +356,34 @@ def warping_path(double[:] s1, double[:] s2, **kwargs):
     if not i2:
         raise MemoryError()
     try:
-        dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
         path = []
-        for i in range(len(s1) + len(s2)):
+        for i in range(path_length):
             path.append((i1[i], i2[i]))
-            if i1[i] == 0 and i2[i] == 0:
-                break
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
+
+def srand(unsigned int seed):
+    dtaidistancec_dtw.dtw_srand(seed)
+
+def warping_path_prob(double[:] s1, double[:] s2, double avg, **kwargs):
+    # Assumes C contiguous
+    cdef Py_ssize_t path_length;
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        path_length = dtaidistancec_dtw.warping_path_prob(&s1[0], len(s1), &s2[0], len(s2), i1, i2, avg, &settings._settings)
+        path = []
+        for i in range(path_length):
+            path.append((i1[i], i2[i]))
         path.reverse()
     finally:
         PyMem_Free(i1)
@@ -387,6 +419,8 @@ def distance_matrix(cur, block=None, **kwargs):
 
     settings = DTWSettings(**kwargs)
     cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    if block is not None and block != 0.0 and len(block) > 2 and block[2] is False:
+        dtwblock.triu_set(False)
     length = distance_matrix_length(dtwblock, len(cur))
 
     # Correct block
@@ -448,6 +482,8 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
     settings = DTWSettings(**kwargs)
     cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    if block is not None and block != 0.0 and len(block) > 2 and block[2] is False:
+        dtwblock.triu_set(False)
     length = distance_matrix_length(dtwblock, len(cur))
 
     # Correct block
@@ -494,12 +530,12 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     return length
 
 
-def dba(cur, double[:] c, char[:] mask, **kwargs):
+def dba(cur, double[:] c, char[:] mask, int nb_prob_samples, **kwargs):
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesPointers ptrs
-    cdef double *c_ptr;
+    cdef double *c_ptr = &c[0];
     cdef double *matrix_ptr;
-    cdef char *mask_ptr;
+    cdef char *mask_ptr = &mask[0];
     settings = DTWSettings(**kwargs)
 
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
@@ -511,16 +547,13 @@ def dba(cur, double[:] c, char[:] mask, **kwargs):
 
     if isinstance(cur, DTWSeriesPointers):
         ptrs = cur
-        ptrs = cur
         dtaidistancec_dtw.dtw_dba_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            c_ptr, len(c), mask_ptr, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
-        c_ptr = &c[0]
-        mask_ptr = &mask[0]
         matrix_ptr = &matrix._data[0,0]
         dtaidistancec_dtw.dtw_dba_matrix(
             matrix_ptr, matrix.nb_rows, matrix.nb_cols,
-            c_ptr, len(c), mask_ptr, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, &settings._settings)
     return c

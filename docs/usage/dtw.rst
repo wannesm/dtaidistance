@@ -281,4 +281,4 @@ n-dimensional sequences. If you want to compute the independent DTW
 
     dtw_i = 0
     for dim in range(ndim):
-        dtw_i += dtw.distance(s1[:,dim], dtw.distance(s2[:,dim])
+        dtw_i += dtw.distance(s1[:,dim], s2[:,dim])

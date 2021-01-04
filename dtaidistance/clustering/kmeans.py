@@ -71,14 +71,17 @@ def _distance_c_with_params(t):
 
 
 def _dba_loop_with_params(t):
-    series, c, mask, max_it, thr, use_c = t
-    return dba_loop(series, c=c, mask=mask, max_it=max_it, thr=thr, use_c=use_c)
+    series, c, mask, max_it, thr, use_c, nb_prob_samples = t
+    return dba_loop(series, c=c, mask=mask, max_it=max_it, thr=thr, use_c=use_c,
+                    nb_prob_samples=nb_prob_samples)
 
 
 class KMeans(Medoids):
     def __init__(self, k, max_it=10, max_dba_it=10, thr=0.0001, drop_stddev=None,
+                 nb_prob_samples=None,
                  dists_options=None, show_progress=True,
-                 initialize_with_kmedoids=False, initialize_with_kmeanspp=True):
+                 initialize_with_kmedoids=False, initialize_with_kmeanspp=True,
+                 initialize_sample_size=None):
         """K-means clustering algorithm for time series using Dynamic Barycenter
         Averaging.
 
@@ -91,11 +94,14 @@ class KMeans(Medoids):
             the instances that are further away than stddev*drop_stddev from the
             prototype (this is a gradual effect, the algorithm starts with drop_stddev
             is 3).
+        :param nb_prob_samples: Probabilistically sample best path this number of times.
         :param dists_options:
         :param show_progress:
         :param initialize_with_kmedoids: Cluster a sample of the dataset first using
             K-medoids.
         :param initialize_with_kmeanspp: Use k-means++
+        :param initialize_sample_size: How many samples to use for initialization with K-medoids or K-means++.
+            Defaults are k*20 for K-medoid and 2+log(k) for k-means++.
         """
         if dists_options is None:
             dists_options = {}
@@ -104,14 +110,19 @@ class KMeans(Medoids):
         self.max_dba_it = max_dba_it
         self.thr = thr
         self.drop_stddev = drop_stddev
-        self.initialize_with_kmedoids = initialize_with_kmedoids
-        self.initialize_with_kmedoids_sample_size = k * 20
+
         self.initialize_with_kmeanspp = initialize_with_kmeanspp
+        self.initialize_with_kmedoids = initialize_with_kmedoids
+        self.initialize_sample_size = initialize_sample_size
+        self.nb_prob_samples = nb_prob_samples
         super().__init__(None, dists_options, k, show_progress)
 
     def kmedoids_centers(self, series, use_c=False):
         logger.debug('Start K-medoid initialization ... ')
-        sample_size = min(self.initialize_with_kmedoids_sample_size, len(self.series))
+        if self.initialize_sample_size is None:
+            sample_size = min(self.k * 20, len(self.series))
+        else:
+            sample_size = min(self.initialize_sample_size, len(self.series))
         indices = np.random.choice(range(0, len(self.series)), sample_size, replace=False)
         sample = self.series[indices, :].copy()
         if use_c:
@@ -125,33 +136,67 @@ class KMeans(Medoids):
         return means
 
     def kmeansplusplus_centers(self, series, use_c=False):
+        """Better initialization for K-Means.
+
+        > Arthur, D., and S. Vassilvitskii. "k-means++: the, advantages of careful seeding.
+        > In, SODA’07: Proceedings of the." eighteenth annual ACM-SIAM symposium on Discrete, algorithms.
+
+        Procedure (in paper):
+        - 1a. Choose an initial center c_1 uniformly at random from X.
+        - 1b. Choose the next center c_i , selecting c_i = x′∈X with probability D(x')^2/sum(D(x)^2, x∈X).
+        - 1c. Repeat Step 1b until we have chosen a total of k centers.
+        - (2-4. Proceed as with the standard k-means algorithm.)
+
+        Extension (in conclusion):
+        - Also, experiments showed that k-means++ generally performed better if it selected several new centers
+          during each iteration, and then greedily chose the one that decreased φ as much as possible.
+
+        Detail (in code):
+        - numLocalTries==2+log(k)
+
+        :param series:
+        :param use_c:
+        :return:
+        """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.kmeansplusplus_centers method.")
         logger.debug('Start K-means++ initialization ... ')
-        indices = []
-        means = []
-        dists = np.full((self.k - 1, len(series)), np.inf)
-        min_dists = np.zeros((len(series),))
-        # First center is chosen randomly
-        idx = np.random.randint(0, len(series))
-        indices.append(idx)
         if use_c:
             fn = distance_matrix_fast
         else:
             fn = distance_matrix
+        indices = []
+        if self.initialize_sample_size is None:
+            n_samples = min(2 + int(math.log(self.k)), len(series) - self.k)
+        else:
+            n_samples = self.initialize_sample_size
+        dists = np.empty((n_samples, len(series)))
+
+        # First center is chosen randomly
+        idx = np.random.randint(0, len(series))
+        min_dists = np.power(fn(series, block=((idx, idx + 1), (0, len(series)), False),
+                                compact=True, **self.dists_options), 2)
+        indices.append(idx)
 
         for k_idx in range(1, self.k):
             # Compute the distance between each series and the nearest center that has already been chosen.
-            res = fn(series, block=((0, idx), (idx, idx + 1)), compact=True, **self.dists_options)
-            dists[k_idx - 1, 0:idx] = res
-            dists[k_idx - 1, idx] = 0
-            res = fn(series, block=((idx, idx + 1), (0, len(series))), compact=True, **self.dists_options)
-            dists[k_idx - 1, idx + 1:len(series)] = res
-            # Choose one new series at random as a new center, using a weighted probability distribution
-            min_dists = np.min(dists, axis=0)
-            min_dists = np.square(min_dists)
-            min_dists /= np.sum(min_dists)
-            idx = np.random.choice(len(min_dists), size=1, replace=False, p=min_dists)[0]
+            # (Choose one new series at random as a new center, using a weighted probability distribution)
+            # Select several new centers and then greedily chose the one that decreases pot as much as possible
+            sum_min_dists = np.sum(min_dists)
+            if sum_min_dists == 0.0:
+                logger.warning(f'There are only {k_idx} < k={self.k} different series')
+                weights = None
+            else:
+                weights = min_dists / sum_min_dists
+            idx_cand = np.random.choice(len(min_dists), size=n_samples, replace=False, p=weights)
+            for s_idx, idx in enumerate(idx_cand):
+                dists[s_idx, :] = np.power(fn(series, block=((idx, idx + 1), (0, len(series)), False),
+                                              compact=True, **self.dists_options), 2)
+                np.minimum(dists[s_idx, :], min_dists, out=dists[s_idx, :])
+            potentials = np.sum(dists, axis=1)
+            best_pot_idx = np.argmin(potentials)
+            idx = idx_cand[best_pot_idx]
+            min_dists[:] = dists[best_pot_idx, :]
             indices.append(idx)
 
         means = [series[i] for i in indices]
@@ -174,7 +219,7 @@ class KMeans(Medoids):
         """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.fit method.")
-        self.series = SeriesContainer.wrap(series)
+        self.series = SeriesContainer.wrap(series, support_ndim=False)
         mask = np.full((self.k, len(self.series)), False, dtype=bool)
         mask_new = np.full((self.k, len(self.series)), False, dtype=bool)
         means = [None] * self.k
@@ -194,9 +239,9 @@ class KMeans(Medoids):
 
         # Initialisations
         if self.initialize_with_kmeanspp:
-            self.means = self.kmeansplusplus_centers(series, use_c=use_c)
+            self.means = self.kmeansplusplus_centers(self.series, use_c=use_c)
         elif self.initialize_with_kmedoids:
-            self.means = self.kmedoids_centers(series, use_c=use_c)
+            self.means = self.kmedoids_centers(self.series, use_c=use_c)
         else:
             indices = np.random.choice(range(0, len(self.series)), self.k, replace=False)
             self.means = [self.series[random.randint(0, len(self.series) - 1)] for _ki in indices]
@@ -280,11 +325,11 @@ class KMeans(Medoids):
                 with mp.Pool() as p:
                     means = p.map(_dba_loop_with_params,
                                   [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                                    self.max_dba_it, self.thr, use_c) for ki in range(self.k)])
+                                    self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)])
             else:
                 means = list(map(_dba_loop_with_params,
                              [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                               self.max_dba_it, self.thr, use_c) for ki in range(self.k)]))
+                               self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)]))
             # for ki in range(self.k):
             #     means[ki] = dba_loop(self.series, c=None, mask=mask[:, ki], use_c=True)
             for ki in range(self.k):

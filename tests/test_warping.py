@@ -1,5 +1,6 @@
 import pytest
 import os
+import random
 from pathlib import Path
 
 from dtaidistance import dtw, util_numpy
@@ -42,6 +43,37 @@ def test_normalize2():
         np.testing.assert_almost_equal(paths1, paths2, decimal=4)
         np.testing.assert_almost_equal(path1, path2, decimal=4)
 
+
+@numpyonly
+def test_normalize2_prob():
+    psi = 0
+    if dtw.dtw_cc is not None:
+        dtw.dtw_cc.srand(random.randint(1, 100000))
+    else:
+        print("WARNING: dtw_cc not found")
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0])
+        s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0])
+        d1, paths1 = dtw.warping_paths(s1, s2, psi=psi)
+        d2, paths2 = dtw.warping_paths_fast(s1, s2, psi=psi)
+        # print(np.power(paths1,2))
+        path1 = dtw.best_path(paths1)
+        path2 = dtw.best_path(paths2)
+        prob_paths = []
+        for i in range(30):
+            prob_paths.append(dtw.warping_path_prob_fast(s1, s2, d1/len(s1), psi=psi))
+        if not dtwvis.test_without_visualization():
+            if directory:
+                fig, ax = dtwvis.plot_warpingpaths(s1, s2, paths1, path1)
+                for p in prob_paths:
+                    py, px = zip(*p)
+                    py = [pyi + (random.random() - 0.5) / 5 for pyi in py]
+                    px = [pxi + (random.random() - 0.5) / 5 for pxi in px]
+                    ax[3].plot(px, py, ".-", color="yellow", alpha=0.25)
+                fig.savefig(directory / "normalize2_prob.png")
+        np.testing.assert_almost_equal(d1, d2, decimal=4)
+        np.testing.assert_almost_equal(paths1, paths2, decimal=4)
+        np.testing.assert_almost_equal(path1, path2, decimal=4)
 
 @numpyonly
 def test_warping_path1():
@@ -158,7 +190,8 @@ if __name__ == "__main__":
     print(f"Saving files to {directory}")
     # test_normalize()
     # test_normalize2()
-    test_warping_path1()
+    test_normalize2_prob()
+    # test_warping_path1()
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()

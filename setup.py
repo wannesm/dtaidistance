@@ -302,6 +302,7 @@ if cythonize is not None:
         print("WARNING: Numpy was not found, preparing a version without Numpy support.")
 
     ext_modules = cythonize(extensions)
+                            # compiler_directives={'language_level': "3"})
 else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
