@@ -1,19 +1,18 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.kmeans
-~~~~~~~~~~~~~~~~~~~
+dtaidistance.clustering.kmeans
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Time series clustering using k-means and Barycenter averages.
 
 :author: Wannes Meert
-:copyright: Copyright 2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2020-2021 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
 import logging
 import random
 import math
-from pathlib import Path
 import multiprocessing as mp
 
 
@@ -138,20 +137,23 @@ class KMeans(Medoids):
     def kmeansplusplus_centers(self, series, use_c=False):
         """Better initialization for K-Means.
 
-        > Arthur, D., and S. Vassilvitskii. "k-means++: the, advantages of careful seeding.
-        > In, SODA’07: Proceedings of the." eighteenth annual ACM-SIAM symposium on Discrete, algorithms.
+            Arthur, D., and S. Vassilvitskii. "k-means++: the, advantages of careful seeding.
+            In, SODA’07: Proceedings of the." eighteenth annual ACM-SIAM symposium on Discrete, algorithms.
 
         Procedure (in paper):
+
         - 1a. Choose an initial center c_1 uniformly at random from X.
         - 1b. Choose the next center c_i , selecting c_i = x′∈X with probability D(x')^2/sum(D(x)^2, x∈X).
         - 1c. Repeat Step 1b until we have chosen a total of k centers.
         - (2-4. Proceed as with the standard k-means algorithm.)
 
         Extension (in conclusion):
+
         - Also, experiments showed that k-means++ generally performed better if it selected several new centers
           during each iteration, and then greedily chose the one that decreased φ as much as possible.
 
         Detail (in code):
+
         - numLocalTries==2+log(k)
 
         :param series:
@@ -349,5 +351,3 @@ class KMeans(Medoids):
         for idx, cluster in enumerate(clusters):
             self.cluster_idx[cluster].add(idx)
         return self.cluster_idx, performed_it
-
-

@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.hierarchical
-~~~~~~~~~~~~~~~~~~~~~~~~~
+dtaidistance.clustering.hierarchical
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Time series clustering.
+Time series clustering using hierarchical clustering.
 
 :author: Wannes Meert
 :copyright: Copyright 2017-2020 KU Leuven, DTAI Research Group.

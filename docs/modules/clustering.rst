@@ -1,4 +1,10 @@
 
+clustering
+~~~~~~~~~~
 
-.. automodule:: dtaidistance.clustering
-   :members:
+.. toctree::
+   :caption: Clustering
+
+   clustering/hierarchical
+   clustering/kmeans
+   clustering/medoids

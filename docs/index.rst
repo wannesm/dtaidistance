@@ -32,6 +32,7 @@ Source available on https://github.com/wannesm/dtaidistance.
 
 
 .. toctree::
+   :maxdepth: 2
    :caption: Modules
 
    modules/dtw

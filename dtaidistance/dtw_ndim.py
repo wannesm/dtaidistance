@@ -93,6 +93,8 @@ def distance(s1, s2, window=None, max_dist=None,
 
     Example:
 
+    ::
+
         s1 = np.array([[0, 0],
                        [0, 1],
                        [2, 1],
@@ -110,6 +112,8 @@ def distance(s1, s2, window=None, max_dist=None,
     This method returns the dependent DTW (DTW_D) [1] distance between two
     n-dimensional sequences. If you want to compute the independent DTW
     (DTW_I) distance, use the 1-dimensional version:
+
+    ::
 
         dtw_i = 0
         for dim in range(ndim):
@@ -402,6 +406,8 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     This method returns the dependent DTW (DTW_D) [1] distance between two
     n-dimensional sequences. If you want to compute the independent DTW
     (DTW_I) distance, use the 1-dimensional version and sum the distance matrices:
+
+    ::
 
         dtw_i = dtw.distance_matrix(series_sep_dim[0])
         for dim in range(1, ndim):

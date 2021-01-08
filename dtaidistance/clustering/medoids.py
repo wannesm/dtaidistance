@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.medoids
-~~~~~~~~~~~~~~~~~~~~
+dtaidistance.clustering.medoids
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Time series clustering.
+Time series clustering using medoid-based methods.
 
 :author: Wannes Meert
 :copyright: Copyright 2020 KU Leuven, DTAI Research Group.
