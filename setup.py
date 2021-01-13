@@ -293,7 +293,8 @@ else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
 
-install_requires = ['cython']
+install_requires = ['cython>=0.29.6']
+setup_requires = ['setuptools>=18.0', 'cython>=0.29.6']
 tests_require = ['pytest', 'pytest-benchmark']
 
 # Check version number
@@ -335,6 +336,7 @@ set_setup_kwargs(
     packages=['dtaidistance', 'dtaidistance.clustering'],
     python_requires='>=3.5',
     install_requires=install_requires,
+    setup_requires=setup_requires,
     tests_require=tests_require,
     extras_require={
         'vis': ['matplotlib'],
