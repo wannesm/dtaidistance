@@ -216,11 +216,12 @@ def check_openmp(cc_bin):
     kwargs = None
     if "clang" in cc_binname or "cc" in cc_binname:
         args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
-        kwargs = {"stdout": sp.PIPE, "input": '', "encoding": 'ascii'}
+        kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
         print(" ".join(args[0]) + " with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     if args is not None:
         try:
             p = sp.run(*args, **kwargs)
+            print(p.stderr)
             defs = p.stdout.splitlines()
             for curdef in defs:
                 if "_OPENMP" in curdef:
