@@ -464,15 +464,16 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     :param compact: Return the distance matrix as an array representing the upper triangular matrix.
     :param parallel: Use parallel operations
     :param use_c: Use c compiled Python functions
-    :param use_mp: Use Multiprocessing for parallel operations (not OpenMP)
+    :param use_mp: Force use Multiprocessing for parallel operations (not OpenMP)
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     # Check whether multiprocessing is available
     if use_c:
-        _check_library(raise_exception=True, include_omp=parallel)
-    if parallel and (use_mp or not use_c or dtw_cc_omp is None):
+        requires_omp = parallel and not use_mp
+        _check_library(raise_exception=True, include_omp=requires_omp)
+    if parallel and (use_mp or not use_c):
         try:
             import multiprocessing as mp
             logger.info('Using multiprocessing')
