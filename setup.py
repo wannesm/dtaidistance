@@ -43,7 +43,7 @@ c_args = {
                 '-I'+str(dtaidistancec_path)]
 }
 l_args = {
-    'unix': ['-fopenmp'],
+    'unix': ['-Xpreprocessor', '-fopenmp'],
     'msvc': [],
     'mingw32': ['-fopenmp']
 }
@@ -167,6 +167,8 @@ class MyBuildExtCommand(BuildExtCommand):
             if not check_result:
                 print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
                 self.distribution.noopenmp = 1
+                # Not removing the dtw_cc_omp extension, this will be compiled but
+                # without any real functionality except is_openmp_supported()
         if c in c_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in c_args[c] if "openmp" not in arg]
@@ -213,12 +215,13 @@ def check_openmp(cc_bin):
     args = None
     kwargs = None
     if "clang" in cc_binname or "cc" in cc_binname:
-        args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
-        kwargs = {"stdout": sp.PIPE, "input": '', "encoding": 'ascii'}
-        print(" ".join(args[0]) + " ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+        args = [[str(cc_bin), "-dM", "-E", "-Xpreprocessor", "-fopenmp", "-"]]
+        kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
+        print(" ".join(args[0]) + " with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     if args is not None:
         try:
             p = sp.run(*args, **kwargs)
+            print(p.stderr)
             defs = p.stdout.splitlines()
             for curdef in defs:
                 if "_OPENMP" in curdef:
