@@ -1,8 +1,11 @@
 import math
 import pytest
+import logging
+import sys
 from dtaidistance import dtw, util_numpy
 
 
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
@@ -150,7 +153,7 @@ def test_distance_matrix2_e():
         assert m2[0, 1] == math.sqrt(2) * n, "m2[0,1]={} != {}".format(m2[0, 1], math.sqrt(2) * n)
 
 
-def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
+def run_distance_matrix_block(parallel=False, use_c=False, compact=False):
     with util_numpy.test_uses_numpy() as np:
         # print(parallel, use_c, use_nogil)
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
@@ -160,25 +163,29 @@ def run_distance_matrix_block(parallel=False, use_c=False, use_nogil=False):
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
              [1., 2, 0, 0, 0, 0, 0, 1, 1]]
         s = np.array(s)
-        m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c)
-        assert m[1, 3] == pytest.approx(math.sqrt(2))
-        assert np.isinf(m[1, 2])
+        m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c, compact=compact)
+        print(m)
+        if not compact:
+            assert m[1, 3] == pytest.approx(math.sqrt(2))
+            assert np.isinf(m[1, 2])
 
 
 @numpyonly
 def test_distance_matrix_block():
     for parallel in [False, True]:
         for use_c in [False,True]:
-            for use_nogil in [False, True]:
-                run_distance_matrix_block(parallel=parallel, use_c=use_c, use_nogil=use_nogil)
+            for compact in [False, True]:
+                run_distance_matrix_block(parallel=parallel, use_c=use_c, compact=compact)
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=3, linewidth=120)
     # test_distance1_a()
-    test_distance1_b()
+    # test_distance1_b()
     # test_distance_matrix2_e()
-    # run_distance_matrix_block(parallel=True, use_c=True, use_nogil=False)
+    run_distance_matrix_block(parallel=False, use_c=True, compact=True)
     # test_expected_length1()
     # test_condensed_index1()
