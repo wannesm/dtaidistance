@@ -85,7 +85,7 @@ def _check_library(include_omp=False, raise_exception=True):
         logger.error(msg)
         if raise_exception:
             raise Exception(msg)
-    if include_omp and dtw_cc_omp is None:
+    if include_omp and (dtw_cc_omp is None or not dtw_cc_omp.is_openmp_supported()):
         msg = "The compiled dtaidistance C-OMP library is not available.\n" + \
               "See the documentation for alternative installation options."
         logger.error(msg)
@@ -471,10 +471,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     """
     # Check whether multiprocessing is available
     if use_c:
-        _check_library(raise_exception=True)
-    if use_c and parallel:
-        if dtw_cc_omp is None:
-            logger.warning('OMP extension not loaded, using multiprocessing')
+        _check_library(raise_exception=True, include_omp=parallel)
     if parallel and (use_mp or not use_c or dtw_cc_omp is None):
         try:
             import multiprocessing as mp

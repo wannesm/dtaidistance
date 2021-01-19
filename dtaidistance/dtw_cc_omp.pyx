@@ -17,6 +17,10 @@ cimport dtaidistancec_dtw
 cimport dtaidistancec_dtw_omp
 
 
+def is_openmp_supported():
+    return dtaidistancec_dtw_omp.is_openmp_supported()
+
+
 def distance_matrix(cur, block=None, **kwargs):
     """Compute a distance matrix between all sequences given in `cur`.
     This method calls a pure c implementation of the dtw computation that
