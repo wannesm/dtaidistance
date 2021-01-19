@@ -530,12 +530,12 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     return length
 
 
-def dba(cur, double[:] c, char[:] mask, int nb_prob_samples, **kwargs):
+def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesPointers ptrs
     cdef double *c_ptr = &c[0];
     cdef double *matrix_ptr;
-    cdef char *mask_ptr = &mask[0];
+    cdef unsigned char *mask_ptr = &mask[0];
     settings = DTWSettings(**kwargs)
 
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):

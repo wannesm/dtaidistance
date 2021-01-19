@@ -1666,7 +1666,7 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
     
     if (block == NULL || block->re == 0 || block->ce == 0) {
         // Check for overflow
-        max_nb_series = floor(sqrt(idx_t_max));
+        max_nb_series = (idx_t) floor(sqrt(idx_t_max));
         if (nb_series > max_nb_series) {
             printf("ERROR: Length of array needed to represent the distance matrix for %zu series is larger than the maximal value allowed (unsigned %zu)\n", nb_series, idx_t_max);
             return 0;

@@ -48,9 +48,9 @@ cdef extern from "dd_dtw.h":
     seq_t lb_keogh(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, DTWSettings *settings)
 
     void dtw_dba_ptrs(seq_t **ptrs, Py_ssize_t nb_ptrs, Py_ssize_t* lengths,
-                  seq_t *c, Py_ssize_t t, char *mask, int prob_samples, DTWSettings *settings)
+                  seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, DTWSettings *settings)
     void dtw_dba_matrix(seq_t *matrix, Py_ssize_t nb_rows, Py_ssize_t nb_cols,
-                    seq_t *c, Py_ssize_t t, char *mask, int prob_samples, DTWSettings *settings)
+                    seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, DTWSettings *settings)
 
     DTWBlock dtw_empty_block()
     Py_ssize_t dtw_distances_ptrs(seq_t **ptrs, Py_ssize_t nb_ptrs, Py_ssize_t* lengths, seq_t* output,
