@@ -167,6 +167,8 @@ class MyBuildExtCommand(BuildExtCommand):
             if not check_result:
                 print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
                 self.distribution.noopenmp = 1
+                # Not removing the dtw_cc_omp extension, this will be compiled but
+                # without any real functionality except is_openmp_supported()
         if c in c_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in c_args[c] if "openmp" not in arg]
@@ -215,11 +217,12 @@ def check_openmp(cc_bin):
     if "clang" in cc_binname or "cc" in cc_binname:
         args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
         kwargs = {"stdout": sp.PIPE, "input": '', "encoding": 'ascii'}
-        print(" ".join(args[0]) + " ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+        print(" ".join(args[0]) + " with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     if args is not None:
         try:
             p = sp.run(*args, **kwargs)
             defs = p.stdout.splitlines()
+            print(defs)
             for curdef in defs:
                 if "_OPENMP" in curdef:
                     print("... found OpenMP")
