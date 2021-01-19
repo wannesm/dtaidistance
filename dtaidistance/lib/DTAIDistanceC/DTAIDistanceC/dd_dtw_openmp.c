@@ -8,6 +8,16 @@
 
 #include "dd_dtw_openmp.h"
 
+
+bool is_openmp_supported() {
+#if defined(_OPENMP)
+    return true;
+#else
+    return false;
+#endif
+}
+
+
 /**
  Check the arguments passed to dtw_distances_* and prepare the array of indices to be used.
  The indices are created upfront to allow for easy parallelization.

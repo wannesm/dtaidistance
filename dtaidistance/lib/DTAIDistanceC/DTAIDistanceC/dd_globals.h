@@ -60,7 +60,4 @@ typedef unsigned char ba_t;
 #define bit_clear(a,i)   ( a[(i/ba_size)] &= ~(1 << (i%ba_size)) )
 #define bit_test(a,i)    ( a[(i/ba_size)] &   (1 << (i%ba_size)) )
 
-// OpenMP functionality
-bool is_openmp_supported(void);
-
 #endif /* globals_h */

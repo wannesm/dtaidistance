@@ -9,10 +9,3 @@
 #include <stdio.h>
 #include "dd_ed.h"
 
-bool is_openmp_supported() {
-#if defined(_OPENMP)
-    return true;
-#else
-    return false;
-#endif
-}

@@ -17,6 +17,7 @@
 
 #include "dd_dtw.h"
 
+bool is_openmp_supported(void);
 int    dtw_distances_prepare(DTWBlock *block, idx_t nb_series,
                              idx_t **cbs, idx_t **rls, idx_t *length, DTWSettings *settings);
 idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
