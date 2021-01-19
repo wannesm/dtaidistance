@@ -97,7 +97,6 @@ Distance matrix for n-dimensional DTW, executed on a list of pointers to arrays 
 */
 idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* output,
                      DTWBlock* block, DTWSettings* settings) {
-#if defined(_OPENMP)
     idx_t r, c, r_i, c_i;
     idx_t length;
     idx_t *cbs, *rls;
@@ -105,7 +104,8 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, s
     if (dtw_distances_prepare(block, nb_ptrs, &cbs, &rls, &length, settings) != 0) {
         return 0;
     }
-
+    
+#if defined(_OPENMP)
     r_i=0;
     // Rows have different lengths, thus use guided scheduling to make threads with shorter rows
     // not wait for threads with longer rows. Also the first rows are always longer than the last
@@ -141,6 +141,9 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, s
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    for  (r_i=0; r_i<length; r_i++) {
+        output[r_i] = 0;
+    }
     return 0;
 #endif
 }
@@ -153,7 +156,6 @@ idx_t dtw_distances_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, s
  */
 idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, int ndim, seq_t* output,
                                         DTWBlock* block, DTWSettings* settings) {
-#if defined(_OPENMP)
     idx_t r, c, r_i, c_i;
     idx_t length;
     idx_t *cbs, *rls;
@@ -162,6 +164,7 @@ idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengt
        return 0;
    }
 
+#if defined(_OPENMP)
    r_i=0;
    #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
    for (r_i=0; r_i < (block->re - block->rb); r_i++) {
@@ -192,6 +195,9 @@ idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengt
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    for  (r_i=0; r_i<length; r_i++) {
+        output[r_i] = 0;
+    }
     return 0;
 #endif
 }
@@ -203,7 +209,6 @@ idx_t dtw_distances_ndim_ptrs_parallel(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengt
 @see dtw_distances_matrix
  */
 idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* output, DTWBlock* block, DTWSettings* settings) {
-#if defined(_OPENMP)
     idx_t r, c, r_i, c_i;
     idx_t length;
     idx_t *cbs, *rls;
@@ -211,7 +216,8 @@ idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     if (dtw_distances_prepare(block, nb_rows, &cbs, &rls, &length, settings) != 0) {
         return 0;
     }
-    
+
+#if defined(_OPENMP)
     r_i = 0;
     #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
@@ -241,6 +247,9 @@ idx_t dtw_distances_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    for  (r_i=0; r_i<length; r_i++) {
+        output[r_i] = 0;
+    }
     return 0;
 #endif
 }
@@ -252,7 +261,6 @@ Distance matrix for n-dimensional DTW, executed on a 3-dimensional array and in 
 @see dtw_distances_ndim_matrix
 */
 idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output, DTWBlock* block, DTWSettings* settings) {
-#if defined(_OPENMP)
     idx_t r, c, r_i, c_i;
     idx_t length;
     idx_t *cbs, *rls;
@@ -261,6 +269,7 @@ idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_
         return 0;
     }
 
+#if defined(_OPENMP)
     r_i = 0;
     #pragma omp parallel for private(r_i, c_i, r, c) schedule(guided)
     for (r_i=0; r_i < (block->re - block->rb); r_i++) {
@@ -292,6 +301,9 @@ idx_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, idx_t nb_rows, idx_t nb_
     return length;
 #else
     printf("ERROR: DTAIDistanceC is compiled without OpenMP support.\n");
+    for  (r_i=0; r_i<length; r_i++) {
+        output[r_i] = 0;
+    }
     return 0;
 #endif
 }
