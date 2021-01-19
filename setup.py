@@ -222,7 +222,6 @@ def check_openmp(cc_bin):
         try:
             p = sp.run(*args, **kwargs)
             defs = p.stdout.splitlines()
-            print(defs)
             for curdef in defs:
                 if "_OPENMP" in curdef:
                     print("... found OpenMP")
