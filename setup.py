@@ -43,7 +43,7 @@ c_args = {
                 '-I'+str(dtaidistancec_path)]
 }
 l_args = {
-    'unix': ['-fopenmp'],
+    'unix': ['-Xpreprocessor', '-fopenmp'],
     'msvc': [],
     'mingw32': ['-fopenmp']
 }
