@@ -215,7 +215,7 @@ def check_openmp(cc_bin):
     args = None
     kwargs = None
     if "clang" in cc_binname or "cc" in cc_binname:
-        args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
+        args = [[str(cc_bin), "-dM", "-E", "-Xpreprocessor", "-fopenmp", "-"]]
         kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
         print(" ".join(args[0]) + " with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     if args is not None:
