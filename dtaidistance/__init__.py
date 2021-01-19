@@ -34,5 +34,5 @@ except ImportError:
 
 __version__ = "2.2.3"
 __author__ = "Wannes Meert"
-__copyright__ = "Copyright 2017-2020 KU Leuven, DTAI Research Group"
+__copyright__ = "Copyright 2017-2021 KU Leuven, DTAI Research Group"
 __license__ = "Apache License, Version 2.0"
