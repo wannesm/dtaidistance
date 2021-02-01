@@ -10,6 +10,7 @@ import dtaidistance.dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException, PyClusteringException
 from dtaidistance.clustering.kmeans import KMeans
 from dtaidistance.dtw_barycenter import dba_loop
+from dtaidistance.preprocessing import differencing
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -227,14 +228,15 @@ def test_trace_kmeans_differencing():
         # on the result of differencing.
         # Also the high-freq noise dominates the local differences, thus
         # we apply a low-pass filter first.
-        signal = scipy.import_signal()
         series_orig = series.copy()
-        series = np.diff(series, n=1, axis=1)
-        fs = 100  # sample rate, Hz
-        cutoff = 10  # cut off frequency, Hz
-        nyq = 0.5 * fs  # Nyquist frequency
-        b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
-        series = signal.filtfilt(b, a, series, axis=1)
+        # signal = scipy.import_signal()
+        # series = np.diff(series, n=1, axis=1)
+        # fs = 100  # sample rate, Hz
+        # cutoff = 10  # cut off frequency, Hz
+        # nyq = 0.5 * fs  # Nyquist frequency
+        # b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
+        # series = signal.filtfilt(b, a, series, axis=1)
+        series = differencing(series, smooth=0.1)
 
         # Perform k-means
         tic = time.perf_counter()

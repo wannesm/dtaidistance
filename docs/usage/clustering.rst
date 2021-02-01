@@ -99,13 +99,7 @@ noise.
 
 ::
 
-    series = np.diff(series, n=1, axis=1)  # Numpy differencing
-    fs = 100  # sample rate, Hz
-    cutoff = 10  # cut off frequency, Hz
-    nyq = 0.5 * fs  # Nyquist frequency
-    b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
-    series = signal.filtfilt(b, a, series, axis=1)
-
+    series = dtaidistance.preprocessing.differencing(series, smooth=0.1)
     model = KMeans(k=4, max_it=10, max_dba_it=10, dists_options={"window": 40})
     cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
 
