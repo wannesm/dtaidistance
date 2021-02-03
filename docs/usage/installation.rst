@@ -30,7 +30,7 @@ section below.
 If the C-library is not available after compilation you can try the following two strategies
 to identify the problem:
 
-1. Call the ``dtw.try_import_libraries(verbose=True)`` function that will print the exception message(s).
+1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the exception message(s).
 2. Reinstall with ``pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance``
    and inspect the output.
 

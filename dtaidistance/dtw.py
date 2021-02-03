@@ -65,17 +65,7 @@ except ImportError:
     array_max = max
 
 
-def try_import_c():
-    global dtw_cc
-    try:
-        from . import dtw_cc
-    except ImportError as exc:
-        print('Cannot import C library')
-        print(exc)
-        dtw_cc = None
-
-
-def try_import_libraries(verbose=False):
+def try_import_c(verbose=False):
     is_complete = True
     msgs = []
     global dtw_cc
