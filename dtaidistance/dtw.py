@@ -75,6 +75,50 @@ def try_import_c():
         dtw_cc = None
 
 
+def try_import_libraries(verbose=False):
+    is_complete = True
+    msgs = []
+    global dtw_cc
+    global dtw_cc_omp
+    global dtw_cc_numpy
+    try:
+        from . import dtw_cc
+    except ImportError as exc:
+        print('Cannot import C-based library (dtw_cc)')
+        msgs.append('Cannot import C-based library (dtw_cc)')
+        print(exc)
+        dtw_cc = None
+        is_complete = False
+    try:
+        from . import dtw_cc_omp
+    except ImportError as exc:
+        print('Cannot import OMP-based library (dtw_cc_omp)')
+        msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
+        print(exc)
+        dtw_cc_omp = None
+        is_complete = False
+    try:
+        from . import dtw_cc_numpy
+    except ImportError as exc:
+        print('Cannot import Numpy-based library (dtw_cc_numpy)')
+        msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
+        print(exc)
+        dtw_cc_numpy = None
+        is_complete = False
+    if not is_complete:
+        print('Not all libraries are available in your installation. '
+              'Share the following information when submitting a bug report:')
+        for msg in msgs:
+            print(f'- {msg}')
+        print('- System information:')
+        import sys
+        print(f'  {sys.implementation}')
+        print('Additionally, you can rerun the compilation from source or pip install in verbose mode:\n'
+              'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance')
+    elif verbose:
+        print('All ok ...')
+
+
 inf = float("inf")
 
 

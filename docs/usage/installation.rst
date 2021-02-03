@@ -17,6 +17,9 @@ This requires OpenMP to be available on your system. If this is not the case, us
 
     $ pip install --global-option=--noopenmp dtaidistance
 
+A version compiled without OpenMP (OMP) might raise an exception when parallelization is required.
+To avoid this exception, you can force the method to use Python's multiprocessing library
+for parallelization by providing the `--use_mp=True` option.
 
 Depending on your system, this might not install the C version. To guarantee installation of the
 C extensions (which enable much faster DTW alignment), follow the instructions in the "From Source"
@@ -27,8 +30,9 @@ section below.
 If the C-library is not available after compilation you can try the following two strategies
 to identify the problem:
 
-1. Call the ``dtw.try_import_c()`` function that will print the exception message.
-2. Reinstall with ``pip install -vvv --upgrade --force-reinstall dtaidistance`` and inspect the output.
+1. Call the ``dtw.try_import_libraries(verbose=True)`` function that will print the exception message(s).
+2. Reinstall with ``pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance``
+   and inspect the output.
 
 
 
