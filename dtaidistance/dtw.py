@@ -87,6 +87,7 @@ def _check_library(include_omp=False, raise_exception=True):
             raise Exception(msg)
     if include_omp and (dtw_cc_omp is None or not dtw_cc_omp.is_openmp_supported()):
         msg = "The compiled dtaidistance C-OMP library is not available.\n" + \
+              "Use Python's multiprocessing library for parellelization (use_mp=True).\n" + \
               "See the documentation for alternative installation options."
         logger.error(msg)
         if raise_exception:
@@ -254,7 +255,8 @@ def distance(s1, s2,
 
 def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
-    """Fast C version of :meth:`distance`.
+    """Same as :meth:`distance` but with different defaults to chose the fast C-based version of
+    the implementation (use_c = True).
 
     Note: the series are expected to be arrays of the type ``double``.
     Thus ``numpy.array([1,2,3], dtype=numpy.double)`` or
@@ -664,13 +666,28 @@ def _distance_matrix_length(block, nb_series):
 
 def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True, only_triu=False):
-    """Fast C version of :meth:`distance_matrix`."""
-    _check_library(raise_exception=True, include_omp=parallel)
+                         block=None, compact=False, parallel=True, use_mp=False,
+                         only_triu=False):
+    """Same as :meth:`distance_matrix` but with different defaults to choose the
+    fast parallized C version (use_c = True and parallel = True).
+
+    This method uses the C-compiled version of the DTW algorithm and uses parallelization.
+    By default this is the OMP C parallelization. If the OMP functionality is not available
+    the parallelization is changed to use Python's multiprocessing library.
+    """
+    _check_library(raise_exception=True, include_omp=False)
+    if not use_mp:
+        try:
+            _check_library(raise_exception=True, include_omp=True)
+        except Exception:
+            logger.warning('The compiled dtaidistance C-OMP library is not available.\n'
+                           'Using the Python multiprocessing library instead (use_mp=True).\n'
+                           'See the documentation for alternative installation options.\n')
+            use_mp = True
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, show_progress=False, only_triu=only_triu)
+                           use_c=True, use_mp=use_mp, show_progress=False, only_triu=only_triu)
 
 
 def warping_path(from_s, to_s, **kwargs):
