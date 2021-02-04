@@ -710,7 +710,7 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
     the parallelization is changed to use Python's multiprocessing library.
     """
     _check_library(raise_exception=True, include_omp=False)
-    if not use_mp:
+    if not use_mp and parallel:
         try:
             _check_library(raise_exception=True, include_omp=True)
         except Exception:
