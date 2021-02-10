@@ -305,7 +305,8 @@ class BaseTree:
         # ax[0].add_line(Line2D((0,1),(2,2), lw=2, color='black', axes=ax[0]))
 
         ax[1].set_axis_off()
-        ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * len(self.series[0]))
+        max_length = max(len(s) for s in self.series)
+        ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * max_length)
         ax[1].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
 
         if type(cmap) == str:
