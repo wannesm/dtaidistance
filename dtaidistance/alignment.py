@@ -22,6 +22,17 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
                      substitution=None):
     """Needleman-Wunsch global sequence alignment.
 
+    Needleman-Wunsch finds the optimal aligment between two sequences by maximizing similarity.
+
+    For background on this algorithm, see the original paper:
+    Needleman, Saul B. & Wunsch, Christian D. (1970).
+    "A general method applicable to the search for similarities in the amino acid sequence of two proteins".
+    Journal of Molecular Biology. 48 (3): 443–53. doi:10.1016/0022-2836(70)90057-4 .
+
+    It is equivalent to the Levenshtein distance that tries to minimize the edit distance. For more information see:
+    Sellers PH (1974). "On the theory and computation of evolutionary distances".
+    SIAM Journal on Applied Mathematics. 26 (4): 787–793. doi:10.1137/0126070 .
+
     :param s1: First sequence
     :param s2: Second sequence
     :param window:
