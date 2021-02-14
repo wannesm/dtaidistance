@@ -318,7 +318,12 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     # Use cython.view.array to avoid numpy dependency
-    wps = cvarray(shape=(len(s1) + 1, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings)), itemsize=sizeof(double), format="d")
+    shape = (1, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
+    try:
+        wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
+    except MemoryError as exc:
+        print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
+        raise exc
     cdef double [:, :] wps_view = wps
     # cdef array.array wps = array.array('d', [0] * dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
     # cdef array.array wps = array.array('d')

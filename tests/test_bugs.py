@@ -6,8 +6,8 @@ import pytest
 
 from dtaidistance import dtw, util_numpy
 
-
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
 def test_distance1_a():
@@ -222,6 +222,21 @@ def test_bug2():
         assert res1 == pytest.approx(res4)
 
 
+@numpyonly
+def test_bug_size():
+    """Two series of length 1500 should not trigger a size error.
+
+    The warping paths matrix is of size 1501**2 = 2_253_001.
+    If using 64bit values: 1501**2*64/(8*1024*1024) = 17.2MiB.
+    """
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.random.rand(1500)
+        s2 = np.random.rand(1500)
+        d1, _ = dtw.warping_paths_fast(s1, s2)
+        d2, _ = dtw.warping_paths(s1, s2)
+        assert d1 == pytest.approx(d2)
+
+
 if __name__ == "__main__":
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=2, linewidth=120)
@@ -238,4 +253,5 @@ if __name__ == "__main__":
     # test_distance4()
     # test_distance6()
     # test_bug1_psi()
-    test_bug2()
+    # test_bug2()
+    test_bug_size()
