@@ -65,11 +65,12 @@ class Medoids:
             fig, ax = plt.subplots(nrows=1, ncols=2, frameon=False)
         else:
             fig, ax = None, axes
+        max_length = max(len(s) for s in self.series)
         ax[0].set_axis_off()
-        ax[0].set_xlim(left=0, right=tr_left_margin + ts_sample_length * len(self.series[0]))
+        ax[0].set_xlim(left=0, right=tr_left_margin + ts_sample_length * max_length)
         ax[0].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
         ax[1].set_axis_off()
-        ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * len(self.series[0]))
+        ax[1].set_xlim(left=0, right=ts_left_margin + ts_sample_length * max_length)
         ax[1].set_ylim(bottom=0, top=bottom_margin + ts_height * len(self.series) + top_margin)
 
         if type(cmap) == str:
