@@ -22,6 +22,19 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
                      substitution=None):
     """Needleman-Wunsch global sequence alignment.
 
+    :param s1: First sequence
+    :param s2: Second sequence
+    :param window:
+    :param max_dist: Stop warping path if distance exceeds this value
+    :param max_step: Stop warping path if the last increase exceeds this value.
+    :param max_length_diff: Exit if the two sequences differ in length.
+    :param psi: Psi relaxation
+    :param substitution: Function with signature (s1[i], s2[j]) that returns the value to add to the
+        current warping path given two symbols. For Needleman-Wunsch the default function that is used
+         is -1 for a match and +1 for a mismatch.
+         If you have custom distance values between particular symbols, you can use the `make_substitution_fn`
+         method to generate a function from a dictionary.
+
     Example:
 
         >> s1 = "GATTACA"
@@ -42,14 +55,13 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
 
     """
     if substitution is None:
-        substitution =  _default_substitution_fn
+        substitution = _default_substitution_fn
     value, matrix = dp(s1, s2,
                        fn=substitution, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
     matrix = -matrix
     return value, matrix
-
 
 
 def _needleman_wunsch_border(ri, ci):
@@ -60,7 +72,7 @@ def _needleman_wunsch_border(ri, ci):
     return 0
 
 
-def  _default_substitution_fn(v1, v2):
+def _default_substitution_fn(v1, v2):
     """Default substitution function.
 
     Match: +1 -> -1
@@ -87,6 +99,7 @@ def make_substitution_fn(matrix, gap=1, opt='max'):
         substitution = make_substitution_fn({}, gap=0.5)
 
     :param matrix: Substitution matrix as a dictionary of tuples to values.
+        For example `matrix={('A','B'): 2, ('B', 'A'): 3}`.
     :param opt: Direction in which matrix optimises alignments. If `max`,
         values are reversed, see :meth:` _default_substitution_fn`.
     :return: Function that compares two elements.

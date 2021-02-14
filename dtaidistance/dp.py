@@ -27,7 +27,9 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
 
     :param s1: First sequence
     :param s2: Second sequence
-    :param fn: Function to compare two items from both sequences
+    :param fn: Function to compare two items from both sequences and return the value to add to the current
+        warping path (e.g. for Dynamic Time Warping this is (s1[i]-s2[j])**2,
+        and for Needleman-Wunsch this is -1 for a match and +1 for a mismatch).
     :param border: Callable object to fill in the initial borders (border(row_idx, col_idx).
     :param window: see :meth:`distance`
     :param max_dist: see :meth:`distance`
