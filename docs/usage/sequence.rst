@@ -40,3 +40,13 @@ The matrix representing all possible optimal alignments is
         [-6, -4, -2, -2, -1, -1,  1,  0],
         [-7, -5, -3, -1, -2, -2,  0,  0]]
 
+
+If you want to use a custom distance between (some) symbols, you can provide a custom function
+using the ``substitution`` argument to  ``needleman_wunsch``. A wrapper is available to translate
+a dictionary to a function with:
+
+.. code-block:: python
+
+   substitution_cost = {('A','G'): 2, ('G', 'A'): 3}
+   substitution = alignment.make_substitution_fn(substitution_cost)
+   value, matrix = alignment.needleman_wunsch(s1, s2, substitution=substitution)
