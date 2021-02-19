@@ -152,7 +152,7 @@ class KMeans(Medoids):
         - Also, experiments showed that k-means++ generally performed better if it selected several new centers
           during each iteration, and then greedily chose the one that decreased φ as much as possible.
 
-        Detail (in code):
+        Detail (in original code):
 
         - numLocalTries==2+log(k)
 
