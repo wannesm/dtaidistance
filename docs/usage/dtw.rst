@@ -100,7 +100,7 @@ DTW and keep all warping paths
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If, next to the distance, you also want the full matrix to see all
-possible warping paths:
+possible warping paths, also alled the accumulated cost matrix:
 
 ::
 
@@ -111,7 +111,7 @@ possible warping paths:
     print(distance)
     print(paths)
 
-The matrix with all warping paths can be visualised as follows:
+The matrix with all warping paths (or accumulated cost matrix) can be visualised as follows:
 
 ::
 
