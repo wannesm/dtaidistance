@@ -260,6 +260,7 @@ dimension to be the series index (thus timestep).
 Example:
 
 ::
+    from dtaidistance import dtw_ndim
 
     s1 = np.array([[0, 0],
                    [0, 1],
@@ -271,7 +272,7 @@ Example:
                    [0, 1],
                    [0, .5],
                    [0, 0]], dtype=np.double)
-    d = distance(s1, s2)
+    d = dtw_ndim.distance(s1, s2)
 
 This method returns the dependent DTW (DTW_D) distance between two
 n-dimensional sequences. If you want to compute the independent DTW
