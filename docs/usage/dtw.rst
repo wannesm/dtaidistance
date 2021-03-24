@@ -273,6 +273,7 @@ For example, two 2-dimensional series with five timesteps:
                         [0, 0]], dtype=np.double)
     d = distance(series1, series2)
 
+
 This method returns the dependent DTW (DTW_D) distance between two
 n-dimensional sequences. If you want to compute the independent DTW
 (DTW_I) distance, use the 1-dimensional version:
