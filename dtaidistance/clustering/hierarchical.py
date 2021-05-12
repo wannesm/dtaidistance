@@ -485,6 +485,7 @@ class LinkageTree(BaseTree):
             idx += len(series) - r - 1
 
         self.linkage = linkage(dists_cond, method=self.method, metric='euclidean')
+        return self.linkage
 
     def _size_cond(self, size):
         n = int(size)
