@@ -38,7 +38,8 @@ linkage method).
     cluster_idx = model3.fit(timeseries)
 
 For models that keep track of the full clustering tree
-(``HierarchicalTree`` or ``LinkageTree``), the tree can be visualised (see figure at top of this page):
+(``HierarchicalTree`` or ``LinkageTree``), the tree is available in ``model.linkage`` and
+can be visualised (see figure at top of this page):
 
 ::
 
