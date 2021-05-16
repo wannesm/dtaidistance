@@ -93,7 +93,7 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
 
 
 def plot_warping(s1, s2, path, filename=None):
-    """Plot the optimal warping between to sequences.
+    """Plot the optimal warping between two sequences.
 
     :param s1: From sequence.
     :param s2: To sequence.
