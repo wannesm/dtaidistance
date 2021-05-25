@@ -42,14 +42,17 @@ c_args = {
              '/I'+str(dtaidistancec_path)],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
-    'brewllvm': ['-Xpreprocessor', '-fopenmp',
-                  '-I'+str(dtaidistancec_path)]  # custom key for Homebrew llvm
+    'brewllvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
+                  '-I'+str(dtaidistancec_path)],
+    'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
+             '-I'+str(dtaidistancec_path)]
 }
 l_args = {
     'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
     'msvc': [],
     'mingw32': ['-fopenmp'],
-    'brewllvm': ['-Xpreprocessor', '-fopenmp', '-lomp']  # custom key for Homebrew llvm
+    'brewllvm': ['-Xpreprocessor', '-fopenmp', '-lomp'], # custom key for Homebrew llvm
+    'gnugcc': ['-Xpreprocessor', '-fopenmp', '-lgomp'] # custom key for GNU GCC
 }
 
 
