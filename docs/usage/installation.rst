@@ -76,7 +76,6 @@ This requires OpenMP to be available on your system. If this is not the case, us
 
     $ python3 setup.py --noopenmp build_ext --inplace
 
-
 Changelist
 ~~~~~~~~~~
 
