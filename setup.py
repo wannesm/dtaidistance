@@ -171,6 +171,9 @@ class MyBuildExtCommand(BuildExtCommand):
         if c == "unix" and "local/opt/llvm" in self.compiler.compiler[0]:
             print('Using Homebrew LLVM settings')
             c = 'brewllvm'
+        elif c == "unix" and "gnu-gcc" in self.compiler.compiler[0]:
+            print('Using GNU GCC settings')
+            c = 'gnugcc'
         print("--noopenmp: {}".format(self.distribution.noopenmp))
         print("--forceopenmp: {}".format(self.distribution.forceopenmp))
         print("--noxpreprocessor: {}".format(self.distribution.noxpreprocessor))
