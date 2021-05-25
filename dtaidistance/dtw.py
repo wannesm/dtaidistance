@@ -32,10 +32,13 @@ except ImportError:
     dtw_cc = None
 
 dtw_cc_omp = None
+dtw_cc_omp_err = None
 try:
     from . import dtw_cc_omp
-except ImportError:
+except ImportError as exc:
+    dtw_cc_omp_err = str(exc)
     logger.debug('DTAIDistance C-OMP library not available')
+    logger.debug(exc)
     dtw_cc_omp = None
 
 dtw_cc_numpy = None
@@ -76,7 +79,7 @@ def try_import_c(verbose=False):
     except ImportError as exc:
         print('Cannot import C-based library (dtw_cc)')
         msgs.append('Cannot import C-based library (dtw_cc)')
-        print(exc)
+        msgs.append(str(exc))
         dtw_cc = None
         is_complete = False
     try:
@@ -84,7 +87,7 @@ def try_import_c(verbose=False):
     except ImportError as exc:
         print('Cannot import OMP-based library (dtw_cc_omp)')
         msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
-        print(exc)
+        msgs.append(str(exc))
         dtw_cc_omp = None
         is_complete = False
     try:
@@ -92,11 +95,11 @@ def try_import_c(verbose=False):
     except ImportError as exc:
         print('Cannot import Numpy-based library (dtw_cc_numpy)')
         msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
-        print(exc)
+        msgs.append(str(exc))
         dtw_cc_numpy = None
         is_complete = False
     if not is_complete:
-        print('Not all libraries are available in your installation. '
+        print('\nNot all libraries are available in your installation. '
               'Share the following information when submitting a bug report:')
         for msg in msgs:
             print(f'- {msg}')
@@ -120,8 +123,13 @@ def _check_library(include_omp=False, raise_exception=True):
         if raise_exception:
             raise Exception(msg)
     if include_omp and (dtw_cc_omp is None or not dtw_cc_omp.is_openmp_supported()):
-        msg = "The compiled dtaidistance C-OMP library is not available.\n" + \
-              "Use Python's multiprocessing library for parellelization (use_mp=True).\n" + \
+        msg = "The compiled dtaidistance C-OMP library "
+        if dtw_cc_omp and not dtw_cc_omp.is_openmp_supported():
+            msg += "indicates that OpenMP was not avaiable during compilation.\n"
+        else:
+            msg += "is not available.\n"
+        msg += "Use Python's multiprocessing library for parellelization (use_mp=True).\n" + \
+               "Call dtw.try_import_c() to get more verbose errors.\n" + \
               "See the documentation for alternative installation options."
         logger.error(msg)
         if raise_exception:
@@ -714,9 +722,6 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
         try:
             _check_library(raise_exception=True, include_omp=True)
         except Exception:
-            logger.warning('The compiled dtaidistance C-OMP library is not available.\n'
-                           'Using the Python multiprocessing library instead (use_mp=True).\n'
-                           'See the documentation for alternative installation options.\n')
             use_mp = True
     return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
