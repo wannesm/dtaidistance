@@ -7,8 +7,8 @@ your system.
 OpenMP can be challenging to get to work. On this page, we have collected tips and tricks.
 
 
-macOS
-~~~~~
+macOS Homebrew llvm
+~~~~~~~~~~~~~~~~~~~
 
 Via Homebrew, you can use a recent LLVM clang compiler and LLVM's OpenMP library:
 
@@ -34,4 +34,13 @@ Compile and link using:
 Other sources:
 
 - https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+
+Linux GCC
+~~~~~~~~~
+
+Compile and link using:
+
+::
+
+    gcc -Xpreprocessor -fopenmp -lgomp myfile.c
 
