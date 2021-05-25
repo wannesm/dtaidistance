@@ -267,7 +267,7 @@ Test(dtw_psi, test_a_b) {
                    0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
     double s2[] = {-0.84,-0.48,0.,0.48,0.84,1.,0.91,0.6,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,
                    -0.28,0.22,0.66,0.94,0.99,0.8,0.41,-0.08,-0.54,-0.88,-1.,-0.88,-0.54,
-                  -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+                   -0.07,0.42,0.8,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
     DTWSettings settings = dtw_settings_default();
     settings.psi = 2;
     double d = dtw_distance(s2, 40, s1, 40, &settings);
@@ -275,6 +275,24 @@ Test(dtw_psi, test_a_b) {
     d = dtw_warping_paths_distance(s2, 40, s1, 40, &settings);
     cr_assert_float_eq(d, 0.0, 0.001);
 }
+
+Test(dtw_psi, test_a_c) {
+    double s1[] = {0.00,0.48,0.84,1.00,0.91,0.60,0.14,-0.35,-0.76,-0.98,-0.96,-0.71,-0.28,0.22,
+                   0.66,0.94,0.99,0.80,0.41,-0.08,-0.54,-0.88,-1.00,-0.88,-0.54,-0.07,0.42,
+                   0.80,0.99,0.93,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34,0.15,0.61};
+    double s2[] = {-0.84,-0.48,0.00,0.48,0.84,1.00,0.91,0.60,0.14,-0.18,-0.76,-0.98,-0.99,-0.71,
+                   -0.28,0.22,0.66,0.70,0.99,0.80,0.41,-0.08,-0.54,-1.02,-1.00,-0.88,-0.54,
+                   -0.07,0.42,0.80,0.99,1.10,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi = 2;
+    settings.window = 25;
+    double d = dtw_distance(s2, 40, s1, 40, &settings);
+    cr_assert_float_eq(d, 0.287054, 0.001);
+    d = dtw_warping_paths_distance(s2, 40, s1, 40, &settings);
+    cr_assert_float_eq(d, 0.287054, 0.001);
+}
+
+
 
 //----------------------------------------------------
 // MARK: WPS
@@ -478,7 +496,7 @@ Test(dba, test_a_matrix) {
         0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0, // Row 0
         0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0 // Row 1
     };
-    double exp_avg[] = {0.25, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+    double exp_avg[] = {0.3, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
     idx_t nb_cols = 10;
     idx_t nb_rows = 2;
     seq_t c[nb_cols];
@@ -492,7 +510,7 @@ Test(dba, test_a_matrix) {
     bit_set(mask, 1);
     DTWSettings settings = dtw_settings_default();
     
-    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, &settings);
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 0, &settings);
     
     for (idx_t i=0; i<nb_cols; i++) {
         cr_assert_float_eq(c[i], exp_avg[i], 0.001);
@@ -504,13 +522,17 @@ Test(dba, test_a_ptrs) {
     cr_skip_test();
     #endif
     
+    // 0.5,    | 1, 2, 3,   2.0, 2.1, 1.0, 0, 0, 0
+    // 0.4, 0, | 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0
+    // 0.3     |
+    
     double s1[] = {0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0};
     double s2[] = {0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0};
     double **s = (double **)malloc(2 * sizeof(double *));
     s[0] = s1;
     s[1] = s2;
     
-    double exp_avg[] = {0.25, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+    double exp_avg[] = {0.3, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
     idx_t nb_cols = 10;
     idx_t nb_rows = 2;
     idx_t lengths[2] = {nb_cols, nb_cols};
@@ -525,7 +547,7 @@ Test(dba, test_a_ptrs) {
     bit_set(mask, 1);
     DTWSettings settings = dtw_settings_default();
         
-    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, &settings);
+    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, 0, &settings);
     
     for (idx_t i=0; i<nb_cols; i++) {
         cr_assert_float_eq(c[i], exp_avg[i], 0.001);

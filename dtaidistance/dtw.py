@@ -130,7 +130,7 @@ def _check_library(include_omp=False, raise_exception=True):
             msg += "is not available.\n"
         msg += "Use Python's multiprocessing library for parellelization (use_mp=True).\n" + \
                "Call dtw.try_import_c() to get more verbose errors.\n" + \
-              "See the documentation for alternative installation options."
+               "See the documentation for alternative installation options."
         logger.error(msg)
         if raise_exception:
             raise Exception(msg)
@@ -414,6 +414,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
                 smaller_found = True
                 ec_next = j + 1
         ec = ec_next
+    # Decide which d to return
+    dtw = np.sqrt(dtw)
     if psi == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
@@ -421,20 +423,16 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         ic = min(c, c + window - 1)
         vr = dtw[ir:ir-psi-1:-1, ic]
         vc = dtw[ir, ic:ic-psi-1:-1]
-        print(vc)
         mir = argmin(vr)
         mic = argmin(vc)
-        print(mic)
         if vr[mir] < vc[mic]:
             dtw[ir:ir-mir:-1, ic] = -1
             d = vr[mir]
         else:
             dtw[ir, ic:ic-mic:-1] = -1
             d = vc[mic]
-    if max_dist and d > max_dist:
+    if max_dist and d*d > max_dist:
         d = inf
-    dtw = np.sqrt(dtw)
-    d = np.sqrt(d)
     return d, dtw
 
 

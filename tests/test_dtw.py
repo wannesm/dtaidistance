@@ -185,7 +185,11 @@ if __name__ == "__main__":
         np.set_printoptions(precision=3, linewidth=120)
     # test_distance1_a()
     # test_distance1_b()
-    # test_distance_matrix2_e()
-    run_distance_matrix_block(parallel=False, use_c=True, compact=True)
+    try:
+        test_distance_matrix2_e()
+    except Exception as exc:
+        print(exc)
+        print(dtw.try_import_c())
+    # run_distance_matrix_block(parallel=False, use_c=True, compact=True)
     # test_expected_length1()
     # test_condensed_index1()

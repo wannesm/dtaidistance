@@ -133,6 +133,44 @@ def test_psi_dtw_1c():
 
 
 @numpyonly
+def test_psi_dtw_1d():
+    with util_numpy.test_uses_numpy() as np:
+        x = np.arange(0, 20, .5)
+        s1 = np.sin(x)
+        s2 = np.sin(x - 1)
+
+        random.seed(1)
+        for idx in range(len(s2)):
+            if random.random() < 0.05:
+                s2[idx] += (random.random() - 0.5) / 2
+
+        # print(f's1 = [' + ','.join(f'{vv:.2f}' for vv in s1) + ']')
+        # print(f's2 = [' + ','.join(f'{vv:.2f}' for vv in s2) + ']')
+
+        # print('distance_fast')
+        d1 = dtw.distance_fast(s1, s2, psi=2)
+        # print(f'{d1=}')
+        # print('warping_paths')
+        d2, paths = dtw.warping_paths(s1, s2, window=25, psi=2)
+        # print(f'{d2=}')
+        with np.printoptions(threshold=np.inf, linewidth=np.inf):
+            print(paths)
+        # print('warping_paths fast')
+        d3, paths = dtw.warping_paths_fast(s1, s2, window=25, psi=2)
+        # print(f'{d3=}')
+        # print(paths)
+        # print('best_path')
+        best_path = dtw.best_path(paths)
+
+        if not dtwvis.test_without_visualization():
+            if directory:
+                dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=directory / "test_psi_dtw_1d.png")
+
+        np.testing.assert_almost_equal(d1, d2)
+        np.testing.assert_almost_equal(d1, d3)
+
+
+@numpyonly
 def test_psi_dtw_2a():
     with util_numpy.test_uses_numpy() as np:
         x = np.arange(0, 20, .5)
@@ -190,11 +228,12 @@ if __name__ == "__main__":
     print(f"Saving files to {directory}")
     # test_normalize()
     # test_normalize2()
-    test_normalize2_prob()
+    # test_normalize2_prob()
     # test_warping_path1()
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()
+    test_psi_dtw_1d()
     # test_psi_dtw_2a()
     # test_psi_dtw_2b()
     # test_twoleadecg_1()

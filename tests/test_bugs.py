@@ -253,5 +253,5 @@ if __name__ == "__main__":
     # test_distance4()
     # test_distance6()
     # test_bug1_psi()
-    # test_bug2()
-    test_bug_size()
+    test_bug2()
+    # test_bug_size()

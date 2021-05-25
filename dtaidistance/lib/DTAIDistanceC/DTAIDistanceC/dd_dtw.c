@@ -782,7 +782,7 @@ seq_t dtw_warping_paths(seq_t *wps,
         for (ri=l1-1; ri>l1-settings->psi-2; ri--) {
             if (wps[wpsi] < mir_value) {
                 mir_value = wps[wpsi];
-                mir_rel = ri;
+                mir_rel = ri + 1;
             } else {
                 break; // No nead to go further, values cannot be lower
             }
@@ -793,7 +793,7 @@ seq_t dtw_warping_paths(seq_t *wps,
         for (ci=l2-1; ci>l2-settings->psi-2; ci--) {
             if (wps[wpsi] < mic_value) {
                 mic_value = wps[wpsi];
-                mic = ci;
+                mic = ci + 1;
             } else {
                 break; // No nead to go further, values cannot be lower
             }
@@ -827,10 +827,14 @@ seq_t dtw_warping_paths(seq_t *wps,
     
     if (do_sqrt) {
         for (idx_t i=0; i<p.length ; i++) {
-            wps[i] = sqrt(wps[i]);
+            if (wps[i] > 0) {
+                wps[i] = sqrt(wps[i]);
+            }
         }
         if (return_dtw) {
-            rvalue = sqrt(rvalue);
+            if (rvalue > 0) {
+                rvalue = sqrt(rvalue);
+            }
         }
     }
     
@@ -1826,7 +1830,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
  @param c Initial average, afterwards the updated average
  @param t Length of average (typically this is the same as nb_cols)
  @param mask Bit-array
- @param prob_samples Probabilistically sample the best path samples number of times.
+ @param prob_samples Probabilistically sample the best path, sample number of times.
         Uses deterministic best path if samples is 0.
  @param settings Settings for distance functions
  */
