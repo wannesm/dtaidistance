@@ -194,6 +194,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax1.xaxis.tick_top()
     # ax1.set_aspect(0.454)
     ax1.plot(range(len(s2)), s2, ".-")
+    ax1.set_xlim([-0.5, len(s2) - 0.5])
     ax1.xaxis.set_major_locator(plt.NullLocator())
     ax1.yaxis.set_major_locator(plt.NullLocator())
 
@@ -206,6 +207,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax2.xaxis.set_major_locator(plt.NullLocator())
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
+    ax2.set_ylim([0.5, len(s2) + 0.5])
 
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
@@ -229,6 +231,13 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         ax4 = fig.add_axes([0.9, 0.25, 0.015, 0.5])
         fig.colorbar(img, cax=ax4)
 
+    # Align the subplots according to the distance matrix plot (ax3):
+    ax1pos = ax1.get_position().bounds
+    ax2pos = ax2.get_position().bounds
+    ax3pos = ax3.get_position().bounds
+    ax1.set_position((ax3pos[0], ax1pos[1], ax3pos[2], ax1pos[3]))
+    ax2.set_position((ax2pos[0], ax3pos[1], ax2pos[2], ax3pos[3]))
+    
     ax = fig.axes
 
     if filename:
