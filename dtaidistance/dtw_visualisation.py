@@ -246,7 +246,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         ax1.set_position((ax1pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
         if showlegend:
             ax4pos = ax4.get_position().bounds
-            ax4.set_position((ax1pos[0] + ax3pos[2] + 0.05, ax4pos[1], ax4pos[2], ax4pos[3])) # move the legend to the left (TODO: 0.05 can be determined adaptively)
+            ax4.set_position((ax1pos[0] + ax3pos[2] + (ax1pos[0] - (ax2pos[0] + ax2pos[2])), ax4pos[1], ax4pos[2], ax4pos[3])) # move the legend to the left to equalize the horizontal spaces between the subplots
     if len(s1) == len(s2):
         ax1.set_position((ax3pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
         
