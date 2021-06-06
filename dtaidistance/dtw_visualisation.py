@@ -207,7 +207,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax2.xaxis.set_major_locator(plt.NullLocator())
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
-    ax2.set_ylim([0.5, len(s2) + 0.5])
+    ax2.set_ylim([0.5, len(s1) + 0.5])
 
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
