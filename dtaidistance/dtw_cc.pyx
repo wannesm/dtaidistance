@@ -102,9 +102,27 @@ cdef class DTWSettings:
                 self._settings.penalty = kwargs["penalty"]
         if "psi" in kwargs:
             if kwargs["psi"] is None:
-                self._settings.psi = 0
+                self._settings.psi_1b = 0
+                self._settings.psi_1e = 0
+                self._settings.psi_2b = 0
+                self._settings.psi_2e = 0
             else:
-                self._settings.psi = kwargs["psi"]
+                if type(kwargs["psi"]) is int:
+                    self._settings.psi_1b = kwargs["psi"]
+                    self._settings.psi_1e = kwargs["psi"]
+                    self._settings.psi_2b = kwargs["psi"]
+                    self._settings.psi_2e = kwargs["psi"]
+                elif type(kwargs["psi"]) is tuple or type(kwargs["psi"]) is list:
+                    if len(kwargs["psi"]) != 4:
+                        self._settings.psi_1b = 0
+                        self._settings.psi_1e = 0
+                        self._settings.psi_2b = 0
+                        self._settings.psi_2e = 0
+                    else:
+                        self._settings.psi_1b = kwargs["psi"][0]
+                        self._settings.psi_1e = kwargs["psi"][1]
+                        self._settings.psi_2b = kwargs["psi"][2]
+                        self._settings.psi_2e = kwargs["psi"][3]
         if "use_pruning" in kwargs:
             if kwargs["use_pruning"] is None:
                 self._settings.use_pruning = False
@@ -314,7 +332,7 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     return dtaidistancec_dtw.dtw_settings_wps_width(l1, l2, &settings._settings)
 
 
-def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
+def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     # Use cython.view.array to avoid numpy dependency
@@ -333,7 +351,7 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
     # print(wps)
     # print(settings)
     d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                            True, True, &settings._settings)
+                                            True, True, psi_neg, &settings._settings)
     # print('---')
     # print(wps)
     # print('---')
@@ -341,12 +359,12 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
     # print("end dtw_cc warping_paths")
     return d
 
-def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, **kwargs):
+def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef double d
     d = dtaidistancec_dtw.dtw_warping_paths(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                            True, True, &settings._settings)
+                                            True, True, psi_neg, &settings._settings)
     return d
 
 

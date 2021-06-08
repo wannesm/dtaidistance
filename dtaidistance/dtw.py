@@ -223,8 +223,7 @@ def distance(s1, s2,
         penalty = 0
     else:
         penalty *= penalty
-    if psi is None:
-        psi = 0
+    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
     dtw = array.array('d', [inf] * (2 * length))
@@ -232,7 +231,7 @@ def distance(s1, s2,
     ec = 0
     ec_next = 0
     smaller_found = False
-    for i in range(psi + 1):
+    for i in range(psi_2b + 1):
         dtw[i] = 0
     skip = 0
     i0 = 1
@@ -255,7 +254,7 @@ def distance(s1, s2,
         ec_next = i
         if length == c + 1:
             skip = 0
-        if psi != 0 and j_start == 0 and i < psi:
+        if psi_1b != 0 and j_start == 0 and i < psi_1b:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
             d = (s1[i] - s2[j])**2
@@ -281,14 +280,17 @@ def distance(s1, s2,
                 smaller_found = True
                 ec_next = j + 1
         ec = ec_next
-        if psi != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi:
+        if psi_1e != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi_1e:
             psi_shortest = min(psi_shortest, dtw[i1 * length + length - 1])
-    if psi == 0:
+    if psi_1e == 0 and psi_2e:
         d = dtw[i1 * length + min(c, c + window - 1) - skip]
     else:
         ic = min(c, c + window - 1) - skip
-        vc = dtw[i1 * length + ic - psi:i1 * length + ic + 1]
-        d = min(array_min(vc), psi_shortest)
+        if psi_2e != 0:
+            vc = dtw[i1 * length + ic - psi_2e:i1 * length + ic + 1]
+            d = min(array_min(vc), psi_shortest)
+        else:
+            d = min(dtw[i1 * length + min(c, c + window - 1) - skip], psi_shortest)
     if max_dist and d > max_dist:
         d = inf
     d = math.sqrt(d)
@@ -329,8 +331,23 @@ def _distance_c_with_params(t):
     return dtw_cc.distance(t[0], t[1], **t[2])
 
 
+def _process_psi_arg(psi):
+    psi_1b = 0
+    psi_1e = 0
+    psi_2b = 0
+    psi_2e = 0
+    if type(psi) is int:
+        psi_1b = psi
+        psi_1e = psi
+        psi_2b = psi
+        psi_2e = psi
+    elif type(psi) in [tuple, list]:
+        psi_1b, psi_1e, psi_2b, psi_2e = psi
+    return psi_1b, psi_1e, psi_2b, psi_2e
+
+
 def warping_paths(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True):
     """
     Dynamic Time Warping.
 
@@ -344,6 +361,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param max_length_diff: see :meth:`distance`
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
+    :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
     :returns: (DTW distance, DTW matrix)
     """
     if np is None:
@@ -361,16 +379,16 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         max_dist = inf
     else:
         max_dist *= max_dist
-    if not penalty:
+    if penalty is None:
         penalty = 0
     else:
         penalty *= penalty
-    if psi is None:
-        psi = 0
+    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     dtw = np.full((r + 1, c + 1), inf)
     # dtw[0, 0] = 0
-    for i in range(psi + 1):
+    for i in range(psi_2b + 1):
         dtw[0, i] = 0
+    for i in range(psi_1b + 1):
         dtw[i, 0] = 0
     i0 = 1
     i1 = 0
@@ -416,28 +434,40 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         ec = ec_next
     # Decide which d to return
     dtw = np.sqrt(dtw)
-    if psi == 0:
+    if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
         ir = i1
         ic = min(c, c + window - 1)
-        vr = dtw[ir:ir-psi-1:-1, ic]
-        vc = dtw[ir, ic:ic-psi-1:-1]
-        mir = argmin(vr)
-        mic = argmin(vc)
-        if vr[mir] < vc[mic]:
-            dtw[ir:ir-mir:-1, ic] = -1
-            d = vr[mir]
+        if psi_1e != 0:
+            vr = dtw[ir:max(0, ir-psi_1e-1):-1, ic]
+            mir = argmin(vr)
+            vr_mir = vr[mir]
         else:
-            dtw[ir, ic:ic-mic:-1] = -1
-            d = vc[mic]
+            mir = ir
+            vr_mir = inf
+        if psi_2e != 0:
+            vc = dtw[ir, ic:max(0, ic-psi_2e-1):-1]
+            mic = argmin(vc)
+            vc_mic = vc[mic]
+        else:
+            mic = ic
+            vc_mic = inf
+        if vr_mir < vc_mic:
+            if psi_neg:
+                dtw[ir:ir-mir:-1, ic] = -1
+            d = vr_mir
+        else:
+            if psi_neg:
+                dtw[ir, ic:ic-mic:-1] = -1
+            d = vc_mic
     if max_dist and d*d > max_dist:
         d = inf
     return d, dtw
 
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
-                       max_step=None, max_length_diff=None, penalty=None, psi=None, compact=False):
+                       max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:
@@ -473,11 +503,11 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
         wps_compact = np.full((len(s1)+1, wps_width), inf)
-        d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, **settings_kwargs)
+        d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings_kwargs)
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
-    d = dtw_cc.warping_paths(dtw, s1, s2, **settings_kwargs)
+    d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings_kwargs)
     return d, dtw
 
 

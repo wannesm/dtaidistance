@@ -100,7 +100,7 @@ void benchmark5() {
     DTWSettings settings = dtw_settings_default();
 //    settings.max_dist = 1.415;
     settings.window = 0;
-    settings.psi = 3;
+    dtw_settings_set_psi(3, &settings);
     settings.use_pruning = false;
     idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
     printf("wps_length=%zu\n", wps_length);
@@ -108,7 +108,7 @@ void benchmark5() {
 //    for (idx_t i=0; i<wps_length; i++) {
 //        wps[i] = i;
 //    }
-    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, &settings);
+    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, true, &settings);
     printf("d=%f\n", d);
     dtw_print_wps_compact(wps, l1, l2, &settings);
     printf("\n\n");
@@ -240,7 +240,7 @@ void benchmark11() {
                    -0.28,0.22,0.66,0.70,0.99,0.80,0.41,-0.08,-0.54,-1.02,-1.00,-0.88,-0.54,
                    -0.07,0.42,0.80,0.99,1.10,0.65,0.21,-0.29,-0.71,-0.96,-0.98,-0.75,-0.34};
     DTWSettings settings = dtw_settings_default();
-    settings.psi = 2;
+    dtw_settings_set_psi(2, &settings);
     settings.window = 25;
     
     double dd = dtw_distance(s2, 40, s1, 40, &settings);
@@ -251,7 +251,7 @@ void benchmark11() {
     idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
     printf("wps_length=%zu\n", wps_length);
     seq_t wps[wps_length];
-    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, &settings);
+    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, true, &settings);
     printf("d=%f\n", d);
     dtw_print_wps_compact(wps, l1, l2, &settings);
     printf("\n\n");
@@ -266,6 +266,57 @@ void benchmark11() {
     }
     printf("]\n");
 }
+
+
+void benchmark12_subsequence() {
+    seq_t s1[] = {1, 2, 0};  // query
+    seq_t s2[] = {1, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
+    idx_t l1 = 3;
+    idx_t l2 = 11;
+    
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 0;
+    settings.psi_1b = 0;
+    settings.psi_1e = 0;
+    settings.psi_2b = l2;
+    settings.psi_2e = l2;
+    settings.penalty = 0.1;
+    settings.use_pruning = false;
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    printf("wps_length=%zu\n", wps_length);
+    seq_t wps[wps_length];
+//    for (idx_t i=0; i<wps_length; i++) {
+//        wps[i] = i;
+//    }
+    printf("window=%zu\n", settings.window);
+    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, false, &settings);
+    printf("d=%f\n", d);
+    printf("window=%zu\n", settings.window);
+    printf("Compact:\n");
+    dtw_print_wps_compact(wps, l1, l2, &settings);
+    printf("\n\n");
+    dtw_print_wps(wps, l1, l2, &settings);
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    dtw_best_path(wps, i1, i2, l1, l2, &settings);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
+    seq_t full[(l1+1)*(l2+1)];
+    dtw_expand_wps(wps, full, l1, l2, &settings);
+    for (idx_t i=0; i<(l1+1); i++) {
+        printf("[ ");
+        for (idx_t j=0; j<(l2+1); j++) {
+            printf("%7.3f ", full[i*(l2+1)+j]);
+        }
+        printf("]\n");
+    }
+}
+
 
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
@@ -283,7 +334,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark8();
 //    benchmark9();
 //    benchmark10();
-    benchmark11();
+//    benchmark11();
+    benchmark12_subsequence();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);

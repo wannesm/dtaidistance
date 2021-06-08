@@ -9,7 +9,10 @@ cdef extern from "dd_dtw.h":
         seq_t max_step
         Py_ssize_t max_length_diff
         seq_t penalty
-        Py_ssize_t psi
+        Py_ssize_t psi_1b
+        Py_ssize_t psi_1e
+        Py_ssize_t psi_2b
+        Py_ssize_t psi_2e
         bint use_pruning
         bint only_ub
 
@@ -23,6 +26,7 @@ cdef extern from "dd_dtw.h":
     DTWSettings dtw_settings_default()
     Py_ssize_t dtw_settings_wps_length(Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
     Py_ssize_t dtw_settings_wps_width(Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
+    void dtw_settings_set_psi(Py_ssize_t psi, DTWSettings *settings)
     void dtw_print_settings(DTWSettings *settings)
 
     seq_t dtw_distance(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2,
@@ -31,7 +35,7 @@ cdef extern from "dd_dtw.h":
                                DTWSettings *settings)
 
     seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, int l2,
-                               bint return_dtw, bint do_sqrt, DTWSettings *settings)
+                               bint return_dtw, bint do_sqrt, bint psi_neg, DTWSettings *settings)
     void dtw_expand_wps(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
     Py_ssize_t dtw_best_path(seq_t *wps, Py_ssize_t *i1, Py_ssize_t *i2, Py_ssize_t l1, Py_ssize_t l2,
                              DTWSettings *settings)
