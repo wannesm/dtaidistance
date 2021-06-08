@@ -18,11 +18,17 @@ def test_dtw_subseq1():
         query = np.array([1., 2, 0])
         series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0])
         sa = subsequence_search(query, series)
-        print(sa.matching_function)
+        mf = sa.matching_function()
+        print(f'{mf=}')
+        best_match_idx = np.argmin(mf)
+        print(f'{best_match_idx=}')
+        best_match_start_idx = sa.matching_function_startpoint(best_match_idx)
+        print(f'{best_match_start_idx=}')
+        print(sa.matching_function_bestpath(best_match_idx))
         if not dtwvis.test_without_visualization():
             import matplotlib.pyplot as plt
             if directory:
-                plt.plot(sa.matching_function)
+                plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
                 plt.close()
 

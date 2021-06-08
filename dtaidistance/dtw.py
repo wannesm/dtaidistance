@@ -848,9 +848,21 @@ def warp(from_s, to_s, path=None, **kwargs):
     return from_s2, path
 
 
-def best_path(paths):
-    """Compute the optimal path from the nxm warping paths matrix."""
-    i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
+def best_path(paths, row=None, col=None):
+    """Compute the optimal path from the nxm warping paths matrix.
+
+    :param row: If given, start from this row (instead of lower-right corner)
+    :param col: If given, start from this column (instead of lower-right corner)
+    :return: Array of (row, col) representing the best path
+    """
+    if row is None:
+        i = int(paths.shape[0] - 1)
+    else:
+        i = row
+    if col is None:
+        j = int(paths.shape[1] - 1)
+    else:
+        j = col
     p = []
     if paths[i, j] != -1:
         p.append((i - 1, j - 1))
