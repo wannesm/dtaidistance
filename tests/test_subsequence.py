@@ -31,7 +31,8 @@ def test_dtw_subseq1():
             if directory:
                 plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
-                dtwvis.plot_warpingpaths(query, series, sa.paths, best_match_path, filename=directory / "subseq_warping.png")
+                dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), best_match_path,
+                                         filename=directory / "subseq_warping.png")
                 plt.close()
 
 
