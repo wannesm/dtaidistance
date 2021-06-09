@@ -335,13 +335,20 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    # Use cython.view.array to avoid numpy dependency
-    shape = (1, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
-    try:
-        wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
-    except MemoryError as exc:
-        print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
-        raise exc
+    dtw_length = dtw.shape[0] * dtw.shape[1]
+    req_length = dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings)
+    req_width = dtaidistancec_dtw.dtw_settings_wps_width(len(s1), len(s2), &settings._settings)
+    shape = (1, req_length)
+    if req_length == dtw_length and req_width == dtw.shape[1]:
+        # No compact WPS array is required
+        wps = dtw
+    else:
+        try:
+            # Use cython.view.array to avoid numpy dependency
+            wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
+        except MemoryError as exc:
+            print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
+            raise exc
     cdef double [:, :] wps_view = wps
     # cdef array.array wps = array.array('d', [0] * dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
     # cdef array.array wps = array.array('d')
@@ -355,7 +362,8 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=Fal
     # print('---')
     # print(wps)
     # print('---')
-    dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
+    if not (req_length == dtw_length and req_width == dtw.shape[1]):
+        dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
     # print("end dtw_cc warping_paths")
     return d
 
