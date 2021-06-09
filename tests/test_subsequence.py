@@ -24,12 +24,14 @@ def test_dtw_subseq1():
         print(f'{best_match_idx=}')
         best_match_start_idx = sa.matching_function_startpoint(best_match_idx)
         print(f'{best_match_start_idx=}')
-        print(sa.matching_function_bestpath(best_match_idx))
+        best_match_path = sa.matching_function_bestpath(best_match_idx)
+        print(f'{best_match_path=}')
         if not dtwvis.test_without_visualization():
             import matplotlib.pyplot as plt
             if directory:
                 plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
+                dtwvis.plot_warpingpaths(query, series, sa.paths, best_match_path, filename=directory / "subseq_warping.png")
                 plt.close()
 
 
