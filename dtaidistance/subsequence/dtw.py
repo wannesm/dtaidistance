@@ -13,7 +13,17 @@ DTW-based subsequence matching
 import logging
 import numpy as np
 
-from ..dtw import warping_paths, warping_paths_fast, best_path
+from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
+
+
+dtw_cc = None
+try:
+    from . import dtw_cc
+except ImportError:
+    dtw_cc = None
 
 
 def subsequence_search(query, series):
@@ -25,6 +35,7 @@ def subsequence_search(query, series):
 class SubsequenceAlignment:
     def __init__(self, query, series, penalty=0.1):
         """Subsequence alignment using DTW.
+        Find where the query occurs in the series.
 
         Based on Fundamentals of Music Processing, Meinard Müller, Springer, 2015.
 
@@ -55,11 +66,27 @@ class SubsequenceAlignment:
                                           psi_neg=False)
         else:
             _, self.paths = warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                               compact=True, psi_neg=False)
+                                               compact=False, psi_neg=False)
+        self._compute_matching()
+
+    def align_fast(self):
+        return self.align(use_c=True)
+
+    def _compute_matching(self):
         matching = self.paths[-1, :]
         if len(matching) > len(self.series):
             matching = matching[-len(self.series):]
         self.matching = np.array(matching) / len(self.query)
+
+    def warping_paths(self):
+        """Get matrix with all warping paths.
+
+        If the aligmnent was computed using a compact, the paths are first copied into a full
+        warping paths matrix.
+
+        :return: Numpy matrix of size (len(query)+1) * (len(series)+1)
+        """
+        return self.paths
 
     def matching_function(self):
         """The matching score for each end-point of a possible match."""
@@ -96,6 +123,3 @@ class SubsequenceAlignment:
         real_idx = idx + 1
         path = best_path(self.paths, col=real_idx)
         return path
-
-    def align_fast(self):
-        return self.align(use_c=True)
