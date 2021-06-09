@@ -347,7 +347,8 @@ def _process_psi_arg(psi):
 
 
 def warping_paths(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True,
+                  use_c=False):
     """
     Dynamic Time Warping.
 
@@ -364,6 +365,10 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
     :returns: (DTW distance, DTW matrix)
     """
+    if use_c:
+        return warping_paths_fast(s1, s2, window=window, max_dist=max_dist,
+                                  max_step=max_step, max_length_diff=max_length_diff,
+                                  penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
