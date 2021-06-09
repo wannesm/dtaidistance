@@ -184,7 +184,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     ax0 = fig.add_subplot(gs[0, 0])
     ax0.set_axis_off()
-    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0], p[-1][1]]))
+    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
     ax0.xaxis.set_major_locator(plt.NullLocator())
     ax0.yaxis.set_major_locator(plt.NullLocator())
 
