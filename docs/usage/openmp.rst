@@ -7,8 +7,8 @@ your system.
 OpenMP can be challenging to get to work. On this page, we have collected tips and tricks.
 
 
-macOS
-~~~~~
+macOS Homebrew llvm
+~~~~~~~~~~~~~~~~~~~
 
 Via Homebrew, you can use a recent LLVM clang compiler and LLVM's OpenMP library:
 
@@ -24,14 +24,37 @@ Set environment variables to:
     export LDFLAGS="-L/usr/local/opt/llvm/lib"
     export CPPFLAGS="-I/usr/local/opt/llvm/include"
 
-Compile and link using:
+Compile and link is normally done using:
 
 ::
 
     clang -Xpreprocessor -fopenmp -lomp myfile.c
 
+These options are forced using:
+
+::
+
+    pip install --global-option=--forcellvm  git+https://github.com/wannesm/dtaidistance.git
+
+
+
 
 Other sources:
 
 - https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+
+Linux GCC
+~~~~~~~~~
+
+Compile and link is normally done using:
+
+::
+
+    gcc -Xpreprocessor -fopenmp -lgomp myfile.c
+
+These options are forced using:
+
+::
+
+    pip install --global-option=--forcegnugcc  git+https://github.com/wannesm/dtaidistance.git
 

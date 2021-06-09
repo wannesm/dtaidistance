@@ -122,6 +122,19 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
 
+    # Align the subplots:
+    ax1pos = ax1.get_position().bounds
+    ax2pos = ax2.get_position().bounds
+    ax3pos = ax3.get_position().bounds
+    ax2.set_position((ax2pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax2pos[2], ax3pos[3])) # adjust the subplot on the left vertically
+    if len(s1) < len(s2):
+        ax3.set_position((ax3pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax3pos[2], ax3pos[3])) # move the subplot on the left and the distance matrix upwards
+    if len(s1) > len(s2):
+        ax3.set_position((ax1pos[0], ax3pos[1], ax3pos[2], ax3pos[3])) # move the subplot at the top and the distance matrix to the left
+        ax1.set_position((ax1pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the subplot at the top horizontally
+    if len(s1) == len(s2):
+        ax1.set_position((ax3pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the subplot at the top horizontally
+
     ax = fig.axes
 
     if filename:
