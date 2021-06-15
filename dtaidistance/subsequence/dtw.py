@@ -6,7 +6,7 @@ dtaidistance.subsequence.dtw
 DTW-based subsequence matching
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2021 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -30,6 +30,35 @@ def subsequence_search(query, series):
     sa = SubsequenceAlignment(query, series)
     sa.align()
     return sa
+
+
+class SAMatch:
+    def __init__(self, idx, alignment):
+        """SubsequenceAlignment match"""
+        self.idx = idx
+        self.alignment = alignment
+
+    @property
+    def value(self):
+        return self.alignment.matching[self.idx]
+
+    @property
+    def segment(self):
+        """Matched segment in series."""
+        start = self.alignment.matching_function_startpoint(self.idx)
+        end = self.alignment.matching_function_endpoint(self.idx)
+        return [start, end]
+
+    @property
+    def path(self):
+        """Matched path in series"""
+        return self.alignment.matching_function_bestpath(self.idx)
+
+    def __str__(self):
+        return f'SAMatch({self.idx})'
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class SubsequenceAlignment:
@@ -91,6 +120,24 @@ class SubsequenceAlignment:
     def matching_function(self):
         """The matching score for each end-point of a possible match."""
         return self.matching
+
+    def get_match(self, idx):
+        return SAMatch(idx, self)
+
+    def best_match(self):
+        best_idx = np.argmin(self.matching)
+        return self.get_match(best_idx)
+
+    def kbest_match(self, k=1):
+        best_idxs = np.argpartition(self.matching, kth=k)[:k]
+        best_idxs = best_idxs[np.argsort(self.matching[best_idxs])]
+        return [self.get_match(best_idx) for best_idx in best_idxs]
+
+    def matching_function_segment(self, idx):
+        """Matched segment in series."""
+        start = self.matching_function_startpoint(idx)
+        end = self.matching_function_endpoint(idx)
+        return [start, end]
 
     def matching_function_endpoint(self, idx):
         """Index in series for end of match in matching function at idx.

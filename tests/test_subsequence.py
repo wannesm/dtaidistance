@@ -20,20 +20,20 @@ def test_dtw_subseq1():
         sa = subsequence_search(query, series)
         mf = sa.matching_function()
         print(f'{mf=}')
-        best_match_idx = np.argmin(mf)
-        print(f'{best_match_idx=}')
-        best_match_start_idx = sa.matching_function_startpoint(best_match_idx)
-        print(f'{best_match_start_idx=}')
-        best_match_path = sa.matching_function_bestpath(best_match_idx)
-        print(f'{best_match_path=}')
+        match = sa.best_match()
+        print(match)
+        print(f'Segment={match.segment}')
+        print(f'Path={match.path}')
         if not dtwvis.test_without_visualization():
             import matplotlib.pyplot as plt
             if directory:
                 plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
-                dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), best_match_path,
+                dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), match.path,
                                          filename=directory / "subseq_warping.png")
                 plt.close()
+        best_k = sa.kbest_match(k=3)
+        print(best_k)
 
 
 if __name__ == "__main__":
