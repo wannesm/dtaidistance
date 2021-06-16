@@ -128,7 +128,8 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False):
+def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
+                      figure=None):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -150,7 +151,10 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
 
-    fig = plt.figure(figsize=(10, 10), frameon=True)
+    if figure is None:
+        fig = plt.figure(figsize=(10, 10), frameon=True)
+    else:
+        fig = figure
     if showlegend:
         grows = 3
         gcols = 3
@@ -259,6 +263,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         plt.close()
         fig, ax = None, None
     return fig, ax
+
 
 def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
     from matplotlib import pyplot as plt

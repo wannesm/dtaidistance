@@ -129,6 +129,7 @@ class SubsequenceAlignment:
         return self.get_match(best_idx)
 
     def kbest_match(self, k=1):
+        # TODO remove overlapping matches
         best_idxs = np.argpartition(self.matching, kth=k)[:k]
         best_idxs = best_idxs[np.argsort(self.matching[best_idxs])]
         return [self.get_match(best_idx) for best_idx in best_idxs]

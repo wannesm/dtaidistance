@@ -27,6 +27,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/dtw
    usage/ed
    usage/clustering
+   usage/subsequences
    usage/sequence
 
 
