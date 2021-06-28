@@ -128,7 +128,8 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
-def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False):
+def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
+                      figure=None):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -150,7 +151,10 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
 
-    fig = plt.figure(figsize=(10, 10), frameon=True)
+    if figure is None:
+        fig = plt.figure(figsize=(10, 10), frameon=True)
+    else:
+        fig = figure
     if showlegend:
         grows = 3
         gcols = 3
@@ -184,7 +188,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     ax0 = fig.add_subplot(gs[0, 0])
     ax0.set_axis_off()
-    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0], p[-1][1]]))
+    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
     ax0.xaxis.set_major_locator(plt.NullLocator())
     ax0.yaxis.set_major_locator(plt.NullLocator())
 
@@ -194,6 +198,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax1.xaxis.tick_top()
     # ax1.set_aspect(0.454)
     ax1.plot(range(len(s2)), s2, ".-")
+    ax1.set_xlim([-0.5, len(s2) - 0.5])
     ax1.xaxis.set_major_locator(plt.NullLocator())
     ax1.yaxis.set_major_locator(plt.NullLocator())
 
@@ -206,6 +211,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax2.xaxis.set_major_locator(plt.NullLocator())
     ax2.yaxis.set_major_locator(plt.NullLocator())
     ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
+    ax2.set_ylim([0.5, len(s1) + 0.5])
 
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
@@ -229,6 +235,25 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         ax4 = fig.add_axes([0.9, 0.25, 0.015, 0.5])
         fig.colorbar(img, cax=ax4)
 
+    # Align the subplots:
+    ax1pos = ax1.get_position().bounds
+    ax2pos = ax2.get_position().bounds
+    ax3pos = ax3.get_position().bounds
+    ax2.set_position((ax2pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax2pos[2], ax3pos[3])) # adjust the time series on the left vertically
+    if len(s1) < len(s2):
+        ax3.set_position((ax3pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax3pos[2], ax3pos[3])) # move the time series on the left and the distance matrix upwards
+        if showlegend:
+            ax4pos = ax4.get_position().bounds
+            ax4.set_position((ax4pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax4pos[2], ax3pos[3])) # move the legend upwards
+    if len(s1) > len(s2):
+        ax3.set_position((ax1pos[0], ax3pos[1], ax3pos[2], ax3pos[3])) # move the time series at the top and the distance matrix to the left
+        ax1.set_position((ax1pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
+        if showlegend:
+            ax4pos = ax4.get_position().bounds
+            ax4.set_position((ax1pos[0] + ax3pos[2] + (ax1pos[0] - (ax2pos[0] + ax2pos[2])), ax4pos[1], ax4pos[2], ax4pos[3])) # move the legend to the left to equalize the horizontal spaces between the subplots
+    if len(s1) == len(s2):
+        ax1.set_position((ax3pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
+        
     ax = fig.axes
 
     if filename:
@@ -238,6 +263,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         plt.close()
         fig, ax = None, None
     return fig, ax
+
 
 def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
     from matplotlib import pyplot as plt

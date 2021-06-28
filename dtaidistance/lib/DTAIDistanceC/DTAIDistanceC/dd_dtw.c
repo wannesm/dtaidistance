@@ -21,7 +21,10 @@ DTWSettings dtw_settings_default(void) {
         .max_step = 0,
         .max_length_diff = 0,
         .penalty = 0,
-        .psi = 0,
+        .psi_1b = 0,
+        .psi_1e = 0,
+        .psi_2b = 0,
+        .psi_2e = 0,
         .use_pruning = false,
         .only_ub = false
     };
@@ -38,6 +41,13 @@ idx_t dtw_settings_wps_width(idx_t l1, idx_t l2, DTWSettings *settings) {
     return p.width;
 }
 
+void dtw_settings_set_psi(idx_t psi, DTWSettings *settings) {
+    settings->psi_1b = psi;
+    settings->psi_1e = psi;
+    settings->psi_2b = psi;
+    settings->psi_2e = psi;
+}
+
 void dtw_settings_print(DTWSettings *settings) {
     printf("DTWSettings {\n");
     printf("  window = %zu\n", settings->window);
@@ -45,7 +55,8 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  max_step = %f\n", settings->max_step);
     printf("  max_length_diff = %zu\n", settings->max_length_diff);
     printf("  penalty = %f\n", settings->penalty);
-    printf("  psi = %zu\n", settings->psi);
+    printf("  psi = [%zu, %zu, %zu, %zu]\n", settings->psi_1b, settings->psi_1e,
+                                             settings->psi_2b, settings->psi_2e);
     printf("  use_pruning = %d\n", settings->use_pruning);
     printf("  only_ub = %d\n", settings->only_ub);
     printf("}\n");
@@ -65,7 +76,8 @@ Compute the DTW between two series.
 seq_t dtw_distance(seq_t *s1, idx_t l1,
                       seq_t *s2, idx_t l2,
                       DTWSettings *settings) {
-    assert(settings->psi < l1 && settings->psi < l2);
+    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
+           settings->psi_2b < l2 && settings->psi_2e < l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -112,6 +124,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         max_step = pow(max_step, 2);
     }
     penalty = pow(penalty, 2);
+    // rows is for series 1, columns is for series 2
     idx_t length = MIN(l2+1, ldiff + 2*window + 1);
     assert(length > 0);
     seq_t * dtw = (seq_t *)malloc(sizeof(seq_t) * length * 2);
@@ -124,7 +137,8 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     for (j=0; j<length*2; j++) {
         dtw[j] = INFINITY;
     }
-    for (i=0; i<settings->psi + 1; i++) {
+    // Deal with psi-relaxation in first row
+    for (i=0; i<settings->psi_2b + 1; i++) {
         dtw[i] = 0;
     }
     idx_t skip = 0;
@@ -182,7 +196,8 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         }
         smaller_found = false;
         ec_next = i;
-        if (settings->psi != 0 && maxj == 0 && i < settings->psi) {
+        // Deal with psi-relaxation in first column
+        if (settings->psi_1b != 0 && maxj == 0 && i < settings->psi_1b) {
             dtw[i1*length + 0] = 0;
         }
         #ifdef DTWDEBUG
@@ -240,7 +255,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         }
         ec = ec_next;
         // Deal with Psi-relaxation in last column
-        if (settings->psi != 0 && minj == l2 && l1 - 1 - i <= settings->psi) {
+        if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
             if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
                 psi_shortest = dtw[(i1 + 1)*length - 1];
             }
@@ -255,8 +270,8 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     }
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     // Deal with psi-relaxation in the last row
-    if (settings->psi != 0) {
-        for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
+    if (settings->psi_2e != 0) {
+        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
             if (dtw[i1*length + i] < psi_shortest) {
                 psi_shortest = dtw[i1*length + i];
             }
@@ -285,7 +300,8 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
 seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
                            seq_t *s2, idx_t l2, int ndim,
                            DTWSettings *settings) {
-    assert(settings->psi < l1 && settings->psi < l2);
+    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
+           settings->psi_2b < l2 && settings->psi_2e < l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -349,7 +365,8 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
     for (j=0; j<length*2; j++) {
         dtw[j] = INFINITY;
     }
-    for (i=0; i<settings->psi + 1; i++) {
+    // Deal with psi-relaxation in first row
+    for (i=0; i<settings->psi_2b + 1; i++) {
         dtw[i] = 0;
     }
     idx_t skip = 0;
@@ -407,7 +424,8 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
         }
         smaller_found = false;
         ec_next = i;
-        if (settings->psi != 0 && maxj == 0 && i < settings->psi) {
+        // Deal with psi-relaxation in first column
+        if (settings->psi_1b != 0 && maxj == 0 && i < settings->psi_1b) {
             dtw[i1*length + 0] = 0;
         }
         #ifdef DTWDEBUG
@@ -468,7 +486,8 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
             }
         }
         ec = ec_next;
-        if (settings->psi != 0 && minj == l2 && l1 - 1 - i <= settings->psi) {
+        // Deal with Psi-relaxation in last column
+        if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
             if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
                 psi_shortest = dtw[(i1 + 1)*length - 1];
             }
@@ -481,9 +500,9 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
         l2 += window - 1;
     }
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
-    // Deal wit psi-relaxation
-    if (settings->psi != 0) {
-        for (i=l2 - skip - settings->psi; i<l2 - skip + 1; i++) { // iterate over vci
+    // Deal with psi-relaxation in the last row
+    if (settings->psi_2e != 0) {
+        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
             if (dtw[i1*length + i] < psi_shortest) {
                 psi_shortest = dtw[i1*length + i];
             }
@@ -514,6 +533,7 @@ Compute all warping paths between two series.
     to save operations.
 @param do_sqrt Apply the sqrt operations on all items in the wps array. If not required,
     this can be skipped to save operations.
+@param psi_neg For psi-relaxation, replace non-optimal values with -1
 @param settings A DTWSettings struct with options for the DTW algorithm.
  
 @return The dtw value if return_dtw is true; Otherwise -1.
@@ -521,7 +541,7 @@ Compute all warping paths between two series.
 seq_t dtw_warping_paths(seq_t *wps,
                         seq_t *s1, idx_t l1,
                         seq_t *s2, idx_t l2,
-                        bool return_dtw, bool do_sqrt,
+                        bool return_dtw, bool do_sqrt, bool psi_neg,
                         DTWSettings *settings) {
     // DTWPruned
     idx_t sc = 0;
@@ -529,7 +549,6 @@ seq_t dtw_warping_paths(seq_t *wps,
     idx_t ec_next;
     bool smaller_found;
     
-    seq_t penalty = settings->penalty;
     DTWWps p = dtw_wps_parts(l1, l2, settings);
 
     if (settings->use_pruning || settings->only_ub) {
@@ -546,18 +565,18 @@ seq_t dtw_warping_paths(seq_t *wps,
     idx_t ri, ci, min_ci, max_ci, wpsi, wpsi_start;
     
     // Top row: ri = -1
-    for (wpsi=0; wpsi<settings->psi+1; wpsi++) {
+    for (wpsi=0; wpsi<settings->psi_2b+1; wpsi++) {
         // ci = wpsi - 1
         wps[wpsi] = 0;
     }
-    for (wpsi=settings->psi+1; wpsi<p.width; wpsi++) {
+    for (wpsi=settings->psi_2b+1; wpsi<p.width; wpsi++) {
         // MIN(window+ldiffc-1,l2) would be enough
         // ci = wpsi - 1
         wps[wpsi] = INFINITY;
     }
     // First column:
     wpsi = p.width;
-    for (ri=0; ri<settings->psi; ri++) {
+    for (ri=0; ri<settings->psi_1b; ri++) {
         wps[wpsi] = 0;
         wpsi += p.width;
     }
@@ -596,9 +615,9 @@ seq_t dtw_warping_paths(seq_t *wps,
         for (; ci<max_ci; ci++) {
             d = EDIST(s1[ri], s2[ci]);
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
-            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + penalty,
+            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
                                             wps[ri_widthp + wpsi - 1], // diagonal
-                                            wps[ri_widthp + wpsi] + penalty);
+                                            wps[ri_widthp + wpsi] + p.penalty);
             // PrunedDTW
             if (wps[ri_width + wpsi] <= p.max_dist) {
                 smaller_found = true;
@@ -641,9 +660,9 @@ seq_t dtw_warping_paths(seq_t *wps,
             d = EDIST(s1[ri], s2[ci]);
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // B-region assumes wps has the same column indices in the previous row
-            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + penalty,
+            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
                                             wps[ri_widthp + wpsi - 1],  // Diagonal
-                                            wps[ri_widthp + wpsi] + penalty);
+                                            wps[ri_widthp + wpsi] + p.penalty);
             // PrunedDTW
             if (wps[ri_width + wpsi] <= p.max_dist) {
                 smaller_found = true;
@@ -686,9 +705,9 @@ seq_t dtw_warping_paths(seq_t *wps,
             d = EDIST(s1[ri], s2[ci]);
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // C-region assumes wps has the column indices in the previous row shifted by one
-            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + penalty,
+            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
                                             wps[ri_widthp + wpsi],  // Diagonal
-                                            wps[ri_widthp + wpsi + 1] + penalty);
+                                            wps[ri_widthp + wpsi + 1] + p.penalty);
             // PrunedDTW
             if (wps[ri_width + wpsi] <= p.max_dist) {
                 smaller_found = true;
@@ -739,9 +758,9 @@ seq_t dtw_warping_paths(seq_t *wps,
             d = EDIST(s1[ri], s2[ci]);
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // D-region assumes wps has the same column indices in the previous row
-            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + penalty,
+            wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
                                             wps[ri_widthp + wpsi - 1],  // Diagonal
-                                            wps[ri_widthp + wpsi] + penalty);
+                                            wps[ri_widthp + wpsi] + p.penalty);
             // PrunedDTW
             if (wps[ri_width + wpsi] <= p.max_dist) {
                 smaller_found = true;
@@ -770,7 +789,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     seq_t rvalue = 0;
     idx_t final_wpsi = ri_widthp + wpsi - 1;
     // Deal with Psi-relaxation
-    if (return_dtw && settings->psi == 0) {
+    if (return_dtw && settings->psi_1e == 0 && settings->psi_2e == 0) {
         rvalue = wps[final_wpsi];
     } else if (return_dtw) {
         seq_t mir_value = INFINITY;
@@ -778,41 +797,49 @@ seq_t dtw_warping_paths(seq_t *wps,
         seq_t mic_value = INFINITY;
         idx_t mic = 0;
         // Find smallest value in last column
-        wpsi = final_wpsi;
-        for (ri=l1-1; ri>l1-settings->psi-2; ri--) {
-            if (wps[wpsi] < mir_value) {
-                mir_value = wps[wpsi];
-                mir_rel = ri + 1;
-            } else {
-                break; // No nead to go further, values cannot be lower
+        if (settings->psi_1e != 0) {
+            wpsi = final_wpsi;
+            for (ri=l1-1; ri>l1-settings->psi_1e-2; ri--) {
+                if (wps[wpsi] < mir_value) {
+                    mir_value = wps[wpsi];
+                    mir_rel = ri + 1;
+                } else {
+                    // pass
+                }
+                wpsi -= p.width;
             }
-            wpsi -= p.width;
         }
         // Find smallest value in last row
-        wpsi = final_wpsi;
-        for (ci=l2-1; ci>l2-settings->psi-2; ci--) {
-            if (wps[wpsi] < mic_value) {
-                mic_value = wps[wpsi];
-                mic = ci + 1;
-            } else {
-                break; // No nead to go further, values cannot be lower
+        if (settings->psi_2e != 0) {
+            wpsi = final_wpsi;
+            for (ci=l2-1; ci>l2-settings->psi_2e-2; ci--) {
+                if (wps[wpsi] < mic_value) {
+                    mic_value = wps[wpsi];
+                    mic = ci + 1;
+                } else {
+                    // pass
+                }
+                wpsi -= 1;
             }
-            wpsi -= 1;
         }
         // Set values with higher indices than the smallest value to -1
         // and return smallest value as DTW
         if (mir_value < mic_value) {
             // last column has smallest value
-            for (idx_t ri=mir_rel + 1; ri<l1 + 1; ri++) {
-                wpsi = ri*p.width + (p.width - 1);
-                wps[wpsi] = -1;
+            if (psi_neg) {
+                for (idx_t ri=mir_rel + 1; ri<l1 + 1; ri++) {
+                    wpsi = ri*p.width + (p.width - 1);
+                    wps[wpsi] = -1;
+                }
             }
             rvalue = mir_value;
         } else {
             // last row has smallest value
-            for (ci=p.width - (l2 - mic) + 1; ci<l2; ci++) {
-                wpsi = l1*p.width + ci;
-                wps[wpsi] = -1;
+            if (psi_neg) {
+                for (ci=p.width - (l2 - mic); ci<p.width; ci++) {
+                    wpsi = l1*p.width + ci;
+                    wps[wpsi] = -1;
+                }
             }
             rvalue =  mic_value;
         }
@@ -1227,7 +1254,7 @@ idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *
     idx_t path_length;
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, settings);
+    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, true, settings);
     path_length = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
     free(wps);
     return path_length;
@@ -1242,7 +1269,7 @@ idx_t warping_path_prob(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, id
     idx_t path_length;
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, settings);
+    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, true, settings);
     path_length = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
     free(wps);
     return path_length;
@@ -1254,6 +1281,7 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
     
     parts.window = settings->window;
     parts.max_step = settings->max_step;
+    parts.penalty = pow(settings->penalty, 2);
     if (parts.max_step == 0) {
         parts.max_step = INFINITY;
     } else {
@@ -1293,15 +1321,15 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
     // A.   0 <= ri < ri1
     // [0 0 x x x]
     // [0 0 0 x x]
-    parts.ri1 = MIN(parts.overlap_left_ri, parts.overlap_right_ri);
+    parts.ri1 = MIN(l1, MIN(parts.overlap_left_ri, parts.overlap_right_ri));
     // B. ri1 <= ri < ri2
     // [0 0 0 0 0]
     // [0 0 0 0 0]
-    parts.ri2 = parts.overlap_left_ri;
+    parts.ri2 = MIN(l1, parts.overlap_left_ri);
     // C. ri2 <= ri < r3
     // [x 0 0 x x]
     // [x x 0 0 x]
-    parts.ri3 = MAX(parts.overlap_left_ri, parts.overlap_right_ri);
+    parts.ri3 = MIN(l1, MAX(parts.overlap_left_ri, parts.overlap_right_ri));
     // D. ri3 <= ri < l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
@@ -1777,7 +1805,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
             sequence = ptrs[r];
             if (bit_test(mask, r)) {
                 // warping_path(c, t, sequence, lengths[r], ci, mi, settings);
-                dtw_warping_paths(wps, c, t, sequence, lengths[r], false, false, settings);
+                dtw_warping_paths(wps, c, t, sequence, lengths[r], false, false, true, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, lengths[r], settings);
                 for (pi=0; pi<path_length; pi++) {
                     assoctab[ci[pi]] += sequence[mi[pi]];
@@ -1789,7 +1817,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
         for (idx_t r=0; r<nb_ptrs; r++) {
             sequence = ptrs[r];
             if (bit_test(mask, r)) {
-                avg_step = dtw_warping_paths(wps, c, t, sequence, lengths[r], true, false, settings);
+                avg_step = dtw_warping_paths(wps, c, t, sequence, lengths[r], true, false, true, settings);
                 avg_step /= t;
                 for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
                     path_length = dtw_best_path_prob(wps, ci, mi, t, lengths[r], avg_step, settings);
@@ -1859,7 +1887,7 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
             sequence = &matrix[r_idx];
             if (bit_test(mask, r)) {
                 // warping_path(c, t, sequence, nb_cols, ci, mi, settings);
-                dtw_warping_paths(wps, c, t, sequence, nb_cols, false, false, settings);
+                dtw_warping_paths(wps, c, t, sequence, nb_cols, false, false, true, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, nb_cols, settings);
 //                printf("best_path = [");
 //                for (idx_t i=0; i<path_length; i++) {
@@ -1878,7 +1906,7 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
         for (idx_t r=0; r<nb_rows; r++) {
             sequence = &matrix[r_idx];
             if (bit_test(mask, r)) {
-                avg_step = dtw_warping_paths(wps, c, t, sequence, nb_cols, true, false, settings);
+                avg_step = dtw_warping_paths(wps, c, t, sequence, nb_cols, true, false, true, settings);
                 avg_step /= t;
                 for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
                     path_length = dtw_best_path_prob(wps, ci, mi, t, nb_cols, avg_step, settings);

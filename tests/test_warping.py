@@ -221,6 +221,29 @@ def test_twoleadecg_1(directory=None):
                 dtwvis.plot_warpingpaths(s1, s2, paths, path, filename=str(directory / "warpingpaths.png"))
 
 
+@numpyonly
+def test_subsequence():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([1., 2, 0])
+        s2 = np.array([1., 0, 1, 2, 1, 0, 1, 0, 0, 0, 0])
+        penalty = 0.1
+        psi = [0, 0, len(s2), len(s2)]
+        d1, paths1 = dtw.warping_paths(s1, s2, penalty=penalty, psi=psi)
+        d2, paths2 = dtw.warping_paths_fast(s1, s2, penalty=penalty, psi=psi)
+        path1 = dtw.best_path(paths1)
+        print(paths1)
+        path2 = dtw.best_path(paths2)
+        print(paths2)
+        if not dtwvis.test_without_visualization():
+            if directory:
+                dtwvis.plot_warpingpaths(s1, s2, paths1, path1, filename=directory / "subseq.png")
+        np.testing.assert_almost_equal(d1, d2, decimal=4)
+        np.testing.assert_almost_equal(paths1, paths2, decimal=4)
+        np.testing.assert_almost_equal(path1, path2, decimal=4)
+        np.testing.assert_almost_equal(paths1[3:4, 0:12][0],
+            [np.inf,1.421,1.005,1.421,2.002,1.000,-1,-1,-1,-1,-1,-1], decimal=3)
+
+
 if __name__ == "__main__":
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=2, linewidth=120)
@@ -233,8 +256,10 @@ if __name__ == "__main__":
     # test_psi_dtw_1a()
     # test_psi_dtw_1b()
     # test_psi_dtw_1c()
-    test_psi_dtw_1d()
+    # test_psi_dtw_1d()
     # test_psi_dtw_2a()
     # test_psi_dtw_2b()
     # test_twoleadecg_1()
+    test_subsequence()
+
 

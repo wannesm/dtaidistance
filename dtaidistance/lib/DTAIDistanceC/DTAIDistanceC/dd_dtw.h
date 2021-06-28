@@ -61,7 +61,10 @@ struct DTWSettings_s {
     seq_t max_step;
     idx_t max_length_diff;
     seq_t penalty;
-    idx_t psi;
+    idx_t psi_1b;  // series 1, begin psi
+    idx_t psi_1e;  // series 1, end psi
+    idx_t psi_2b;
+    idx_t psi_2e;
     bool use_pruning;
     bool only_ub;
     
@@ -99,6 +102,7 @@ struct DTWWps_s {
     idx_t overlap_right_ri;
     seq_t max_step;
     seq_t max_dist;
+    seq_t penalty;
 };
 typedef struct DTWWps_s DTWWps;
 
@@ -107,6 +111,7 @@ typedef struct DTWWps_s DTWWps;
 DTWSettings dtw_settings_default(void);
 idx_t       dtw_settings_wps_length(idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t       dtw_settings_wps_width(idx_t l1, idx_t l2, DTWSettings *settings);
+void        dtw_settings_set_psi(idx_t psi, DTWSettings *settings);
 void        dtw_settings_print(DTWSettings *settings);
 
 // DTW
@@ -116,7 +121,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settin
 seq_t dtw_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, DTWSettings *settings);
 
 // WPS
-seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, DTWSettings *settings);
+seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, DTWSettings *settings);
 void dtw_expand_wps(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);

@@ -42,7 +42,7 @@ c_args = {
              '/I'+str(dtaidistancec_path)],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
-    'brewllvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
+    'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
                   '-I'+str(dtaidistancec_path)],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
              '-I'+str(dtaidistancec_path)]
@@ -51,7 +51,7 @@ l_args = {
     'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
     'msvc': [],
     'mingw32': ['-fopenmp'],
-    'brewllvm': ['-Xpreprocessor', '-fopenmp', '-lomp'], # custom key for Homebrew llvm
+    'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp'], # custom key for Homebrew llvm
     'gnugcc': ['-Xpreprocessor', '-fopenmp', '-lgomp'] # custom key for GNU GCC
 }
 
@@ -85,13 +85,17 @@ class MyDistribution(Distribution):
     global_options = Distribution.global_options + [
         ('noopenmp', None, 'No compiler/linker flags for OpenMP'),
         ('forceopenmp', None, 'Force compiler/linker flags with OpenMP'),
-        ('noxpreprocessor', None, 'Assume OpenMP is built-in (remove -Xpreprocessor argument)')
+        ('noxpreprocessor', None, 'Assume OpenMP is built-in (remove -Xpreprocessor argument)'),
+        ('forcellvm', None, 'Force compile/linker flags for LLVM'),
+        ('forcegnugcc', None, 'Force compile/linker flags for GNU GCC'),
     ]
 
     def __init__(self, attrs=None):
         self.noopenmp = 0
         self.forceopenmp = 0
         self.noxpreprocessor = 0
+        self.forcellvm = 0
+        self.forcegnugcc = 0
         super().__init__(attrs)
 
 
@@ -168,12 +172,19 @@ class MyBuildExtCommand(BuildExtCommand):
         c = self.compiler.compiler_type
         # Custom for homebrew
         print("Compiler type: {}".format(c))
-        if c == "unix" and "local/opt/llvm" in self.compiler.compiler[0]:
-            print('Using Homebrew LLVM settings')
-            c = 'brewllvm'
         print("--noopenmp: {}".format(self.distribution.noopenmp))
         print("--forceopenmp: {}".format(self.distribution.forceopenmp))
         print("--noxpreprocessor: {}".format(self.distribution.noxpreprocessor))
+        print("--forcellvm: {}".format(self.distribution.forcellvm))
+        print("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
+
+        if self.distribution.forcellvm or (c == "unix" and "local/opt/llvm" in self.compiler.compiler[0]):
+            print('Using Homebrew LLVM settings')
+            c = 'llvm'
+        elif self.distribution.forcegnugcc or (c == "unix" and "gnu-gcc" in self.compiler.compiler[0]):
+            print('Using GNU GCC settings')
+            c = 'gnugcc'
+
         if self.distribution.noopenmp == 0 and self.distribution.forceopenmp == 0:
             try:
                 check_result = check_openmp(self.compiler.compiler[0], self.distribution.noxpreprocessor)

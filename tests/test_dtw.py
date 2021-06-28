@@ -63,7 +63,6 @@ def test_distance1_b():
         s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
         s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
         d2, wps = dtw.warping_paths(s1, s2)
-        print(wps)
         assert d2 == pytest.approx(math.sqrt(2))
 
 
@@ -134,7 +133,6 @@ def test_distance_matrix1_e():
              [1., 2, 0, 0, 0, 0, 0, 1]]
         s = [np.array(si) for si in s]
         m = dtw.distance_matrix_fast(s, parallel=True)
-        print(m)
         assert m[0, 1] == pytest.approx(math.sqrt(2))
 
 
@@ -155,7 +153,6 @@ def test_distance_matrix2_e():
 
 def run_distance_matrix_block(parallel=False, use_c=False, compact=False):
     with util_numpy.test_uses_numpy() as np:
-        # print(parallel, use_c, use_nogil)
         s = [[0., 0, 1, 2, 1, 0, 1, 0, 0],
              [0., 1, 2, 0, 0, 0, 0, 0, 0],
              [1., 2, 0, 0, 0, 0, 0, 1, 1],
@@ -164,7 +161,6 @@ def run_distance_matrix_block(parallel=False, use_c=False, compact=False):
              [1., 2, 0, 0, 0, 0, 0, 1, 1]]
         s = np.array(s)
         m = dtw.distance_matrix(s, block=((1, 4), (3, 5)), parallel=parallel, use_c=use_c, compact=compact)
-        print(m)
         if not compact:
             assert m[1, 3] == pytest.approx(math.sqrt(2))
             assert np.isinf(m[1, 2])
