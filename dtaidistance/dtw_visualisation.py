@@ -177,6 +177,8 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     if path is None:
         p = dtw.best_path(paths)
+    elif path == -1:
+        p = None
     else:
         p = path
 
@@ -188,7 +190,8 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     ax0 = fig.add_subplot(gs[0, 0])
     ax0.set_axis_off()
-    ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
+    if p is not None:
+        ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
     ax0.xaxis.set_major_locator(plt.NullLocator())
     ax0.yaxis.set_major_locator(plt.NullLocator())
 
@@ -218,8 +221,9 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     img = ax3.matshow(paths[1:, 1:])
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
-    py, px = zip(*p)
-    ax3.plot(px, py, ".-", color="red")
+    if p is not None:
+        py, px = zip(*p)
+        ax3.plot(px, py, ".-", color="red")
     # ax3.xaxis.set_major_locator(plt.NullLocator())
     # ax3.yaxis.set_major_locator(plt.NullLocator())
     if shownumbers:
@@ -263,6 +267,12 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         plt.close()
         fig, ax = None, None
     return fig, ax
+
+
+def plot_warpingpaths_addpath(ax, path):
+    py, px = zip(*path)
+    ax3 = ax[3]
+    ax3.plot(px, py, ".-", color="red")
 
 
 def plot_matrix(distances, filename=None, ax=None, shownumbers=False):

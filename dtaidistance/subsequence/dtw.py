@@ -12,8 +12,27 @@ DTW-based subsequence matching
 """
 import logging
 import numpy as np
+import numpy.ma as ma
 
-from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library
+from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library, warping_paths_affinity
+from .. import util_numpy
+from .. import util
+
+
+try:
+    if util_numpy.test_without_numpy():
+        raise ImportError()
+    import numpy as np
+    argmin = np.argmin
+    argmax = np.argmax
+    array_min = np.min
+    array_max = np.max
+except ImportError:
+    np = None
+    argmin = util.argmin
+    argmax = util.argmax
+    array_min = min
+    array_max = max
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -171,3 +190,132 @@ class SubsequenceAlignment:
         real_idx = idx + 1
         path = best_path(self.paths, col=real_idx)
         return path
+
+
+def local_concurrences(series1, series2, gamma, tau, delta):
+    lc = LocalConcurrences(series1, series2, gamma, tau, delta)
+    lc.align()
+    return lc
+
+
+class LCMatch:
+    def __init__(self, lc, row=None, col=None):
+        """LocalConcurrences match"""
+        self.row = row  # type: int
+        self.col = col  # type: int
+        self.lc = lc  # type: LocalConcurrences
+        self._path = None
+
+    @property
+    def path(self):
+        if self._path is not None:
+            return self._path
+        self._path = self.lc.best_path(self.row, self.col)
+        return self._path
+
+
+class LocalConcurrences:
+    def __init__(self, series1, series2, gamma, tau, delta):
+        """
+
+        Based on 7.3.2 Identiﬁcation Procedure in Fundamentals of Music Processing, Meinard Müller, Springer, 2015.
+
+        :param serie1:
+        :param serie2:
+        """
+        self.series1 = series1
+        self.series2 = series2
+        self.gamma = gamma
+        self.tau = tau
+        self.delta = delta
+        self._wp = None  # warping paths
+
+    def align(self):
+        """
+
+        :return:
+        """
+        _, wp = warping_paths_affinity(self.series1, self.series2,
+                                       gamma=self.gamma, tau=self.tau, delta=self.delta)
+        self._wp = ma.masked_array(wp)
+
+    @property
+    def wp(self):
+        return self._wp.data
+
+    def best_match(self):
+        idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
+        r, c = idx
+        lcm = LCMatch(self, r, c)
+        path = lcm.path
+        print(path)
+        for (x, y) in path:
+            self._wp[x + 1, y + 1] = ma.masked
+        return lcm
+
+    def next_best_match(self, minlen=2, buffer=0):
+        idx = None
+        lcm = None
+        path = None
+        while idx is None:
+            idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
+            print(f'{idx=}')
+            if idx[0] == 0 or idx[1] == 0:
+                return None
+            r, c = idx
+            lcm = LCMatch(self, r, c)
+            print(lcm.path)
+            for (x, y) in lcm.path:
+                x += 1
+                y += 1
+                if len(self._wp.mask.shape) > 0 and self._wp.mask[x, y] is True:  # True means invalid
+                    print('found path contains masked, restart')
+                    lcm = None
+                    idx = None
+                    break
+                else:
+                    self._wp[x, y] = ma.masked
+            if len(lcm.path) < minlen:
+                print('found path too short, restart')
+                lcm = None
+                idx = None
+        if buffer > 0 and lcm is not None:
+            miny, maxy = 0, self._wp.shape[1] - 1
+            minx, maxx = 0, self._wp.shape[0] - 1
+            for (x, y) in lcm.path:
+                xx = x + 1
+                for yy in range(max(miny, y + 1 - buffer), min(maxy, y + 1 + buffer)):
+                    self._wp[xx, yy] = ma.masked
+                yy = y + 1
+                for xx in range(max(minx, x + 1 - buffer), min(maxx, x + 1 + buffer)):
+                    self._wp[xx, yy] = ma.masked
+        return lcm
+
+    def best_path(self, row, col):
+        if self._wp is None:
+            return None
+        argm = argmax
+        i = row
+        j = col
+        p = []
+        p.append((i - 1, j - 1))
+        prev = self._wp[i, j]
+        while i > 0 and j > 0:
+            values = [self._wp[i - 1, j - 1], self._wp[i - 1, j], self._wp[i, j - 1]]
+            c = argm(values)
+            if values[c] is ma.masked:
+                break
+            if values[c] > prev:
+                break
+            prev = values[c]
+            if c == 0:
+                i, j = i - 1, j - 1
+            elif c == 1:
+                i = i - 1
+            elif c == 2:
+                j = j - 1
+            p.append((i - 1, j - 1))
+        if p[-1][0] < 0 or p[-1][1] < 0:
+            p.pop()
+        p.reverse()
+        return p

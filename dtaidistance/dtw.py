@@ -59,11 +59,13 @@ try:
     import numpy as np
     DTYPE = np.double
     argmin = np.argmin
+    argmax = np.argmax
     array_min = np.min
     array_max = np.max
 except ImportError:
     np = None
     argmin = util.argmin
+    argmax = util.argmax
     array_min = min
     array_max = max
 
@@ -516,6 +518,84 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     return d, dtw
 
 
+def warping_paths_affinity(s1, s2, window=None,
+                           penalty=None, psi=None, psi_neg=True,
+                           gamma=1, tau=0, delta=0):
+    """
+    Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
+
+    The full matrix of all warping paths (or accumulated cost matrix) is built.
+
+    :param s1: First sequence
+    :param s2: Second sequence
+    :param window: see :meth:`distance`
+    :param penalty: see :meth:`distance`
+    :param psi: see :meth:`distance`
+    :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
+    :returns: (DTW distance, DTW matrix)
+    """
+    if np is None:
+        raise NumpyException("Numpy is required for the warping_paths method")
+    r, c = len(s1), len(s2)
+    if window is None:
+        window = max(r, c)
+    if penalty is None:
+        penalty = 0
+    else:
+        penalty *= penalty
+    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
+    dtw = np.full((r + 1, c + 1), -inf)
+    # dtw[0, 0] = 0
+    for i in range(psi_2b + 1):
+        dtw[0, i] = 0
+    for i in range(psi_1b + 1):
+        dtw[i, 0] = 0
+    i0 = 1
+    i1 = 0
+    for i in range(r):
+        i0 = i
+        i1 = i + 1
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
+        for j in range(j_start, j_end):
+            d = np.exp(-gamma*(s1[i] - s2[j])**2)
+            if d < tau:
+                d = delta
+            dtw[i1, j + 1] = max(0,
+                                 d + dtw[i0, j],
+                                 d + dtw[i0, j + 1] - penalty,
+                                 d+ dtw[i1, j] - penalty)
+    # Decide which d to return
+    if psi_1e == 0 and psi_2e == 0:
+        d = dtw[i1, min(c, c + window - 1)]
+    else:
+        ir = i1
+        ic = min(c, c + window - 1)
+        if psi_1e != 0:
+            vr = dtw[ir:max(0, ir-psi_1e-1):-1, ic]
+            mir = argmax(vr)
+            vr_mir = vr[mir]
+        else:
+            mir = ir
+            vr_mir = inf
+        if psi_2e != 0:
+            vc = dtw[ir, ic:max(0, ic-psi_2e-1):-1]
+            mic = argmax(vc)
+            vc_mic = vc[mic]
+        else:
+            mic = ic
+            vc_mic = inf
+        if vr_mir > vc_mic:
+            if psi_neg:
+                dtw[ir:ir-mir:-1, ic] = -1
+            d = vr_mir
+        else:
+            if psi_neg:
+                dtw[ir, ic:ic-mic:-1] = -1
+            d = vc_mic
+    return d, dtw
+
+
 def distance_matrix_func(use_c=False, parallel=False, show_progress=False):
     def distance_matrix_wrapper(seqs, **kwargs):
         return distance_matrix(seqs, parallel=parallel, use_c=use_c,
@@ -853,13 +933,17 @@ def warp(from_s, to_s, path=None, **kwargs):
     return from_s2, path
 
 
-def best_path(paths, row=None, col=None):
+def best_path(paths, row=None, col=None, use_max=False):
     """Compute the optimal path from the nxm warping paths matrix.
 
     :param row: If given, start from this row (instead of lower-right corner)
     :param col: If given, start from this column (instead of lower-right corner)
     :return: Array of (row, col) representing the best path
     """
+    if use_max:
+        argm = argmax
+    else:
+        argm = argmin
     if row is None:
         i = int(paths.shape[0] - 1)
     else:
@@ -872,7 +956,7 @@ def best_path(paths, row=None, col=None):
     if paths[i, j] != -1:
         p.append((i - 1, j - 1))
     while i > 0 and j > 0:
-        c = argmin([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
+        c = argm([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
         if c == 0:
             i, j = i - 1, j - 1
         elif c == 1:

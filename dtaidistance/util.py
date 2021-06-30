@@ -230,3 +230,12 @@ def argmin(a):
         if v < vmin:
             imin, vmin = i, v
     return imin
+
+
+def argmax(a):
+    imax, vmax = 0, float("-inf")
+    for i, v in enumerate(a):
+        if v > vmax:
+            imax, vmax = i, v
+    return imax
+

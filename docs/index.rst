@@ -11,7 +11,7 @@ the `DTAI Research Group <https://dtai.cs.kuleuven.be>`__. The library
 offers a pure Python implementation and a faster implementation in C.
 The C implementation has only Cython as a dependency. It is compatible
 with Numpy and Pandas and implemented to avoid unnecessary data copy
-operations
+operations.
 
 Citing this work: |DOI|
 
