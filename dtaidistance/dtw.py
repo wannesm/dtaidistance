@@ -518,9 +518,9 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     return d, dtw
 
 
-def warping_paths_affinity(s1, s2, window=None,
+def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                            penalty=None, psi=None, psi_neg=True,
-                           gamma=1, tau=0, delta=0):
+                           gamma=1, tau=0, delta=0, delta_factor=1):
     """
     Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
 
@@ -529,6 +529,8 @@ def warping_paths_affinity(s1, s2, window=None,
     :param s1: First sequence
     :param s2: Second sequence
     :param window: see :meth:`distance`
+    :param only_triu: Only compute upper traingular matrix of warping paths.
+        This is useful if s1 and s2 are the same series and the matrix would be mirrored around the diagonal.
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
@@ -556,15 +558,21 @@ def warping_paths_affinity(s1, s2, window=None,
         i0 = i
         i1 = i + 1
         j_start = max(0, i - max(0, r - c) - window + 1)
+        if only_triu:
+            j_start = max(i, j_start)
         j_end = min(c, i + max(0, c - r) + window)
         for j in range(j_start, j_end):
             d = np.exp(-gamma*(s1[i] - s2[j])**2)
             if d < tau:
-                d = delta
-            dtw[i1, j + 1] = max(0,
-                                 d + dtw[i0, j],
-                                 d + dtw[i0, j + 1] - penalty,
-                                 d+ dtw[i1, j] - penalty)
+                dtw[i1, j + 1] = max(0,
+                                     delta + delta_factor * dtw[i0, j],
+                                     delta + delta_factor * dtw[i0, j + 1] - penalty,
+                                     delta + delta_factor * dtw[i1, j] - penalty)
+            else:
+                dtw[i1, j + 1] = max(0,
+                                     d + dtw[i0, j],
+                                     d + dtw[i0, j + 1] - penalty,
+                                     d + dtw[i1, j] - penalty)
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]

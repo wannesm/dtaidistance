@@ -272,7 +272,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 def plot_warpingpaths_addpath(ax, path):
     py, px = zip(*path)
     ax3 = ax[3]
-    ax3.plot(px, py, ".-", color="red")
+    ax3.plot(px, py, ".-", color="red", markersize=2)
 
 
 def plot_matrix(distances, filename=None, ax=None, shownumbers=False):

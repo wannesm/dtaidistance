@@ -192,8 +192,21 @@ class SubsequenceAlignment:
         return path
 
 
-def local_concurrences(series1, series2, gamma, tau, delta):
-    lc = LocalConcurrences(series1, series2, gamma, tau, delta)
+def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1):
+    """
+
+    :param series1:
+    :param series2:
+    :param gamma: Affinity transformation exp(-gamma*(s1[i] - s2[j])**2)
+    :param tau: threshold parameter
+    :param delta: penalty parameter
+        Should be negative. Added instead of the affinity score (if score below tau threshold parameter).
+    :param delta_factor: multiply cumulative score (e.g. by 0.5).
+        This is useful to have the same impact at different locations in the warping paths matrix, which
+        is cumulative (and thus typically large in one corner and small in the opposite corner).
+    :return:
+    """
+    lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor)
     lc.align()
     return lc
 
@@ -215,19 +228,33 @@ class LCMatch:
 
 
 class LocalConcurrences:
-    def __init__(self, series1, series2, gamma, tau, delta):
+    def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False):
         """
 
         Based on 7.3.2 Identiﬁcation Procedure in Fundamentals of Music Processing, Meinard Müller, Springer, 2015.
 
         :param serie1:
         :param serie2:
+        :param gamma: Affinity transformation exp(-gamma*(s1[i] - s2[j])**2)
+        :param tau: threshold parameter
+        :param delta: penalty parameter
+        :param only_trui: Only consider upper triangular matrix in warping paths.
         """
         self.series1 = series1
-        self.series2 = series2
+        if series2 is None:
+            # Self-comparison
+            self.series2 = self.series1
+            self.only_triu = True
+        else:
+            self.series2 = series2
+            if len(series1) == len(series2):
+                self.only_triu = only_triu
+            else:
+                self.only_triu = False
         self.gamma = gamma
         self.tau = tau
         self.delta = delta
+        self.delta_factor = delta_factor
         self._wp = None  # warping paths
 
     def align(self):
@@ -236,8 +263,13 @@ class LocalConcurrences:
         :return:
         """
         _, wp = warping_paths_affinity(self.series1, self.series2,
-                                       gamma=self.gamma, tau=self.tau, delta=self.delta)
+                                       gamma=self.gamma, tau=self.tau,
+                                       delta=self.delta, delta_factor=self.delta_factor,
+                                       only_triu=self.only_triu)
         self._wp = ma.masked_array(wp)
+        if self.only_triu:
+            il = np.tril_indices(self._wp.shape[0])
+            self._wp[il] = ma.masked
 
     @property
     def wp(self):
@@ -256,27 +288,24 @@ class LocalConcurrences:
     def next_best_match(self, minlen=2, buffer=0):
         idx = None
         lcm = None
-        path = None
         while idx is None:
             idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
-            print(f'{idx=}')
             if idx[0] == 0 or idx[1] == 0:
                 return None
             r, c = idx
             lcm = LCMatch(self, r, c)
-            print(lcm.path)
             for (x, y) in lcm.path:
                 x += 1
                 y += 1
                 if len(self._wp.mask.shape) > 0 and self._wp.mask[x, y] is True:  # True means invalid
-                    print('found path contains masked, restart')
+                    # print('found path contains masked, restart')
                     lcm = None
                     idx = None
                     break
                 else:
                     self._wp[x, y] = ma.masked
             if len(lcm.path) < minlen:
-                print('found path too short, restart')
+                # print('found path too short, restart')
                 lcm = None
                 idx = None
         if buffer > 0 and lcm is not None:
@@ -301,18 +330,25 @@ class LocalConcurrences:
         p.append((i - 1, j - 1))
         prev = self._wp[i, j]
         while i > 0 and j > 0:
-            values = [self._wp[i - 1, j - 1], self._wp[i - 1, j], self._wp[i, j - 1]]
+            values = [self._wp.data[i - 1, j - 1], self._wp.data[i - 1, j], self._wp.data[i, j - 1]]
+            # print(f'{i=}, {j=}, {argm(values)=}, {ma.argmax(values)=}, {values=}')
             c = argm(values)
-            if values[c] is ma.masked:
+            # if values[c] is ma.masked:
+            #     break
+            if values[c] <= 0:  # values[c] > prev:
                 break
-            if values[c] > prev:
-                break
-            prev = values[c]
+            # prev = values[c]
             if c == 0:
+                if self._wp[i - 1, j - 1] is ma.masked:
+                    break
                 i, j = i - 1, j - 1
             elif c == 1:
+                if self._wp[i - 1, j] is ma.masked:
+                    break
                 i = i - 1
             elif c == 2:
+                if self._wp[i, j - 1] is ma.masked:
+                    break
                 j = j - 1
             p.append((i - 1, j - 1))
         if p[-1][0] < 0 or p[-1][1] < 0:
