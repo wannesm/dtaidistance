@@ -147,7 +147,7 @@ class SubsequenceAlignment:
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
 
-    def kbest_match(self, k=1, overlap=0):
+    def kbest_matches(self, k=1, overlap=0):
         matches = []
         matching = np.array(self.matching)
         maxv = np.ceil(np.max(matching) + 1)
