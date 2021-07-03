@@ -148,12 +148,17 @@ class SubsequenceAlignment:
         return self.get_match(best_idx)
 
     def kbest_matches(self, k=1, overlap=0):
-        matches = []
+        """Yields the next best match. Stops at k matches (use None for all matches).
+
+        :param k: Number of matches to yield. None is all matches.
+        :param overlap: Matches cannot overlap unless overlap > 0.
+        :return: Yield an SAMatch object
+        """
         matching = np.array(self.matching)
         maxv = np.ceil(np.max(matching) + 1)
         matching[:min(len(self.query) - 1, overlap)] = maxv
         ki = 0
-        while ki < k:
+        while k is None or ki < k:
             best_idx = np.argmin(matching)
             if best_idx == 0 or np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
                 # No more matches found
@@ -166,14 +171,9 @@ class SubsequenceAlignment:
                 # No overlapping matches
                 matching[best_idx] = maxv
                 continue
-            matches.append(match)
             matching[mb:me] = np.inf
             ki += 1
-
-        # best_idxs = np.argpartition(self.matching, kth=k)[:k]
-        # best_idxs = best_idxs[np.argsort(self.matching[best_idxs])]
-        # return [self.get_match(best_idx) for best_idx in best_idxs]
-        return matches
+            yield match
 
     def matching_function_segment(self, idx):
         """Matched segment in series."""
@@ -313,46 +313,56 @@ class LocalConcurrences:
         idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
         r, c = idx
         lcm = LCMatch(self, r, c)
-        path = lcm.path
-        print(path)
-        for (x, y) in path:
-            self._wp[x + 1, y + 1] = ma.masked
+        # path = lcm.path
+        # for (x, y) in path:
+        #     self._wp[x + 1, y + 1] = ma.masked
         return lcm
 
-    def next_best_match(self, minlen=2, buffer=0):
-        idx = None
-        lcm = None
-        while idx is None:
-            idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
-            if idx[0] == 0 or idx[1] == 0:
-                return None
-            r, c = idx
-            lcm = LCMatch(self, r, c)
-            for (x, y) in lcm.path:
-                x += 1
-                y += 1
-                if len(self._wp.mask.shape) > 0 and self._wp.mask[x, y] is True:  # True means invalid
-                    # print('found path contains masked, restart')
+    def kbest_matches(self, k=1, minlen=2, buffer=0):
+        """Yields the next best match. Stops at k matches (use None for all matches).
+
+        :param k: Number of matches to yield. None is all matches.
+        :param minlen: Consider only matches of length longer than minlen
+        :oaram buffer: Matches cannot be closer than buffer to each other.
+        :return: Yield an LCMatch object
+        """
+        ki = 0
+        while k is None or ki < k:
+            idx = None
+            lcm = None
+            while idx is None:
+                idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
+                if idx[0] == 0 or idx[1] == 0:
+                    return None
+                r, c = idx
+                lcm = LCMatch(self, r, c)
+                for (x, y) in lcm.path:
+                    x += 1
+                    y += 1
+                    if len(self._wp.mask.shape) > 0 and self._wp.mask[x, y] is True:  # True means invalid
+                        # print('found path contains masked, restart')
+                        lcm = None
+                        idx = None
+                        break
+                    else:
+                        self._wp[x, y] = ma.masked
+                if len(lcm.path) < minlen:
+                    # print('found path too short, restart')
                     lcm = None
                     idx = None
-                    break
-                else:
-                    self._wp[x, y] = ma.masked
-            if len(lcm.path) < minlen:
-                # print('found path too short, restart')
-                lcm = None
-                idx = None
-        if buffer > 0 and lcm is not None:
-            miny, maxy = 0, self._wp.shape[1] - 1
-            minx, maxx = 0, self._wp.shape[0] - 1
-            for (x, y) in lcm.path:
-                xx = x + 1
-                for yy in range(max(miny, y + 1 - buffer), min(maxy, y + 1 + buffer)):
-                    self._wp[xx, yy] = ma.masked
-                yy = y + 1
-                for xx in range(max(minx, x + 1 - buffer), min(maxx, x + 1 + buffer)):
-                    self._wp[xx, yy] = ma.masked
-        return lcm
+            if buffer > 0 and lcm is not None:
+                miny, maxy = 0, self._wp.shape[1] - 1
+                minx, maxx = 0, self._wp.shape[0] - 1
+                for (x, y) in lcm.path:
+                    xx = x + 1
+                    for yy in range(max(miny, y + 1 - buffer), min(maxy, y + 1 + buffer)):
+                        self._wp[xx, yy] = ma.masked
+                    yy = y + 1
+                    for xx in range(max(minx, x + 1 - buffer), min(maxx, x + 1 + buffer)):
+                        self._wp[xx, yy] = ma.masked
+            if lcm is not None:
+                ki += 1
+                yield lcm
 
     def best_path(self, row, col):
         if self._wp is None:

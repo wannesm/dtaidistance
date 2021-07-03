@@ -44,7 +44,7 @@ If you want to find all matches (or the k best):
 ::
 
     fig, ax = dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), path=-1)
-    for kmatch in sa.kbest_match(9):
+    for kmatch in sa.kbest_matches(9):
         dtwvis.plot_warpingpaths_addpath(ax, kmatch.path)
 
 
@@ -69,10 +69,7 @@ a few heartbeats is similar to another sequence of heartbeats.
     # Estimate tau, delta, delta_factor from threshold
     lc.estimate_settings_from_threshold(series, 70)
     paths = []
-    for _ in range(100):
-        match = lc.next_best_match(minlen=20, buffer=10)
-        if match is None:
-            break
+    for match in lc.kbest_matches(k=100, minlen=20, buffer=10):
         paths.append(match.path)
     fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1)
     for path in paths:

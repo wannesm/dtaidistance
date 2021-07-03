@@ -50,7 +50,7 @@ def test_dtw_subseq_eeg():
 
         sa = subsequence_search(query, series)
         match = sa.best_match()
-        kmatches = sa.kbest_matches(k=15, overlap=0)
+        kmatches = list(sa.kbest_matches(k=15, overlap=0))
         segments = [m.segment for m in kmatches]
         segments_sol = [[38, 56], [19, 37], [167, 185], [124, 143], [84, 100], [59, 77], [150, 162], [101, 121], [0, 15]]
 
@@ -109,15 +109,19 @@ def test_dtw_localconcurrences_eeg():
         buffer = 10
         minlen = 20
         lc = local_concurrences(series, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor)
-        paths = []
-        match = lc.next_best_match(minlen=minlen, buffer=buffer)
-        if match is not None:
-            paths.append(match.path)
-        for _ in range(100):
-            matchb = lc.next_best_match(minlen=minlen, buffer=buffer)
-            if matchb is None:
+        matches = []
+        for match in lc.kbest_matches(k=100, minlen=minlen, buffer=buffer):
+            if match is None:
                 break
-            paths.append(matchb.path)
+            matches.append(match)
+        assert [(m.row, m.col) for m in matches] == [(84, 95), (65, 93), (50, 117), (117, 200), (32, 180),
+                                                     (160, 178), (96, 139), (138, 181), (71, 200), (71, 117),
+                                                     (73, 137), (52, 138), (12, 117), (117, 178), (117, 160),
+                                                     (30, 160), (32, 52), (30, 117), (117, 135), (160, 200),
+                                                     (178, 200), (11, 52), (71, 160), (134, 160), (135, 200),
+                                                     (30, 200), (50, 200), (11, 73), (50, 160), (12, 33), (11, 137),
+                                                     (36, 143), (11, 179), (88, 160), (66, 178), (11, 93)]
+
         if directory and not dtwvis.test_without_visualization():
             try:
                 import matplotlib.pyplot as plt
@@ -126,8 +130,8 @@ def test_dtw_localconcurrences_eeg():
             fn = directory / "test_dtw_localconcurrences.png"
             fig = plt.figure()
             fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1, figure=fig)
-            for path in paths:
-                dtwvis.plot_warpingpaths_addpath(ax, path)
+            for match in matches:
+                dtwvis.plot_warpingpaths_addpath(ax, match.path)
             plt.savefig(fn)
             plt.close(fig)
 
