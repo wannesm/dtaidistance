@@ -25,7 +25,10 @@ def test_dtw_subseq1():
         # print(f'Segment={match.segment}')
         # print(f'Path={match.path}')
         if not dtwvis.test_without_visualization():
-            import matplotlib.pyplot as plt
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
             if directory:
                 plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
