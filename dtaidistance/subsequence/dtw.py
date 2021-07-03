@@ -147,11 +147,33 @@ class SubsequenceAlignment:
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
 
-    def kbest_match(self, k=1):
-        # TODO remove overlapping matches
-        best_idxs = np.argpartition(self.matching, kth=k)[:k]
-        best_idxs = best_idxs[np.argsort(self.matching[best_idxs])]
-        return [self.get_match(best_idx) for best_idx in best_idxs]
+    def kbest_match(self, k=1, overlap=0):
+        matches = []
+        matching = np.array(self.matching)
+        maxv = np.ceil(np.max(matching) + 1)
+        matching[:min(len(self.query) - 1, overlap)] = maxv
+        ki = 0
+        while ki < k:
+            best_idx = np.argmin(matching)
+            if best_idx == 0 or np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
+                # No more matches found
+                break
+            match = self.get_match(best_idx)
+            b, e = match.segment
+            cur_overlap = min(overlap, e - b - 1)
+            mb, me = best_idx + 1 - (e - b) + cur_overlap, best_idx + 1
+            if np.isinf(np.max(matching[mb:me])):
+                # No overlapping matches
+                matching[best_idx] = maxv
+                continue
+            matches.append(match)
+            matching[mb:me] = np.inf
+            ki += 1
+
+        # best_idxs = np.argpartition(self.matching, kth=k)[:k]
+        # best_idxs = best_idxs[np.argsort(self.matching[best_idxs])]
+        # return [self.get_match(best_idx) for best_idx in best_idxs]
+        return matches
 
     def matching_function_segment(self, idx):
         """Matched segment in series."""
@@ -256,6 +278,18 @@ class LocalConcurrences:
         self.delta = delta
         self.delta_factor = delta_factor
         self._wp = None  # warping paths
+
+    def estimate_settings_from_threshold(self, series, threshold_tau):
+        """
+
+        :param series:
+        :param threshold_tau: Set tau to the affinity value such that threshold_tau percentile [0,100] values
+            are higher.
+        :return:
+        """
+        self.delta = -2 * np.exp(-self.gamma * np.percentile(series, threshold_tau))
+        self.delta_factor = 0.5
+        self.tau = np.exp(-self.gamma * np.percentile(series, threshold_tau))
 
     def align(self):
         """

@@ -37,7 +37,49 @@ def test_dtw_subseq1():
 
 
 @numpyonly
-def test_dtw_localconcurrences():
+def test_dtw_subseq_eeg():
+    data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
+    data = np.loadtxt(data_fn)
+    series = np.array(data[1500:1700])
+    query = np.array(data[1331:1352])
+
+    sa = subsequence_search(query, series)
+    match = sa.best_match()
+    kmatches = sa.kbest_match(k=15, overlap=0)
+
+    if directory and not dtwvis.test_without_visualization():
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise MatplotlibException("No matplotlib available")
+
+        fn = directory / "test_dtw_subseq_eeg1.png"
+        fig = plt.figure(figsize=(20, 30))
+        dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), match.path, figure=fig)
+        plt.savefig(fn)
+        plt.close(fig)
+
+        fn = directory / "test_dtw_subseq_eeg2.png"
+        startidx, endidx = match.segment
+        fig = plt.figure()
+        plt.plot(query, label='query')
+        plt.plot(series[startidx: endidx], label='best match')
+        plt.legend()
+        plt.savefig(fn)
+        plt.close(fig)
+
+        fn = directory / "test_dtw_subseq_eeg3.png"
+        fig = plt.figure(figsize=(20, 10))
+        fig, ax = dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), path=-1, figure=fig)
+        print(f'plotting {len(kmatches)} matches')
+        for kmatch in kmatches:
+            dtwvis.plot_warpingpaths_addpath(ax, kmatch.path)
+        plt.savefig(fn)
+        plt.close(fig)
+
+
+@numpyonly
+def test_dtw_localconcurrences_eeg():
     data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
     data = np.loadtxt(data_fn)
     series = np.array(data[1500:1700])
@@ -73,7 +115,7 @@ def test_dtw_localconcurrences():
             raise MatplotlibException("No matplotlib available")
         fn = directory / "test_dtw_localconcurrences.png"
         fig = plt.figure()
-        fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1, showlegend=True, figure=fig)
+        fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1, figure=fig)
         for path in paths:
             dtwvis.plot_warpingpaths_addpath(ax, path)
         plt.savefig(fn)
@@ -86,4 +128,5 @@ if __name__ == "__main__":
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=6, linewidth=120)
         # test_dtw_subseq1()
-        test_dtw_localconcurrences()
+        test_dtw_subseq_eeg()
+        # test_dtw_localconcurrences_eeg()
