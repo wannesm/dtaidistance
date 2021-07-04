@@ -214,7 +214,7 @@ class SubsequenceAlignment:
         return path
 
 
-def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1):
+def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, estimate_settings=None):
     """
 
     :param series1:
@@ -226,9 +226,12 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
     :param delta_factor: multiply cumulative score (e.g. by 0.5).
         This is useful to have the same impact at different locations in the warping paths matrix, which
         is cumulative (and thus typically large in one corner and small in the opposite corner).
+    :param estimate_settings: Estimate tau, delta from given series.
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor)
+    if estimate_settings is not None:
+        lc.estimate_settings_from_threshold(series1, estimate_settings)
     lc.align()
     return lc
 

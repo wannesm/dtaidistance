@@ -65,9 +65,8 @@ a few heartbeats is similar to another sequence of heartbeats.
 
 ::
 
-    lc = local_concurrences(series, None)  # second is None to compare to self
-    # Estimate tau, delta, delta_factor from threshold
-    lc.estimate_settings_from_threshold(series, 70)
+    lc = local_concurrences(series, None, estimate_settings=70)  # second is None to compare to self
+    # The parameters tau, delta, delta_factor are estimated based on series
     paths = []
     for match in lc.kbest_matches(k=100, minlen=20, buffer=10):
         paths.append(match.path)
