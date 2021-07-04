@@ -14,7 +14,7 @@ import logging
 import numpy as np
 import numpy.ma as ma
 
-from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library, warping_paths_affinity
+from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library, warping_paths_affinity, distance
 from .. import util_numpy
 from .. import util
 
@@ -45,7 +45,7 @@ except ImportError:
     dtw_cc = None
 
 
-def subsequence_search(query, series):
+def subsequence_alignment(query, series):
     sa = SubsequenceAlignment(query, series)
     sa.align()
     return sa
@@ -81,7 +81,7 @@ class SAMatch:
 
 
 class SubsequenceAlignment:
-    def __init__(self, query, series, penalty=0.1):
+    def __init__(self, query, series, penalty=0.1, use_c=False):
         """Subsequence alignment using DTW.
         Find where the query occurs in the series.
 
@@ -106,10 +106,16 @@ class SubsequenceAlignment:
         self.penalty = penalty
         self.paths = None
         self.matching = None
+        self.use_c = use_c
 
-    def align(self, use_c=False):
+    def reset(self):
+        self.matching = None
+
+    def align(self):
+        if self.matching is not None:
+            return
         psi = [0, 0, len(self.series), len(self.series)]
-        if use_c:
+        if self.use_c:
             _, self.paths = warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
                                           psi_neg=False)
         else:
@@ -118,7 +124,8 @@ class SubsequenceAlignment:
         self._compute_matching()
 
     def align_fast(self):
-        return self.align(use_c=True)
+        self.use_c = True
+        return self.align()
 
     def _compute_matching(self):
         matching = self.paths[-1, :]
@@ -154,6 +161,7 @@ class SubsequenceAlignment:
         :param overlap: Matches cannot overlap unless overlap > 0.
         :return: Yield an SAMatch object
         """
+        self.align()
         matching = np.array(self.matching)
         maxv = np.ceil(np.max(matching) + 1)
         matching[:min(len(self.query) - 1, overlap)] = maxv
@@ -251,6 +259,12 @@ class LCMatch:
         self._path = self.lc.best_path(self.row, self.col)
         return self._path
 
+    def __str__(self):
+        return f'LCMatch({self.row, self.col})'
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class LocalConcurrences:
     def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False):
@@ -282,6 +296,9 @@ class LocalConcurrences:
         self.delta_factor = delta_factor
         self._wp = None  # warping paths
 
+    def reset(self):
+        self._wp = None
+
     def estimate_settings_from_threshold(self, series, threshold_tau):
         """
 
@@ -299,6 +316,8 @@ class LocalConcurrences:
 
         :return:
         """
+        if self._wp is not None:
+            return
         _, wp = warping_paths_affinity(self.series1, self.series2,
                                        gamma=self.gamma, tau=self.tau,
                                        delta=self.delta, delta_factor=self.delta_factor,
@@ -402,3 +421,72 @@ class LocalConcurrences:
             p.pop()
         p.reverse()
         return p
+
+
+def subsequence_search(query, series):
+    ss = SubsequenceSearch(query, series)
+    return ss
+
+
+class SSMatch:
+    def __init__(self, idx, ss):
+        self.idx = idx
+        self.ss = ss
+
+    def __str__(self):
+        return f'SSMatch({self.idx})'
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class SubsequenceSearch:
+    def __init__(self, query, s, **kwargs):
+        """
+
+        :param query: Time series to search for
+        :param s: Iterator over time series to perform search on.
+        :param kwargs: Options for DTW
+        """
+        self.query = query
+        self.s = s
+        self.distances = None
+        self.k = None
+        self.dtw_options = kwargs
+
+    def reset(self):
+        self.distances = None
+
+    def align(self, k=None):
+        print('start')
+        if self.distances is not None and self.k >= k:
+            return
+        self.distances = np.zeros((len(self.s),))
+        import heapq
+        h = [-np.inf]
+        max_dist = np.inf
+        for idx, series in enumerate(self.s):
+            dist = distance(self.query, series, **self.dtw_options)
+            if k is not None:
+                if len(h) < k:
+                    if not np.isinf(dist):
+                        heapq.heappush(h, -dist)
+                        max_dist = -min(h)
+                else:
+                    if not np.isinf(dist):
+                        heapq.heappushpop(h, -dist)
+                        max_dist = -min(h)
+                self.dtw_options['max_dist'] =max_dist
+            self.distances[idx] = dist
+
+    def best_match(self):
+        self.align(k=1)
+        best_idx = np.argmin(self.distances)
+        return SSMatch(best_idx, self)
+
+    def kbest_matches(self, k=1):
+        self.align(k=k)
+        if k is None:
+            return [SSMatch(best_idx, self) for best_idx in range(len(self.distances))]
+        best_idxs = np.argpartition(self.distances, k)
+        return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]

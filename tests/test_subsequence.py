@@ -1,10 +1,11 @@
 import pytest
 import os
 import random
+import time
 from pathlib import Path
 
 from dtaidistance import util_numpy
-from dtaidistance.subsequence.dtw import subsequence_search, local_concurrences
+from dtaidistance.subsequence.dtw import subsequence_alignment, local_concurrences, subsequence_search
 from dtaidistance import dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException
 
@@ -17,7 +18,7 @@ def test_dtw_subseq1():
     with util_numpy.test_uses_numpy() as np:
         query = np.array([1., 2, 0])
         series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0])
-        sa = subsequence_search(query, series)
+        sa = subsequence_alignment(query, series)
         mf = sa.matching_function()
         # print(f'{mf=}')
         match = sa.best_match()
@@ -48,7 +49,7 @@ def test_dtw_subseq_eeg():
         series = np.array(data[1500:1700])
         query = np.array(data[1331:1352])
 
-        sa = subsequence_search(query, series)
+        sa = subsequence_alignment(query, series)
         match = sa.best_match()
         kmatches = list(sa.kbest_matches(k=15, overlap=0))
         segments = [m.segment for m in kmatches]
@@ -136,6 +137,69 @@ def test_dtw_localconcurrences_eeg():
             plt.close(fig)
 
 
+@numpyonly
+def test_dtw_subseqsearch_eeg():
+    with util_numpy.test_uses_numpy() as np:
+        data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
+        data = np.loadtxt(data_fn)
+        series = np.array(data[1500:1700])
+        query = np.array(data[1331:1352])
+        # print(f'{len(series)=}')
+
+        k = 3
+        s = []
+        s_idx = []
+        w = 22
+        ws = int(np.floor(w/2))
+        wn = int(np.floor((len(series) - (w - ws)) / ws))
+        si, ei = 0, w
+        for i in range(wn):
+            s.append(series[si:ei])
+            s_idx.append(si)
+            si += ws
+            ei += ws
+        tic = time.perf_counter()
+        sa = subsequence_search(query, s)
+        best = sa.kbest_matches(k=k)
+        toc = time.perf_counter()
+        print(f"Searching performed in {toc - tic:0.4f} seconds")
+        # print(sa.distances)
+        # print(best)
+
+        if directory and not dtwvis.test_without_visualization():
+            try:
+                import matplotlib.pyplot as plt
+                from matplotlib import gridspec
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
+            fn = directory / "test_dtw_subseqsearch_eeg.png"
+            ymin, ymax = np.min(series), np.max(series)
+            fig = plt.figure()
+            if k is None:
+                k = len(s)
+            gs = gridspec.GridSpec(3, k, wspace=0.5, hspace=1)
+            ax = fig.add_subplot(gs[0, 0])
+            ax.plot(query)
+            ax.set_title('Query')
+            ax.set_ylim((ymin, ymax))
+            for idx, match in enumerate(best):
+                ax = fig.add_subplot(gs[1, idx])
+                if idx == 0:
+                    ax.set_title(f'Best {k} windows')
+                ax.set_ylim((ymin, ymax))
+                ax.plot(s[match.idx])
+            ax = fig.add_subplot(gs[2, :])
+            ax.set_ylim((ymin, ymax))
+            ax.set_title(f'Series with windows')
+            for idx in s_idx:
+                ax.vlines(idx, ymin, ymax, color='grey', alpha=0.4)
+            ax.plot(series)
+            for idx, match in enumerate(best):
+                ax.vlines(s_idx[match.idx], ymin, ymax, color='red')
+            plt.savefig(fn)
+            plt.close(fig)
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
@@ -143,4 +207,5 @@ if __name__ == "__main__":
         np.set_printoptions(precision=6, linewidth=120)
         # test_dtw_subseq1()
         # test_dtw_subseq_eeg()
-        test_dtw_localconcurrences_eeg()
+        # test_dtw_localconcurrences_eeg()
+        test_dtw_subseqsearch_eeg()

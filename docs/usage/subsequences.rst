@@ -20,10 +20,10 @@ We can find the best occurence(s) as follows:
 
 ::
 
-    from dtaidistance.subsequence.dtw import subsequence_search
+    from dtaidistance.subsequence.dtw import subsequence_alignment
     from dtaidistance import dtw_visualisation as dtwvis
 
-    sa = subsequence_search(query, series)
+    sa = subsequence_alignment(query, series)
     match = sa.best_match()
     startidx, endidx = match.segment
     dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), match.path, figure=fig)
@@ -49,7 +49,39 @@ If you want to find all matches (or the k best):
 
 
 .. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/subsequence_bestmatches.png?v=1
-   :alt: Subsequence k-best matches
+   :alt: Subsequence alignment k-best matches
+
+
+DTW subsequence search
+~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to using alignment, we can also iterate over a sequence of series or windows
+to search for the best match:
+
+::
+
+    from dtaidistance.subsequence.dtw import subsequence_search
+
+    k = 3
+    s = []
+    w = 22
+    ws = int(np.floor(w/2))
+    wn = int(np.floor((len(series) - (w - ws)) / ws))
+    si, ei = 0, w
+    for i in range(wn):
+        s.append(series[si:ei])
+        si += ws
+        ei += ws
+
+    sa = subsequence_alignment(query, s)
+    best = sa.kbest_matches(k=k)
+
+When setting k, the search is pruned to early abandon comparisons
+that will not improve on the top k best matches.
+
+
+.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/subsequencesearch_bestmatches.png?v=1
+   :alt: Subsequence search k-best matches
 
 
 DTW Local Concurrences

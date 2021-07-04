@@ -10,4 +10,4 @@ Subsequence search
 
 """
 
-from .dtw import SubsequenceAlignment, subsequence_search
+from .dtw import SubsequenceAlignment, subsequence_alignment
