@@ -149,8 +149,8 @@ def test_dtw_subseqsearch_eeg():
         k = 3
         s = []
         s_idx = []
-        w = 22
-        ws = int(np.floor(w/2))
+        w = 22  # window size
+        ws = int(np.floor(w/2))  # shift size
         wn = int(np.floor((len(series) - (w - ws)) / ws))
         si, ei = 0, w
         for i in range(wn):

@@ -79,6 +79,16 @@ to search for the best match:
 When setting k, the search is pruned to early abandon comparisons
 that will not improve on the top k best matches.
 
+In the result one can observe that the choice of windows has an impact
+on where the best matches are found. Whereas the previous alignment method
+does not require a window size  or a shift, here matches are limited to the windows
+that are given. The advantage of this method is that it can be used also if
+the windows are not from one continuous series (e.g. periods with missing data,
+multiple sources).
+
+The best three windows are visualized below. The gray vertical lines indicate
+the windows, the red verical lines the three best windows.
+
 
 .. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/subsequencesearch_bestmatches.png?v=1
    :alt: Subsequence search k-best matches
