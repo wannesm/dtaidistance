@@ -27,7 +27,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/dtw
    usage/ed
    usage/clustering
-   usage/subsequences
+   usage/subsequence
    usage/sequence
 
 
@@ -42,6 +42,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    modules/dtw_barycenter
    modules/ed
    modules/clustering
+   modules/subsequence
 
 
 Indices and tables

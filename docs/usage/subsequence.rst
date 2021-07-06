@@ -1,5 +1,5 @@
-Subsequences
-------------
+Subsequence
+-----------
 
 Subsequence search is to match the best occurance of a short time serise in a longer series.
 
