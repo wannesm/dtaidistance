@@ -3,6 +3,8 @@
 dtaidistance.clustering.kmeans
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+(requires version 2.2.0 or higher)
+
 Time series clustering using k-means and Barycenter averages.
 
 :author: Wannes Meert

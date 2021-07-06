@@ -3,7 +3,7 @@
 dtaidistance.subsequence.dtw
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(in beta, available in master branch)
+(requires version 2.3.0 or higher)
 
 DTW-based subsequence matching.
 

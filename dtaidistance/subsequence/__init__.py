@@ -2,6 +2,8 @@
 dtaidistance.subsequence
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+(requires version 2.3.0 or higher)
+
 Subsequence search
 
 :author: Wannes Meert
