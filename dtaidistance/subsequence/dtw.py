@@ -3,7 +3,7 @@
 dtaidistance.subsequence.dtw
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-DTW-based subsequence matching
+DTW-based subsequence matching.
 
 :author: Wannes Meert
 :copyright: Copyright 2021 KU Leuven, DTAI Research Group.
@@ -11,10 +11,9 @@ DTW-based subsequence matching
 
 """
 import logging
-import numpy as np
 import numpy.ma as ma
 
-from ..dtw import warping_paths, warping_paths_fast, best_path, _check_library, warping_paths_affinity, distance
+from ..dtw import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
 from .. import util_numpy
 from .. import util
 
@@ -46,6 +45,12 @@ except ImportError:
 
 
 def subsequence_alignment(query, series):
+    """See SubsequenceAligment.
+
+    :param query:
+    :param series:
+    :return:
+    """
     sa = SubsequenceAlignment(query, series)
     sa.align()
     return sa
@@ -233,7 +238,8 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
     :param delta_factor: multiply cumulative score (e.g. by 0.5).
         This is useful to have the same impact at different locations in the warping paths matrix, which
         is cumulative (and thus typically large in one corner and small in the opposite corner).
-    :param estimate_settings: Estimate tau, delta, delta_factor from given series.
+    :param estimate_settings: Estimate tau, delta, delta_factor from given series. Should be threshold
+        value between 0 and 100.
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor)
@@ -290,13 +296,13 @@ class LocalConcurrences:
                          df * D_tau(n,m−1)   + S_tau(n,m))
         where df = 1 if S(n,m) >= tau and df=delta_factor (<=1) otherwise,
 
-        :param serie1:
-        :param serie2:
+        :param series1: First time series.
+        :param series2: Second time series. If empty, series1 is used and compared with itself.
         :param gamma: Affinity transformation exp(-gamma*(s1[i] - s2[j])**2), should be >0
         :param tau: threshold parameter, should be >= 0
         :param delta: penalty parameter, should be <= 0
         :param delta_factor: penalty factor parameter, should be <= 1
-        :param only_trui: Only consider upper triangular matrix in warping paths.
+        :param only_triu: Only consider upper triangular matrix in warping paths.
         """
         self.series1 = series1
         if series2 is None:
@@ -364,7 +370,7 @@ class LocalConcurrences:
 
         :param k: Number of matches to yield. None is all matches.
         :param minlen: Consider only matches of length longer than minlen
-        :oaram buffer: Matches cannot be closer than buffer to each other.
+        :param buffer: Matches cannot be closer than buffer to each other.
         :return: Yield an LCMatch object
         """
         ki = 0
@@ -411,9 +417,8 @@ class LocalConcurrences:
         argm = argmax
         i = row
         j = col
-        p = []
-        p.append((i - 1, j - 1))
-        prev = self._wp[i, j]
+        p = [(i - 1, j - 1)]
+        # prev = self._wp[i, j]
         while i > 0 and j > 0:
             values = [self._wp.data[i - 1, j - 1], self._wp.data[i - 1, j], self._wp.data[i, j - 1]]
             # print(f'{i=}, {j=}, {argm(values)=}, {ma.argmax(values)=}, {values=}')
@@ -443,6 +448,12 @@ class LocalConcurrences:
 
 
 def subsequence_search(query, series):
+    """See SubsequenceSearch.
+
+    :param query:
+    :param series:
+    :return:
+    """
     ss = SubsequenceSearch(query, series)
     return ss
 
@@ -460,18 +471,19 @@ class SSMatch:
 
 
 class SubsequenceSearch:
-    def __init__(self, query, s, **kwargs):
-        """
+    def __init__(self, query, s, dists_options=None):
+        """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
         :param s: Iterator over time series to perform search on.
-        :param kwargs: Options for DTW
+            This can be for example windows over a long time series.
+        :param dists_options: Options for DTW
         """
         self.query = query
         self.s = s
         self.distances = None
         self.k = None
-        self.dtw_options = kwargs
+        self.dists_options = dists_options
 
     def reset(self):
         self.distances = None
@@ -485,7 +497,7 @@ class SubsequenceSearch:
         h = [-np.inf]
         max_dist = np.inf
         for idx, series in enumerate(self.s):
-            dist = distance(self.query, series, **self.dtw_options)
+            dist = distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
                     if not np.isinf(dist):
@@ -495,7 +507,7 @@ class SubsequenceSearch:
                     if not np.isinf(dist):
                         heapq.heappushpop(h, -dist)
                         max_dist = -min(h)
-                self.dtw_options['max_dist'] =max_dist
+                self.dists_options['max_dist'] = max_dist
             self.distances[idx] = dist
 
     def best_match(self):
