@@ -93,6 +93,7 @@ class KMeans(Medoids):
             the instances that are further away than stddev*drop_stddev from the
             prototype (this is a gradual effect, the algorithm starts with drop_stddev
             is 3).
+            This is related to robust k-means approaches that use trimming functions.
         :param nb_prob_samples: Probabilistically sample best path this number of times.
         :param dists_options:
         :param show_progress:

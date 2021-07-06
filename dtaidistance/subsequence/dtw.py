@@ -92,14 +92,13 @@ class SubsequenceAlignment:
         series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0])
         sa = subsequence_search(query, series)
         mf = sa.matching_function()
-        best_match_end_idx = np.argmin(mf)
-        best_match_start_idx = sa.matching_function_startpoint(best_match_end_idx)
-        best_match_path = sa.matching_function_bestpath(best_match_end_idx)
+        sa.kbest_matches(k=2)
 
 
         :param query: Subsequence to search for
         :param series: Long sequence in which to search
         :param penalty: Penalty for non-diagonal matching
+        :param use_c: Use the C-based DTW function if available
         """
         self.query = query
         self.series = series
@@ -223,7 +222,7 @@ class SubsequenceAlignment:
 
 
 def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, estimate_settings=None):
-    """
+    """Local concurrences, see LocalConcurrences.
 
     :param series1:
     :param series2:
@@ -234,7 +233,7 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
     :param delta_factor: multiply cumulative score (e.g. by 0.5).
         This is useful to have the same impact at different locations in the warping paths matrix, which
         is cumulative (and thus typically large in one corner and small in the opposite corner).
-    :param estimate_settings: Estimate tau, delta from given series.
+    :param estimate_settings: Estimate tau, delta, delta_factor from given series.
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor)
@@ -268,15 +267,35 @@ class LCMatch:
 
 class LocalConcurrences:
     def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False):
-        """
+        """Version identification based on local concurrences.
+
+        Find recurring patterns across two time series. Used to identify whether one time series is
+        a version of another. If the two time series are the some one, it can be used to find typical
+        or frequent patterns in a time series.
 
         Based on 7.3.2 Identiﬁcation Procedure in Fundamentals of Music Processing, Meinard Müller, Springer, 2015.
 
+        Different from the original formulation, D_tau is introduced based on the given delta factor.
+        This makes the penalty less sensitive to the cumulative effect of the paths in the
+        self-similarity matrix S:
+
+        S_tau(n,m) = S(n,m)  if  S(n,m) >= tau  (with tau >= 0)
+                     delta   if  S(n,m) < tau   (with delta <= 0)
+
+        And for the accumulated score matrix D:
+
+        D_tau(n,m) = max(0,
+                         df * D_tau(n−1,m−1) + S_tau(n,m),
+                         df * D_tau(n−1,m)   + S_tau(n,m),
+                         df * D_tau(n,m−1)   + S_tau(n,m))
+        where df = 1 if S(n,m) >= tau and df=delta_factor (<=1) otherwise,
+
         :param serie1:
         :param serie2:
-        :param gamma: Affinity transformation exp(-gamma*(s1[i] - s2[j])**2)
-        :param tau: threshold parameter
-        :param delta: penalty parameter
+        :param gamma: Affinity transformation exp(-gamma*(s1[i] - s2[j])**2), should be >0
+        :param tau: threshold parameter, should be >= 0
+        :param delta: penalty parameter, should be <= 0
+        :param delta_factor: penalty factor parameter, should be <= 1
         :param only_trui: Only consider upper triangular matrix in warping paths.
         """
         self.series1 = series1
