@@ -31,6 +31,7 @@ Citing this work:
 - Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
   package.
 - DTW Barycenter Averaging for clustering (v2.2).
+- Subsequence search and local concurrences (v2.3).
 
 
 ## Installation
