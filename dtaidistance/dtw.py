@@ -283,8 +283,8 @@ def distance(s1, s2,
                 ec_next = j + 1
         ec = ec_next
         if psi_1e != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi_1e:
-            psi_shortest = min(psi_shortest, dtw[i1 * length + length - 1])
-    if psi_1e == 0 and psi_2e:
+            psi_shortest = min(psi_shortest, dtw[i1 * length + j_end - skip])
+    if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1 * length + min(c, c + window - 1) - skip]
     else:
         ic = min(c, c + window - 1) - skip

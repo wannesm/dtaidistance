@@ -1,11 +1,16 @@
 import logging
 import sys, os
+import random
+from pathlib import Path
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
 import pytest
 
 from dtaidistance import dtw, util_numpy
+from dtaidistance import dtw_visualisation as dtwvis
+from dtaidistance.exceptions import MatplotlibException
 
+directory = None
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
@@ -222,6 +227,65 @@ def test_bug2():
         assert res1 == pytest.approx(res4)
 
 
+# @numpyonly
+# def test_bug3():
+#     with util_numpy.test_uses_numpy() as np:
+#         psi = 30
+#
+#         x = np.arange(0, 20, .5)
+#         s1 = np.sin(x)
+#         s2 = np.sin(x - 1)
+#         random.seed(1)
+#         for idx in range(len(s2)):
+#             if random.random() < 0.05:
+#                 s2[idx] += (random.random() - 0.5) / 2
+#         d, paths = dtw.warping_paths(s1, s2, window=25, psi=psi)
+#         best_path = dtw.best_path(paths)
+#
+#         with util_numpy.test_uses_numpy() as np:
+#             np.set_printoptions(precision=3, linewidth=300, threshold=np.inf)
+#             print(paths)
+#
+#         if directory and not dtwvis.test_without_visualization():
+#             dtwvis.plot_warping(s1, s2, best_path, filename=directory / 'bug3_warping.png')
+#             dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=directory / 'bug3_warpingpaths.png')
+
+
+@numpyonly
+def test_bug4():
+    with util_numpy.test_uses_numpy() as np:
+        psi = 1
+        win = 10
+
+        x = np.arange(0, 13, .5)
+        s1 = np.sin(x)
+        s2 = np.sin(x - 1)
+
+        random.seed(1)
+        for idx in range(len(s2)):
+            if random.random() < 0.05:
+                s2[idx] += (random.random() - 0.5) / 2
+
+        d1, paths = dtw.warping_paths(s1, s2, window=win, psi=psi, psi_neg=False)
+        best_path = dtw.best_path(paths)
+
+        d2 = dtw.distance_fast(s1, s2, psi=psi, window=win)
+        d3 = dtw.distance(s1, s2, psi=psi, window=win)
+
+        # print(f'{d1=}, {d2=}, {d3=}')
+        # with util_numpy.test_uses_numpy() as np:
+        #     np.set_printoptions(precision=3, linewidth=30000, threshold=np.inf)
+        #     # print(np.power(paths, 2))
+        #     print(paths)
+
+        if directory and not dtwvis.test_without_visualization():
+            dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=directory / 'bug4_warpingpaths.png')
+
+        assert d1 == pytest.approx(0.6305018693852942), 'dtw.warping_paths failed'
+        assert d2 == pytest.approx(0.6305018693852942), 'dtw.distance_fast failed'
+        assert d3 == pytest.approx(0.6305018693852942), 'dtw.distance failed'
+
+
 @numpyonly
 def test_bug_size():
     """Two series of length 1500 should not trigger a size error.
@@ -238,8 +302,9 @@ def test_bug_size():
 
 
 if __name__ == "__main__":
-    with util_numpy.test_uses_numpy() as np:
-        np.set_printoptions(precision=2, linewidth=120)
+    directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
+    # with util_numpy.test_uses_numpy() as np:
+    #     np.set_printoptions(precision=2, linewidth=120)
     logger.setLevel(logging.WARNING)
     sh = logging.StreamHandler(sys.stdout)
     logger.addHandler(sh)
@@ -253,5 +318,7 @@ if __name__ == "__main__":
     # test_distance4()
     # test_distance6()
     # test_bug1_psi()
-    test_bug2()
+    # test_bug2()
+    # test_bug3()
+    test_bug4()
     # test_bug_size()

@@ -147,7 +147,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     int i1 = 0;
     idx_t minj;
     idx_t maxj;
-    idx_t curidx;
+    idx_t curidx = 0;
     idx_t dl_window = dl + window - 1;
     idx_t ldiff_window = window;
     if (l2 > l1) {
@@ -256,8 +256,9 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         ec = ec_next;
         // Deal with Psi-relaxation in last column
         if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
-            if (dtw[(i1 + 1)*length - 1] < psi_shortest) {
-                psi_shortest = dtw[(i1 + 1)*length - 1];
+            if (dtw[curidx] < psi_shortest) {
+                // curidx is the last value
+                psi_shortest = dtw[curidx];
             }
         }
         #ifdef DTWDEBUG
