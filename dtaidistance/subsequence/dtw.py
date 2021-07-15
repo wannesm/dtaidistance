@@ -485,7 +485,7 @@ class SubsequenceSearch:
         self.s = s
         self.distances = None
         self.k = None
-        self.dists_options = dists_options
+        self.dists_options = {} if dists_options is None else dists_options
 
     def reset(self):
         self.distances = None
