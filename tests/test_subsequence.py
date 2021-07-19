@@ -96,8 +96,8 @@ def test_dtw_localconcurrences_eeg():
         series = np.array(data[1500:1700])
 
         gamma = 1
-        domain = 2 * np.std(series)
-        affinity = np.exp(-gamma * series)
+        # domain = 2 * np.std(series)
+        # affinity = np.exp(-gamma * series)
         # print(f'Affinity in [{np.min(affinity)}, {np.max(affinity)}]\n'
         #       f'             {np.mean(affinity)} +- {np.std(affinity)}\n'
         #       f'             {np.exp(-gamma * np.mean(series))} +- {np.exp(-gamma * np.std(series))}\n'
@@ -129,6 +129,42 @@ def test_dtw_localconcurrences_eeg():
             except ImportError:
                 raise MatplotlibException("No matplotlib available")
             fn = directory / "test_dtw_localconcurrences.png"
+            fig = plt.figure()
+            fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1, figure=fig)
+            for match in matches:
+                dtwvis.plot_warpingpaths_addpath(ax, match.path)
+            plt.savefig(fn)
+            plt.close(fig)
+
+
+@numpyonly
+def test_dtw_localconcurrences_short():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array([0, -1, -1, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 0, -1, 0])
+
+        gamma = 1
+        threshold_tau = 70
+        delta = -2 * np.exp(-gamma * np.percentile(series, threshold_tau))  # -len(series)/2  # penalty
+        delta_factor = 0.5
+        tau = np.exp(-gamma * np.percentile(series, threshold_tau))  # threshold
+        # print(f'{tau=}, {delta=}')
+        buffer = 10
+        minlen = 3
+        lc = local_concurrences(series, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=1)
+        matches = []
+        for match in lc.kbest_matches(k=100, minlen=minlen, buffer=buffer):
+            if match is None:
+                break
+            matches.append(match)
+
+        assert [(m.row, m.col) for m in matches] == [(10, 17), (4, 19)]
+
+        if directory and not dtwvis.test_without_visualization():
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
+            fn = directory / "test_dtw_localconcurrences_short.png"
             fig = plt.figure()
             fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp, path=-1, figure=fig)
             for match in matches:
@@ -209,3 +245,4 @@ if __name__ == "__main__":
         # test_dtw_subseq_eeg()
         # test_dtw_localconcurrences_eeg()
         test_dtw_subseqsearch_eeg()
+        test_dtw_localconcurrences_short()
