@@ -85,7 +85,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     idx_t ec = 0;
     bool smaller_found;
     idx_t ec_next;
-    signal(SIGINT, dtw_int_handler);
+    // signal(SIGINT, dtw_int_handler); // not compatible with OMP
     
     idx_t window = settings->window;
     seq_t max_step = settings->max_step;
@@ -159,11 +159,11 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     seq_t psi_shortest = INFINITY;
     keepRunning = 1;
     for (i=0; i<l1; i++) {
-        if (!keepRunning){
-            free(dtw);
-            printf("Stop computing DTW...\n");
-            return INFINITY;
-        }
+        // if (!keepRunning){  // not compatible with OMP
+        //     free(dtw);
+        //     printf("Stop computing DTW...\n");
+        //     return INFINITY;
+        // }
         maxj = i;
         if (maxj > dl_window) {
             maxj -= dl_window;
@@ -280,7 +280,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         result = sqrt(psi_shortest);
     }
     free(dtw);
-    signal(SIGINT, SIG_DFL);
+    // signal(SIGINT, SIG_DFL);  // not compatible with OMP
     if (settings->max_dist !=0 && result > settings->max_dist) {
         // DTWPruned keeps the last value larger than max_dist. Correct for this.
         result = INFINITY;
