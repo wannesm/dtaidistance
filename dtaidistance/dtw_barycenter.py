@@ -121,6 +121,9 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     else:
         mask_copy = mask
 
+    if not use_c and nb_prob_samples != 0:
+        raise Exception('The parameter nb_prob_samples is not available in the Python implementation!')
+
     for it in range(max_it):
         logger.debug(f'DBA Iteration {it}')
         if use_c:
@@ -129,7 +132,10 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
             dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
             avg = c_copy
         else:
-            avg = dba(s, c, mask=mask, nb_prob_samples=nb_prob_samples, use_c=use_c, **kwargs)
+            if not use_c:
+                avg = dba(s, c, mask=mask, use_c=use_c, **kwargs)
+            else:
+                avg = dba(s, c, mask=mask, nb_prob_samples=nb_prob_samples, use_c=use_c, **kwargs)
         if keep_averages:
             avgs.append(avg)
         if thr is not None and c is not None:
