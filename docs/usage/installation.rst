@@ -34,6 +34,18 @@ to identify the problem:
 2. Reinstall with ``pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance``
    and inspect the output.
 
+If the OMP library is not detected during compilation, parallel execution in c is not available.
+If OMP is installed but not found, there is probably an issue with the options given to the
+compiler. A few variations are available to try alternative options:
+
+::
+
+    # To include -lgomp
+    $ pip install --global-option=--forcegnugcc dtaidistance
+    # To include -lomp:
+    $ pip install --global-option=--forcellvm dtaidistance
+    # To remove the -Xpreprocessor option (can be combined with the above):
+    $ pip install --global-option=--forceopenmp dtaidistance
 
 
 From Github
