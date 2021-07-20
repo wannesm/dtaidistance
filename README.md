@@ -47,11 +47,14 @@ The library has no dependency on Numpy. But if Numpy is available, some
 additional functionality is provided. If you want to make sure this is
 also installed then use:
 
-    $ pip install dtaidistance[numpy]
+    $ pip install dtaidistance[all]
 
 The source code is available at
 [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
+If you encounter any problems during compilation, see the 
+[documentation](https://dtaidistance.readthedocs.io/en/latest/usage/installation.html)
+for  more options.
 
 ## Usage
 
