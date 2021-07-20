@@ -40,12 +40,12 @@ compiler. A few variations are available to try alternative options:
 
 ::
 
-    # To include -lgomp
+    # To include -lgomp (when using GOMP instead of OMP)
     $ pip install --global-option=--forcegnugcc dtaidistance
     # To include -lomp:
     $ pip install --global-option=--forcellvm dtaidistance
     # To remove the -Xpreprocessor option (can be combined with the above):
-    $ pip install --global-option=--forceopenmp dtaidistance
+    $ pip install --global-option=--noxpreprocessor dtaidistance
 
 
 From Github

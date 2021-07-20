@@ -83,11 +83,11 @@ class PyTest(TestCommand):
 
 class MyDistribution(Distribution):
     global_options = Distribution.global_options + [
-        ('noopenmp', None, 'No compiler/linker flags for OpenMP'),
-        ('forceopenmp', None, 'Force compiler/linker flags with OpenMP'),
+        ('noopenmp', None, 'No compiler/linker flags for OpenMP (OpenMP disabled)'),
+        ('forceopenmp', None, 'Force compiler/linker flags to use OpenMP'),
         ('noxpreprocessor', None, 'Assume OpenMP is built-in (remove -Xpreprocessor argument)'),
-        ('forcellvm', None, 'Force compile/linker flags for LLVM'),
-        ('forcegnugcc', None, 'Force compile/linker flags for GNU GCC'),
+        ('forcellvm', None, 'Force compile/linker flags for LLVM (include -lomp argument)'),
+        ('forcegnugcc', None, 'Force compile/linker flags for GNU GCC (include -lgomp argument)'),
     ]
 
     def __init__(self, attrs=None):
