@@ -1,4 +1,5 @@
 .idea
+.spyproject
 dtw_c.c
 dtw_c.py
 dtw_c.*.{so,pyd}
