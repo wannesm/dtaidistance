@@ -986,8 +986,11 @@ def best_path2(paths):
     r -= 1
     c -= 1
     v = m[r, c]
-    path.append((r - 1, c - 1))
-    while r > 1 or c > 1:
+    if v != -1:
+        path.append((r - 1, c - 1))
+    while r > 0 and c > 0:
+        if v == -1:
+            v = np.Inf
         r_c, c_c = r, c
         if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
             r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
@@ -995,8 +998,10 @@ def best_path2(paths):
             r_c, c_c, v = r - 1, c, m[r - 1, c]
         if c >= 1 and m[r, c - 1] <= v:
             r_c, c_c, v = r, c - 1, m[r, c - 1]
-        path.append((r_c - 1, c_c - 1))
+        if v != -1:
+            path.append((r_c - 1, c_c - 1))
         r, c = r_c, c_c
+    path.pop()
     path.reverse()
     return path
 
