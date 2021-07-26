@@ -329,17 +329,20 @@ class LocalConcurrences:
     def reset(self):
         self._wp = None
 
-    def estimate_settings_from_threshold(self, series, threshold_tau):
+    def estimate_settings_from_std(self, series, tau_std=0.33):
         """
 
         :param series:
-        :param threshold_tau: Set tau to the affinity value such that threshold_tau percentile [0,100] values
-            are higher.
+        :param tau_std: Set tau to differences larger than tau_std time standard deviation of
+            the given series (default is 0.33, or reject differences that are larger than
+            the deviation wrt to the mean of 75% of the values in the series, assuming a
+            normal distribution).
         :return:
         """
-        self.delta = -2 * np.exp(-self.gamma * np.percentile(series, threshold_tau))
+        diffp = tau_std * np.std(series)
+        self.delta = -2 * np.exp(-self.gamma * diffp ** 2)
         self.delta_factor = 0.5
-        self.tau = np.exp(-self.gamma * np.percentile(series, threshold_tau))
+        self.tau = np.exp(-self.gamma * diffp ** 2)
 
     def align(self):
         """
