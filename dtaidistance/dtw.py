@@ -175,6 +175,14 @@ def distance(s1, s2,
 
     This function keeps a compact matrix, not the full warping paths matrix.
 
+    Uses dynamic programming to compute:
+
+    wps[i, j] = (s1[i]-s2[j])**2 + min(
+                    wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
+                    wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
+                    wps[i-1, j-1])            // diagonal   / match
+    dtw = sqrt(wps[-1, -1])
+
     :param s1: First sequence
     :param s2: Second sequence
     :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
