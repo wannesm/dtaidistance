@@ -471,6 +471,24 @@ Test(wps_psi, test_a_b) {
     cr_assert_float_eq(d, 0.0, 0.001);
 }
 
+Test(dtw_psi, test_b_a) {
+    /* For l1 >>> l2, the overlap_left_ri was wrong (used length of l2
+     * while it should be until the end when no window is used).
+     */
+    double s1[] = {-0.86271501, -1.32160597, -1.2307838, -0.97743775, -0.88183547, -0.71453147, -0.70975136, -0.65238999, -0.48508599, -0.40860416, -0.5567877, -0.39904393, -0.51854679, -0.51854679, -0.23652005, -0.21261948, 0.16978966, 0.21281068, 0.6573613, 1.28355626, 1.88585065, 1.565583, 1.40305912, 1.64206483, 1.8667302};
+    double s2[] = {-0.87446789, 0.50009064, -1.43396157, 0.52081263, 1.28752619};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi_1b = 0;
+    settings.psi_1e = 0;
+    settings.psi_2b = 5; // len(s2)
+    settings.psi_2e = 5; // len(s2)
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (25+1)*(5+1));
+    double d = dtw_warping_paths(wps, s1, 25, s2, 5, true, true, true, &settings);
+    free(wps);
+    cr_assert_float_eq(d, 2.138, 0.001);
+}
+
+
 // MARK: NDIM
 
 Test(ndim, test_a) {

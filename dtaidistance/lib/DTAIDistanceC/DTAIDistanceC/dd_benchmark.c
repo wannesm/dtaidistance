@@ -318,6 +318,27 @@ void benchmark12_subsequence() {
 }
 
 
+void benchmark13() {
+    double s1[] = {-0.86271501, -1.32160597, -1.2307838, -0.97743775, -0.88183547, -0.71453147, -0.70975136, -0.65238999, -0.48508599, -0.40860416, -0.5567877, -0.39904393, -0.51854679, -0.51854679, -0.23652005, -0.21261948, 0.16978966, 0.21281068, 0.6573613, 1.28355626, 1.88585065, 1.565583, 1.40305912, 1.64206483, 1.8667302};
+    double s2[] = {-0.87446789, 0.50009064, -1.43396157, 0.52081263, 1.28752619};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi_1b = 0;
+    settings.psi_1e = 0;
+    settings.psi_2b = 5; // len(s2)
+    settings.psi_2e = 5; // len(s2)
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (25+1)*(5+1));
+    double d = dtw_warping_paths(wps, s1, 25, s2, 5, true, true, true, &settings);
+//    printf("d = %7.3f\n", d);
+//    for (int ri=0; ri<26; ri++) {
+//        for (int ci=0; ci<6; ci++) {
+//            printf("%7.3f, ", wps[ri*6+ci]);
+//        }
+//        printf("\n");
+//    }
+    free(wps);
+}
+
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -335,7 +356,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark9();
 //    benchmark10();
 //    benchmark11();
-    benchmark12_subsequence();
+//    benchmark12_subsequence();
+    benchmark13();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);
@@ -343,3 +365,5 @@ int main(int argc, const char * argv[]) {
     
     return 0;
 }
+
+

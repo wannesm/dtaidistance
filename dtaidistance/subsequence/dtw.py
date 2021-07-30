@@ -46,14 +46,14 @@ except ImportError:
     dtw_cc = None
 
 
-def subsequence_alignment(query, series):
+def subsequence_alignment(query, series, use_c=False):
     """See SubsequenceAligment.
 
     :param query:
     :param series:
     :return:
     """
-    sa = SubsequenceAlignment(query, series)
+    sa = SubsequenceAlignment(query, series, use_c=use_c)
     sa.align()
     return sa
 
@@ -121,7 +121,7 @@ class SubsequenceAlignment:
         if self.matching is not None:
             return
         psi = [0, 0, len(self.series), len(self.series)]
-        if self.use_c:
+        if not self.use_c:
             _, self.paths = warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
                                           psi_neg=False)
         else:
@@ -243,6 +243,10 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
         is cumulative (and thus typically large in one corner and small in the opposite corner).
     :param estimate_settings: Estimate tau, delta, delta_factor from given series. Will be passed as
         tau_std to estimate_settings_from_std.
+    :param only_triu: Only compute the upper traingle matrix values. Useful to avoid redundant computations
+        when series1 is equal to series2 (or equivalently if series2 is None).
+    :param penalty: Penalty that is added when dynamic programming is using moving vertically or horizontally
+        through the matrix instead of diagonally. Used to prefer diagonal paths.
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor,

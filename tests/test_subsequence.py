@@ -89,6 +89,23 @@ def test_dtw_subseq_eeg():
 
 
 @numpyonly
+def test_dtw_subseq_bug1():
+    use_c = True
+    with util_numpy.test_uses_numpy() as np:
+        query = np.array([-0.86271501, -1.32160597, -1.2307838, -0.97743775, -0.88183547,
+                          -0.71453147, -0.70975136, -0.65238999, -0.48508599, -0.40860416,
+                          -0.5567877, -0.39904393, -0.51854679, -0.51854679, -0.23652005,
+                          -0.21261948, 0.16978966, 0.21281068, 0.6573613, 1.28355626,
+                          1.88585065, 1.565583, 1.40305912, 1.64206483, 1.8667302])
+        s1 = np.array([-0.87446789, 0.50009064, -1.43396157, 0.52081263, 1.28752619])
+        s2 = np.array([1.19125347, 0.78778189, -0.95770272, -1.02133264])
+        sa = subsequence_alignment(query, s1, use_c=use_c)
+        assert sa.best_match().value == pytest.approx(0.08735692337954708)
+        sa = subsequence_alignment(query, s2, use_c=use_c)
+        assert sa.best_match().value == pytest.approx(0.25535859535443606)
+
+
+@numpyonly
 def test_dtw_localconcurrences_eeg():
     with util_numpy.test_uses_numpy() as np:
         data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
@@ -247,6 +264,7 @@ if __name__ == "__main__":
         np.set_printoptions(precision=6, linewidth=120)
         # test_dtw_subseq1()
         # test_dtw_subseq_eeg()
-        test_dtw_localconcurrences_eeg()
+        test_dtw_subseq_bug1()
+        # test_dtw_localconcurrences_eeg()
         # test_dtw_subseqsearch_eeg()
         # test_dtw_localconcurrences_short()

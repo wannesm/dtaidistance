@@ -734,7 +734,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     // D. Rows: MAX(overlap_left_ri, overlap_right_ri) < ri <= l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
-    min_ci = p.ri3 + 1 - p.window - p.ldiff;
+    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff);
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         // C is skipped
@@ -778,6 +778,11 @@ seq_t dtw_warping_paths(seq_t *wps,
         for (idx_t i=ri_width + wpsi; i<ri_width + p.width; i++) {
             wps[i] = INFINITY;
         }
+        // printf("%zi [", ri);
+        // for (idx_t i=ri_width; i<ri_width + p.width; i++) {
+        //     printf("%7.3f, ", wps[i]);
+        // }
+        // printf("]\n");
         wpsi_start++;
         min_ci++;
         ri_widthp = ri_width;
@@ -1296,10 +1301,18 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
     }
     
     if (l1 > l2) {
+        // x x  ldiff  = 2
+        // x x
+        // x x  ldiffr = 2
+        // x x
+        //      ldiffc = 0
         parts.ldiff = l1 - l2;  // ldiff = abs(l1 - l2)
         parts.ldiffr = parts.ldiff;
         parts.ldiffc = 0;
     } else {
+        // x x x x  ldiff  = 2
+        // x x x x  ldiffr = 0
+        //     ldiffc = 2
         parts.ldiff  = l2 - l1; // ldiff = abs(l1 - l2)
         parts.ldiffr = 0;
         parts.ldiffc = parts.ldiff;
@@ -1312,7 +1325,7 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
         parts.width = MIN(l2 + 1, parts.ldiff + 2*parts.window + 1);
     }
     
-    parts.overlap_left_ri = MIN(parts.window + parts.ldiffr, l2 + 1);
+    parts.overlap_left_ri = MIN(parts.window + parts.ldiffr, l1 + 1);
     parts.overlap_right_ri = 0;
     if ((parts.window + parts.ldiffr) <= l1) {  // Avoids being negative
         parts.overlap_right_ri = MAX(l1 + 1 - parts.window - parts.ldiffr, 0);
