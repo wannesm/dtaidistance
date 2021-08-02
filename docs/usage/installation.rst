@@ -32,7 +32,7 @@ If the C-library is not available after compilation you can try the following tw
 to identify the problem:
 
 1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the exception message(s).
-2. Reinstall with ``pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance``
+2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance``
    and inspect the output.
 
 If the OMP library is not detected during compilation, parallel execution in c is not available.
