@@ -100,6 +100,18 @@ def try_import_c(verbose=False):
         msgs.append(str(exc))
         dtw_cc_numpy = None
         is_complete = False
+    try:
+        import numpy
+    except ImportError as exc:
+        print('Cannot import Numpy (optional dependency)')
+        msgs.append('Cannot import Numpy (optional dependency)')
+        msgs.append(str(exc))
+    try:
+        import matplotlib
+    except ImportError as exc:
+        print('Cannot import Matplotlib (optional dependency)')
+        msgs.append('Cannot import Matplotlib (optional dependency)')
+        msgs.append(str(exc))
     if not is_complete:
         print('\nNot all libraries are available in your installation. '
               'Share the following information when submitting a bug report:')

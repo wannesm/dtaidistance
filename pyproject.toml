@@ -1,4 +1,7 @@
 [build-system]
 # Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel", "cython"]  # PEP 508 specifications.
-
+# This overrides the setup.py file (PEP518).
+# It is easier to include numpy because of the build isolation (PEP517), even
+# though it is optional. Otherwise the --no-build-isolation flag would be required.
+# If you want to ignore numpy, remove it here and in setup.py (setup_requires)
+requires = ["setuptools", "wheel", "cython", "numpy"]  # PEP 508 specifications.

@@ -199,7 +199,7 @@ class MyBuildExtCommand(BuildExtCommand):
                 # without any real functionality except is_openmp_supported()
         if c in c_args:
             if self.distribution.noopenmp == 1:
-                args = [arg for arg in c_args[c] if arg not in ['-Xpreprocessor', '-fopenmp', '-lomp']]
+                args = [arg for arg in c_args[c] if arg not in ['-Xpreprocessor', '-fopenmp', '-lomp', '-lgomp']]
             elif self.distribution.noxpreprocessor == 1:
                 args = [arg for arg in c_args[c] if arg not in ['-Xpreprocessor']]
             else:
@@ -334,8 +334,11 @@ else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
 
-install_requires = ['cython>=0.29.6']
-setup_requires = ['setuptools>=18.0', 'cython>=0.29.6']
+# It is easier to include numpy because of the build isolation (PEP517), even
+# though it is optional. Otherwise the --no-build-isolation flag would be required.
+# If you want to ignore numpy, remove it here and in pyproject.toml.
+install_requires = ['cython>=0.29.6', 'numpy']
+setup_requires = ['setuptools>=18.0', 'cython>=0.29.6', 'numpy']
 tests_require = ['pytest', 'pytest-benchmark']
 
 # Check version number

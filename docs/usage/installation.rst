@@ -1,3 +1,4 @@
+
 Installation
 ------------
 
@@ -95,3 +96,6 @@ options are available to change the compiler arguments:
 - ``--forcellvm``: Include the  -lomp argument
 - ``--noxpreprocessor``: Remove the -Xpreprocessor argument
 - ``python3 setup.py -h``: To see al options
+
+If you want to remove the Numpy dependency, remove it from ``pyproject.toml``
+and ``setup.py`` (``setup_requires`` and ``install_requires``).
