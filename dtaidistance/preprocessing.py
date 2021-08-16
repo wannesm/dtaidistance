@@ -18,7 +18,7 @@ def differencing(series, smooth=None):
 
     :param series: Time series (must be numpy compatible)
     :param smooth: Smooth the series by removing the `smooth` percentage ([0-1])
-        of highest frequencies.
+        of highest frequency.
     :return: Differenced Numpy array
     """
     try:
@@ -30,11 +30,12 @@ def differencing(series, smooth=None):
     except ImportError:
         raise ScipyException("Differencing requires Scipy")
     series = np.diff(series, n=1, axis=1)
-    fs = 100  # sample rate, Hz
-    cutoff = fs * smooth  # cut off frequency, Hz
-    nyq = 0.5 * fs  # Nyquist frequency
-    b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
-    series = signal.filtfilt(b, a, series, axis=1)
+    if smooth is not None:
+        fs = 100  # sample rate, Hz
+        cutoff = fs * smooth  # cut off frequency, Hz
+        nyq = 0.5 * fs  # Nyquist frequency
+        b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
+        series = signal.filtfilt(b, a, series, axis=1)
     return series
 
 
