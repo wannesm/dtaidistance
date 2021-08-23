@@ -23,6 +23,11 @@ from .exceptions import NumpyException
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
+dtw_ndim = None
+try:
+    from . import dtw_ndim
+except ImportError:
+    logger.debug('DTAIDistance ndim library not available')
 
 dtw_cc = None
 try:
@@ -370,7 +375,7 @@ def _process_psi_arg(psi):
 
 def warping_paths(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True,
-                  use_c=False):
+                  use_c=False, use_ndim=False):
     """
     Dynamic Time Warping.
 
@@ -385,14 +390,22 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
+    :param use_c: Use the C implementation instead of Python
+    :param use_ndim: The input series is >1 dimensions.
+        Use cost = EuclideanDistance(s1[i], s2[j])
     :returns: (DTW distance, DTW matrix)
     """
     if use_c:
         return warping_paths_fast(s1, s2, window=window, max_dist=max_dist,
                                   max_step=max_step, max_length_diff=max_length_diff,
-                                  penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False)
+                                  penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False,
+                                  use_ndim=use_ndim)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
+    if use_ndim:
+        cost = lambda x, y: np.sum((x - y) ** 2)
+    else:
+        cost = lambda x, y: (x - y) ** 2
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -442,7 +455,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         #                                                y)
         for j in range(j_start, j_end):
             # print('j =', j, 'max=',min(c, c - r + i + window))
-            d = (s1[i] - s2[j])**2
+            d = cost(s1[i], s2[j])
             if max_step is not None and d > max_step:
                 continue
             # print(i, j + 1 - skip, j - skipp, j + 1 - skipp, j - skip)
@@ -494,7 +507,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
 
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None,
-                       max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False):
+                       max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False,
+                       use_ndim=False):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:
@@ -507,6 +521,10 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
+    if use_ndim:
+        ndim = len(s1[0])
+    else:
+        ndim = 1
     if window is None:
         window = 0
     if max_dist is None:
@@ -530,11 +548,11 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
         wps_compact = np.full((len(s1)+1, wps_width), inf)
-        d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings_kwargs)
+        d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, ndim, **settings_kwargs)
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
-    d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings_kwargs)
+    d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, ndim, **settings_kwargs)
     return d, dtw
 
 
@@ -884,8 +902,10 @@ def warping_path_fast(from_s, to_s, **kwargs):
     return path
 
 
-def warping_path_prob_fast(from_s, to_s, avg, **kwargs):
+def warping_path_prob(from_s, to_s, avg, use_c=True, **kwargs):
     """Compute warping path between two sequences."""
+    if not use_c:
+        raise AttributeError('warping_path_prob with use_c=False not yet supported')
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
     path = dtw_cc.warping_path_prob(from_s, to_s, avg, **settings_kwargs)
     return path

@@ -48,7 +48,7 @@ def znormal(series):
     try:
         import numpy as np
     except ImportError:
-        raise NumpyException("Differencing requires Numpy")
+        raise NumpyException("Z normalization requires Numpy")
     series = np.array(series)
     series = (series - series.mean(axis=1)[:, None]) / series.std(axis=1)[:, None]
     return series

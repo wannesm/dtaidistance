@@ -61,7 +61,7 @@ def test_normalize2_prob():
         path2 = dtw.best_path(paths2)
         prob_paths = []
         for i in range(30):
-            prob_paths.append(dtw.warping_path_prob_fast(s1, s2, d1/len(s1), psi=psi))
+            prob_paths.append(dtw.warping_path_prob(s1, s2, d1/len(s1), psi=psi))
         if not dtwvis.test_without_visualization():
             if directory:
                 fig, ax = dtwvis.plot_warpingpaths(s1, s2, paths1, path1)

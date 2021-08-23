@@ -122,12 +122,14 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, DTWS
 
 // WPS
 seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, DTWSettings *settings);
+seq_t dtw_warping_paths_ndim(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, int ndim, DTWSettings *settings);
 void dtw_expand_wps(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);
 idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings);
+idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, int ndim, DTWSettings * settings);
 void dtw_srand(unsigned int seed);
-idx_t warping_path_prob(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, DTWSettings * settings);
+idx_t warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, int ndim, DTWSettings * settings);
 DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings);
 
 // Bound
@@ -153,9 +155,11 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series);
 
 // DBA
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
-                  seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings);
+                  seq_t *c, idx_t t, ba_t *mask, int prob_samples, int ndim,
+                  DTWSettings *settings);
 void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
-                    seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings);
+                    seq_t *c, idx_t t, ba_t *mask, int prob_samples, int ndim,
+                    DTWSettings *settings);
 
 // Auxiliary functions
 void dtw_int_handler(int dummy);

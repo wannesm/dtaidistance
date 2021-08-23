@@ -333,6 +333,10 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 
 
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
+    return warping_paths_ndim(dtw, s1, s2, psi_neg, 1, **kwargs)
+
+
+def warping_paths_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, ndim=1, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     dtw_length = dtw.shape[0] * dtw.shape[1]
@@ -357,8 +361,8 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=Fal
     cdef double d
     # print(wps)
     # print(settings)
-    d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                            True, True, psi_neg, &settings._settings)
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                                 True, True, psi_neg, ndim, &settings._settings)
     # print('---')
     # print(wps)
     # print('---')
@@ -367,12 +371,22 @@ def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=Fal
     # print("end dtw_cc warping_paths")
     return d
 
+
 def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef double d
     d = dtaidistancec_dtw.dtw_warping_paths(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
                                             True, True, psi_neg, &settings._settings)
+    return d
+
+
+def warping_paths_compact_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, int ndim=1, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    cdef double d
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                                 True, True, psi_neg, ndim, &settings._settings)
     return d
 
 
@@ -411,7 +425,8 @@ def warping_path_prob(double[:] s1, double[:] s2, double avg, **kwargs):
     if not i2:
         raise MemoryError()
     try:
-        path_length = dtaidistancec_dtw.warping_path_prob(&s1[0], len(s1), &s2[0], len(s2), i1, i2, avg, &settings._settings)
+        path_length = dtaidistancec_dtw.warping_path_prob_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2,
+                                                               avg, 1, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -580,11 +595,11 @@ def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
         ptrs = cur
         dtaidistancec_dtw.dtw_dba_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
         matrix_ptr = &matrix._data[0,0]
         dtaidistancec_dtw.dtw_dba_matrix(
             matrix_ptr, matrix.nb_rows, matrix.nb_cols,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
     return c

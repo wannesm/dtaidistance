@@ -15,7 +15,8 @@ DTW-based subsequence matching.
 import logging
 import numpy.ma as ma
 
-from ..dtw import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
+from .. import dtw # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
+from .. import dtw_ndim
 from .. import util_numpy
 from .. import util
 
@@ -122,11 +123,11 @@ class SubsequenceAlignment:
             return
         psi = [0, 0, len(self.series), len(self.series)]
         if not self.use_c:
-            _, self.paths = warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
-                                          psi_neg=False)
+            _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
+                                              psi_neg=False)
         else:
-            _, self.paths = warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                               compact=False, psi_neg=False)
+            _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                   compact=False, psi_neg=False)
         self._compute_matching()
 
     def align_fast(self):
@@ -213,7 +214,7 @@ class SubsequenceAlignment:
         :return: Index in series
         """
         real_idx = idx + 1
-        path = best_path(self.paths, col=real_idx)
+        path = dtw.best_path(self.paths, col=real_idx)
         start_idx = path[0][1]
         return start_idx
 
@@ -224,7 +225,7 @@ class SubsequenceAlignment:
         :return: List of (row, col)
         """
         real_idx = idx + 1
-        path = best_path(self.paths, col=real_idx)
+        path = dtw.best_path(self.paths, col=real_idx)
         return path
 
 
@@ -355,10 +356,10 @@ class LocalConcurrences:
         """
         if self._wp is not None:
             return
-        _, wp = warping_paths_affinity(self.series1, self.series2,
-                                       gamma=self.gamma, tau=self.tau,
-                                       delta=self.delta, delta_factor=self.delta_factor,
-                                       only_triu=self.only_triu, penalty=self.penalty)
+        _, wp = dtw.warping_paths_affinity(self.series1, self.series2,
+                                           gamma=self.gamma, tau=self.tau,
+                                           delta=self.delta, delta_factor=self.delta_factor,
+                                           only_triu=self.only_triu, penalty=self.penalty)
         self._wp = ma.masked_array(wp)
         if self.only_triu:
             il = np.tril_indices(self._wp.shape[0])
@@ -508,7 +509,7 @@ class SubsequenceSearch:
         h = [-np.inf]
         max_dist = np.inf
         for idx, series in enumerate(self.s):
-            dist = distance(self.query, series, **self.dists_options)
+            dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
                     if not np.isinf(dist):

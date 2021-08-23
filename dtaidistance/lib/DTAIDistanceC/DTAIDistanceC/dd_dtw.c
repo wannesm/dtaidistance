@@ -544,6 +544,17 @@ seq_t dtw_warping_paths(seq_t *wps,
                         seq_t *s2, idx_t l2,
                         bool return_dtw, bool do_sqrt, bool psi_neg,
                         DTWSettings *settings) {
+    return dtw_warping_paths_ndim(wps, s1, l1, s2, l2,
+                             return_dtw, do_sqrt, psi_neg, 1,
+                             settings);
+}
+
+seq_t dtw_warping_paths_ndim(seq_t *wps,
+                        seq_t *s1, idx_t l1,
+                        seq_t *s2, idx_t l2,
+                        bool return_dtw, bool do_sqrt, bool psi_neg,
+                        int ndim,
+                        DTWSettings *settings) {
     // DTWPruned
     idx_t sc = 0;
     idx_t ec = 0;
@@ -553,7 +564,11 @@ seq_t dtw_warping_paths(seq_t *wps,
     DTWWps p = dtw_wps_parts(l1, l2, settings);
 
     if (settings->use_pruning || settings->only_ub) {
-        p.max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+        if (ndim == 1) {
+            p.max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+        } else {
+            p.max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
+        }
         if (settings->only_ub) {
             if (do_sqrt) {
                 return sqrt(p.max_dist);
@@ -591,6 +606,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     idx_t ri_widthp = 0;       // ri*width = 0*width = 0
     idx_t ri_width = p.width;  // (ri+1)*width = (0+1)*width = width
     seq_t d;
+    idx_t ri_idx, ci_idx;
     
     // This function splits the loop in four parts that result in different branches
     // that would otherwise be in the loop (and are deterministic).
@@ -601,6 +617,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     min_ci = 0;
     max_ci = p.window + p.ldiffc; // ri < overlap_right_i
     for (ri=0; ri<p.ri1; ri++) {
+        ri_idx = ri * ndim;
         ci = min_ci;
         wpsi = 1; // index for min_ci
         // PrunedDTW
@@ -614,7 +631,11 @@ seq_t dtw_warping_paths(seq_t *wps,
         ec_next = ri;
         // A region assumes wps has the same column indices in the previous row
         for (; ci<max_ci; ci++) {
-            d = EDIST(s1[ri], s2[ci]);
+            ci_idx = ci * ndim;
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+            }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
                                             wps[ri_widthp + wpsi - 1], // diagonal
@@ -646,6 +667,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     min_ci = 0;
     max_ci = l2; // ri >= overlap_right_i
     for (ri=p.ri1; ri<p.ri2; ri++) {
+        ri_idx = ri * ndim;
         wpsi = 1;
         ci = min_ci;
         // PrunedDTW
@@ -658,7 +680,11 @@ seq_t dtw_warping_paths(seq_t *wps,
         smaller_found = false;
         ec_next = ri;
         for (; ci<max_ci; ci++) {
-            d = EDIST(s1[ri], s2[ci]);
+            ci_idx = ci * ndim;
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+            }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // B-region assumes wps has the same column indices in the previous row
             wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
@@ -690,6 +716,7 @@ seq_t dtw_warping_paths(seq_t *wps,
     min_ci = 1;
     max_ci = 1 + 2 * p.window - 1 + p.ldiff;
     for (ri=p.ri2; ri<p.ri3; ri++) {
+        ri_idx = ri * ndim;
         ci = min_ci;
         wps[ri_width] = INFINITY;
         wpsi = 1;
@@ -703,7 +730,11 @@ seq_t dtw_warping_paths(seq_t *wps,
         smaller_found = false;
         ec_next = ri;
         for (; ci<max_ci; ci++) {
-            d = EDIST(s1[ri], s2[ci]);
+            ci_idx = ci * ndim;
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+            }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // C-region assumes wps has the column indices in the previous row shifted by one
             wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
@@ -741,6 +772,7 @@ seq_t dtw_warping_paths(seq_t *wps,
         wpsi_start = min_ci + 1;
     }
     for (ri=p.ri3; ri<l1; ri++) {
+        ri_idx = ri * ndim;
         ci = min_ci;
         wpsi = wpsi_start;
         for (idx_t i=ri_width; i<(ri_width + wpsi); i++) {
@@ -756,7 +788,11 @@ seq_t dtw_warping_paths(seq_t *wps,
         smaller_found = false;
         ec_next = ri;
         for (; ci<l2; ci++) {
-            d = EDIST(s1[ri], s2[ci]);
+            ci_idx = ci * ndim;
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+            }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // D-region assumes wps has the same column indices in the previous row
             wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
@@ -1257,10 +1293,14 @@ idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, s
  @return length of path
  */
 idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings) {
+    return warping_path_ndim(from_s, from_l, to_s, to_l, from_i, to_i, 1, settings);
+}
+
+idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, int ndim, DTWSettings * settings) {
     idx_t path_length;
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, true, settings);
+    dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true,                        ndim, settings);
     path_length = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
     free(wps);
     return path_length;
@@ -1271,11 +1311,11 @@ idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *
  
  @return length of path
  */
-idx_t warping_path_prob(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, DTWSettings * settings) {
+idx_t warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, int ndim, DTWSettings * settings) {
     idx_t path_length;
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths(wps, from_s, from_l, to_s, to_l, false, false, true, settings);
+    dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true, ndim, settings);
     path_length = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
     free(wps);
     return path_length;
@@ -1782,14 +1822,16 @@ idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series) {
  @param lengths Array of length nb_ptrs with all lengths of the arrays in ptrs.
  @param c Initial average, afterwards the updated average
  @param t Length of average (typically this is the same as nb_cols)
+            Real length is t*ndim.
  @param mask Bit-array
  @param prob_samples Probabilistically sample the best path samples number of times.
         Uses deterministic best path if samples is 0.
  @param settings Settings for distance functions
  */
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
-                  seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings) {
-    seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
+                  seq_t *c, idx_t t, ba_t *mask, int prob_samples, int ndim,
+                  DTWSettings *settings) {
+    seq_t *assoctab = (seq_t *)malloc(t * ndim * sizeof(seq_t));
     idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
     idx_t r_idx = 0;
     idx_t max_length = 0;
@@ -1801,7 +1843,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
 
     idx_t *ci = (idx_t *)malloc((max_length + t) * sizeof(idx_t));
     idx_t *mi = (idx_t *)malloc((max_length + t) * sizeof(idx_t));
-    idx_t pi;
+    idx_t pi, di;
     seq_t *sequence;
     seq_t *wps;
     seq_t avg_step;
@@ -1811,7 +1853,9 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     
     for (pi=0; pi<t; pi++) {
-        assoctab[pi] = 0;
+        for (di=0; di<ndim; di++) {
+            assoctab[pi * ndim + di] = 0;
+        }
         assoctab_cnt[pi] = 0;
     }
     if (prob_samples == 0) {
@@ -1819,10 +1863,12 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
             sequence = ptrs[r];
             if (bit_test(mask, r)) {
                 // warping_path(c, t, sequence, lengths[r], ci, mi, settings);
-                dtw_warping_paths(wps, c, t, sequence, lengths[r], false, false, true, settings);
+                dtw_warping_paths_ndim(wps, c, t, sequence, lengths[r], false, false, true, ndim, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, lengths[r], settings);
                 for (pi=0; pi<path_length; pi++) {
-                    assoctab[ci[pi]] += sequence[mi[pi]];
+                    for (di=0; di<ndim; di++) {
+                        assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                    }
                     assoctab_cnt[ci[pi]] += 1;
                 }
             }
@@ -1831,12 +1877,14 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
         for (idx_t r=0; r<nb_ptrs; r++) {
             sequence = ptrs[r];
             if (bit_test(mask, r)) {
-                avg_step = dtw_warping_paths(wps, c, t, sequence, lengths[r], true, false, true, settings);
+                avg_step = dtw_warping_paths_ndim(wps, c, t, sequence, lengths[r], true, false, true, ndim, settings);
                 avg_step /= t;
                 for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
                     path_length = dtw_best_path_prob(wps, ci, mi, t, lengths[r], avg_step, settings);
                     for (pi=0; pi<path_length; pi++) {
-                        assoctab[ci[pi]] += sequence[mi[pi]];
+                        for (di=0; di<ndim; di++) {
+                            assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                        }
                         assoctab_cnt[ci[pi]] += 1;
                     }
                 }
@@ -1845,10 +1893,14 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
     }
     for (idx_t i=0; i<t; i++) {
         if (assoctab_cnt[i] != 0) {
-            c[i] = assoctab[i] / assoctab_cnt[i];
+            for (di=0; di<ndim; di++) {
+                c[i*ndim+di] = assoctab[i*ndim+di] / assoctab_cnt[i];
+            }
         } else {
             printf("WARNING: assoctab_cnt[%zu] == 0\n", i);
-            c[i] = 0;
+            for (di=0; di<ndim; di++) {
+                c[i*ndim+di] = 0;
+            }
         }
     }
     free(assoctab);
@@ -1877,13 +1929,14 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
  @param settings Settings for distance functions
  */
 void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
-                    seq_t *c, idx_t t, ba_t *mask, int prob_samples, DTWSettings *settings) {
-    seq_t *assoctab = (seq_t *)malloc(t * sizeof(seq_t));
+                    seq_t *c, idx_t t, ba_t *mask, int prob_samples, int ndim,
+                    DTWSettings *settings) {
+    seq_t *assoctab = (seq_t *)malloc(t * ndim * sizeof(seq_t));
     idx_t *assoctab_cnt = (idx_t *)malloc(t * sizeof(idx_t));
     idx_t r_idx = 0;
     idx_t *ci = (idx_t *)malloc((nb_cols + t) * sizeof(idx_t));
     idx_t *mi = (idx_t *)malloc((nb_cols + t) * sizeof(idx_t));
-    idx_t pi;
+    idx_t pi, di;
     seq_t *sequence;
     seq_t *wps;
     seq_t avg_step;
@@ -1893,7 +1946,9 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
     wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     
     for (pi=0; pi<t; pi++) {
-        assoctab[pi] = 0;
+        for (di=0; di<ndim; di++) {
+            assoctab[pi*ndim+di] = 0;
+        }
         assoctab_cnt[pi] = 0;
     }
     if (prob_samples == 0) {
@@ -1901,7 +1956,7 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
             sequence = &matrix[r_idx];
             if (bit_test(mask, r)) {
                 // warping_path(c, t, sequence, nb_cols, ci, mi, settings);
-                dtw_warping_paths(wps, c, t, sequence, nb_cols, false, false, true, settings);
+                dtw_warping_paths_ndim(wps, c, t, sequence, nb_cols, false, false, true, ndim, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, nb_cols, settings);
 //                printf("best_path = [");
 //                for (idx_t i=0; i<path_length; i++) {
@@ -1909,7 +1964,9 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
 //                }
 //                printf("]\n");
                 for (pi=0; pi<path_length; pi++) {
-                    assoctab[ci[pi]] += sequence[mi[pi]];
+                    for (di=0; di<ndim; di++) {
+                        assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                    }
                     assoctab_cnt[ci[pi]] += 1;
 //                    printf("[%zu] = [%zu] += %f\n", ci[pi], mi[pi], sequence[mi[pi]]);
                 }
@@ -1920,7 +1977,7 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
         for (idx_t r=0; r<nb_rows; r++) {
             sequence = &matrix[r_idx];
             if (bit_test(mask, r)) {
-                avg_step = dtw_warping_paths(wps, c, t, sequence, nb_cols, true, false, true, settings);
+                avg_step = dtw_warping_paths_ndim(wps, c, t, sequence, nb_cols, true, false, true, ndim, settings);
                 avg_step /= t;
                 for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
                     path_length = dtw_best_path_prob(wps, ci, mi, t, nb_cols, avg_step, settings);
@@ -1930,7 +1987,9 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
 //                    }
 //                    printf("]\n");
                     for (pi=0; pi<path_length; pi++) {
-                        assoctab[ci[pi]] += sequence[mi[pi]];
+                        for (di=0; di<ndim; di++) {
+                            assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                        }
                         assoctab_cnt[ci[pi]] += 1;
                     }
                 }
@@ -1941,11 +2000,15 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
 
     for (idx_t i=0; i<t; i++) {
         if (assoctab_cnt[i] != 0) {
-            c[i] = assoctab[i] / assoctab_cnt[i];
-//            printf("c[%zu] = %f = %f / %zd\n", i, c[i], assoctab[i], assoctab_cnt[i]);
+            for (di=0; di<ndim; di++) {
+                c[i*ndim+di] = assoctab[i*ndim+di] / assoctab_cnt[i];
+                // printf("c[%zu] = %f = %f / %zd\n", i, c[i], assoctab[i], assoctab_cnt[i]);
+            }
         } else {
             printf("WARNING: assoctab_cnt[%zu] == 0\n", i);
-            c[i] = 0;
+            for (di=0; di<ndim; di++) {
+                c[i*ndim+di] = 0;
+            }
         }
     }
     free(assoctab);

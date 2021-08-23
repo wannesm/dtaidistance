@@ -529,7 +529,7 @@ Test(dba, test_a_matrix) {
     bit_set(mask, 1);
     DTWSettings settings = dtw_settings_default();
     
-    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 0, &settings);
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 0, 1, &settings);
     
     for (idx_t i=0; i<nb_cols; i++) {
         cr_assert_float_eq(c[i], exp_avg[i], 0.001);
@@ -566,7 +566,7 @@ Test(dba, test_a_ptrs) {
     bit_set(mask, 1);
     DTWSettings settings = dtw_settings_default();
         
-    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, 0, &settings);
+    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, 0, 1, &settings);
     
     for (idx_t i=0; i<nb_cols; i++) {
         cr_assert_float_eq(c[i], exp_avg[i], 0.001);

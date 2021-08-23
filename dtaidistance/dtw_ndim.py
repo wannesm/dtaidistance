@@ -15,6 +15,7 @@ import logging
 import math
 import array
 
+from . import dtw
 from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
     _distance_matrix_length
 from . import util_numpy
@@ -271,100 +272,13 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     return d
 
 
-def warping_paths(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None,):
+def warping_paths(*args, **kwargs):
     """
     Dynamic Time Warping (keep full matrix) using multidimensional sequences.
 
-    cost = EuclideanDistance(s1[i], s2[j])
-
     See :py:meth:`dtaidistance.dtw.warping_paths` for parameters.
     """
-    if np is None:
-        raise NumpyException("Numpy is required for the warping_paths method")
-    r, c = len(s1), len(s2)
-    if max_length_diff is not None and abs(r - c) > max_length_diff:
-        return np.inf
-    if window is None:
-        window = max(r, c)
-    if not max_step:
-        max_step = np.inf
-    else:
-        max_step *= max_step
-    if not max_dist:
-        max_dist = np.inf
-    else:
-        max_dist *= max_dist
-    if not penalty:
-        penalty = 0
-    else:
-        penalty *= penalty
-    if psi is None:
-        psi = 0
-    dtw = np.full((r + 1, c + 1), np.inf)
-    # dtw[0, 0] = 0
-    for i in range(psi + 1):
-        dtw[0, i] = 0
-        dtw[i, 0] = 0
-    last_under_max_dist = 0
-    i0 = 1
-    i1 = 0
-    for i in range(r):
-        if last_under_max_dist == -1:
-            prev_last_under_max_dist = np.inf
-        else:
-            prev_last_under_max_dist = last_under_max_dist
-        last_under_max_dist = -1
-        i0 = i
-        i1 = i + 1
-        # print('i =', i, 'skip =',skip, 'skipp =', skipp)
-        # jmin = max(0, i - max(0, r - c) - window + 1)
-        # jmax = min(c, i + max(0, c - r) + window)
-        # print(i,jmin,jmax)
-        # x = dtw[i, jmin-skipp:jmax-skipp]
-        # y = dtw[i, jmin+1-skipp:jmax+1-skipp]
-        # print(x,y,dtw[i+1, jmin+1-skip:jmax+1-skip])
-        # dtw[i+1, jmin+1-skip:jmax+1-skip] = np.minimum(x,
-        #                                                y)
-        for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
-            # print('j =', j, 'max=',min(c, c - r + i + window))
-            d = np.sum((s1[i] - s2[j]) ** 2)
-            if max_step is not None and d > max_step:
-                continue
-            # print(i, j + 1 - skip, j - skipp, j + 1 - skipp, j - skip)
-            dtw[i1, j + 1] = d + min(dtw[i0, j],
-                                     dtw[i0, j + 1] + penalty,
-                                     dtw[i1, j] + penalty)
-            # dtw[i + 1, j + 1 - skip] = d + min(dtw[i + 1, j + 1 - skip], dtw[i + 1, j - skip])
-            if max_dist is not None:
-                if dtw[i1, j + 1] <= max_dist:
-                    last_under_max_dist = j
-                else:
-                    dtw[i1, j + 1] = np.inf
-                    if prev_last_under_max_dist < j + 1:
-                        break
-        if max_dist is not None and last_under_max_dist == -1:
-            # print('early stop')
-            # print(dtw)
-            return np.inf, dtw
-    dtw = np.sqrt(dtw)
-    if psi == 0:
-        d = dtw[i1, min(c, c + window - 1)]
-    else:
-        ir = i1
-        ic = min(c, c + window - 1)
-        vr = dtw[ir-psi:ir+1, ic]
-        vc = dtw[ir, ic-psi:ic+1]
-        mir = np.argmin(vr)
-        mic = np.argmin(vc)
-        if vr[mir] < vc[mic]:
-            dtw[ir-psi+mir+1:ir+1, ic] = -1
-            d = vr[mir]
-        else:
-            dtw[ir, ic - psi + mic + 1:ic+1] = -1
-            d = vc[mic]
-    return d, dtw
-
+    return dtw.warping_paths(*args, use_ndim=True, **kwargs)
 
 def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])

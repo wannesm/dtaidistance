@@ -36,6 +36,8 @@ cdef extern from "dd_dtw.h":
 
     seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, int l2,
                                bint return_dtw, bint do_sqrt, bint psi_neg, DTWSettings *settings)
+    seq_t dtw_warping_paths_ndim(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, int l2,
+                                 bint return_dtw, bint do_sqrt, bint psi_neg, int ndim, DTWSettings *settings)
     void dtw_expand_wps(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
     Py_ssize_t dtw_best_path(seq_t *wps, Py_ssize_t *i1, Py_ssize_t *i2, Py_ssize_t l1, Py_ssize_t l2,
                              DTWSettings *settings)
@@ -43,18 +45,20 @@ cdef extern from "dd_dtw.h":
                                   seq_t avg, DTWSettings *settings);
     Py_ssize_t warping_path(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
                             Py_ssize_t *from_i, Py_ssize_t *to_i, DTWSettings * settings)
+    Py_ssize_t warping_path_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t * to_s, Py_ssize_t to_l,
+                                 Py_ssize_t *from_i, Py_ssize_t *to_i, int ndim, DTWSettings * settings)
     void dtw_srand(unsigned int seed)
-    Py_ssize_t warping_path_prob(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
-                            Py_ssize_t *from_i, Py_ssize_t *to_i, seq_t avg, DTWSettings * settings)
+    Py_ssize_t warping_path_prob_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
+                                      Py_ssize_t *from_i, Py_ssize_t *to_i, seq_t avg, int ndim, DTWSettings * settings)
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)
     seq_t ub_euclidean_ndim(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, int ndim)
     seq_t lb_keogh(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, DTWSettings *settings)
 
     void dtw_dba_ptrs(seq_t **ptrs, Py_ssize_t nb_ptrs, Py_ssize_t* lengths,
-                  seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, DTWSettings *settings)
+                  seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, int ndim, DTWSettings *settings)
     void dtw_dba_matrix(seq_t *matrix, Py_ssize_t nb_rows, Py_ssize_t nb_cols,
-                    seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, DTWSettings *settings)
+                    seq_t *c, Py_ssize_t t, unsigned char *mask, int prob_samples, int ndim, DTWSettings *settings)
 
     DTWBlock dtw_empty_block()
     Py_ssize_t dtw_distances_ptrs(seq_t **ptrs, Py_ssize_t nb_ptrs, Py_ssize_t* lengths, seq_t* output,
