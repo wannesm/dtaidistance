@@ -156,7 +156,12 @@ cdef class DTWSettings:
 
     @property
     def psi(self):
-        return self._settings.psi
+        return {
+            '1b': self._settings.psi_1b,
+            '1e': self._settings.psi_1e,
+            '2b': self._settings.psi_2b,
+            '2e': self._settings.psi_2e,
+        }
 
     @property
     def use_pruning(self):
