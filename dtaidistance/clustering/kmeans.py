@@ -348,6 +348,16 @@ class KMeans(Medoids):
                 print(f"Stopped early after {it_nb} iterations, no change in means")
                 break
 
+        # Final assignment
+        if use_parallel:
+            with mp.Pool() as p:
+                clusters_distances = p.map(fn, [(self.series[idx], self.means, self.dists_options) for idx in
+                                                range(len(self.series))])
+        else:
+            clusters_distances = list(map(fn, [(self.series[idx], self.means, self.dists_options) for idx in
+                                               range(len(self.series))]))
+        clusters, distances = zip(*clusters_distances)
+
         # self.cluster_idx = {medoid: {inst for inst in instances}
         #                       for medoid, instances in zip(medoids, clusters)}
         self.cluster_idx = {ki: set() for ki in range(self.k)}
