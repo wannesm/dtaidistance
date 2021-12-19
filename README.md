@@ -1,3 +1,6 @@
+[![PyPi Version](https://img.shields.io/pypi/v/dtaidistance.svg)](https://pypi.org/project/dtaidistance/)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/dtaidistance.svg)](https://anaconda.org/conda-forge/dtaidistance)
+
 # Time Series Distances
 
 Library for time series distances (e.g. Dynamic Time Warping) used in the
@@ -37,6 +40,10 @@ Citing this work:
 ## Installation
 
     $ pip install dtaidistance
+    
+or
+
+    $ conda install -c conda-forge dtaidistance
 
 In case the C based version is not available, see the documentation for
 alternative installation options. In case
