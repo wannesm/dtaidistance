@@ -337,8 +337,8 @@ else:
 # It is easier to include numpy because of the build isolation (PEP517), even
 # though it is optional. Otherwise the --no-build-isolation flag would be required.
 # If you want to ignore numpy, remove it here and in pyproject.toml.
-install_requires = ['cython>=0.29.6', 'numpy']
-setup_requires = ['setuptools>=18.0', 'cython>=0.29.6', 'numpy']
+install_requires = ['numpy']  # 'cython>=0.29.6',
+setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
 tests_require = ['pytest', 'pytest-benchmark']
 
 # Check version number
