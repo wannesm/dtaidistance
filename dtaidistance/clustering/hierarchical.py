@@ -83,7 +83,7 @@ class Hierarchical:
         else:
             pbar = None
         # Hierarchical clustering (distance to prototype)
-        while min_value <= self.max_dist:
+        while min_value <= self.max_dist and not np.isinf(min_value):
             cnt_merge += 1
             i1, i2 = int(min_idx[0]), int(min_idx[1])
             if self.merge_hook:
