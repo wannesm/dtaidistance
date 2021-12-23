@@ -5,7 +5,7 @@ Installation
 From PyPI
 ~~~~~~~~~
 
-This packages is available on PyPI (requires Python 3):
+This packages is available on `PyPI <https://pypi.org/project/dtaidistance/>`_ (requires Python 3):
 
 ::
 
@@ -47,6 +47,20 @@ compiler. A few variations are available to try alternative options:
     $ pip install --global-option=--forcellvm dtaidistance
     # To remove the -Xpreprocessor option (can be combined with the above):
     $ pip install --global-option=--noxpreprocessor dtaidistance
+
+If problems persist, consider using the `Anaconda.org <https://anaconda.org>`_ Python environment (see next section)
+for which precompiled versions are available.
+
+
+From Conda / Anaconda
+~~~~~~~~~~~~~~~~~~~~~
+
+This package is available on `anaconda.org <https://anaconda.org/conda-forge/dtaidistance>`_
+(incuding precompiled binary versions for Linux, Macos, and Windows):
+
+::
+
+    $ conda install -c conda-forge dtaidistance
 
 
 From Github
