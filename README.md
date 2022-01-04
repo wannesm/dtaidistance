@@ -1,5 +1,6 @@
 [![PyPi Version](https://img.shields.io/pypi/v/dtaidistance.svg)](https://pypi.org/project/dtaidistance/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/dtaidistance.svg)](https://anaconda.org/conda-forge/dtaidistance)
+[![Documentation Status](https://readthedocs.org/projects/dtaidistance/badge/?version=latest)](https://dtaidistance.readthedocs.io/en/latest/?badge=latest)
 
 # Time Series Distances
 
