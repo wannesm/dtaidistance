@@ -128,6 +128,41 @@ def plot_warping(s1, s2, path, filename=None):
     return fig, ax
 
 
+def plot_warping_single_ax(s1, s2, path, filename=None):
+    """Plot the optimal warping between to sequences.
+
+    :param s1: From sequence.
+    :param s2: To sequence.
+    :param path: Optimal warping path.
+    :param filename: Filename path (optional).
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib as mpl
+        from matplotlib.patches import ConnectionPatch
+    except ImportError:
+        logger.error("The plot_warp function requires the matplotlib package to be installed.")
+        return
+    fig, ax = plt.subplots()
+    ax.plot(s1)
+    ax.plot(s2)
+    lines = []
+    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    for r_c, c_c in path:
+        if r_c < 0 or c_c < 0:
+            continue
+        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=ax.transData,
+                              xyB=[c_c, s2[c_c]], coordsB=ax.transData, **line_options)
+        lines.append(con)
+    for line in lines:
+        fig.add_artist(line)
+    if filename:
+        plt.savefig(filename)
+        plt.close()
+        fig, ax = None, None
+    return fig, ax
+
+
 def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
                       figure=None):
     """Plot the warping paths matrix.
