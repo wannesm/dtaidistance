@@ -207,7 +207,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
             #ifdef DTWDEBUG
             printf("ri=%zu,ci=%zu, s1[i] = s1[%zu] = %f , s2[j] = s2[%zu] = %f\n", i, j, i, s1[i], j, s2[j]);
             #endif
-            d = EDIST(s1[i], s2[j]);
+            d = ADIST(s1[i], s2[j]);
             if (d > max_step) {
                 // Let the value be INFINITY as initialized
                 continue;
@@ -439,7 +439,7 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
             #endif
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[i_idx + d_i], s2[j_idx + d_i]);
+                d += ADIST(s1[i_idx + d_i], s2[j_idx + d_i]);
             }
             if (d > max_step) {
                 // Let the value be INFINITY as initialized
@@ -634,7 +634,7 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += ADIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             wps[ri_width + wpsi] = d + MIN3(wps[ri_width  + wpsi - 1] + p.penalty,
@@ -683,7 +683,7 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += ADIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // B-region assumes wps has the same column indices in the previous row
@@ -733,7 +733,7 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += ADIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // C-region assumes wps has the column indices in the previous row shifted by one
@@ -791,7 +791,7 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += ADIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
             if (d > p.max_step) { wps[ri_width + wpsi] = INFINITY; wpsi++; continue;}
             // D-region assumes wps has the same column indices in the previous row

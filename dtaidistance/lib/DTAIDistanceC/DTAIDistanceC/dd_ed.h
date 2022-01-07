@@ -16,6 +16,7 @@
 
 
 #define EDIST(x, y) ((x - y) * (x - y))
+#define ADIST(x, y) (x > y ? (x - y) : (y - x))
 
 
 seq_t euclidean_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2);

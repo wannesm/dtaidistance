@@ -203,7 +203,7 @@ def distance(s1, s2, window=None, max_dist=None,
         if psi != 0 and j_start == 0 and i < psi:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
-            d = np.sum((s1[i] - s2[j]) ** 2)
+            d = np.sum((abs(s1[i] - s2[j])))
             if d > max_step:
                 continue
             assert j + 1 - skip >= 0

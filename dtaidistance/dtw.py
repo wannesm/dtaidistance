@@ -194,7 +194,7 @@ def distance(s1, s2,
 
     Uses dynamic programming to compute:
 
-    wps[i, j] = (s1[i]-s2[j])**2 + min(
+    wps[i, j] = abs(s1[i]-s2[j]) + min(
                     wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
                     wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
                     wps[i-1, j-1])            // diagonal   / match
@@ -284,7 +284,7 @@ def distance(s1, s2,
         if psi_1b != 0 and j_start == 0 and i < psi_1b:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
-            d = (s1[i] - s2[j])**2
+            d = abs(s1[i] - s2[j])
             if d > max_step:
                 continue
             assert j + 1 - skip >= 0
@@ -403,9 +403,9 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     if use_ndim:
-        cost = lambda x, y: np.sum((x - y) ** 2)
+        cost = lambda x, y: np.sum(np.abs(x - y))
     else:
-        cost = lambda x, y: (x - y) ** 2
+        cost = lambda x, y: abs(x - y)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
