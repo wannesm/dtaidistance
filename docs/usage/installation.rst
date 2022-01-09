@@ -111,5 +111,11 @@ options are available to change the compiler arguments:
 - ``--noxpreprocessor``: Remove the -Xpreprocessor argument
 - ``python3 setup.py -h``: To see al options
 
-If you want to remove the Numpy dependency, remove it from ``pyproject.toml``
-and ``setup.py`` (``setup_requires`` and ``install_requires``).
+**Without Numpy**
+
+Most of the dtaidistance package works just fine without Numpy. It is required at
+installation because most deployments require Numpy support
+(to feed Numpy arrays as input) and therefore the package needs to be
+compiled with Numpy support.
+
+If you want to remove the Numpy dependency, remove it from ``pyproject.toml`` file.
