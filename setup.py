@@ -369,12 +369,12 @@ def set_setup_kwargs(**kwargs):
 set_setup_kwargs(
     name='dtaidistance',
     version=version,
-    description='Distance measures for time series',
+    description='Distance measures for time series (Dynamic Time Warping)',
     long_description=long_description,
     long_description_content_type=long_description_content_type,
     author='Wannes Meert',
     author_email='wannes.meert@cs.kuleuven.be',
-    url='https://dtai.cs.kuleuven.be',
+    url='https://github.com/wannesm/dtaidistance',
     project_urls={
         'DTAIDistance documentation': 'http://dtaidistance.readthedocs.io/en/latest/',
         'DTAIDistance source': 'https://github.com/wannesm/dtaidistance'
@@ -402,11 +402,10 @@ set_setup_kwargs(
     },
     license='Apache 2.0',
     classifiers=[
-        'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3'
     ],
-    keywords='dtw',
+    keywords='dtw, time series, dynamic time warping, distance',
     zip_safe=False
 )
 
