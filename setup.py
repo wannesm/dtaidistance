@@ -369,7 +369,7 @@ def set_setup_kwargs(**kwargs):
 set_setup_kwargs(
     name='dtaidistance',
     version=version,
-    description='Distance measures for time series (Dynamic Time Warping)',
+    description='Distance measures for time series (Dynamic Time Warping, fast C implementation)',
     long_description=long_description,
     long_description_content_type=long_description_content_type,
     author='Wannes Meert',
