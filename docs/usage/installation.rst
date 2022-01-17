@@ -119,3 +119,28 @@ installation because most deployments require Numpy support
 compiled with Numpy support.
 
 If you want to remove the Numpy dependency, remove it from ``pyproject.toml`` file.
+
+
+From C
+~~~~~~
+
+A number of algorithms (DTW, Barycenter averaging) are implemented in C.
+They can be called directly from C source code as they do not rely on
+Python. All files can be found in ``dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/``.
+An example Makefile and XCode project are available. Example usage can be seen
+in the ``dd_benchmark.c``, ``dd_tests_dtw.c``, and ``dd_tests_matrix.c`` files.
+
+For example:
+
+::
+
+    $ gcc -c -o DTAIDistanceC/dd_benchmark.o DTAIDistanceC/dd_benchmark.c -Wall -g -Xpreprocessor -fopenmp
+    $ gcc -c -o DTAIDistanceC/dd_dtw_openmp.o DTAIDistanceC/dd_dtw_openmp.c -Wall -g -Xpreprocessor -fopenmp
+    $ gcc -c -o DTAIDistanceC/dd_ed.o DTAIDistanceC/dd_ed.c -Wall -g -Xpreprocessor -fopenmp
+    $ gcc -o dd_benchmark DTAIDistanceC/dd_benchmark.o DTAIDistanceC/dd_dtw.o DTAIDistanceC/dd_dtw_openmp.o DTAIDistanceC/dd_ed.o -Wall -g -Xpreprocessor -fopenmp -lomp
+    $ ./dd_benchmark
+    Benchmarking ...
+    OpenMP is supported
+    Creating result array of size 17997000
+    Execution time = 7.000000
+

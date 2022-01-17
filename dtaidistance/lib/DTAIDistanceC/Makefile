@@ -1,6 +1,7 @@
 
 CC=gcc
-CFLAGS=-Wall -g
+# This works for macos, on linux it can be -lgomp needs to be used
+CFLAGS=-Wall -g -Xpreprocessor -fopenmp -lomp
 CPPFLAGS=
 DEPS = DTAIDistanceC/dd_globals.h
 OBJ = DTAIDistanceC/dd_benchmark.o \
@@ -9,7 +10,7 @@ OBJ = DTAIDistanceC/dd_benchmark.o \
 	  DTAIDistanceC/dd_ed.o
 
 
-default: dtaidistancec
+default: dd_benchmark
 
 
 DTAIDistanceC/%.o: DTAIDistanceC/%.c $(DEPS)

@@ -31,6 +31,11 @@ void benchmark1() {
 }
 
 void benchmark2() {
+    if (is_openmp_supported()) {
+        printf("OpenMP is supported\n");
+    } else {
+        printf("OpenMP is not supported\n");
+    }
     int n=1000;
     double s1[] = {0., 0, 1, 2, 1, 0, 1, 0, 0};
     double s2[] = {0., 1, 2, 0, 0, 0, 0, 0, 0};
@@ -202,7 +207,7 @@ void benchmark9() {
     bit_set(mask, 1);
     DTWSettings settings = dtw_settings_default();
     
-    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 10, &settings);
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 10, 1, &settings);
     
     printf("Computed avg:\n");
     for (int i=0; i<nb_cols; i++) {
@@ -346,7 +351,7 @@ int main(int argc, const char * argv[]) {
     time(&start_t);
     
 //    benchmark1();
-//    benchmark2();
+    benchmark2();
 //    benchmark3();
 //    benchmark4();
 //    benchmark5();
@@ -357,7 +362,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark10();
 //    benchmark11();
 //    benchmark12_subsequence();
-    benchmark13();
+//    benchmark13();
     
     time(&end_t);
     diff_t = difftime(end_t, start_t);
