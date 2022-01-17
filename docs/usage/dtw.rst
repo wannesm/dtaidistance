@@ -29,7 +29,7 @@ Only the distance measure based on two sequences of numbers:
     print(distance)
 
 The fastest version (30-300 times) uses c directly but requires an array
-as input (with the double type), , and (optionally) also prunes computations
+as input (with the double type), and (optionally) also prunes computations
 by setting ``max_dist`` to the Euclidean upper bound:
 
 ::
@@ -61,9 +61,10 @@ DTW Complexity and Early-Stopping
 """""""""""""""""""""""""""""""""
 
 The ``distance`` function has linear space complexity but quadratic
-time complexity. To reduce the time complexity a number of options
-are available. The most used approach accros DTW implementations is
-to use a window that indicates the maximal shift that is allowed.
+time complexity. To reduce the time complexity, a number of options
+are available. The most used approach across DTW implementations is
+to use a window that indicates the maximal shift that is allowed (also
+known as a Sakoe-Chiba band).
 This reduces the complexity to the product of window size and
 largest sequence length:
 
@@ -77,11 +78,11 @@ dynamic programming algorithm is exploring:
    than this value. If no solution is found that is smaller or equal
    to this value, then return infinity.
 -  ``use_pruning``: A good way of pruning partial paths is to set ``max_dist`` to the
-   Euclidean upper bound. If this option is true, this is done automatically.
+   Euclidean upper bound. If this option is set to true, this is done automatically.
 -  ``max_step``: Do not allow steps larger than this value, replace them
    with infinity.
 -  ``max_length_diff``: Return infinity if difference in length of two
-   sequences is larger.
+   sequences is larger than this value.
 
 
 DTW Tuning
@@ -100,7 +101,7 @@ DTW and keep all warping paths
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If, next to the distance, you also want the full matrix to see all
-possible warping paths, also alled the accumulated cost matrix:
+possible warping paths (also called the accumulated cost matrix):
 
 ::
 
@@ -173,7 +174,7 @@ or a matrix (in case all time series have the same length):
     ds = dtw.distance_matrix_fast(timeseries)
 
 The result is stored in a matrix representation. Since only the upper
-triangular matrix is required this representation more memory then necessary.
+triangular matrix is required, this representation uses more memory then necessary.
 This behaviour can be deactivated by setting the argument ``compact`` to
 true. The method will then return a 1-dimensional array with all results.
 This array represents the concatenation of all upper triangular rows.
@@ -184,7 +185,7 @@ DTW between multiple time series, limited to block
 
 You can instruct the computation to only fill part of the distance
 measures matrix. For example to distribute the computations over
-multiple nodes, or to only compare source time series to target time series.
+multiple computing nodes, or to only compare source time series to target time series.
 
 ::
 
