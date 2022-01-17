@@ -234,11 +234,15 @@ The result will now be:
     [1.4142  0.0000  2.2360  1.7320  1.4142]
 
 
-DTW based on shape (z-normalization)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DTW based on shape
+^^^^^^^^^^^^^^^^^^
 
 If you are interested in comparing only the shape, and not the absolute
-differences and offset, you need to z-normalize the data first. This can be achieved
+differences and offset, you need to transform the data first.
+
+**z-normalization**
+
+Z-normalize is the most popular transformation. This can be achieved
 using the SciPy ``zscore`` function:
 
 ::
@@ -248,6 +252,18 @@ using the SciPy ``zscore`` function:
     from scipy import stats
     az = stats.zscore(a)
     # az = array([-0.90453403,  1.50755672,  0.30151134, -0.90453403])
+
+**Differencing**
+
+Z-normalization has the disadvantage that constant baselines are not
+necessarily at the same level. The causes a small error but it accumulates
+over a long distance. To avoid this, use differencing (see the clustering K-means
+documentation for a visual example).
+
+::
+
+    series = dtaidistance.preprocessing.differencing(series, smooth=0.1)
+
 
 Multi-dimensionsal DTW
 ^^^^^^^^^^^^^^^^^^^^^^
