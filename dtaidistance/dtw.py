@@ -373,7 +373,7 @@ def _process_psi_arg(psi):
     return psi_1b, psi_1e, psi_2b, psi_2e
 
 
-def warping_paths(s1, s2, window=None, max_dist=None,
+def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True,
                   use_c=False, use_ndim=False):
     """
@@ -385,6 +385,8 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :param s2: Second sequence
     :param window: see :meth:`distance`
     :param max_dist: see :meth:`distance`
+    :param use_pruning: Prune values based on Euclidean distance.
+        This is the same as passing ub_euclidean() to max_dist
     :param max_step: see :meth:`distance`
     :param max_length_diff: see :meth:`distance`
     :param penalty: see :meth:`distance`
@@ -396,7 +398,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     :returns: (DTW distance, DTW matrix)
     """
     if use_c:
-        return warping_paths_fast(s1, s2, window=window, max_dist=max_dist,
+        return warping_paths_fast(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning,
                                   max_step=max_step, max_length_diff=max_length_diff,
                                   penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False,
                                   use_ndim=use_ndim)
@@ -415,7 +417,9 @@ def warping_paths(s1, s2, window=None, max_dist=None,
         max_step = inf
     else:
         max_step *= max_step
-    if not max_dist:
+    if use_pruning:
+        max_dist = ub_euclidean(s1, s2)**2
+    elif not max_dist:
         max_dist = inf
     else:
         max_dist *= max_dist
@@ -506,7 +510,7 @@ def warping_paths(s1, s2, window=None, max_dist=None,
     return d, dtw
 
 
-def warping_paths_fast(s1, s2, window=None, max_dist=None,
+def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
                        max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False,
                        use_ndim=False):
     """Fast C version of :meth:`warping_paths`.
@@ -527,7 +531,9 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None,
         ndim = 1
     if window is None:
         window = 0
-    if max_dist is None:
+    if use_pruning:
+        max_dist = ub_euclidean(s1, s2)**2
+    elif max_dist is None:
         max_dist = 0
     if max_step is None:
         max_step = 0
@@ -656,10 +662,12 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
-    :param window: see :meth:`distance`
     :param max_dist: see :meth:`distance`
-    :param max_step: see :meth:`distance`
+    :param use_pruning: Prune values based on Euclidean distance.
+        This is the same as passing ub_euclidean() to max_dist
     :param max_length_diff: see :meth:`distance`
+    :param window: see :meth:`distance`
+    :param max_step: see :meth:`distance`
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
@@ -670,6 +678,8 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     :param use_mp: Force use Multiprocessing for parallel operations (not OpenMP)
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
+    :param only_triu: Only compute upper traingular matrix of warping paths.
+        This is useful if s1 and s2 are the same series and the matrix would be mirrored around the diagonal.
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     # Check whether multiprocessing is available
@@ -737,7 +747,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     elif not use_c and not parallel:
         logger.info("Compute distances in Python (parallel=No)")
         dists = distance_matrix_python(s, block=block, show_progress=show_progress,
-                                       max_length_diff=max_length_diff, dist_opts=dist_opts)
+                                       dist_opts=dist_opts)
 
     else:
         raise Exception(f'Unsupported combination of: parallel={parallel}, '
@@ -788,7 +798,7 @@ def distance_array_index(a, b, nb_series):
     return idx
 
 
-def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=None, dist_opts=None):
+def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
@@ -807,8 +817,7 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
         else:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
         for c in it_c:
-            if abs(len(s[r]) - len(s[c])) <= max_length_diff:
-                dists[idx] = distance(s[r], s[c], **dist_opts)
+            dists[idx] = distance(s[r], s[c], **dist_opts)
             idx += 1
     return dists
 
@@ -865,7 +874,7 @@ def _distance_matrix_length(block, nb_series):
     return length
 
 
-def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
+def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, use_mp=False,
                          only_triu=False):
@@ -882,10 +891,12 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
             _check_library(raise_exception=True, include_omp=True)
         except Exception:
             use_mp = True
-    return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
-                           window=window, max_step=max_step, penalty=penalty, psi=psi,
+    return distance_matrix(s, max_dist=max_dist, use_pruning=use_pruning,
+                           max_length_diff=max_length_diff, window=window,
+                           max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, use_mp=use_mp, show_progress=False, only_triu=only_triu)
+                           use_c=True, use_mp=use_mp, show_progress=False,
+                           only_triu=only_triu)
 
 
 def warping_path(from_s, to_s, **kwargs):
