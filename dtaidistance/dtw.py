@@ -656,10 +656,12 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
-    :param window: see :meth:`distance`
     :param max_dist: see :meth:`distance`
-    :param max_step: see :meth:`distance`
+    :param use_pruning: Prune values based on Euclidean distance.
+        This is the same as passing ub_euclidean() to max_dist
     :param max_length_diff: see :meth:`distance`
+    :param window: see :meth:`distance`
+    :param max_step: see :meth:`distance`
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
@@ -670,6 +672,8 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     :param use_mp: Force use Multiprocessing for parallel operations (not OpenMP)
     :param show_progress: Show progress using the tqdm library. This is only supported for
         the pure Python version (thus not the C-based implementations).
+    :param only_triu: Only compute upper traingular matrix of warping paths.
+        This is useful if s1 and s2 are the same series and the matrix would be mirrored around the diagonal.
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     # Check whether multiprocessing is available
