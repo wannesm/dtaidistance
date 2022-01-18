@@ -865,7 +865,7 @@ def _distance_matrix_length(block, nb_series):
     return length
 
 
-def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
+def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, use_mp=False,
                          only_triu=False):
@@ -882,10 +882,12 @@ def distance_matrix_fast(s, max_dist=None, max_length_diff=None,
             _check_library(raise_exception=True, include_omp=True)
         except Exception:
             use_mp = True
-    return distance_matrix(s, max_dist=max_dist, max_length_diff=max_length_diff,
-                           window=window, max_step=max_step, penalty=penalty, psi=psi,
+    return distance_matrix(s, max_dist=max_dist, use_pruning=use_pruning,
+                           max_length_diff=max_length_diff, window=window,
+                           max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, use_mp=use_mp, show_progress=False, only_triu=only_triu)
+                           use_c=True, use_mp=use_mp, show_progress=False,
+                           only_triu=only_triu)
 
 
 def warping_path(from_s, to_s, **kwargs):
