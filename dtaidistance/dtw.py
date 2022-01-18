@@ -737,7 +737,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     elif not use_c and not parallel:
         logger.info("Compute distances in Python (parallel=No)")
         dists = distance_matrix_python(s, block=block, show_progress=show_progress,
-                                       max_length_diff=max_length_diff, dist_opts=dist_opts)
+                                       dist_opts=dist_opts)
 
     else:
         raise Exception(f'Unsupported combination of: parallel={parallel}, '
@@ -788,7 +788,7 @@ def distance_array_index(a, b, nb_series):
     return idx
 
 
-def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=None, dist_opts=None):
+def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
@@ -807,8 +807,7 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
         else:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
         for c in it_c:
-            if abs(len(s[r]) - len(s[c])) <= max_length_diff:
-                dists[idx] = distance(s[r], s[c], **dist_opts)
+            dists[idx] = distance(s[r], s[c], **dist_opts)
             idx += 1
     return dists
 
