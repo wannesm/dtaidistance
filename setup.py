@@ -178,8 +178,10 @@ class MyBuildExtCommand(BuildExtCommand):
         print("--forcellvm: {}".format(self.distribution.forcellvm))
         print("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
 
-        if self.distribution.forcellvm or (c == "unix" and "local/opt/llvm" in self.compiler.compiler[0]):
-            print('Using Homebrew LLVM settings ({})'.format(self.compiler.compiler[0]))
+        if self.distribution.forcellvm or (c == "unix" and ("local/opt/llvm" in self.compiler.compiler[0] or
+                                                            "clang" in self.compiler.compiler[0])):
+            # local/opt/llvm is homebrew
+            print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
                 (c == "unix" and ("gnu-gcc" in self.compiler.compiler[0]) or
