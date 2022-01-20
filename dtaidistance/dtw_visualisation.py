@@ -6,7 +6,7 @@ dtaidistance.dtw_visualisation
 Dynamic Time Warping (DTW) visualisations.
 
 :author: Wannes Meert
-:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -46,7 +46,7 @@ def test_without_visualization():
     return False
 
 
-def plot_warp(from_s, to_s, new_s, path, filename=None):
+def plot_warp(from_s, to_s, new_s, path, filename=None, fig=None, axs=None):
     """Plot the warped sequence and its relation to the original sequence
     and the target sequence.
 
@@ -55,6 +55,9 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
     :param new_s: Warped version of from sequence.
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
+    :param fig: Matplotlib Figure object
+    :param axs: Array of Matplotlib axes.Axes objects (length == 3)
+    :return: Figure, list[Axes]
     """
     try:
         import matplotlib.pyplot as plt
@@ -63,42 +66,48 @@ def plot_warp(from_s, to_s, new_s, path, filename=None):
     except ImportError:
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
-    fig, ax = plt.subplots(nrows=3, ncols=1, sharex='all', sharey='all')
-    ax[0].plot(from_s, label="From")
-    ax[0].legend()
-    ax[1].plot(to_s, label="To")
-    ax[1].legend()
+    if fig is None and axs is None:
+        fig, axs = plt.subplots(nrows=3, ncols=1, sharex='all', sharey='all')
+    elif fig is None or axs is None:
+        raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
+    axs[0].plot(from_s, label="From")
+    axs[0].legend()
+    axs[1].plot(to_s, label="To")
+    axs[1].legend()
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        con = ConnectionPatch(xyA=[r_c, from_s[r_c]], coordsA=ax[0].transData,
-                              xyB=[c_c, to_s[c_c]], coordsB=ax[1].transData, **line_options)
+        con = ConnectionPatch(xyA=[r_c, from_s[r_c]], coordsA=axs[0].transData,
+                              xyB=[c_c, to_s[c_c]], coordsB=axs[1].transData, **line_options)
 
         lines.append(con)
-    ax[2].plot(new_s, label="From-warped")
-    ax[2].legend()
+    axs[2].plot(new_s, label="From-warped")
+    axs[2].legend()
     for i in range(len(to_s)):
-        con = ConnectionPatch(xyA=[i, to_s[i]], coordsA=ax[1].transData,
-                              xyB=[i, new_s[i]], coordsB=ax[2].transData, **line_options)
+        con = ConnectionPatch(xyA=[i, to_s[i]], coordsA=axs[1].transData,
+                              xyB=[i, new_s[i]], coordsB=axs[2].transData, **line_options)
         lines.append(con)
     for line in lines:
         fig.add_artist(line)
     if filename:
         plt.savefig(filename)
         plt.close()
-        fig, ax = None, None
-    return fig, ax
+        fig, axs = None, None
+    return fig, axs
 
 
-def plot_warping(s1, s2, path, filename=None):
+def plot_warping(s1, s2, path, filename=None, fig=None, axs=None):
     """Plot the optimal warping between to sequences.
 
     :param s1: From sequence.
     :param s2: To sequence.
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
+    :param fig: Matplotlib Figure object
+    :param axs: Array of Matplotlib axes.Axes objects (length == 2)
+    :return: Figure, list[Axes]
     """
     try:
         import matplotlib.pyplot as plt
@@ -107,34 +116,40 @@ def plot_warping(s1, s2, path, filename=None):
     except ImportError:
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
-    fig, ax = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
-    ax[0].plot(s1)
-    ax[1].plot(s2)
+    if fig is None and axs is None:
+        fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
+    elif fig is None or axs is None:
+        raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
+    axs[0].plot(s1)
+    axs[1].plot(s2)
     plt.tight_layout()
     lines = []
     line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=ax[0].transData,
-                              xyB=[c_c, s2[c_c]], coordsB=ax[1].transData, **line_options)
+        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=axs[0].transData,
+                              xyB=[c_c, s2[c_c]], coordsB=axs[1].transData, **line_options)
         lines.append(con)
     for line in lines:
         fig.add_artist(line)
     if filename:
         plt.savefig(filename)
         plt.close()
-        fig, ax = None, None
-    return fig, ax
+        fig, axs = None, None
+    return fig, axs
 
 
-def plot_warping_single_ax(s1, s2, path, filename=None):
+def plot_warping_single_ax(s1, s2, path, filename=None, fig=None, ax=None):
     """Plot the optimal warping between to sequences.
 
     :param s1: From sequence.
     :param s2: To sequence.
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
+    :param fig: Matplotlib Figure object
+    :param ax: Matplotlib axes.Axes object
+    :return: Figure, Axes
     """
     try:
         import matplotlib.pyplot as plt
@@ -143,7 +158,10 @@ def plot_warping_single_ax(s1, s2, path, filename=None):
     except ImportError:
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
-    fig, ax = plt.subplots()
+    if fig is None and ax is None:
+        fig, ax = plt.subplots()
+    elif fig is None or ax is None:
+        raise TypeError(f'The fig and ax arguments need to be both None or both instantiated.')
     ax.plot(s1)
     ax.plot(s2)
     lines = []
@@ -174,6 +192,8 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     :param filename: Filename for the image (optional)
     :param shownumbers: Show distances also as numbers
     :param showlegend: Show colormap legend
+    :param figure: Matplotlib Figure object
+    :return: Figure, Axes
     """
     try:
         from matplotlib import pyplot as plt
@@ -310,15 +330,17 @@ def plot_warpingpaths_addpath(ax, path):
     ax3.plot(px, py, ".-", color="red", markersize=2)
 
 
-def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
+def plot_matrix(distances, shownumbers=False, filename=None, fig=None, ax=None):
     from matplotlib import pyplot as plt
 
-    if ax is None:
+    if ax is None and fig is None:
         if shownumbers:
             figsize = (15, 15)
         else:
             figsize = None
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=figsize)
+    elif fig is None or ax is None:
+        raise TypeError(f'The fig and ax arguments need to be both None or both instantiated.')
     else:
         fig = None
 
@@ -350,13 +372,17 @@ def plot_matrix(distances, filename=None, ax=None, shownumbers=False):
         fig, ax = None, None
     return fig, ax
 
-def plot_average(s1, s2, avg, path1, path2, filename=None, ax=None):
+
+def plot_average(s1, s2, avg, path1, path2, filename=None, fig=None, ax=None):
     """Plot how s1 and s2 relate to the avg.
 
     :param s1: Seq 1.
     :param s2: Seq 2.
     :param path: Average sequence.
     :param filename: Filename path (optional).
+    :param fig: Matplotlib Figure object
+    :param ax: Matplotlib axes.Axes object
+    :return: Figure, axes.Axes
     """
     try:
         import matplotlib.pyplot as plt
@@ -365,10 +391,10 @@ def plot_average(s1, s2, avg, path1, path2, filename=None, ax=None):
     except ImportError:
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
-    if ax is None:
+    if fig is None and ax is None:
         fig, ax = plt.subplots(nrows=1, ncols=1, sharex='all', sharey='all')
-    else:
-        fig = None
+    elif fig is None or ax is None:
+        raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
     ax.plot(s1, color='blue', alpha=0.5)
     ax.plot(s2, color='blue', alpha=0.5)
     ax.plot(avg, color='orange', linestyle='dashed', alpha=0.5)
