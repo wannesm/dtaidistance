@@ -387,9 +387,9 @@ set_setup_kwargs(
     setup_requires=setup_requires,
     tests_require=tests_require,
     extras_require={
-        'vis': ['matplotlib'],
+        'vis': ['matplotlib>=3.0.0'],
         'numpy': ['numpy', 'scipy'],
-        'all': ['matplotlib', 'numpy', 'scipy']
+        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy']
     },
     include_package_data=True,
     package_data={
