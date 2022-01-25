@@ -6,7 +6,7 @@ dtaidistance
 Time series distance methods.
 
 :author: Wannes Meert
-:copyright: Copyright 2017 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -32,7 +32,8 @@ except ImportError:
     #                "then run `cd {};python3 setup.py build_ext --inplace`.".format(dtaidistance_dir))
     dtw_cc = None
 
-__version__ = "2.3.4"
+__version__ = "2.3.5"
 __author__ = "Wannes Meert"
-__copyright__ = "Copyright 2017-2021 KU Leuven, DTAI Research Group"
+__copyright__ = "Copyright 2017-2022 KU Leuven, DTAI Research Group"
 __license__ = "Apache License, Version 2.0"
+
