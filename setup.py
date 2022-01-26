@@ -184,8 +184,8 @@ class MyBuildExtCommand(BuildExtCommand):
             print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
-                (c == "unix" and ("gnu-gcc" in self.compiler.compiler[0]) or
-                                 ("gnu-cc" in self.compiler.compiler[0])):
+                (c == "unix" and (("gnu-gcc" in self.compiler.compiler[0]) or
+                                 ("gnu-cc" in self.compiler.compiler[0]))):
             print('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
             c = 'gnugcc'
 
