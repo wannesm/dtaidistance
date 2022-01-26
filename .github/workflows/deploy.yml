@@ -8,7 +8,7 @@ name: Python package
 on:
   push:
     branches: [ deploy ]
-  pull-request:
+  pull_request:
     banches: [ deploy ]
 
 jobs:
