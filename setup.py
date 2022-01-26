@@ -169,6 +169,12 @@ def set_custom_envvars_for_homebrew():
 class MyBuildExtCommand(BuildExtCommand):
 
     def build_extensions(self):
+        """Provide support for compiling with OpenMP support (for parellellization).
+
+        This seems not to be supported out-of-the-box by Cython, which also requires
+        to set the openmp compiler flags as part of the setup.py file:
+        https://cython.readthedocs.io/en/latest/src/userguide/parallelism.html#compiling
+        """
         c = self.compiler.compiler_type
         # Custom for homebrew
         print("Compiler type: {}".format(c))
