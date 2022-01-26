@@ -1,5 +1,16 @@
-name: GitHub Actions Demo
-on: [push]
+# Python: "3.8", "3.9", "3.10"
+# OS: ubuntu-20.04, ubuntu-latest
+# OS: macOS-10.15
+
+
+name: Python package
+
+on:
+  push:
+    branches: [ deploy ]
+  pull-request:
+    banches: [ deploy ]
+
 jobs:
   Explore-GitHub-Actions:
     runs-on: ubuntu-latest
@@ -15,4 +26,31 @@ jobs:
         run: |
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
+
+  build_unix:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-benchmark build
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Build
+      run: |
+        python -m build
+    - name: Test with pytest
+      run: |
+        pytest --ignore=venv --benchmark-skip
 
