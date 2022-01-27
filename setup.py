@@ -43,9 +43,9 @@ c_args = {
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
     'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
-                  '-I'+str(dtaidistancec_path)],
+             '-I'+str(dtaidistancec_path)],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
-             '-I'+str(dtaidistancec_path)]
+               '-I'+str(dtaidistancec_path)]
 }
 l_args = {
     'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
@@ -191,7 +191,8 @@ class MyBuildExtCommand(BuildExtCommand):
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
                 (c == "unix" and (("gnu-gcc" in self.compiler.compiler[0]) or
-                                 ("gnu-cc" in self.compiler.compiler[0]))):
+                                  ("gnu-cc" in self.compiler.compiler[0]) or
+                                  ("gcc" in self.compiler.compiler[0]))):
             print('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
             c = 'gnugcc'
 
