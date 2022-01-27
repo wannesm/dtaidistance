@@ -47,10 +47,13 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-benchmark build
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Build
+    - name: Compile and install
       run: |
-        python -m build
+        python -m pip install .
     - name: Test with pytest
       run: |
         pytest --ignore=venv --benchmark-skip
+    - name: Build
+      run: |
+        python -m build
 
