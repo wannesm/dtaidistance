@@ -52,7 +52,7 @@ jobs:
       run: |
         python -m pip install . -v
         mv dtaidistance dtaidistance_pkg
-        ls ${{ github.workspace }}/dist
+        ls ${{ github.workspace }}/build || true
     - name: Test installation
       run : |
         python ./util/check_installation.py
