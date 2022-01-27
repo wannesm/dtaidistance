@@ -51,6 +51,9 @@ jobs:
     - name: Compile and install
       run: |
         python -m pip install . -v
+    - name: Test installation
+      run : |
+        python ./util/check_installation.py
     - name: Test with pytest
       run: |
         pytest --ignore=venv --benchmark-skip
