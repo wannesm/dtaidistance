@@ -129,6 +129,7 @@ def try_import_c(verbose=False):
               'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance')
     elif verbose:
         print('All ok ...')
+    return is_complete
 
 
 inf = float("inf")
