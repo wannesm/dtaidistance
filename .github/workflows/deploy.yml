@@ -34,8 +34,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9"]
+        os: [ubuntu-20.04,ubuntu-18.04]
+        python-version: ["3.8","3.9","3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -78,7 +78,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-11]
-        python-version: ["3.9"]
+        python-version: ["3.8","3.9","3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Install OpenMP
@@ -136,7 +136,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [windows-2019]
-        python-version: ["3.9"]
+        python-version: ["3.8","3.9","3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -217,8 +217,8 @@ jobs:
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    # needs: [build_unix,build_macos,build_windows,build_sdist]
-    needs: [build_sdist]
+    needs: [build_unix,build_macos,build_windows,build_sdist]
+    # needs: [build_sdist]
     steps:
       - uses: actions/download-artifact@v2
         with:
