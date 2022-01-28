@@ -65,55 +65,126 @@ jobs:
   #   - name: Build
   #     run: |
   #       python -m build
+  #   - name: Store wheels
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist/*.whl
 
-  build_macos:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [macos-11]
-        python-version: ["3.9"]
+  # build_macos:
+  #   name: Build wheels on ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       os: [macos-11]
+  #       python-version: ["3.9"]
+
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: Install OpenMP
+  #     run: |
+  #       # OpenMP libraries are not installed by default on macos
+  #       clang --version
+  #       clang --version | grep "13\."
+  #       # hardcoded, not ideal
+  #       # https://mac.r-project.org/openmp/
+  #       curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
+  #       sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+  #       ls /usr/local/lib
+  #       ls /usr/local/include
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v2
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       python -m pip install pytest pytest-benchmark build
+  #       python -m pip install numpy scipy matplotlib>=3.0.0
+  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  #   - name: Compile and install
+  #     run: |
+  #       export LDFLAGS="-L/usr/local/lib"
+  #       export CPPFLAGS="-I/usr/local/include"
+  #       python -m pip install . -v
+  #       ls ${{ github.workspace }}/build || true
+  #   - name: Test installation
+  #     run : |
+  #       mv dtaidistance dtaidistance_pkg
+  #       python ./util/check_installation.py
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Test with pytest
+  #     run: |
+  #       export LDFLAGS="-L/usr/local/lib"
+  #       export CPPFLAGS="-I/usr/local/include"
+  #       mv dtaidistance dtaidistance_pkg
+  #       pytest --ignore=venv --benchmark-skip
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Build
+  #     run: |
+  #       python -m build
+  #   - name: Store wheels
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist/*.whl
+
+
+  build_sdist:
+    name: Prepare source distribution
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Install OpenMP
-      run: |
-        clang --version
-        # hardcoded, not ideal
-        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
-        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
-        ls /usr/local/lib
-        ls /usr/local/include
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-benchmark build
-        python -m pip install numpy scipy matplotlib>=3.0.0
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Compile and install
-      run: |
-        export LDFLAGS="-L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/include"
-        python -m pip install . -v
-        ls ${{ github.workspace }}/build || true
-    - name: Test installation
-      run : |
-        mv dtaidistance dtaidistance_pkg
-        python ./util/check_installation.py
-        mv dtaidistance_pkg dtaidistance
-    - name: Test with pytest
-      run: |
-        export LDFLAGS="-L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/include"
-        mv dtaidistance dtaidistance_pkg
-        pytest --ignore=venv --benchmark-skip
-        mv dtaidistance_pkg dtaidistance
-    - name: Build
-      run: |
-        python -m build
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - name: Build
+        run: |
+          python -m pip install build
+          python -m build --sdist
+      - name: Store artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*.tar.gz
 
+
+  # upload_wheels:
+  #   name: Upload wheels to PyPi
+  #   runs-on: ubuntu-latest
+  #   needs: [build_unix,build_macos,build_sdist]
+
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+  #     - name: Publish package to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.PYPI_API_TOKEN }}
+  #         packages_dir: dist/
+
+  # test_upload_wheels:
+  #   name: Upload wheels to TestPyPi
+  #   runs-on: ubuntu-latest
+  #   needs: [build_unix,build_macos,build_sdist]
+
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist
+  #
+  #     - name: Publish package to TestPyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.TEST_PYPI_API_TOKEN_TEST }}
+  #         repository_url: https://test.pypi.org/legacy/

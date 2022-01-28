@@ -22,7 +22,7 @@ test:
 	export PYTHONPATH=.;py.test --ignore=venv --benchmark-skip -vv
 
 .PHONY: test-windows
-test:
+test-windows:
 	pytest --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
 
 .PHONY: testall

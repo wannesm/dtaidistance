@@ -198,6 +198,7 @@ class MyBuildExtCommand(BuildExtCommand):
             # /usr/local/opt/llvm/bin/clang -I/usr/local/opt/llvm/include -L/usr/local/opt/llvm/lib
             # macOS:
             # http://blog.llvm.org/2015/05/openmp-support_22.html
+            # https://www.mathworks.com/help/coder/ug/install-openmp-library-on-macos-platform.html
             print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
