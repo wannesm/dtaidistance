@@ -28,108 +28,106 @@ jobs:
   #         ls ${{ github.workspace }}
   #     - run: echo "🍏 This job's status is ${{ job.status }}."
 
-  # build_unix:
-  #   name: Build wheels on ${{ matrix.os }}
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: true
-  #     matrix:
-  #       os: [ubuntu-latest]
-  #       python-version: ["3.9"]
+  build_unix:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-benchmark build
+        python -m pip install numpy scipy matplotlib>=3.0.0
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Compile and install
+      run: |
+        python -m pip install . -v
+        ls ${{ github.workspace }}/build || true
+    - name: Test installation
+      run : |
+        mv dtaidistance dtaidistance_pkg
+        python ./util/check_installation.py
+        mv dtaidistance_pkg dtaidistance
+    - name: Test with pytest
+      run: |
+        mv dtaidistance dtaidistance_pkg
+        pytest --ignore=venv --benchmark-skip
+        mv dtaidistance_pkg dtaidistance
+    - name: Build
+      run: |
+        python -m build
+    - name: Store wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*.whl
 
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       python -m pip install pytest pytest-benchmark build
-  #       python -m pip install numpy scipy matplotlib>=3.0.0
-  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-  #   - name: Compile and install
-  #     run: |
-  #       python -m pip install . -v
-  #       ls ${{ github.workspace }}/build || true
-  #   - name: Test installation
-  #     run : |
-  #       mv dtaidistance dtaidistance_pkg
-  #       python ./util/check_installation.py
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Test with pytest
-  #     run: |
-  #       mv dtaidistance dtaidistance_pkg
-  #       pytest --ignore=venv --benchmark-skip
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Build
-  #     run: |
-  #       python -m build
-  #   - name: Store wheels
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: wheels
-  #         path: dist/*.whl
-
-  # build_macos:
-  #   name: Build wheels on ${{ matrix.os }}
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: true
-  #     matrix:
-  #       os: [macos-11]
-  #       python-version: ["3.9"]
-
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - name: Install OpenMP
-  #     run: |
-  #       # OpenMP libraries are not installed by default on macos
-  #       clang --version
-  #       clang --version | grep "13\."
-  #       # hardcoded, not ideal
-  #       # https://mac.r-project.org/openmp/
-  #       curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
-  #       sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
-  #       ls /usr/local/lib
-  #       ls /usr/local/include
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       python -m pip install pytest pytest-benchmark build
-  #       python -m pip install numpy scipy matplotlib>=3.0.0
-  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-  #   - name: Compile and install
-  #     run: |
-  #       export LDFLAGS="-L/usr/local/lib"
-  #       export CPPFLAGS="-I/usr/local/include"
-  #       python -m pip install . -v
-  #       ls ${{ github.workspace }}/build || true
-  #   - name: Test installation
-  #     run : |
-  #       mv dtaidistance dtaidistance_pkg
-  #       python ./util/check_installation.py
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Test with pytest
-  #     run: |
-  #       export LDFLAGS="-L/usr/local/lib"
-  #       export CPPFLAGS="-I/usr/local/include"
-  #       mv dtaidistance dtaidistance_pkg
-  #       pytest --ignore=venv --benchmark-skip
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Build
-  #     run: |
-  #       python -m build
-  #   - name: Store wheels
-  #       uses: actions/upload-artifact@v2
-  #       with:
-  #         name: wheels
-  #         path: dist/*.whl
+  build_macos:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-11]
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install OpenMP
+      run: |
+        # OpenMP libraries are not installed by default on macos
+        clang --version
+        clang --version | grep "13\."
+        # hardcoded, not ideal
+        # https://mac.r-project.org/openmp/
+        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
+        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+        ls /usr/local/lib
+        ls /usr/local/include
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-benchmark build
+        python -m pip install numpy scipy matplotlib>=3.0.0
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Compile and install
+      run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
+        python -m pip install . -v
+        ls ${{ github.workspace }}/build || true
+    - name: Test installation
+      run : |
+        mv dtaidistance dtaidistance_pkg
+        python ./util/check_installation.py
+        mv dtaidistance_pkg dtaidistance
+    - name: Test with pytest
+      run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
+        mv dtaidistance dtaidistance_pkg
+        pytest --ignore=venv --benchmark-skip
+        mv dtaidistance_pkg dtaidistance
+    - name: Build
+      run: |
+        python -m build
+    - name: Store wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheels
+          path: dist/*.whl
 
   build_windows:
     name: Build wheels on ${{ matrix.os }}
@@ -139,7 +137,6 @@ jobs:
       matrix:
         os: [windows-2019]
         python-version: ["3.9"]
-
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -177,7 +174,6 @@ jobs:
   build_sdist:
     name: Prepare source distribution
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -222,7 +218,6 @@ jobs:
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     needs: [build_unix,build_macos,build_windows,build_sdist]
-
     steps:
       - uses: actions/download-artifact@v2
         with:
