@@ -192,7 +192,12 @@ class MyBuildExtCommand(BuildExtCommand):
         if self.distribution.forcellvm or gcc_is_clang or \
                 (c == "unix" and ("llvm" in self.compiler.compiler[0] or
                                   "clang" in self.compiler.compiler[0])):
-            # local/opt/llvm is homebrew
+            # Homebrew:
+            # /usr/local/opt/llvm is homebrew
+            # For homebrew it is assumed that following paths are set systemwide:
+            # /usr/local/opt/llvm/bin/clang -I/usr/local/opt/llvm/include -L/usr/local/opt/llvm/lib
+            # macOS:
+            # http://blog.llvm.org/2015/05/openmp-support_22.html
             print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \

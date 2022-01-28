@@ -1,6 +1,6 @@
 # Python: "3.8", "3.9", "3.10"
 # OS: ubuntu-20.04, ubuntu-latest
-# OS: macOS-10.15
+# OS: macOS-10.15, macos-11
 
 
 name: Python package
@@ -27,17 +27,64 @@ jobs:
   #         ls ${{ github.workspace }}
   #     - run: echo "🍏 This job's status is ${{ job.status }}."
 
-  build_unix:
+  # build_unix:
+  #   name: Build wheels on ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.9"]
+
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v2
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       python -m pip install pytest pytest-benchmark build
+  #       python -m pip install numpy scipy matplotlib>=3.0.0
+  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  #   - name: Compile and install
+  #     run: |
+  #       python -m pip install . -v
+  #       ls ${{ github.workspace }}/build || true
+  #   - name: Test installation
+  #     run : |
+  #       mv dtaidistance dtaidistance_pkg
+  #       python ./util/check_installation.py
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Test with pytest
+  #     run: |
+  #       mv dtaidistance dtaidistance_pkg
+  #       pytest --ignore=venv --benchmark-skip
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Build
+  #     run: |
+  #       python -m build
+
+  build_macos:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
       matrix:
-        os: [macOS-10.15]
+        os: [macos-11]
         python-version: ["3.9"]
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install OpenMP
+      run: |
+        clang --version
+        # hardcoded, not ideal
+        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
+        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+        ls /usr/local/lib
+        ls /usr/local/include
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -50,6 +97,8 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Compile and install
       run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
         python -m pip install . -v
         ls ${{ github.workspace }}/build || true
     - name: Test installation
@@ -59,6 +108,8 @@ jobs:
         mv dtaidistance_pkg dtaidistance
     - name: Test with pytest
       run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
         mv dtaidistance dtaidistance_pkg
         pytest --ignore=venv --benchmark-skip
         mv dtaidistance_pkg dtaidistance
