@@ -184,15 +184,20 @@ class MyBuildExtCommand(BuildExtCommand):
         print("--forcellvm: {}".format(self.distribution.forcellvm))
         print("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
 
-        if self.distribution.forcellvm or (c == "unix" and ("local/opt/llvm" in self.compiler.compiler[0] or
-                                                            "clang" in self.compiler.compiler[0])):
+        if c == "unix" and "cc" in self.compiler.compiler[0]:
+            gcc_is_clang = check_clang(self.compiler.compiler[0])
+        else:
+            gcc_is_clang = False
+
+        if self.distribution.forcellvm or gcc_is_clang or \
+                (c == "unix" and ("llvm" in self.compiler.compiler[0] or
+                                  "clang" in self.compiler.compiler[0])):
             # local/opt/llvm is homebrew
             print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
-                (c == "unix" and (("gnu-gcc" in self.compiler.compiler[0]) or
-                                  ("gnu-cc" in self.compiler.compiler[0]) or
-                                  ("gcc" in self.compiler.compiler[0]))):
+                (c == "unix" and (("gcc" in self.compiler.compiler[0]) or
+                                  ("gnu-cc" in self.compiler.compiler[0]))):
             print('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
             c = 'gnugcc'
 
@@ -251,6 +256,27 @@ class MyBuildExtInPlaceCommand(MyBuildExtCommand):
     def initialize_options(self):
         super().initialize_options()
         self.inplace = True
+
+
+def check_clang(cc_bin):
+    """Check if gcc is really an xcrun to clang"""
+    print("Checking if {} redirects to clang".format(cc_bin))
+    args = [[str(cc_bin), "--version"]]
+    kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
+    print(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+    try:
+        p = sp.run(*args, **kwargs)
+        print(p.stderr)
+        defs = p.stdout.splitlines()
+        for curdef in defs:
+            if "clang" in curdef:
+                print(curdef)
+                print("... found clang")
+                return True
+    except Exception:
+        print("... no clang")
+        return False
+    return False
 
 
 def check_openmp(cc_bin, noxpreprocessor):
