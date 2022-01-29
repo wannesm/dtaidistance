@@ -100,6 +100,7 @@ jobs:
         python -m cibuildwheel --output-dir dist/
       env:
         CIBW_BUILD_VERBOSITY: 2
+        CIBW_SKIP: cp36-* pp* *-manylinux_i686 *-musllinux_i686 *-musllinux_x86_64
         CIBW_TEST_EXTRAS: "dev"
         CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip {project}/tests
     - name: Store wheels
