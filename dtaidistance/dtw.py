@@ -117,6 +117,12 @@ def try_import_c(verbose=False):
         print('Cannot import Matplotlib (optional dependency)')
         msgs.append('Cannot import Matplotlib (optional dependency)')
         msgs.append(str(exc))
+    try:
+        import scipy
+    except ImportError as exc:
+        print('Cannot import SciPy (optional dependency)')
+        msgs.append('Cannot import SciPy (optional dependency)')
+        msgs.append(str(exc))
     if not is_complete:
         print('\nNot all libraries are available in your installation. '
               'Share the following information when submitting a bug report:')
@@ -129,6 +135,7 @@ def try_import_c(verbose=False):
               'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance')
     elif verbose:
         print('All ok ...')
+    return is_complete
 
 
 inf = float("inf")

@@ -43,9 +43,9 @@ c_args = {
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
     'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
-                  '-I'+str(dtaidistancec_path)],
+             '-I'+str(dtaidistancec_path)],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
-             '-I'+str(dtaidistancec_path)]
+               '-I'+str(dtaidistancec_path)]
 }
 l_args = {
     'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
@@ -184,14 +184,26 @@ class MyBuildExtCommand(BuildExtCommand):
         print("--forcellvm: {}".format(self.distribution.forcellvm))
         print("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
 
-        if self.distribution.forcellvm or (c == "unix" and ("local/opt/llvm" in self.compiler.compiler[0] or
-                                                            "clang" in self.compiler.compiler[0])):
-            # local/opt/llvm is homebrew
+        if c == "unix" and "cc" in self.compiler.compiler[0]:
+            gcc_is_clang = check_clang(self.compiler.compiler[0])
+        else:
+            gcc_is_clang = False
+
+        if self.distribution.forcellvm or gcc_is_clang or \
+                (c == "unix" and ("llvm" in self.compiler.compiler[0] or
+                                  "clang" in self.compiler.compiler[0])):
+            # Homebrew:
+            # /usr/local/opt/llvm is homebrew
+            # For homebrew it is assumed that following paths are set systemwide:
+            # /usr/local/opt/llvm/bin/clang -I/usr/local/opt/llvm/include -L/usr/local/opt/llvm/lib
+            # macOS:
+            # http://blog.llvm.org/2015/05/openmp-support_22.html
+            # https://www.mathworks.com/help/coder/ug/install-openmp-library-on-macos-platform.html
             print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
-                (c == "unix" and (("gnu-gcc" in self.compiler.compiler[0]) or
-                                 ("gnu-cc" in self.compiler.compiler[0]))):
+                (c == "unix" and (("gcc" in self.compiler.compiler[0]) or
+                                  ("gnu-cc" in self.compiler.compiler[0]))):
             print('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
             c = 'gnugcc'
 
@@ -250,6 +262,27 @@ class MyBuildExtInPlaceCommand(MyBuildExtCommand):
     def initialize_options(self):
         super().initialize_options()
         self.inplace = True
+
+
+def check_clang(cc_bin):
+    """Check if gcc is really an xcrun to clang"""
+    print("Checking if {} redirects to clang".format(cc_bin))
+    args = [[str(cc_bin), "--version"]]
+    kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
+    print(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+    try:
+        p = sp.run(*args, **kwargs)
+        print(p.stderr)
+        defs = p.stdout.splitlines()
+        for curdef in defs:
+            if "clang" in curdef:
+                print(curdef)
+                print("... found clang")
+                return True
+    except Exception:
+        print("... no clang")
+        return False
+    return False
 
 
 def check_openmp(cc_bin, noxpreprocessor):
@@ -350,6 +383,7 @@ else:
 install_requires = ['numpy']  # 'cython>=0.29.6',
 setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
 tests_require = ['pytest', 'pytest-benchmark']
+dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy']
 
 # Check version number
 init_fn = here / 'dtaidistance' / '__init__.py'
@@ -395,7 +429,8 @@ set_setup_kwargs(
     extras_require={
         'vis': ['matplotlib>=3.0.0'],
         'numpy': ['numpy', 'scipy'],
-        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy']
+        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy'],
+        'dev': dev_require
     },
     include_package_data=True,
     package_data={
