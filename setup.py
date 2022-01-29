@@ -383,6 +383,7 @@ else:
 install_requires = ['numpy']  # 'cython>=0.29.6',
 setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
 tests_require = ['pytest', 'pytest-benchmark']
+dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy']
 
 # Check version number
 init_fn = here / 'dtaidistance' / '__init__.py'
@@ -428,7 +429,8 @@ set_setup_kwargs(
     extras_require={
         'vis': ['matplotlib>=3.0.0'],
         'numpy': ['numpy', 'scipy'],
-        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy']
+        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy'],
+        'dev': dev_require
     },
     include_package_data=True,
     package_data={

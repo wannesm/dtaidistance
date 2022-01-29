@@ -96,7 +96,8 @@ jobs:
     - name: Build wheel
       run: python -m cibuildwheel --output-dir dist/
       env:
-        CIBW_BUILD_VERBOSITY: 1
+        CIBW_BUILD_VERBOSITY: 2
+        CIBW_TEST_EXTRAS: "dev"
         CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip
     - name: Store wheels
       uses: actions/upload-artifact@v2
