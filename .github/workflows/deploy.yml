@@ -94,11 +94,14 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install cibuildwheel==2.3.1
     - name: Build wheel
-      run: python -m cibuildwheel --output-dir dist/
+      run: |
+        pwd
+        ls
+        python -m cibuildwheel --output-dir dist/
       env:
         CIBW_BUILD_VERBOSITY: 2
         CIBW_TEST_EXTRAS: "dev"
-        CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip
+        CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip --pyargs dtaidistance
     - name: Store wheels
       uses: actions/upload-artifact@v2
       with:
