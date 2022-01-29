@@ -235,43 +235,43 @@ jobs:
   #         path: dist/*.tar.gz
 
 
-  # upload_wheels:
-  #   name: Upload wheels to PyPi
-  #   runs-on: ubuntu-latest
-  #   # upload to PyPI on every tag starting with 'v'
-  #   # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-  #   needs: [build_unix,build_macos,build_windows,build_sdist]
-
-  #   steps:
-  #     - uses: actions/download-artifact@v2
-  #       with:
-  #         name: wheels
-  #         path: dist
-
-  #     - name: Publish package to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         user: __token__
-  #         password: ${{ secrets.PYPI_API_TOKEN }}
-  #         packages_dir: dist/
-
-  test_upload_wheels:
-    name: Upload wheels to TestPyPi
+  upload_wheels:
+    name: Upload wheels to PyPi
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     needs: [build_unix,build_macos,build_windows,build_sdist]
-    # needs: [build_unix]
+
     steps:
       - uses: actions/download-artifact@v2
         with:
           name: wheels
           path: dist
 
-      - name: Publish package to TestPyPI
+      - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
-          password: ${{ secrets.TEST_PYPI_API_TOKEN_TEST }}
-          repository_url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: dist/
+
+  # test_upload_wheels:
+  #   name: Upload wheels to TestPyPi
+  #   runs-on: ubuntu-latest
+  #   # upload to PyPI on every tag starting with 'v'
+  #   # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+  #   needs: [build_unix,build_macos,build_windows,build_sdist]
+  #   # needs: [build_unix]
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: wheels
+  #         path: dist
+
+  #     - name: Publish package to TestPyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.TEST_PYPI_API_TOKEN_TEST }}
+  #         repository_url: https://test.pypi.org/legacy/
 
