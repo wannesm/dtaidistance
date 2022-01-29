@@ -101,7 +101,7 @@ jobs:
       env:
         CIBW_BUILD_VERBOSITY: 2
         CIBW_TEST_EXTRAS: "dev"
-        CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip --pyargs dtaidistance
+        CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip {project}/tests
     - name: Store wheels
       uses: actions/upload-artifact@v2
       with:
