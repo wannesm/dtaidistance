@@ -71,8 +71,7 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
                        fn=substitution, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
-    matrix = -matrix
-    return value, matrix
+    return -value, -matrix
 
 
 def _needleman_wunsch_border(ri, ci):
