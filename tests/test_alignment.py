@@ -41,6 +41,7 @@ def test_sequences2():
     value, matrix = alignment.needleman_wunsch(s1, s2)
     algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
     algn_sol1 = [list('GAAAAAAAT'), list('GAA-----T')]
+    assert value == -1
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
 
@@ -50,7 +51,8 @@ def test_sequences3():
     s2 = "GAATA"
     value, matrix = alignment.needleman_wunsch(s1, s2)
     algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
-    algn_sol1 = [list('GAA-AAAAAT'), list('GAATA-----')]
+    algn_sol1 = [list('GAAAAAAAT'), list('GAATA----')]
+    assert value == -1
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
 
@@ -65,6 +67,22 @@ def test_sequences4():
     # print(s1a1)
     # print(s2a1)
     algn_sol1 = [list("--AGACTAGTTACC"), list("CGAGAC--GT--C-")]
+    assert value == 0
+    assert s1a1 == algn_sol1[0]
+    assert s2a1 == algn_sol1[1]
+
+
+def test_sequences5():
+    s1 = "ATGAGT"
+    s2 = "ATGGCGT"
+    value, matrix = alignment.needleman_wunsch(s1, s2)
+    algn, s1a1, s2a1 = alignment.best_alignment(matrix, s1, s2, gap='-')
+    # print(matrix)
+    # print(algn)
+    # print(s1a1)
+    # print(s2a1)
+    algn_sol1 = [list("ATGA-GT"), list("ATGGCGT")]
+    assert value == 3
     assert s1a1 == algn_sol1[0]
     assert s2a1 == algn_sol1[1]
 
@@ -104,7 +122,7 @@ def test_sequences_blosum():
     algn_sol1 = [list('--AGACTAGTTAC'),
                  list('CGAGAC--GT---')]
     assert s1a1 == algn_sol1[0]
-    assert s2a1 == algn_sol1[1]               
+    assert s2a1 == algn_sol1[1]
 
 
 def test_substitution_function():
