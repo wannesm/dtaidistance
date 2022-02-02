@@ -10,11 +10,21 @@ Generic Dynamic Programming functions
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
+from enum import Enum
 import logging
 import numpy as np
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+
+class Direction(Enum):
+    """Define Unicode arrows we'll use in the traceback matrix."""
+    UP = "\u2191"
+    RIGHT = "\u2192"
+    DOWN = "\u2193"
+    LEFT = "\u2190"
+    DOWN_RIGHT = "\u2198"
+    UP_LEFT = "\u2196"
 
 
 def dp(s1, s2, fn, border=None, window=None, max_dist=None,
@@ -37,9 +47,10 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
     :param max_length_diff: see :meth:`distance`
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
-    :returns: (DTW distance, DTW matrix)
+    :returns: (cost, score matrix, paths matrix)
     """
     r, c = len(s1), len(s2)
+    # Set default parameters
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return np.inf
     if window is None:
@@ -52,28 +63,33 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
         penalty = 0
     if psi is None:
         psi = 0
-    dtw = np.full((r + 1, c + 1), np.inf)
+    # Init scoring matrix
+    scores = np.full((r + 1, c + 1), np.inf)
     if border:
         for ci in range(c + 1):
-            dtw[0, ci] = border(0, ci)
+            scores[0, ci] = border(0, ci)
         for ri in range(1, r + 1):
-            dtw[ri, 0] = border(ri, 0)
+            scores[ri, 0] = border(ri, 0)
     for i in range(psi + 1):
-        dtw[0, i] = 0
-        dtw[i, 0] = 0
+        scores[0, i] = 0
+        scores[i, 0] = 0
+
+    # Init traceback matrix
+    paths = np.full([r + 1, c + 1], "", dtype='<U4')
+
+    # Fill the scoring and traceback matrices
     last_under_max_dist = 0
-    i0 = 1
     i1 = 0
-    for i in range(r):
+    for i0 in range(r):
+        i1 = i0 + 1
         if last_under_max_dist == -1:
             prev_last_under_max_dist = np.inf
         else:
             prev_last_under_max_dist = last_under_max_dist
         last_under_max_dist = -1
-        i0 = i
-        i1 = i + 1
-        for j in range(max(0, i - max(0, r - c) - window + 1), min(c, i + max(0, c - r) + window)):
-            d, d_indel = fn(s1[i], s2[j])
+        for j0 in range(max(0, i0 - max(0, r - c) - window + 1), min(c, i0 + max(0, c - r) + window)):
+            j1 = j0 + 1
+            d, d_indel = fn(s1[i0], s2[j0])
             if max_step is not None:
                 if d > max_step:
                     d = np.inf
@@ -81,32 +97,37 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
                     d_indel = np.inf
                 if d > max_step and d_indel > max_step:
                     continue
-            # print(f"[{i1},{j+1}] -> [{s1[i]},{s2[j]}] -> {d},{d_indel}")
-            dtw[i1, j + 1] = min(d + dtw[i0, j],
-                                 d_indel + dtw[i0, j + 1] + penalty,
-                                 d_indel + dtw[i1, j] + penalty)
+            # print(f"[{i1},{j1}] -> [{s1[i0]},{s2[j0]}] -> {d},{d_indel}")
+            from_left_score = d_indel + scores[i1, j0] + penalty
+            from_above_score = d_indel + scores[i0, j1] + penalty
+            from_diag_score = d + scores[i0, j0]
+            scores[i1, j1] = min(from_left_score, from_above_score, from_diag_score)
+            # make note of which cell was best in the traceback array
+            if scores[i1, j1] == from_left_score:
+                paths[i1, j1] += Direction.LEFT.value
+            if scores[i1, j1] == from_above_score:
+                paths[i1, j1] += Direction.UP.value
+            if scores[i1, j1] == from_diag_score:
+                paths[i1, j1] += Direction.UP_LEFT.value
             if max_dist is not None:
-                if dtw[i1, j + 1] <= max_dist:
-                    last_under_max_dist = j
+                if scores[i1, j1] <= max_dist:
+                    last_under_max_dist = j0
                 else:
-                    dtw[i1, j + 1] = np.inf
-                    if prev_last_under_max_dist < j + 1:
+                    scores[i1, j1] = np.inf
+                    if prev_last_under_max_dist < j1:
                         break
         if max_dist is not None and last_under_max_dist == -1:
-            return np.inf, dtw
+            return np.inf, scores
     if psi == 0:
-        d = dtw[i1, min(c, c + window - 1)]
+        d = scores[i1, min(c, c + window - 1)]
     else:
-        ir = i1
-        ic = min(c, c + window - 1)
-        vr = dtw[ir-psi:ir+1, ic]
-        vc = dtw[ir, ic-psi:ic+1]
-        mir = np.argmin(vr)
-        mic = np.argmin(vc)
+        ir, ic = i1, min(c, c + window - 1)
+        vr, vc = scores[ir-psi:ir+1, ic], scores[ir, ic-psi:ic+1]
+        mir, mic = np.argmin(vr), np.argmin(vc)
         if vr[mir] < vc[mic]:
-            dtw[ir-psi+mir+1:ir+1, ic] = -1
+            scores[ir-psi+mir+1:ir+1, ic] = -1
             d = vr[mir]
         else:
-            dtw[ir, ic - psi + mic + 1:ic+1] = -1
+            scores[ir, ic-psi+mic+1:ic+1] = -1
             d = vc[mic]
-    return d, dtw
+    return d, scores, paths
