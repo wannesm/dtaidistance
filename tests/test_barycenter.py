@@ -204,7 +204,7 @@ def test_trace_kmeans():
 
 
 @numpyonly
-@scipyonly
+
 def test_trace_kmeans_differencing():
     with util_numpy.test_uses_numpy() as np, util_numpy.test_uses_scipy() as scipy:
         k = 4

@@ -29,13 +29,23 @@ def differencing(series, smooth=None):
         from scipy import signal
     except ImportError:
         raise ScipyException("Differencing requires Scipy")
-    series = np.diff(series, n=1, axis=1)
+    if isinstance(series, np.ndarray):
+        if len(series.shape) == 1:
+            axis = 0
+        else:
+            axis = 1
+    series = np.diff(series, n=1, axis=axis)
     if smooth is not None:
         fs = 100  # sample rate, Hz
         cutoff = fs * smooth  # cut off frequency, Hz
         nyq = 0.5 * fs  # Nyquist frequency
         b, a = signal.butter(2, cutoff / nyq, btype='low', analog=False, output='ba')
-        series = signal.filtfilt(b, a, series, axis=1)
+        try:
+            series = signal.filtfilt(b, a, series, axis=axis)
+        except ValueError as exc:
+            raise ValueError("Cannot apply smoothing, "
+                             "see the Scipy exception above to solve the problem "
+                             "or disable smoothing by setting smooth to None") from exc
     return series
 
 
