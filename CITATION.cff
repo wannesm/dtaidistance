@@ -1,0 +1,18 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Meert
+    given-names: Wannes
+    orcid: https://orcid.org/0000-0001-9560-3872
+  - family-names: Hendrickx
+    given-names: Kilian
+    orcid: https://orcid.org/0000-0002-7335-4542
+  - family-names: Van Craenendonck
+    given-names: Toon
+    orcid: https://orcid.org/0000-0002-2175-3293
+  - family-names: Robberechts
+    given-names: Pieter
+    orcid: https://orcid.org/0000-0002-3734-0047
+title: DTAIDistance
+version: v2.3.5
+date-released: 2017-12-18
