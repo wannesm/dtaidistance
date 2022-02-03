@@ -15,8 +15,8 @@ Documentation: http://dtaidistance.readthedocs.io
 Citing this work:
 [![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
-> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck & Pieter Robberechts. 
-> DTAIDistance (Version v2). Zenodo. 
+> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck & Pieter Robberechts.  
+> DTAIDistance (Version v2). Zenodo.  
 > http://doi.org/10.5281/zenodo.5901139
 
 **New in v2**:
