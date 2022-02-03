@@ -10,11 +10,9 @@ Sequence alignment (e.g. Needleman–Wunsch).
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
-import logging
-import math
 import numpy as np
 
-from .dp import dp
+from .dp import dp, Direction
 
 
 def needleman_wunsch(s1, s2, window=None, max_dist=None,
@@ -67,12 +65,11 @@ def needleman_wunsch(s1, s2, window=None, max_dist=None,
     """
     if substitution is None:
         substitution = _default_substitution_fn
-    value, matrix = dp(s1, s2,
+    value, scores, paths = dp(s1, s2,
                        fn=substitution, border=_needleman_wunsch_border,
                        penalty=0, window=window, max_dist=max_dist,
                        max_step=max_step, max_length_diff=max_length_diff, psi=psi)
-    matrix = -matrix
-    return value, matrix
+    return -value, -scores, paths
 
 
 def _needleman_wunsch_border(ri, ci):
@@ -140,22 +137,23 @@ def best_alignment(paths, s1=None, s2=None, gap="-", order=None):
     :param s2: Second sequence, if given the aligned sequence will be created
     :param gap: Gap symbol that is inserted into s1 and s2 to align the sequences
     :param order: Array with order of comparisons (there might be multiple optimal paths)
-        The default order is 0,1,2: (-1,-1), (-1,-0), (-0,-1)
-        For example, 1,0,2 is (-1,-0), (-1,-1), (-0,-1)
+        The default order is 0,1,2: diagonal, up, left
+        For example, 1,0,2 is up, diagonal, left
         There might be more optimal paths than covered by these orderings. For example,
         when using combinations of these orderings in different parts of the matrix.
     """
     i, j = int(paths.shape[0] - 1), int(paths.shape[1] - 1)
     p = [(i - 1, j - 1)]
     ops = [(-1,-1), (-1,-0), (-0,-1)]
+    op_chars = [Direction.UP_LEFT.value, Direction.UP.value, Direction.LEFT.value]
     if order is None:
         order = [0, 1, 2]
     while i > 0 and j > 0:
-        prev_vals = [paths[i + ops[orderi][0], j + ops[orderi][1]] for orderi in order]
-        # c = np.argmax([paths[i - 1, j - 1], paths[i - 1, j], paths[i, j - 1]])
-        c = int(np.argmax(prev_vals))
-        # print(f"{i},{j}: {prev_vals} -> {c} ({ops[order[c]]})")
-        opi, opj = ops[order[c]]
+        opi, opj = next(
+            ops[orderi]
+            for orderi in order
+            if op_chars[orderi] in paths[i, j]
+        )
         i, j = i + opi, j + opj
         p.append((i - 1, j - 1))
     while i > 0:
