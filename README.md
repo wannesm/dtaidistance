@@ -1,6 +1,7 @@
 [![PyPi Version](https://img.shields.io/pypi/v/dtaidistance.svg)](https://pypi.org/project/dtaidistance/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/dtaidistance.svg)](https://anaconda.org/conda-forge/dtaidistance)
 [![Documentation Status](https://readthedocs.org/projects/dtaidistance/badge/?version=latest)](https://dtaidistance.readthedocs.io/en/latest/?badge=latest)
+[![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246) 
 
 # Time Series Distances
 
@@ -13,7 +14,6 @@ implemented to avoid unnecessary data copy operations.
 Documentation: http://dtaidistance.readthedocs.io
 
 Citing this work:
-[![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
 
 > Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck & Pieter Robberechts.  
 > DTAIDistance (Version v2). Zenodo.  
