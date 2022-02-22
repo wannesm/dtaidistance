@@ -216,6 +216,9 @@ def distance(s1, s2,
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
     :param psi: Psi relaxation parameter (ignore start and end of matching).
+        If psi is a single integer, it is used for both start and end relaxations of both series.
+        If psi is a 4-tuple, it is used as the psi-relaxation for
+         (begin series1, end series1, begin series2, end series2)
         Useful for cyclical series.
     :param use_c: Use fast pure c compiled functions
     :param use_pruning: Prune values based on Euclidean distance.
