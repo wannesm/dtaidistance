@@ -338,10 +338,6 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 
 
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
-    return warping_paths_ndim(dtw, s1, s2, psi_neg, 1, **kwargs)
-
-
-def warping_paths_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, ndim=1, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     dtw_length = dtw.shape[0] * dtw.shape[1]
@@ -359,21 +355,40 @@ def warping_paths_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_ne
             print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
             raise exc
     cdef double [:, :] wps_view = wps
-    # cdef array.array wps = array.array('d', [0] * dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
-    # cdef array.array wps = array.array('d')
-    # array.resize(wps, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
-    # wps.data.as_doubles
     cdef double d
-    # print(wps)
-    # print(settings)
-    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                                 True, True, psi_neg, ndim, &settings._settings)
-    # print('---')
-    # print(wps)
-    # print('---')
+    d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                            True, True, psi_neg, &settings._settings)
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
         dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
-    # print("end dtw_cc warping_paths")
+    return d
+
+
+def warping_paths_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s2, bint psi_neg=False, **kwargs):
+    ndim = s1.shape[1]
+    if s1.shape[1] != s2.shape[1]:
+        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    dtw_length = dtw.shape[0] * dtw.shape[1]
+    req_length = dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings)
+    req_width = dtaidistancec_dtw.dtw_settings_wps_width(len(s1), len(s2), &settings._settings)
+    shape = (1, req_length)
+    if req_length == dtw_length and req_width == dtw.shape[1]:
+        # No compact WPS array is required
+        wps = dtw
+    else:
+        try:
+            # Use cython.view.array to avoid numpy dependency
+            wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
+        except MemoryError as exc:
+            print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
+            raise exc
+    cdef double [:, :] wps_view = wps
+    cdef double d
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0,0], len(s1), &s2[0,0], len(s2),
+                                                 True, True, psi_neg, ndim, &settings._settings)
+    if not (req_length == dtw_length and req_width == dtw.shape[1]):
+        dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
     return d
 
 
@@ -386,11 +401,14 @@ def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, bint psi
     return d
 
 
-def warping_paths_compact_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, int ndim=1, **kwargs):
+def warping_paths_compact_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s2, bint psi_neg=False, **kwargs):
+    if s1.shape[1] != s2.shape[1]:
+        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+    ndim = s1.shape[1]
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef double d
-    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0, 0], len(s1), &s2[0, 0], len(s2),
                                                  True, True, psi_neg, ndim, &settings._settings)
     return d
 

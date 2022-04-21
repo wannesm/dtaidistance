@@ -535,10 +535,6 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
-    if use_ndim:
-        ndim = len(s1[0])
-    else:
-        ndim = 1
     if window is None:
         window = 0
     if use_pruning:
@@ -564,11 +560,17 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
         wps_compact = np.full((len(s1)+1, wps_width), inf)
-        d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, ndim, **settings_kwargs)
+        if use_ndim:
+            d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, **settings_kwargs)
+        else:
+            d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings_kwargs)
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
-    d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, ndim, **settings_kwargs)
+    if use_ndim:
+        d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, **settings_kwargs)
+    else:
+        d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings_kwargs)
     return d, dtw
 
 
