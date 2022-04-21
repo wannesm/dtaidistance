@@ -106,6 +106,20 @@ def test_dtw_subseq_bug1():
 
 
 @numpyonly
+def test_dtw_subseq_ndim():
+    use_c = False
+    with util_numpy.test_uses_numpy() as np:
+        # s1 = np.array([1., 2, 3,1])
+        # query = np.array([2.0, 3.1])
+        s1 = np.array([[1., 1], [2, 2], [3, 3], [1, 1]])
+        query = np.array([[2.0, 2.1], [3.1, 3.0]])
+        sa = subsequence_alignment(query, s1, use_c=use_c)
+        m = sa.best_match()
+        assert m.segment == [1, 2]
+        assert m.value == pytest.approx(0.07071067811865482)
+
+
+@numpyonly
 def test_dtw_localconcurrences_eeg():
     with util_numpy.test_uses_numpy() as np:
         data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
@@ -264,7 +278,8 @@ if __name__ == "__main__":
         np.set_printoptions(precision=6, linewidth=120)
         # test_dtw_subseq1()
         # test_dtw_subseq_eeg()
-        test_dtw_subseq_bug1()
+        # test_dtw_subseq_bug1()
+        test_dtw_subseq_ndim()
         # test_dtw_localconcurrences_eeg()
         # test_dtw_subseqsearch_eeg()
         # test_dtw_localconcurrences_short()

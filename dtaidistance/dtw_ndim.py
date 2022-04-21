@@ -280,6 +280,16 @@ def warping_paths(*args, **kwargs):
     """
     return dtw.warping_paths(*args, use_ndim=True, **kwargs)
 
+
+def warping_paths_fast(*args, **kwargs):
+    """
+    Dynamic Time Warping (keep full matrix) using multidimensional sequences.
+
+    See :py:meth:`dtaidistance.dtw.warping_paths` for parameters.
+    """
+    return dtw.warping_paths_fast(*args, use_ndim=True, **kwargs)
+
+
 def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])
 

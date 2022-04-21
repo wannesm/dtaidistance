@@ -122,12 +122,20 @@ class SubsequenceAlignment:
         if self.matching is not None:
             return
         psi = [0, 0, len(self.series), len(self.series)]
-        if not self.use_c:
-            _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
-                                              psi_neg=False)
+        if np is not None and isinstance(self.series, np.ndarray) and len(self.series.shape) > 1:
+            if not self.use_c:
+                _, self.paths = dtw_ndim.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                       psi_neg=False)
+            else:
+                _, self.paths = dtw_ndim.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                            compact=False, psi_neg=False)
         else:
-            _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                   compact=False, psi_neg=False)
+            if not self.use_c:
+                _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                  psi_neg=False)
+            else:
+                _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                       compact=False, psi_neg=False)
         self._compute_matching()
 
     def align_fast(self):
