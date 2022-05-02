@@ -16,6 +16,7 @@ import array
 import random
 
 from .dtw import warping_path, distance_matrix
+from . import dtw_ndim
 from . import ed
 from . import util
 from . import util_numpy
@@ -86,6 +87,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     if np is None:
         raise NumpyException('The method dba_loop requires Numpy to be available')
     s = SeriesContainer.wrap(s)
+    ndim = s.detected_ndim
     avg = None
     avgs = None
     if keep_averages:
@@ -129,10 +131,10 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         if use_c:
             assert(c is not None)
             c_copy = c.copy()  # The C code reuses this array
-            dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
+            dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, ndim=ndim, **kwargs)
             avg = c_copy
         else:
-            if not use_c:
+            if not nb_prob_samples:
                 avg = dba(s, c, mask=mask, use_c=use_c, **kwargs)
             else:
                 avg = dba(s, c, mask=mask, nb_prob_samples=nb_prob_samples, use_c=use_c, **kwargs)
@@ -177,6 +179,7 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         # TODO
         raise Exception("Prob sampling for DBA not yet implemented for Python")
     s = SeriesContainer.wrap(s)
+    ndim = s.detected_ndim
     if mask is not None and not mask.any():
         # Mask has not selected any series
         print("Empty mask, returning zero-constant average")
@@ -198,9 +201,11 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         if mask is not None and not mask[idx]:
             continue
         if use_c:
-            m = dtw_cc.warping_path(c, seq, **kwargs)
-        else:
+            m = dtw_cc.warping_path(c, seq, ndim, **kwargs)
+        elif ndim == 1:
             m = warping_path(c, seq, **kwargs)
+        else:
+            m = dtw_ndim.warping_path(c, seq, **kwargs)
         for i, j in m:
             assoctab[i].append(seq[j])
     cp = array.array('d', [0] * t)

@@ -413,7 +413,7 @@ def warping_paths_compact_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s
     return d
 
 
-def warping_path(double[:] s1, double[:] s2, **kwargs):
+def warping_path(double[:] s1, double[:] s2, int ndim=1, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -424,7 +424,10 @@ def warping_path(double[:] s1, double[:] s2, **kwargs):
     if not i2:
         raise MemoryError()
     try:
-        path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        if ndim == 1:
+            path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        else:
+            path_length = dtaidistancec_dtw.warping_path_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2, ndim, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -599,7 +602,7 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     return length
 
 
-def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
+def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, int ndim, **kwargs):
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesPointers ptrs
     cdef double *c_ptr = &c[0];
@@ -618,11 +621,11 @@ def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
         ptrs = cur
         dtaidistancec_dtw.dtw_dba_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
         matrix_ptr = &matrix._data[0,0]
         dtaidistancec_dtw.dtw_dba_matrix(
             matrix_ptr, matrix.nb_rows, matrix.nb_cols,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
+            c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, &settings._settings)
     return c

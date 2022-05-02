@@ -450,3 +450,10 @@ def distance_matrix_fast(s, ndim, max_dist=None, max_length_diff=None,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
                            use_c=True, show_progress=False, only_triu=only_triu)
+
+
+def warping_path(from_s, to_s, **kwargs):
+    """Compute warping path between two sequences."""
+    dist, paths = warping_paths(from_s, to_s, **kwargs)
+    path = dtw.best_path(paths)
+    return path

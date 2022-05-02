@@ -114,18 +114,25 @@ class SeriesContainer:
             if self.series.ndim > 2:
                 if not self.support_ndim:
                     raise Exception(f'N-dimensional series are not supported '
-                                    f'(series.ndim = {self.series.ndim})')
-                else:
-                    self.detected_ndim = True
-        elif type(series) == set or type(series) == tuple or type(series) == list:
+                                    f'(series.ndim = {self.series.ndim}) > 2')
+                self.detected_ndim = len(self.series[0, 0])
+            else:
+                self.detected_ndim = 1
+        elif type(series) in [set, tuple, list]:
             self.series = list(series)
             if np is not None and isinstance(self.series[0], np.ndarray):
                 if self.series[0].ndim > 1:
                     if not self.support_ndim:
                         raise Exception(f'N-dimensional series are not supported '
-                                        f'(series[0].ndim = {self.series[0].ndim})')
-                    else:
-                        self.detected_ndim = True
+                                        f'(series[0].ndim = {self.series[0].ndim}) > 1')
+                    self.detected_ndim = len(self.series[0][0])
+                else:
+                    self.detected_ndim = 1
+            elif type(series[0]) in [list, tuple]:
+                if type(series[0][0]) in [list, tuple]:
+                    self.detected_ndim = len(self.series[0][0])
+                else:
+                    self.detected_ndim = 1
         else:
             self.series = series
 
