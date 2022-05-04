@@ -24,8 +24,10 @@ except ImportError:
     numpy = None
 
 try:
+    import Cython
     from Cython.Build import cythonize
 except ImportError:
+    Cython = None
     cythonize = None
 
 here = Path(__file__).parent
@@ -165,7 +167,6 @@ def set_custom_envvars_for_homebrew():
     #     print("CFLAGS={}".format(os.environ.get("CPLAGS", "")))
     #     print("LDFLAGS={}".format(os.environ.get("LDFLAGS", "")))
 
-
 class MyBuildExtCommand(BuildExtCommand):
 
     def build_extensions(self):
@@ -175,17 +176,45 @@ class MyBuildExtCommand(BuildExtCommand):
         to set the openmp compiler flags as part of the setup.py file:
         https://cython.readthedocs.io/en/latest/src/userguide/parallelism.html#compiling
         """
+        try:
+            fp = open(os.path.join(self.build_lib, 'dtaidistance', 'compilation.log'), 'w')
+        except Exception as exc:
+            print('Could not open compilation.log file')
+            print(exc)
+            fp = None
+
+        def print2(*args, **kwargs):
+            """Print to terminal and to log file."""
+            print(*args, **kwargs)
+            if fp is not None:
+                print(*args, file=fp, **kwargs)
+
         c = self.compiler.compiler_type
-        # Custom for homebrew
-        print("Compiler type: {}".format(c))
-        print("--noopenmp: {}".format(self.distribution.noopenmp))
-        print("--forceopenmp: {}".format(self.distribution.forceopenmp))
-        print("--noxpreprocessor: {}".format(self.distribution.noxpreprocessor))
-        print("--forcellvm: {}".format(self.distribution.forcellvm))
-        print("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
+        print2("Compiler type: {}".format(c))
+        print2("--noopenmp: {}".format(self.distribution.noopenmp))
+        print2("--forceopenmp: {}".format(self.distribution.forceopenmp))
+        print2("--noxpreprocessor: {}".format(self.distribution.noxpreprocessor))
+        print2("--forcellvm: {}".format(self.distribution.forcellvm))
+        print2("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
+
+        # Check cython information
+        if Cython is None:
+            print2("Cython package not found")
+        else:
+            print2("Cython found (during compilation)")
+            print2("- Version: {}".format(Cython.__version__))
+            print2("- Locations: {}".format(Cython))
+
+        # Check numpy information
+        if numpy is None:
+            print2("Numpy package not found")
+        else:
+            print2("Numpy found (during compilation):")
+            print2("- Version: {}".format(numpy.__version__))
+            print2("- Location: {}".format(numpy))
 
         if c == "unix" and "cc" in self.compiler.compiler[0]:
-            gcc_is_clang = check_clang(self.compiler.compiler[0])
+            gcc_is_clang = check_clang(self.compiler.compiler[0], printfn=print2)
         else:
             gcc_is_clang = False
 
@@ -199,23 +228,24 @@ class MyBuildExtCommand(BuildExtCommand):
             # macOS:
             # http://blog.llvm.org/2015/05/openmp-support_22.html
             # https://www.mathworks.com/help/coder/ug/install-openmp-library-on-macos-platform.html
-            print('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
+            print2('Using LLVM settings ({})'.format(self.compiler.compiler[0]))
             c = 'llvm'
         elif self.distribution.forcegnugcc or \
                 (c == "unix" and (("gcc" in self.compiler.compiler[0]) or
                                   ("gnu-cc" in self.compiler.compiler[0]))):
-            print('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
+            print2('Using GNU GCC settings ({})'.format(self.compiler.compiler[0]))
             c = 'gnugcc'
 
         if self.distribution.noopenmp == 0 and self.distribution.forceopenmp == 0:
             try:
-                check_result = check_openmp(self.compiler.compiler[0], self.distribution.noxpreprocessor)
+                check_result = check_openmp(self.compiler.compiler[0], self.distribution.noxpreprocessor,
+                                            printfn=print2)
             except Exception as exc:
-                print("WARNING: Cannot check for OpenMP, assuming to be available")
-                print(exc)
+                print2("WARNING: Cannot check for OpenMP, assuming to be available")
+                print2(exc)
                 check_result = True  # Assume to be present by default
             if not check_result:
-                print("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
+                print2("WARNING: OpenMP is not available, disabling OpenMP (no parallel computing in C)")
                 self.distribution.noopenmp = 1
                 # Not removing the dtw_cc_omp extension, this will be compiled but
                 # without any real functionality except is_openmp_supported()
@@ -229,7 +259,7 @@ class MyBuildExtCommand(BuildExtCommand):
             for e in self.extensions:
                 e.extra_compile_args = args
         else:
-            print("Unknown compiler type: {}".format(c))
+            print2("Unknown compiler type: {}".format(c))
         if c in l_args:
             if self.distribution.noopenmp == 1:
                 args = [arg for arg in l_args[c] if arg not in ['-Xpreprocessor', '-fopenmp', '-lomp']]
@@ -240,11 +270,18 @@ class MyBuildExtCommand(BuildExtCommand):
             for e in self.extensions:
                 e.extra_link_args = args
         else:
-            print("Unknown linker type: {}".format(c))
+            print2("Unknown linker type: {}".format(c))
         if numpy is None:
             self.extensions = [arg for arg in self.extensions if "numpy" not in str(arg)]
-        print(f'All extensions:')
-        print(self.extensions)
+        print2(f'All extensions:')
+        print2(self.extensions)
+        if fp is not None:
+            try:
+                fp.close()
+            except Exception as exc:
+                print('Could not close compilation.log')
+                print(exc)
+
         BuildExtCommand.build_extensions(self)
 
     def initialize_options(self):
@@ -264,30 +301,30 @@ class MyBuildExtInPlaceCommand(MyBuildExtCommand):
         self.inplace = True
 
 
-def check_clang(cc_bin):
+def check_clang(cc_bin, printfn=print):
     """Check if gcc is really an xcrun to clang"""
-    print("Checking if {} redirects to clang".format(cc_bin))
+    printfn("Checking if {} redirects to clang".format(cc_bin))
     args = [[str(cc_bin), "--version"]]
     kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
-    print(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+    printfn(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     try:
         p = sp.run(*args, **kwargs)
-        print(p.stderr)
+        printfn(p.stderr)
         defs = p.stdout.splitlines()
         for curdef in defs:
             if "clang" in curdef:
-                print(curdef)
-                print("... found clang")
+                printfn(curdef)
+                printfn("... found clang")
                 return True
     except Exception:
-        print("... no clang")
+        printfn("... no clang")
         return False
     return False
 
 
-def check_openmp(cc_bin, noxpreprocessor):
+def check_openmp(cc_bin, noxpreprocessor, printfn=print):
     """Check if OpenMP is available"""
-    print("Checking for OpenMP availability for {}".format(cc_bin))
+    printfn("Checking for OpenMP availability for {}".format(cc_bin))
     cc_binname = os.path.basename(cc_bin)
     args = None
     kwargs = None
@@ -297,22 +334,22 @@ def check_openmp(cc_bin, noxpreprocessor):
         else:
             args = [[str(cc_bin), "-dM", "-E", "-fopenmp", "-"]]
         kwargs = {"stdout": sp.PIPE, "stderr": sp.PIPE, "input": '', "encoding": 'ascii'}
-        print(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
+        printfn(" ".join(args[0]) + " # with " + ", ".join(str(k) + "=" + str(v) for k, v in kwargs.items()))
     if args is not None:
         try:
             p = sp.run(*args, **kwargs)
-            print(p.stderr)
+            printfn(p.stderr)
             defs = p.stdout.splitlines()
             for curdef in defs:
                 if "_OPENMP" in curdef:
-                    print(curdef)
-                    print("... found OpenMP")
+                    printfn(curdef)
+                    printfn("... found OpenMP")
                     return True
         except Exception:
-            print("... no OpenMP")
+            printfn("... no OpenMP")
             return False
     else:
-        print("... do not know how to check for OpenMP (unknown CC), assume to be available")
+        printfn("... do not know how to check for OpenMP (unknown CC), assume to be available")
         return True
     return False
 
