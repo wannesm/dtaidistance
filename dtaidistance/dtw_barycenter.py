@@ -143,8 +143,12 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         if thr is not None and c is not None:
             diff = 0
             # diff = np.sum(np.subtract(avg, c))
-            for av, cv in zip(avg, c):
-                diff += abs(av - cv)
+            if ndim == 1:
+                for av, cv in zip(avg, c):
+                    diff += abs(av - cv)
+            else:
+                for av, cv in zip(avg, c):
+                    diff += max(abs(av[d] - cv[d]) for d in range(ndim))
             diff /= len(avg)
             if diff <= thr:
                 logger.debug(f'DBA converged at {it} iterations (avg diff={diff}).')
@@ -208,7 +212,12 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
             m = dtw_ndim.warping_path(c, seq, **kwargs)
         for i, j in m:
             assoctab[i].append(seq[j])
-    cp = array.array('d', [0] * t)
+    # cp = array.array('d', [0] * t)
+    if ndim == 1:
+        shape = (t,)
+    else:
+        shape = (t, ndim)
+    cp = np.zeros(shape, dtype=np.double)
     for i, values in enumerate(assoctab):
         if len(values) == 0:
             print('WARNING: zero values in assoctab')
@@ -216,5 +225,9 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
             for seq in s:
                 print(seq)
             print(assoctab)
-        cp[i] = sum(values) / len(values)  # barycenter
+        if ndim == 1:
+            cp[i] = sum(values) / len(values)  # barycenter
+        else:
+            for d in range(ndim):
+                cp[i, d] = sum([value[d] for value in values]) / len(values)
     return cp

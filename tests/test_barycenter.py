@@ -347,6 +347,33 @@ def test_nparray_kmeans():
             plt.close()
 
 
+@numpyonly
+def test_ndim_barycenter():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        result = dba_loop(series)
+        print(result)
+
+
+@numpyonly
+def test_ndim_barycenter2():
+    with util_numpy.test_uses_numpy() as np:
+        series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
+                  np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
+        result = dba_loop(series)
+        print(result)
+
+
 @pytest.mark.skip("Not yet implemented")
 @numpyonly
 def test_ndim_kmeans():
@@ -354,13 +381,37 @@ def test_ndim_kmeans():
         k = 4
         max_it = 10
         max_dba_it = 20
-        # series = np.array(
-        #     [[[0., 0], [1, 2], [1, 0], [1, 0]],
-        #      [[0., 1], [2, 0], [0, 0], [0, 0]],
-        #      [[1., 2], [0, 0], [0, 0], [0, 1]],
-        #      [[0., 0], [1, 2], [1, 0], [1, 0]],
-        #      [[0., 1], [2, 0], [0, 0], [0, 0]],
-        #      [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        print(type(series))
+        # print(series.shape)
+        # window = int(series.shape[1] * 1.0)
+        window = None
+        print(f'window={window}')
+
+        # Perform k-means
+        tic = time.perf_counter()
+        model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
+                       dists_options={"window": window},
+                       initialize_with_kmedoids=False,
+                       initialize_with_kmeanspp=False)
+        cluster_idx, performed_it = model.fit(series, use_c=False, use_parallel=False)
+        toc = time.perf_counter()
+        print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+
+
+@pytest.mark.skip("Not yet implemented")
+@numpyonly
+def test_ndim_kmeans2():
+    with util_numpy.test_uses_numpy() as np:
+        k = 4
+        max_it = 10
+        max_dba_it = 20
         series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
              np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
              np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
@@ -383,16 +434,18 @@ def test_ndim_kmeans():
         toc = time.perf_counter()
         print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
 
-
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_pair()
-    test_trace()
+    # test_trace()
     # test_trace_mask()
     # test_trace_kmeans()
     # test_trace_kmeans_differencing()
     # test_nparray_kmeans()
+    # test_ndim_barycenter()
+    # test_ndim_barycenter2()
     # test_ndim_kmeans()
+    # test_ndim_kmeans2()
