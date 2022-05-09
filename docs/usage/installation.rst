@@ -28,12 +28,18 @@ section below.
 
 **Troubleshooting**:
 
-If the C-library is not available after compilation you can try the following two strategies
+If the C-library is not available after compilation you can try the following steps
 to identify the problem:
 
-1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the exception message(s).
+1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the status of the package.
 2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance``
    and inspect the output.
+3. If it still does not work (or you have an older version of Numpy installed), perform the compilation
+   based on your current installation instead of in a clean, isolated environment (the default choice
+   for package managers like pip):
+   ``pip install -v --upgrade --force-reinstall --no-deps --no-build-isolation --no-binary dtaidistance dtaidistance``
+
+**Troubleshootimg (OMP)**:
 
 If the OMP library is not detected during compilation, parallel execution in c is not available.
 If OMP is installed but not found, there is probably an issue with the options given to the
