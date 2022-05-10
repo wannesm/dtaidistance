@@ -411,8 +411,13 @@ def test_ndim_barycenter2():
                   np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
                   np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
                   np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
-        result = dba_loop(series)
-        print(result)
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [1., 0.],
+                               [0.2, 0.2]])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
 
 
 @pytest.mark.skip("Not yet implemented")
@@ -488,7 +493,7 @@ if __name__ == "__main__":
     # test_nparray_kmeans()
     # test_barycenter()
     # test_ndim_barycenter_single()
-    test_ndim_barycenter()
-    # test_ndim_barycenter2()
+    # test_ndim_barycenter()
+    test_ndim_barycenter2()
     # test_ndim_kmeans()
     # test_ndim_kmeans2()
