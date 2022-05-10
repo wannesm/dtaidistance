@@ -15,6 +15,7 @@ from cython import Py_ssize_t
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdint cimport intptr_t
+from libc.stdio cimport printf
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport dtaidistancec_dtw
@@ -413,7 +414,7 @@ def warping_paths_compact_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s
     return d
 
 
-def warping_path(double[:] s1, double[:] s2, int ndim=1, **kwargs):
+def warping_path(double[:] s1, double[:] s2, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -424,10 +425,29 @@ def warping_path(double[:] s1, double[:] s2, int ndim=1, **kwargs):
     if not i2:
         raise MemoryError()
     try:
-        if ndim == 1:
-            path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
-        else:
-            path_length = dtaidistancec_dtw.warping_path_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2, ndim, &settings._settings)
+        path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        path = []
+        for i in range(path_length):
+            path.append((i1[i], i2[i]))
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
+
+
+def warping_path_ndim(double[:, :] s1, double[:, :] s2, int ndim=1, **kwargs):
+    # Assumes C contiguous
+    cdef Py_ssize_t path_length;
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        path_length = dtaidistancec_dtw.warping_path_ndim(&s1[0, 0], len(s1), &s2[0, 0], len(s2), i1, i2, ndim, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -602,14 +622,27 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     return length
 
 
-def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, int ndim, **kwargs):
-    cdef DTWSeriesMatrix matrix
-    cdef DTWSeriesPointers ptrs
+def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
     cdef double *c_ptr = &c[0];
-    cdef double *matrix_ptr;
     cdef unsigned char *mask_ptr = &mask[0];
     settings = DTWSettings(**kwargs)
+    dba_inner(cur, c_ptr, len(c), mask_ptr, nb_prob_samples, 1, settings)
+    return c
 
+
+def dba_ndim(cur, double[:, :] c, unsigned char[:] mask, int nb_prob_samples, int ndim, **kwargs):
+    cdef double *c_ptr = &c[0, 0];
+    cdef unsigned char *mask_ptr = &mask[0];
+    settings = DTWSettings(**kwargs)
+    dba_inner(cur, c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, settings)
+    return c
+
+
+cdef dba_inner(cur, double *c_ptr, Py_ssize_t c_len, unsigned char *mask_ptr, int nb_prob_samples, int ndim, DTWSettings settings):
+    cdef double *matrix_ptr;
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesMatrixNDim matrix_ndim
+    cdef DTWSeriesPointers ptrs
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
@@ -621,11 +654,19 @@ def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, int ndim, 
         ptrs = cur
         dtaidistancec_dtw.dtw_dba_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, &settings._settings)
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
-        matrix_ptr = &matrix._data[0,0]
+        matrix_ptr = &matrix._data[0, 0]
         dtaidistancec_dtw.dtw_dba_matrix(
             matrix_ptr, matrix.nb_rows, matrix.nb_cols,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, &settings._settings)
-    return c
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrixNDim):
+        matrix_ndim = cur
+        matrix_ptr = &matrix_ndim._data[0, 0, 0]
+        dtaidistancec_dtw.dtw_dba_matrix(
+            matrix_ptr, matrix_ndim.nb_rows, matrix_ndim.nb_cols,
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
+    else:
+        raise ValueError(f"Series are not the expected type (DTWSeriesPointers, DTWSeriesMatrix "
+                         f"or DTWSeriesMatrixNDim): {type(cur)}")

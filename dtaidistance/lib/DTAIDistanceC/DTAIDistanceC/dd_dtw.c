@@ -164,12 +164,13 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         //     printf("Stop computing DTW...\n");
         //     return INFINITY;
         // }
-        maxj = i;
-        if (maxj > dl_window) {
-            maxj -= dl_window;
-        } else {
-            maxj = 0;
-        }
+//        maxj = i;
+//        if (maxj > dl_window) {
+//            maxj -= dl_window;
+//        } else {
+//            maxj = 0;
+//        }
+        maxj = (i - dl_window) * (i > dl_window);
         // No risk for overflow/modulo because we also need to store dtw of size
         // MIN(l2+1, ldiff + 2*window + 1) ?
         minj = i + ldiff_window;
@@ -184,9 +185,10 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         for (j=0; j<length; j++) {
             dtw[length * i1 + j] = INFINITY;
         }
-        if (length == l2 + 1) {
-            skip = 0;
-        }
+//        if (length == l2 + 1) {
+//            skip = 0;
+//        }
+        skip = skip * (length != l2 + 1);
         // PrunedDTW
         if (sc > maxj) {
             #ifdef DTWDEBUG
@@ -1867,7 +1869,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
                 path_length = dtw_best_path(wps, ci, mi, t, lengths[r], settings);
                 for (pi=0; pi<path_length; pi++) {
                     for (di=0; di<ndim; di++) {
-                        assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                        assoctab[ci[pi]*ndim+di] += sequence[mi[pi]*ndim+di];
                     }
                     assoctab_cnt[ci[pi]] += 1;
                 }
@@ -1883,7 +1885,7 @@ void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
                     path_length = dtw_best_path_prob(wps, ci, mi, t, lengths[r], avg_step, settings);
                     for (pi=0; pi<path_length; pi++) {
                         for (di=0; di<ndim; di++) {
-                            assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                            assoctab[ci[pi]*ndim+di] += sequence[mi[pi]*ndim+di];
                         }
                         assoctab_cnt[ci[pi]] += 1;
                     }
@@ -1955,23 +1957,22 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
         for (idx_t r=0; r<nb_rows; r++) {
             sequence = &matrix[r_idx];
             if (bit_test(mask, r)) {
-                // warping_path(c, t, sequence, nb_cols, ci, mi, settings);
                 dtw_warping_paths_ndim(wps, c, t, sequence, nb_cols, false, false, true, ndim, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, nb_cols, settings);
-//                printf("best_path = [");
+//                printf("best_path(%zu/%zu) = [", r+1, nb_rows);
 //                for (idx_t i=0; i<path_length; i++) {
-//                    printf("(%zu,%zu)", ci[i], mi[i]);
+//                    printf(" %zu:(%zu,%zu)", i, ci[i], mi[i]);
 //                }
 //                printf("]\n");
                 for (pi=0; pi<path_length; pi++) {
                     for (di=0; di<ndim; di++) {
-                        assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                        assoctab[ci[pi]*ndim+di] += sequence[mi[pi]*ndim+di];
                     }
                     assoctab_cnt[ci[pi]] += 1;
 //                    printf("[%zu] = [%zu] += %f\n", ci[pi], mi[pi], sequence[mi[pi]]);
                 }
             }
-            r_idx += nb_cols;
+            r_idx += nb_cols*ndim;
         }
     } else {
         for (idx_t r=0; r<nb_rows; r++) {
@@ -1988,13 +1989,13 @@ void dtw_dba_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols,
 //                    printf("]\n");
                     for (pi=0; pi<path_length; pi++) {
                         for (di=0; di<ndim; di++) {
-                            assoctab[ci[pi*ndim+di]] += sequence[mi[pi*ndim+di]];
+                            assoctab[ci[pi]*ndim+di] += sequence[mi[pi]*ndim+di];
                         }
                         assoctab_cnt[ci[pi]] += 1;
                     }
                 }
             }
-            r_idx += nb_cols;
+            r_idx += nb_cols*ndim;
         }
     }
 

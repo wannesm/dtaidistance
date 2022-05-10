@@ -9,7 +9,7 @@ from dtaidistance import dtw_barycenter, util_numpy
 import dtaidistance.dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException, PyClusteringException
 from dtaidistance.clustering.kmeans import KMeans
-from dtaidistance.dtw_barycenter import dba_loop
+from dtaidistance.dtw_barycenter import dba_loop, dba
 from dtaidistance.preprocessing import differencing
 
 
@@ -348,6 +348,42 @@ def test_nparray_kmeans():
 
 
 @numpyonly
+def test_barycenter():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array(
+            [[0., 1, 1, 1],
+             [0., 2, 0, 0],
+             [1., 0, 0, 0],
+             [0., 1, 1, 1],
+             [0., 2, 0, 0],
+             [1., 0, 0, 0]])
+        exp_result = np.array([0.33333333, 1.33333333, 0.25, 0.33333333])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            print(result)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+
+@numpyonly
+def test_ndim_barycenter_single():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        c = np.array([[0., 0], [1, 2], [1, 0], [1, 0]])
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [0.6, 0.],
+                               [0.33333333, 0.33333333]])
+        for use_c in [False, True]:
+            result = dba(series, c, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+@numpyonly
 def test_ndim_barycenter():
     with util_numpy.test_uses_numpy() as np:
         series = np.array(
@@ -357,8 +393,13 @@ def test_ndim_barycenter():
              [[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
              [[1., 2], [0, 0], [0, 0], [0, 1]]])
-        result = dba_loop(series)
-        print(result)
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [1., 0.],
+                               [0.2, 0.2]])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
 
 
 @numpyonly
@@ -445,7 +486,9 @@ if __name__ == "__main__":
     # test_trace_kmeans()
     # test_trace_kmeans_differencing()
     # test_nparray_kmeans()
-    # test_ndim_barycenter()
+    # test_barycenter()
+    # test_ndim_barycenter_single()
+    test_ndim_barycenter()
     # test_ndim_barycenter2()
     # test_ndim_kmeans()
     # test_ndim_kmeans2()

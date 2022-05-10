@@ -131,7 +131,13 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         if use_c:
             assert(c is not None)
             c_copy = c.copy()  # The C code reuses this array
-            dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, ndim=ndim, **kwargs)
+            # c_copy = c.flatten()
+            if ndim == 1:
+                dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
+                # avg = c_copy
+            else:
+                dtw_cc.dba_ndim(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, ndim=ndim, **kwargs)
+                # avg = c_copy.reshape(-1, ndim)
             avg = c_copy
         else:
             if not nb_prob_samples:
@@ -205,11 +211,15 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         if mask is not None and not mask[idx]:
             continue
         if use_c:
-            m = dtw_cc.warping_path(c, seq, ndim, **kwargs)
-        elif ndim == 1:
-            m = warping_path(c, seq, **kwargs)
+            if ndim == 1:
+                m = dtw_cc.warping_path(c, seq, **kwargs)
+            else:
+                m = dtw_cc.warping_path_ndim(c, seq, ndim, **kwargs)
         else:
-            m = dtw_ndim.warping_path(c, seq, **kwargs)
+            if ndim == 1:
+                m = warping_path(c, seq, **kwargs)
+            else:
+                m = dtw_ndim.warping_path(c, seq, **kwargs)
         for i, j in m:
             assoctab[i].append(seq[j])
     # cp = array.array('d', [0] * t)
