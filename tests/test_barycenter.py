@@ -3,6 +3,7 @@ import sys
 import time
 import pytest
 import logging
+import random
 from pathlib import Path
 
 from dtaidistance import dtw_barycenter, util_numpy
@@ -420,11 +421,12 @@ def test_ndim_barycenter2():
             np.testing.assert_array_almost_equal(result, exp_result)
 
 
-@pytest.mark.skip("Not yet implemented")
 @numpyonly
 def test_ndim_kmeans():
     with util_numpy.test_uses_numpy() as np:
-        k = 4
+        random.seed(3980)
+        np.random.seed(3980)
+        k = 2
         max_it = 10
         max_dba_it = 20
         series = np.array(
@@ -434,12 +436,7 @@ def test_ndim_kmeans():
              [[0., 0], [1, 2], [1, 0], [1, 0]],
              [[0., 1], [2, 0], [0, 0], [0, 0]],
              [[1., 2], [0, 0], [0, 0], [0, 1]]])
-        print(type(series))
-        # print(series.shape)
-        # window = int(series.shape[1] * 1.0)
         window = None
-        print(f'window={window}')
-
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
@@ -448,28 +445,29 @@ def test_ndim_kmeans():
                        initialize_with_kmeanspp=False)
         cluster_idx, performed_it = model.fit(series, use_c=False, use_parallel=False)
         toc = time.perf_counter()
-        print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        # for ki in range(k):
+        #     print(f'Cluster {ki+1}: {model.cluster_idx[ki]}')
+        #     print(model.means[ki])
+        assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
+        assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
 
 
-@pytest.mark.skip("Not yet implemented")
 @numpyonly
 def test_ndim_kmeans2():
     with util_numpy.test_uses_numpy() as np:
-        k = 4
+        random.seed(3980)
+        np.random.seed(3980)
+        k = 2
         max_it = 10
         max_dba_it = 20
         series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
-             np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
-             np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
-             np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
-             np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
-             np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
-        print(type(series))
-        # print(series.shape)
-        # window = int(series.shape[1] * 1.0)
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
+                  np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
         window = None
-        print(f'window={window}')
-
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
@@ -478,7 +476,10 @@ def test_ndim_kmeans2():
                        initialize_with_kmeanspp=False)
         cluster_idx, performed_it = model.fit(series, use_c=False, use_parallel=False)
         toc = time.perf_counter()
-        print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
+        assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -494,6 +495,6 @@ if __name__ == "__main__":
     # test_barycenter()
     # test_ndim_barycenter_single()
     # test_ndim_barycenter()
-    test_ndim_barycenter2()
+    # test_ndim_barycenter2()
     # test_ndim_kmeans()
-    # test_ndim_kmeans2()
+    test_ndim_kmeans2()

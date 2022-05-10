@@ -45,29 +45,46 @@ from ..exceptions import NumpyException, PyClusteringException, MatplotlibExcept
 from .visualization import prepare_plot_options
 from .medoids import Medoids
 from ..dtw_barycenter import dba_loop
+from .. import dtw, dtw_ndim
 
 
 def _distance_with_params(t):
     series, avgs, dists_options = t
-    min_i = -1
-    min_d = float('inf')
+    min_i, min_d = -1, float('inf')
     for i, avg in enumerate(avgs):
         d = distance(series, avg, **dists_options)
         if d < min_d:
-            min_d = d
-            min_i = i
+            min_d, min_i = d, i
+    return min_i, min_d
+
+
+def _distance_ndim_with_params(t):
+    series, avgs, dists_options = t
+    min_i, min_d = -1, float('inf')
+    for i, avg in enumerate(avgs):
+        d = dtw_ndim.distance(series, avg, **dists_options)
+        if d < min_d:
+            min_d, min_i = d, i
     return min_i, min_d
 
 
 def _distance_c_with_params(t):
     series, means, dists_options = t
-    min_i = -1
-    min_d = float('inf')
+    min_i, min_d = -1, float('inf')
     for i, mean in enumerate(means):
         d = dtw_cc.distance(series, mean, **dists_options)
         if d < min_d:
-            min_d = d
-            min_i = i
+            min_d, min_i = d, i
+    return min_i, min_d
+
+
+def _distance_ndim_c_with_params(t):
+    series, means, dists_options = t
+    min_i, min_d = -1, float('inf')
+    for i, mean in enumerate(means):
+        d = dtw_cc.distance_ndim(series, mean, **dists_options)
+        if d < min_d:
+            min_d, min_i = d, i
     return min_i, min_d
 
 
@@ -224,7 +241,8 @@ class KMeans(Medoids):
         """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.fit method.")
-        self.series = SeriesContainer.wrap(series, support_ndim=False)
+        self.series = SeriesContainer.wrap(series, support_ndim=True)
+        ndim = self.series.detected_ndim
         mask = np.full((self.k, len(self.series)), False, dtype=bool)
         mask_new = np.full((self.k, len(self.series)), False, dtype=bool)
         means = [None] * self.k
@@ -238,9 +256,15 @@ class KMeans(Medoids):
             drop_stddev = None
 
         if use_c:
-            fn = _distance_c_with_params
+            if ndim == 1:
+                fn = _distance_c_with_params
+            else:
+                fn = _distance_ndim_c_with_params
         else:
-            fn = _distance_with_params
+            if ndim == 1:
+                fn = _distance_with_params
+            else:
+                fn = _distance_ndim_with_params
 
         # Initialisations
         if self.initialize_with_kmeanspp:
@@ -340,8 +364,12 @@ class KMeans(Medoids):
             for ki in range(self.k):
                 curlen = min(len(means[ki]), len(self.means[ki]))
                 difflen += curlen
-                for a, b in zip(means[ki], self.means[ki]):
-                    diff += abs(a - b)
+                if ndim == 1:
+                    for a, b in zip(means[ki], self.means[ki]):
+                        diff += abs(a - b)
+                else:
+                    for a, b in zip(means[ki], self.means[ki]):
+                        diff += max(abs(a[d] - b[d]) for d in range(ndim))
                 self.means[ki] = means[ki]
             diff /= difflen
             if diff <= self.thr:
