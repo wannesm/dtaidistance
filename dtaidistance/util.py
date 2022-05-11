@@ -93,21 +93,29 @@ class SeriesContainer:
         """Container for a list of series.
 
         This wrapper class knows how to deal with multiple types of datastructures to represent
-        a list of sequences:
+        a sequence of sequences.
+
+        For 1 dimensional time series (e.g. [1,2,3,4]):
         - List[array.array]
-        - List[numpy.array]
+        - List[numpy.array] (array is 1 dimensional)
         - List[List]
-        - numpy.array
+        - numpy.array (2 dimensional)
         - numpy.matrix
+
+        For n-dimensional time series (e.g. [[1,2],[3,4],[5,6]]):
+        - List[numpy.array] (array is 2 dimensional)
+        - List[List[List]]
+        - numpy.array (3 dimensional)
 
         When using the C-based extensions, the data is automatically verified and converted.
         """
         self.support_ndim = support_ndim
+        # Always detect the dimensionality of the time series, even if support_ndim is false
         self.detected_ndim = False
         if isinstance(series, SeriesContainer):
             self.series = series.series
         elif np is not None and isinstance(series, np.ndarray):
-            # A matrix always returns a 2D array, also if you select one row (to be consistent
+            # A np.matrix always returns a 2D array, also if you select one row (to be consistent
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array. This is taken care by asarray
             self.series = np.asarray(series, order="C")
