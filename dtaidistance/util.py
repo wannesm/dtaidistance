@@ -19,6 +19,9 @@ from pathlib import Path
 import tempfile
 
 
+logger = logging.getLogger("be.kuleuven.dtai.distance")
+
+
 try:
     import numpy as np
 except ImportError:
@@ -38,9 +41,10 @@ try:
     from . import dtw_cc_numpy
 except ImportError:
     dtw_cc_numpy = None
-
-
-logger = logging.getLogger("be.kuleuven.dtai.distance")
+except ValueError as exc:
+    logger.warning('Warning: loading library to link with numpy returned an error')
+    logger.warning(exc)
+    dtw_cc_numpy = None
 
 
 dtaidistance_dir = os.path.abspath(os.path.dirname(__file__))

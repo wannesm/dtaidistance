@@ -52,6 +52,11 @@ try:
 except ImportError:
     logger.debug('DTAIDistance C-Numpy library not available')
     dtw_cc_numpy = None
+except ValueError as exc:
+    logger.warning('DTAIDistance C-Numpy library not available')
+    logger.warning('Warning: loading library to link with Numpy returned an error')
+    logger.warning(exc)
+    dtw_cc_numpy = None
 
 try:
     from tqdm import tqdm
@@ -83,7 +88,7 @@ def try_import_c(verbose=False):
     global dtw_cc_numpy
     try:
         from . import dtw_cc
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import C-based library (dtw_cc)')
         msgs.append('Cannot import C-based library (dtw_cc)')
         msgs.append(str(exc))
@@ -91,7 +96,7 @@ def try_import_c(verbose=False):
         is_complete = False
     try:
         from . import dtw_cc_omp
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import OMP-based library (dtw_cc_omp)')
         msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
         msgs.append(str(exc))
@@ -99,7 +104,7 @@ def try_import_c(verbose=False):
         is_complete = False
     try:
         from . import dtw_cc_numpy
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import Numpy-based library (dtw_cc_numpy)')
         msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
         msgs.append(str(exc))
@@ -108,21 +113,21 @@ def try_import_c(verbose=False):
     try:
         import numpy
         msgs.append('Numpy version: {}'.format(numpy.__version__))
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import Numpy (optional dependency)')
         msgs.append('Cannot import Numpy (optional dependency)')
         msgs.append(str(exc))
     try:
         import matplotlib
         msgs.append('Matplotlib version: {}'.format(matplotlib.__version__))
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import Matplotlib (optional dependency)')
         msgs.append('Cannot import Matplotlib (optional dependency)')
         msgs.append(str(exc))
     try:
         import scipy
         msgs.append('Scipy version: {}'.format(scipy.__version__))
-    except ImportError as exc:
+    except Exception as exc:
         print('Cannot import SciPy (optional dependency)')
         msgs.append('Cannot import SciPy (optional dependency)')
         msgs.append(str(exc))
