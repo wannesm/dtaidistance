@@ -32,12 +32,12 @@ If the C-library is not available after compilation you can try the following st
 to identify the problem:
 
 1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the status of the package.
-2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance``
-   and inspect the output.
-3. If it still does not work (or you have an older version of Numpy installed), perform the compilation
-   based on your current installation instead of in a clean, isolated environment (the default choice
-   for package managers like pip):
-   ``pip install -v --upgrade --force-reinstall --no-deps --no-build-isolation --no-binary dtaidistance dtaidistance``
+2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-build-isolation --no-binary dtaidistance dtaidistance``
+   and call ``dtw.try_import_c(verbose=True)`` again.
+   The ``--no-build-isolation`` is present to use your already installed versions of Cython and
+   Numpy instead of downloading recent versions in an isolation build environment
+   (`PEP 517 <https://peps.python.org/pep-0517/>`_). When you are using an older version
+   of Numpy, the pre-compiled package might trigger binary incompatibility errors.
 
 **Troubleshootimg (OMP)**:
 
