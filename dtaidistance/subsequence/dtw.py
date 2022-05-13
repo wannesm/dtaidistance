@@ -293,7 +293,7 @@ class LocalConcurrences:
         """Version identification based on local concurrences.
 
         Find recurring patterns across two time series. Used to identify whether one time series is
-        a version of another. If the two time series are the some one, it can be used to find typical
+        a version of another. If the two time series are the same one, it can be used to find typical
         or frequent patterns in a time series.
 
         Based on 7.3.2 Identiﬁcation Procedure in Fundamentals of Music Processing, Meinard Müller, Springer, 2015.

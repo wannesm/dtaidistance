@@ -53,9 +53,7 @@ except ImportError:
     logger.debug('DTAIDistance C-Numpy library not available')
     dtw_cc_numpy = None
 except ValueError as exc:
-    logger.warning('DTAIDistance C-Numpy library not available')
-    logger.warning('Warning: loading library to link with Numpy returned an error')
-    logger.warning(exc)
+    logger.debug('DTAIDistance C-Numpy library not available')
     dtw_cc_numpy = None
 
 try:
@@ -81,84 +79,7 @@ except ImportError:
 
 
 def try_import_c(verbose=False):
-    is_complete = True
-    msgs = []
-    global dtw_cc
-    global dtw_cc_omp
-    global dtw_cc_numpy
-    try:
-        from . import dtw_cc
-    except Exception as exc:
-        print('Cannot import C-based library (dtw_cc)')
-        msgs.append('Cannot import C-based library (dtw_cc)')
-        msgs.append(str(exc))
-        dtw_cc = None
-        is_complete = False
-    try:
-        from . import dtw_cc_omp
-    except Exception as exc:
-        print('Cannot import OMP-based library (dtw_cc_omp)')
-        msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
-        msgs.append(str(exc))
-        dtw_cc_omp = None
-        is_complete = False
-    try:
-        from . import dtw_cc_numpy
-    except Exception as exc:
-        print('Cannot import Numpy-based library (dtw_cc_numpy)')
-        msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
-        msgs.append(str(exc))
-        dtw_cc_numpy = None
-        is_complete = False
-    try:
-        import numpy
-        msgs.append('Numpy version: {}'.format(numpy.__version__))
-    except Exception as exc:
-        print('Cannot import Numpy (optional dependency)')
-        msgs.append('Cannot import Numpy (optional dependency)')
-        msgs.append(str(exc))
-    try:
-        import matplotlib
-        msgs.append('Matplotlib version: {}'.format(matplotlib.__version__))
-    except Exception as exc:
-        print('Cannot import Matplotlib (optional dependency)')
-        msgs.append('Cannot import Matplotlib (optional dependency)')
-        msgs.append(str(exc))
-    try:
-        import scipy
-        msgs.append('Scipy version: {}'.format(scipy.__version__))
-    except Exception as exc:
-        print('Cannot import SciPy (optional dependency)')
-        msgs.append('Cannot import SciPy (optional dependency)')
-        msgs.append(str(exc))
-    if not is_complete:
-        print('\nNot all libraries are available in your installation. ')
-        print('You can rerun the compilation from source or pip install in verbose mode:\n'
-              'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance')
-        print('In case you need to use an older version of numpy, compile against your current installation:\n'
-              'pip install -vvv --upgrade --force-reinstall --no-deps --no-build-isolation '
-              '--no-binary dtaidistance dtaidistance')
-        print('\nShare the following information when submitting a bug report:')
-    elif verbose:
-        print('All ok ...')
-    if not is_complete or verbose:
-        print('== Packages ==')
-        for msg in msgs:
-            print(f'- {msg}')
-        print('== System information ==')
-        import sys
-        print(sys.implementation)
-        print('== Compilation information ==')
-        try:
-            import pkgutil
-            logtxt = pkgutil.get_data(__name__, "compilation.log")
-            print(logtxt.decode())
-        except Exception as exc:
-            print('Could not read compilation.log')
-            print(exc)
-        print('')
-        print('==')
-    return is_complete
+    return util.try_import_c(verbose)
 
 
 inf = float("inf")
