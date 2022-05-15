@@ -73,7 +73,7 @@ to search for the best match:
         si += ws
         ei += ws
 
-    sa = subsequence_alignment(query, s)
+    sa = subsequence_search(query, s)
     best = sa.kbest_matches(k=k)
 
 When setting k, the search is pruned to early abandon comparisons
