@@ -8,14 +8,14 @@ dtaidistance.subsequence.dtw
 DTW-based subsequence matching.
 
 :author: Wannes Meert
-:copyright: Copyright 2021 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2021-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
 import logging
 import numpy.ma as ma
 
-from .. import dtw # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
+from .. import dtw  # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
 from .. import dtw_ndim
 from .. import util_numpy
 from .. import util

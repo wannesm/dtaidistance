@@ -6,7 +6,7 @@ dtaidistance.dtw_ndim
 Dynamic Time Warping (DTW) for N-dimensional series.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
