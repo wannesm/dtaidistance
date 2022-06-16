@@ -99,8 +99,9 @@ prepare_tag:
 deploy: prepare_dist prepare_tag
 	@echo "Check whether repo is clean"
 	git diff-index --quiet HEAD
-	@echo "Start uploading"
-	twine upload --repository dtaidistance dist/*
+	@echo "Manual action: Push to deploy Github branch to deploy"
+	#@echo "Start uploading"
+	#twine upload --repository dtaidistance dist/*
 
 .PHONY: docs
 docs:
