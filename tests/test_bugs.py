@@ -15,6 +15,7 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
+@numpyonly
 def test_distance1_a():
     with util_numpy.test_uses_numpy() as np:
         # dist_opts = {'max_dist': 0.201, 'max_step': 0.011, 'max_length_diff': 8, 'window': 3}
@@ -28,6 +29,7 @@ def test_distance1_a():
         assert d1 == pytest.approx(0.02)
 
 
+@numpyonly
 def test_distance1_b():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {}
@@ -42,6 +44,7 @@ def test_distance1_b():
         assert d1 == pytest.approx(0.02)
 
 
+@numpyonly
 def test_distance2_a():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_dist': 1.1}
@@ -53,6 +56,7 @@ def test_distance2_a():
         assert d1 == pytest.approx(1.0)
 
 
+@numpyonly
 def test_distance2_aa():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_dist': 0.1}
@@ -65,6 +69,7 @@ def test_distance2_aa():
         assert d1 == pytest.approx(np.inf)
 
 
+@numpyonly
 def test_distance2_b():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_step': 1.1}
@@ -76,6 +81,7 @@ def test_distance2_b():
         assert d1 == pytest.approx(1.0)
 
 
+@numpyonly
 def test_distance2_bb():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {'max_step': 0.1}
@@ -88,6 +94,7 @@ def test_distance2_bb():
         assert d1 == pytest.approx(np.inf)
 
 
+@numpyonly
 def test_distance2_c():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {}
@@ -99,6 +106,7 @@ def test_distance2_c():
         assert d1 == pytest.approx(1.0)
 
 
+@numpyonly
 def test_distance3_a():
     with util_numpy.test_uses_numpy() as np:
         dist_opts = {"penalty": 0.005, "max_step": 0.011, "window": 3}
@@ -109,6 +117,7 @@ def test_distance3_a():
         assert d1 == pytest.approx(d2)
 
 
+@numpyonly
 def test_distance4():
     with util_numpy.test_uses_numpy(strict=False) as np:
         try:
@@ -169,6 +178,7 @@ def test_distance4():
     #             clustering.
 
 
+@numpyonly
 def test_distance6():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0, 0, 1, 2, 1, 0, 1, 0, 0], dtype=np.double)
@@ -177,6 +187,7 @@ def test_distance6():
         # print(d)
 
 
+@numpyonly
 def test_bug1():
     """Failed on Windows if pointer types are different."""
     with util_numpy.test_uses_numpy() as np:
@@ -187,6 +198,7 @@ def test_bug1():
         # print(ds)
 
 
+@numpyonly
 def test_bug1_serial():
     """Failed on Windows if pointer types are different."""
     with util_numpy.test_uses_numpy() as np:
@@ -197,6 +209,7 @@ def test_bug1_serial():
         # print(ds)
 
 
+@numpyonly
 def test_bug1_psi():
     with util_numpy.test_uses_numpy() as np:
         s = [np.array([0., 0, 1, 2, 1, 0, 1, 0, 0]),
@@ -208,6 +221,7 @@ def test_bug1_psi():
         assert res1 == pytest.approx(res2)
 
 
+@numpyonly
 def test_bug2():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([5.005335029629605081e-01, 5.157722489130834864e-01, 4.804319657333316340e-01, 4.520537745752661318e-01, 4.867408184050183717e-01, 4.806534229629605415e-01, 4.530552579964135518e-01, 4.667067057333316171e-01, 4.567955137333316040e-01, 4.414902037333315876e-01, 4.240597964014319321e-01, 4.225263829008334970e-01, 4.030970017333316280e-01, 4.404482984865574768e-01, 3.852339312962939077e-01, 3.634947117333316435e-01, 3.861488867383516266e-01, 3.413363679008334928e-01, 3.451913457333316004e-01, 3.695692377333316680e-01, 3.434781337333315809e-01, 3.063217006568062506e-01, 2.845283817333316145e-01, 2.955394357333315791e-01, 3.151374838781335619e-01, 2.561411067352764026e-01, 2.301194263297469400e-01, 2.478605028202762184e-01, 1.972828198566299318e-01, 2.150545617333316228e-01, 2.232865857333316273e-01, 2.492665580680986370e-01, 2.144049374050155388e-01, 2.079081117333316520e-01, 1.879600957333316391e-01, 1.638555197333316227e-01, 1.425566689000865583e-01, 2.016327177333316067e-01, 2.290943870240647606e-01, 1.900932117333316296e-01, 1.503233018025057766e-01, 1.970833717333316248e-01, 1.999393777333316191e-01, 2.018818837333316019e-01, 2.554168153357214144e-01, 2.345002377333316179e-01, 2.407103957333316113e-01, 2.762874997333316096e-01, 3.059693477333316203e-01, 3.328774862341668528e-01, 3.583867537333316200e-01, 3.743879884050183016e-01, 4.266385131705089373e-01, 4.445410410742424712e-01, 4.642271795675002033e-01, 4.402678696630802357e-01, 4.814591396296271641e-01, 5.317886460815400840e-01, 5.548714817383517683e-01, 5.062713000716849709e-01, 5.431524597333317050e-01, 5.537961812962939323e-01, 5.720852595675002261e-01, 5.933977447347652534e-01, 5.845479257333316969e-01, 6.133363017333317568e-01, 6.276481431102108877e-01, 6.132085097333317414e-01, 5.922371597333316862e-01, 5.778388756463566089e-01])

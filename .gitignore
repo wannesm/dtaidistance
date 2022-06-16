@@ -38,3 +38,5 @@ experiments/plots
 experiments/tmp
 venv*
 *.supp
+results
+*_test

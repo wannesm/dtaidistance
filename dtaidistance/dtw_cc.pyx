@@ -5,7 +5,7 @@ dtaidistance.dtw_cc
 Dynamic Time Warping (DTW), C implementation.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -15,6 +15,7 @@ from cython import Py_ssize_t
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abort, malloc, free, abs, labs
 from libc.stdint cimport intptr_t
+from libc.stdio cimport printf
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 cimport dtaidistancec_dtw
@@ -338,10 +339,6 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 
 
 def warping_paths(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, **kwargs):
-    return warping_paths_ndim(dtw, s1, s2, psi_neg, 1, **kwargs)
-
-
-def warping_paths_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, ndim=1, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     dtw_length = dtw.shape[0] * dtw.shape[1]
@@ -359,21 +356,40 @@ def warping_paths_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_ne
             print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
             raise exc
     cdef double [:, :] wps_view = wps
-    # cdef array.array wps = array.array('d', [0] * dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
-    # cdef array.array wps = array.array('d')
-    # array.resize(wps, dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings))
-    # wps.data.as_doubles
     cdef double d
-    # print(wps)
-    # print(settings)
-    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                                 True, True, psi_neg, ndim, &settings._settings)
-    # print('---')
-    # print(wps)
-    # print('---')
+    d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
+                                            True, True, psi_neg, &settings._settings)
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
         dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
-    # print("end dtw_cc warping_paths")
+    return d
+
+
+def warping_paths_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s2, bint psi_neg=False, **kwargs):
+    ndim = s1.shape[1]
+    if s1.shape[1] != s2.shape[1]:
+        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    dtw_length = dtw.shape[0] * dtw.shape[1]
+    req_length = dtaidistancec_dtw.dtw_settings_wps_length(len(s1), len(s2), &settings._settings)
+    req_width = dtaidistancec_dtw.dtw_settings_wps_width(len(s1), len(s2), &settings._settings)
+    shape = (1, req_length)
+    if req_length == dtw_length and req_width == dtw.shape[1]:
+        # No compact WPS array is required
+        wps = dtw
+    else:
+        try:
+            # Use cython.view.array to avoid numpy dependency
+            wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
+        except MemoryError as exc:
+            print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
+            raise exc
+    cdef double [:, :] wps_view = wps
+    cdef double d
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0,0], len(s1), &s2[0,0], len(s2),
+                                                 True, True, psi_neg, ndim, &settings._settings)
+    if not (req_length == dtw_length and req_width == dtw.shape[1]):
+        dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
     return d
 
 
@@ -386,11 +402,14 @@ def warping_paths_compact(double[:, :] dtw, double[:] s1, double[:] s2, bint psi
     return d
 
 
-def warping_paths_compact_ndim(double[:, :] dtw, double[:] s1, double[:] s2, bint psi_neg=False, int ndim=1, **kwargs):
+def warping_paths_compact_ndim(double[:, :] dtw, double[:, :] s1, double[:, :] s2, bint psi_neg=False, **kwargs):
+    if s1.shape[1] != s2.shape[1]:
+        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+    ndim = s1.shape[1]
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef double d
-    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
+    d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0, 0], len(s1), &s2[0, 0], len(s2),
                                                  True, True, psi_neg, ndim, &settings._settings)
     return d
 
@@ -407,6 +426,28 @@ def warping_path(double[:] s1, double[:] s2, **kwargs):
         raise MemoryError()
     try:
         path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        path = []
+        for i in range(path_length):
+            path.append((i1[i], i2[i]))
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
+
+
+def warping_path_ndim(double[:, :] s1, double[:, :] s2, int ndim=1, **kwargs):
+    # Assumes C contiguous
+    cdef Py_ssize_t path_length;
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        path_length = dtaidistancec_dtw.warping_path_ndim(&s1[0, 0], len(s1), &s2[0, 0], len(s2), i1, i2, ndim, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -582,13 +623,26 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
 
 
 def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
-    cdef DTWSeriesMatrix matrix
-    cdef DTWSeriesPointers ptrs
     cdef double *c_ptr = &c[0];
-    cdef double *matrix_ptr;
     cdef unsigned char *mask_ptr = &mask[0];
     settings = DTWSettings(**kwargs)
+    dba_inner(cur, c_ptr, len(c), mask_ptr, nb_prob_samples, 1, settings)
+    return c
 
+
+def dba_ndim(cur, double[:, :] c, unsigned char[:] mask, int nb_prob_samples, int ndim, **kwargs):
+    cdef double *c_ptr = &c[0, 0];
+    cdef unsigned char *mask_ptr = &mask[0];
+    settings = DTWSettings(**kwargs)
+    dba_inner(cur, c_ptr, len(c), mask_ptr, nb_prob_samples, ndim, settings)
+    return c
+
+
+cdef dba_inner(cur, double *c_ptr, Py_ssize_t c_len, unsigned char *mask_ptr, int nb_prob_samples, int ndim, DTWSettings settings):
+    cdef double *matrix_ptr;
+    cdef DTWSeriesMatrix matrix
+    cdef DTWSeriesMatrixNDim matrix_ndim
+    cdef DTWSeriesPointers ptrs
     if isinstance(cur, DTWSeriesMatrix) or isinstance(cur, DTWSeriesPointers):
         pass
     elif cur.__class__.__name__ == "SeriesContainer":
@@ -600,11 +654,19 @@ def dba(cur, double[:] c, unsigned char[:] mask, int nb_prob_samples, **kwargs):
         ptrs = cur
         dtaidistancec_dtw.dtw_dba_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
     elif isinstance(cur, DTWSeriesMatrix):
         matrix = cur
-        matrix_ptr = &matrix._data[0,0]
+        matrix_ptr = &matrix._data[0, 0]
         dtaidistancec_dtw.dtw_dba_matrix(
             matrix_ptr, matrix.nb_rows, matrix.nb_cols,
-            c_ptr, len(c), mask_ptr, nb_prob_samples, 1, &settings._settings)
-    return c
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
+    elif isinstance(cur, DTWSeriesMatrixNDim):
+        matrix_ndim = cur
+        matrix_ptr = &matrix_ndim._data[0, 0, 0]
+        dtaidistancec_dtw.dtw_dba_matrix(
+            matrix_ptr, matrix_ndim.nb_rows, matrix_ndim.nb_cols,
+            c_ptr, c_len, mask_ptr, nb_prob_samples, ndim, &settings._settings)
+    else:
+        raise ValueError(f"Series are not the expected type (DTWSeriesPointers, DTWSeriesMatrix "
+                         f"or DTWSeriesMatrixNDim): {type(cur)}")

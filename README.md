@@ -1,6 +1,7 @@
 [![PyPi Version](https://img.shields.io/pypi/v/dtaidistance.svg)](https://pypi.org/project/dtaidistance/)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/dtaidistance.svg)](https://anaconda.org/conda-forge/dtaidistance)
 [![Documentation Status](https://readthedocs.org/projects/dtaidistance/badge/?version=latest)](https://dtaidistance.readthedocs.io/en/latest/?badge=latest)
+[![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246) 
 
 # Time Series Distances
 
@@ -8,16 +9,23 @@ Library for time series distances (e.g. Dynamic Time Warping) used in the
 [DTAI Research Group](https://dtai.cs.kuleuven.be). The library offers a pure
 Python implementation and a fast implementation in C. The C implementation
 has only Cython as a dependency. It is compatible with Numpy and Pandas and
-implemented to avoid unnecessary data copy operations.
+implemented such that unnecessary data copy operations are avoided.
 
 Documentation: http://dtaidistance.readthedocs.io
 
-Citing this work:
-[![DOI](https://zenodo.org/badge/80764246.svg)](https://zenodo.org/badge/latestdoi/80764246)
+Example:
 
-> Wannes Meert, Kilian Hendrickx, & Toon Van Craenendonck. 
-> wannesm/dtaidistance (Version v2.0.0). Zenodo. 
-> http://doi.org/10.5281/zenodo.3981067
+    from dtaidistance import dtw
+    import numpy as np
+    s1 = np.array([0.0, 0, 1, 2, 1, 0, 1, 0, 0])
+    s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
+    d = dtw.distance_fast(s1, s2)
+
+Citing this work:
+
+> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck & Pieter Robberechts.  
+> DTAIDistance (Version v2). Zenodo.  
+> http://doi.org/10.5281/zenodo.5901139
 
 **New in v2**:
 
@@ -46,23 +54,16 @@ or
 
     $ conda install -c conda-forge dtaidistance
 
-In case the C based version is not available, see the documentation for
-alternative installation options. In case
-[OpenMP](https://www.openmp.org/resources/openmp-compilers-tools/)
-is not available on your system add the `--noopenmp` global option.
-
-The library has no dependency on Numpy. But if Numpy is available, some
-additional functionality is provided. If you want to make sure this is
-also installed then use:
-
-    $ pip install dtaidistance[all]
+The pip installation requires Numpy as a dependency to compile Numpy-compatible
+C code (using Cython). However, this dependency is optional and can be removed.
 
 The source code is available at
 [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
 
-If you encounter any problems during compilation, see the 
+If you encounter any problems during compilation (e.g. the C-based implementation or OpenMP
+is not available), see the 
 [documentation](https://dtaidistance.readthedocs.io/en/latest/usage/installation.html)
-for  more options.
+for more options.
 
 ## Usage
 
@@ -291,7 +292,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2021 KU Leuven, DTAI Research Group
+    Copyright 2016-2022 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

@@ -51,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'DTAIDistance'
-copyright = '2018-2021, Wannes Meert'
+copyright = '2018-2022, Wannes Meert'
 author = 'Wannes Meert'
 
 # The version info for the project you're documenting, acts as replacement for

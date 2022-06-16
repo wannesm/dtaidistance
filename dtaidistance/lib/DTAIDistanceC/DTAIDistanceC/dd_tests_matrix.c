@@ -320,6 +320,72 @@ Test(matrix_ndim, test_a_matrix_parallel) {
 
 
 //----------------------------------------------------
+// MARK: DBA
+
+Test(dba_ndim, test_a_matrix) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s[] = {
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1,
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1
+    };
+    double exp_avg[] = {0.33333333, 1., 0.66666667, 1.66666667, 0.6, 0., 0.33333333, 0.33333333};
+    int ndim = 2;
+    idx_t nb_cols = 4;
+    idx_t nb_rows = 6;
+    seq_t c[nb_cols * ndim];
+    for (idx_t i=0; i<(nb_cols*ndim); i++) { // Copy first series
+        c[i] = s[i];
+    }
+    ba_t mask[bit_bytes(nb_rows)];
+    for (int i=0; i<nb_rows; i++) {
+        bit_set(mask, i);
+    }
+    DTWSettings settings = dtw_settings_default();
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 0, ndim, &settings);
+    for (int i=0; i<(nb_cols*ndim); i++) {
+        cr_assert_float_eq(c[i], exp_avg[i], 0.001);
+    }
+}
+
+Test(dba_ndim, test_a_ptrs) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s3[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double s4[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    double s5[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    double s6[] = {1., 2, 0, 0, 0, 0, 0, 1};
+    double *s[] = {s1, s2, s3, s4, s5, s6};
+    idx_t lengths[] = {4, 4, 4, 4, 4, 4};
+    double exp_avg[] = {0.33333333, 1., 0.66666667, 1.66666667, 0.6, 0., 0.33333333, 0.33333333};
+    int ndim = 2;
+    idx_t nb_cols = 4;
+    idx_t nb_rows = 6;
+    seq_t c[nb_cols * ndim];
+    for (idx_t i=0; i<(nb_cols*ndim); i++) { // Copy first series
+        c[i] = s1[i];
+    }
+    ba_t mask[bit_bytes(nb_rows)];
+    for (int i=0; i<nb_rows; i++) {
+        bit_set(mask, i);
+    }
+    DTWSettings settings = dtw_settings_default();
+    dtw_dba_ptrs(s, nb_rows, lengths, c, nb_cols, mask, 0, ndim, &settings);
+    for (int i=0; i<(nb_cols*ndim); i++) {
+        cr_assert_float_eq(c[i], exp_avg[i], 0.001);
+    }
+}
+
+
+//----------------------------------------------------
 // MARK: AUXILIARY FUNCTIONS
 
 Test(aux, test_length_overflow_noblock) {

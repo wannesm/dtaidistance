@@ -28,12 +28,18 @@ section below.
 
 **Troubleshooting**:
 
-If the C-library is not available after compilation you can try the following two strategies
+If the C-library is not available after compilation you can try the following steps
 to identify the problem:
 
-1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the exception message(s).
-2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance``
-   and inspect the output.
+1. Call the ``dtw.try_import_c(verbose=True)`` function that will print the status of the package.
+2. Reinstall with ``pip install -v --upgrade --force-reinstall --no-build-isolation --no-binary dtaidistance dtaidistance``
+   and call ``dtw.try_import_c(verbose=True)`` again.
+   The ``--no-build-isolation`` is present to use your already installed versions of Cython and
+   Numpy instead of downloading recent versions in an isolation build environment
+   (`PEP 517 <https://peps.python.org/pep-0517/>`_). When you are using an older version
+   of Numpy, the pre-compiled package might trigger binary incompatibility errors.
+
+**Troubleshootimg (OMP)**:
 
 If the OMP library is not detected during compilation, parallel execution in c is not available.
 If OMP is installed but not found, there is probably an issue with the options given to the

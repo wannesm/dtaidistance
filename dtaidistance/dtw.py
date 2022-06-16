@@ -6,7 +6,7 @@ dtaidistance.dtw
 Dynamic Time Warping (DTW)
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -52,6 +52,9 @@ try:
 except ImportError:
     logger.debug('DTAIDistance C-Numpy library not available')
     dtw_cc_numpy = None
+except ValueError as exc:
+    logger.debug('DTAIDistance C-Numpy library not available')
+    dtw_cc_numpy = None
 
 try:
     from tqdm import tqdm
@@ -76,66 +79,7 @@ except ImportError:
 
 
 def try_import_c(verbose=False):
-    is_complete = True
-    msgs = []
-    global dtw_cc
-    global dtw_cc_omp
-    global dtw_cc_numpy
-    try:
-        from . import dtw_cc
-    except ImportError as exc:
-        print('Cannot import C-based library (dtw_cc)')
-        msgs.append('Cannot import C-based library (dtw_cc)')
-        msgs.append(str(exc))
-        dtw_cc = None
-        is_complete = False
-    try:
-        from . import dtw_cc_omp
-    except ImportError as exc:
-        print('Cannot import OMP-based library (dtw_cc_omp)')
-        msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
-        msgs.append(str(exc))
-        dtw_cc_omp = None
-        is_complete = False
-    try:
-        from . import dtw_cc_numpy
-    except ImportError as exc:
-        print('Cannot import Numpy-based library (dtw_cc_numpy)')
-        msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
-        msgs.append(str(exc))
-        dtw_cc_numpy = None
-        is_complete = False
-    try:
-        import numpy
-    except ImportError as exc:
-        print('Cannot import Numpy (optional dependency)')
-        msgs.append('Cannot import Numpy (optional dependency)')
-        msgs.append(str(exc))
-    try:
-        import matplotlib
-    except ImportError as exc:
-        print('Cannot import Matplotlib (optional dependency)')
-        msgs.append('Cannot import Matplotlib (optional dependency)')
-        msgs.append(str(exc))
-    try:
-        import scipy
-    except ImportError as exc:
-        print('Cannot import SciPy (optional dependency)')
-        msgs.append('Cannot import SciPy (optional dependency)')
-        msgs.append(str(exc))
-    if not is_complete:
-        print('\nNot all libraries are available in your installation. '
-              'Share the following information when submitting a bug report:')
-        for msg in msgs:
-            print(f'- {msg}')
-        print('- System information:')
-        import sys
-        print(f'  {sys.implementation}')
-        print('Additionally, you can rerun the compilation from source or pip install in verbose mode:\n'
-              'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary :all: dtaidistance')
-    elif verbose:
-        print('All ok ...')
-    return is_complete
+    return util.try_import_c(verbose)
 
 
 inf = float("inf")
@@ -216,6 +160,9 @@ def distance(s1, s2,
     :param max_length_diff: Return infinity if length of two series is larger
     :param penalty: Penalty to add if compression or expansion is applied
     :param psi: Psi relaxation parameter (ignore start and end of matching).
+        If psi is a single integer, it is used for both start and end relaxations of both series.
+        If psi is a 4-tuple, it is used as the psi-relaxation for
+         (begin series1, end series1, begin series2, end series2)
         Useful for cyclical series.
     :param use_c: Use fast pure c compiled functions
     :param use_pruning: Prune values based on Euclidean distance.
@@ -532,10 +479,6 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
-    if use_ndim:
-        ndim = len(s1[0])
-    else:
-        ndim = 1
     if window is None:
         window = 0
     if use_pruning:
@@ -561,11 +504,17 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
         wps_compact = np.full((len(s1)+1, wps_width), inf)
-        d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, ndim, **settings_kwargs)
+        if use_ndim:
+            d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, **settings_kwargs)
+        else:
+            d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings_kwargs)
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
-    d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, ndim, **settings_kwargs)
+    if use_ndim:
+        d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, **settings_kwargs)
+    else:
+        d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings_kwargs)
     return d, dtw
 
 

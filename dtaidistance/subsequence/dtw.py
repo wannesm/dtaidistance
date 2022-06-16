@@ -8,14 +8,14 @@ dtaidistance.subsequence.dtw
 DTW-based subsequence matching.
 
 :author: Wannes Meert
-:copyright: Copyright 2021 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2021-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
 import logging
 import numpy.ma as ma
 
-from .. import dtw # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
+from .. import dtw  # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
 from .. import dtw_ndim
 from .. import util_numpy
 from .. import util
@@ -122,12 +122,20 @@ class SubsequenceAlignment:
         if self.matching is not None:
             return
         psi = [0, 0, len(self.series), len(self.series)]
-        if not self.use_c:
-            _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
-                                              psi_neg=False)
+        if np is not None and isinstance(self.series, np.ndarray) and len(self.series.shape) > 1:
+            if not self.use_c:
+                _, self.paths = dtw_ndim.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                       psi_neg=False)
+            else:
+                _, self.paths = dtw_ndim.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                            compact=False, psi_neg=False)
         else:
-            _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                   compact=False, psi_neg=False)
+            if not self.use_c:
+                _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                  psi_neg=False)
+            else:
+                _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
+                                                       compact=False, psi_neg=False)
         self._compute_matching()
 
     def align_fast(self):
@@ -285,7 +293,7 @@ class LocalConcurrences:
         """Version identification based on local concurrences.
 
         Find recurring patterns across two time series. Used to identify whether one time series is
-        a version of another. If the two time series are the some one, it can be used to find typical
+        a version of another. If the two time series are the same one, it can be used to find typical
         or frequent patterns in a time series.
 
         Based on 7.3.2 Identiﬁcation Procedure in Fundamentals of Music Processing, Meinard Müller, Springer, 2015.

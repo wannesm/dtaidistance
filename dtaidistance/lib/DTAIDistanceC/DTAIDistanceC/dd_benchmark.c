@@ -94,26 +94,19 @@ void benchmark4() {
 }
 
 void benchmark5() {
-    seq_t s1[] = {1, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
-    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1};
-//    seq_t s1[] = {0., 0, 1, 2, 1, 0, 1, 0, 0, 2, 1, 0, 0};
-//    seq_t s2[] = {0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0};
-//    seq_t s1[] = {0., 0.01, 0.,   0.01, 0., 0.,   0.,   0.01, 0.01, 0.02, 0.,  0.};
-//    seq_t s2[] = {0., 0.02, 0.02, 0.,   0., 0.01, 0.01, 0.,   0.,   0.,   0.};
-    idx_t l1 = 11;
-    idx_t l2 = 11;
+    seq_t s1[] = {0., 0, 1, 2, 1, 0, 1, 0};
+    seq_t s2[] = {0., 1, 2, 0, 0, 0, 0, 0};
+    idx_t l1 = 4;
+    idx_t l2 = 4;
+    int ndim = 2;
     DTWSettings settings = dtw_settings_default();
-//    settings.max_dist = 1.415;
-    settings.window = 0;
-    dtw_settings_set_psi(3, &settings);
-    settings.use_pruning = false;
     idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
     printf("wps_length=%zu\n", wps_length);
     seq_t wps[wps_length];
 //    for (idx_t i=0; i<wps_length; i++) {
 //        wps[i] = i;
 //    }
-    seq_t d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, true, &settings);
+    seq_t d = dtw_warping_paths_ndim(wps, s1, l1, s2, l2, true, true, true, ndim, &settings);
     printf("d=%f\n", d);
     dtw_print_wps_compact(wps, l1, l2, &settings);
     printf("\n\n");
@@ -189,28 +182,39 @@ void benchmark8() {
 }
 
 void benchmark9() {
+//    double s[] = {
+//        0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0, // Row 0
+//        0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0 // Row 1
+//    };
+    //    double exp_avg[] = {0.3, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
+//    int ndim = 1;
     double s[] = {
-        0.5, 1, 2, 3, 2.0, 2.1, 1.0, 0, 0, 0, // Row 0
-        0.4, 0, 1, 1.5, 1.9, 2.0, 0.9, 1, 0, 0 // Row 1
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1,
+        0., 0, 1, 2, 1, 0, 1, 0,
+        0., 1, 2, 0, 0, 0, 0, 0,
+        1., 2, 0, 0, 0, 0, 0, 1
     };
-//    double exp_avg[] = {0.3, 1.1666666666666667, 1.95, 2.5, 2.0, 2.05, 0.9666666666666667, 0.0, 0.0, 0.0};
-    idx_t nb_cols = 10;
-    idx_t nb_rows = 2;
-    seq_t c[nb_cols];
-    for (idx_t i=0; i<nb_cols; i++) { // Copy first series
+    double exp_avg[] = {0.33333333, 1., 0.66666667, 1.66666667, 0.6, 0., 0.33333333, 0.33333333};
+    int ndim = 2;
+    idx_t nb_cols = 4;
+    idx_t nb_rows = 6;
+    seq_t c[nb_cols * ndim];
+    for (idx_t i=0; i<(nb_cols*ndim); i++) { // Copy first series
         c[i] = s[i];
     }
 //    bit_array(mask, nb_rows)
     ba_t mask[bit_bytes(nb_rows)];
-    for (int i=0; i<nb_rows; i++) {mask[i]=0;}
-    bit_set(mask, 0);
-    bit_set(mask, 1);
+    for (int i=0; i<nb_rows; i++) {
+        bit_set(mask, i);
+    }
     DTWSettings settings = dtw_settings_default();
     
-    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 10, 1, &settings);
+    dtw_dba_matrix(s, nb_rows, nb_cols, c, nb_cols, mask, 0, ndim, &settings);
     
     printf("Computed avg:\n");
-    for (int i=0; i<nb_cols; i++) {
+    for (int i=0; i<(nb_cols*ndim); i++) {
         printf("%f ", c[i]);
     }
     printf("\n");
@@ -347,26 +351,30 @@ void benchmark13() {
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
-    double diff_t;
+    struct timespec start, end;
+    double diff_t, diff_t2;
     time(&start_t);
+    clock_gettime(CLOCK_REALTIME, &start);
     
 //    benchmark1();
-    benchmark2();
+//    benchmark2();
 //    benchmark3();
 //    benchmark4();
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
 //    benchmark8();
-//    benchmark9();
+    benchmark9();
 //    benchmark10();
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
     
     time(&end_t);
+    clock_gettime(CLOCK_REALTIME, &end);
     diff_t = difftime(end_t, start_t);
-    printf("Execution time = %f\n", diff_t);
+    diff_t2 = ((double)end.tv_sec*1e9 + end.tv_nsec) - ((double)start.tv_sec*1e9 + start.tv_nsec);
+    printf("Execution time = %f sec / %f ms\n", diff_t, diff_t2/1000000);
     
     return 0;
 }

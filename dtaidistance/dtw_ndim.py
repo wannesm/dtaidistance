@@ -6,7 +6,7 @@ dtaidistance.dtw_ndim
 Dynamic Time Warping (DTW) for N-dimensional series.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -280,6 +280,16 @@ def warping_paths(*args, **kwargs):
     """
     return dtw.warping_paths(*args, use_ndim=True, **kwargs)
 
+
+def warping_paths_fast(*args, **kwargs):
+    """
+    Dynamic Time Warping (keep full matrix) using multidimensional sequences.
+
+    See :py:meth:`dtaidistance.dtw.warping_paths` for parameters.
+    """
+    return dtw.warping_paths_fast(*args, use_ndim=True, **kwargs)
+
+
 def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])
 
@@ -440,3 +450,10 @@ def distance_matrix_fast(s, ndim, max_dist=None, max_length_diff=None,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
                            use_c=True, show_progress=False, only_triu=only_triu)
+
+
+def warping_path(from_s, to_s, **kwargs):
+    """Compute warping path between two sequences."""
+    dist, paths = warping_paths(from_s, to_s, **kwargs)
+    path = dtw.best_path(paths)
+    return path

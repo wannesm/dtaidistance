@@ -3,13 +3,14 @@ import sys
 import time
 import pytest
 import logging
+import random
 from pathlib import Path
 
 from dtaidistance import dtw_barycenter, util_numpy
 import dtaidistance.dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException, PyClusteringException
 from dtaidistance.clustering.kmeans import KMeans
-from dtaidistance.dtw_barycenter import dba_loop
+from dtaidistance.dtw_barycenter import dba_loop, dba
 from dtaidistance.preprocessing import differencing
 
 
@@ -204,7 +205,7 @@ def test_trace_kmeans():
 
 
 @numpyonly
-@scipyonly
+
 def test_trace_kmeans_differencing():
     with util_numpy.test_uses_numpy() as np, util_numpy.test_uses_scipy() as scipy:
         k = 4
@@ -347,32 +348,127 @@ def test_nparray_kmeans():
             plt.close()
 
 
-@pytest.mark.skip("Not yet implemented")
 @numpyonly
-def test_ndim_kmeans():
+def test_barycenter():
     with util_numpy.test_uses_numpy() as np:
-        k = 4
+        series = np.array(
+            [[0., 1, 1, 1],
+             [0., 2, 0, 0],
+             [1., 0, 0, 0],
+             [0., 1, 1, 1],
+             [0., 2, 0, 0],
+             [1., 0, 0, 0]])
+        exp_result = np.array([0.33333333, 1.33333333, 0.25, 0.33333333])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            print(result)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+
+@numpyonly
+def test_ndim_barycenter_single():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        c = np.array([[0., 0], [1, 2], [1, 0], [1, 0]])
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [0.6, 0.],
+                               [0.33333333, 0.33333333]])
+        for use_c in [False, True]:
+            result = dba(series, c, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+@numpyonly
+def test_ndim_barycenter():
+    with util_numpy.test_uses_numpy() as np:
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [1., 0.],
+                               [0.2, 0.2]])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+
+@numpyonly
+def test_ndim_barycenter2():
+    with util_numpy.test_uses_numpy() as np:
+        series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
+                  np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
+        exp_result = np.array([[0.33333333, 1.],
+                               [0.66666667, 1.66666667],
+                               [1., 0.],
+                               [0.2, 0.2]])
+        for use_c in [False, True]:
+            result = dba_loop(series, use_c=use_c)
+            np.testing.assert_array_almost_equal(result, exp_result)
+
+
+@numpyonly
+@pytest.mark.parametrize("use_c,use_parallel", [(False,False), (True,False), (False,True), (True,True)])
+def test_ndim_kmeans(use_c, use_parallel):
+    with util_numpy.test_uses_numpy() as np:
+        random.seed(3980)
+        np.random.seed(3980)
+        k = 2
         max_it = 10
         max_dba_it = 20
-        # series = np.array(
-        #     [[[0., 0], [1, 2], [1, 0], [1, 0]],
-        #      [[0., 1], [2, 0], [0, 0], [0, 0]],
-        #      [[1., 2], [0, 0], [0, 0], [0, 1]],
-        #      [[0., 0], [1, 2], [1, 0], [1, 0]],
-        #      [[0., 1], [2, 0], [0, 0], [0, 0]],
-        #      [[1., 2], [0, 0], [0, 0], [0, 1]]])
-        series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
-             np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
-             np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
-             np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
-             np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
-             np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
-        print(type(series))
-        # print(series.shape)
-        # window = int(series.shape[1] * 1.0)
+        series = np.array(
+            [[[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]],
+             [[0., 0], [1, 2], [1, 0], [1, 0]],
+             [[0., 1], [2, 0], [0, 0], [0, 0]],
+             [[1., 2], [0, 0], [0, 0], [0, 1]]])
         window = None
-        print(f'window={window}')
+        # Perform k-means
+        tic = time.perf_counter()
+        model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
+                       dists_options={"window": window},
+                       initialize_with_kmedoids=False,
+                       initialize_with_kmeanspp=False)
+        cluster_idx, performed_it = model.fit(series, use_c=use_c, use_parallel=use_parallel)
+        toc = time.perf_counter()
+        # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        # for ki in range(k):
+        #     print(f'Cluster {ki+1}: {model.cluster_idx[ki]}')
+        #     print(model.means[ki])
+        assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
+        assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
 
+
+@numpyonly
+def test_ndim_kmeans2():
+    with util_numpy.test_uses_numpy() as np:
+        random.seed(3980)
+        np.random.seed(3980)
+        k = 2
+        max_it = 10
+        max_dba_it = 20
+        series = [np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]]),
+                  np.array([[0., 0], [1, 2], [1, 0], [1, 0]]),
+                  np.array([[0., 1], [2, 0], [0, 0], [0, 0]]),
+                  np.array([[1., 2], [0, 0], [0, 0], [0, 1]])]
+        window = None
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
@@ -381,7 +477,9 @@ def test_ndim_kmeans():
                        initialize_with_kmeanspp=False)
         cluster_idx, performed_it = model.fit(series, use_c=False, use_parallel=False)
         toc = time.perf_counter()
-        print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
+        assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
+        assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
 
 
 if __name__ == "__main__":
@@ -392,7 +490,12 @@ if __name__ == "__main__":
     # test_pair()
     # test_trace()
     # test_trace_mask()
-    test_trace_kmeans()
+    # test_trace_kmeans()
     # test_trace_kmeans_differencing()
     # test_nparray_kmeans()
-    # test_ndim_kmeans()
+    # test_barycenter()
+    # test_ndim_barycenter_single()
+    # test_ndim_barycenter()
+    # test_ndim_barycenter2()
+    test_ndim_kmeans(use_c=False, use_parallel=False)
+    # test_ndim_kmeans2()

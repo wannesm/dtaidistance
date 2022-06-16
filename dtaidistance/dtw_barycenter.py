@@ -6,7 +6,7 @@ dtaidistance.dtw_barycenter
 Dynamic Time Warping (DTW) Barycenter
 
 :author: Wannes Meert
-:copyright: Copyright 2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2020-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -16,6 +16,7 @@ import array
 import random
 
 from .dtw import warping_path, distance_matrix
+from . import dtw_ndim
 from . import ed
 from . import util
 from . import util_numpy
@@ -86,6 +87,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
     if np is None:
         raise NumpyException('The method dba_loop requires Numpy to be available')
     s = SeriesContainer.wrap(s)
+    ndim = s.detected_ndim
     avg = None
     avgs = None
     if keep_averages:
@@ -129,10 +131,16 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         if use_c:
             assert(c is not None)
             c_copy = c.copy()  # The C code reuses this array
-            dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
+            # c_copy = c.flatten()
+            if ndim == 1:
+                dtw_cc.dba(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, **kwargs)
+                # avg = c_copy
+            else:
+                dtw_cc.dba_ndim(s, c_copy, mask=mask_copy, nb_prob_samples=nb_prob_samples, ndim=ndim, **kwargs)
+                # avg = c_copy.reshape(-1, ndim)
             avg = c_copy
         else:
-            if not use_c:
+            if not nb_prob_samples:
                 avg = dba(s, c, mask=mask, use_c=use_c, **kwargs)
             else:
                 avg = dba(s, c, mask=mask, nb_prob_samples=nb_prob_samples, use_c=use_c, **kwargs)
@@ -141,8 +149,12 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         if thr is not None and c is not None:
             diff = 0
             # diff = np.sum(np.subtract(avg, c))
-            for av, cv in zip(avg, c):
-                diff += abs(av - cv)
+            if ndim == 1:
+                for av, cv in zip(avg, c):
+                    diff += abs(av - cv)
+            else:
+                for av, cv in zip(avg, c):
+                    diff += max(abs(av[d] - cv[d]) for d in range(ndim))
             diff /= len(avg)
             if diff <= thr:
                 logger.debug(f'DBA converged at {it} iterations (avg diff={diff}).')
@@ -177,6 +189,7 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         # TODO
         raise Exception("Prob sampling for DBA not yet implemented for Python")
     s = SeriesContainer.wrap(s)
+    ndim = s.detected_ndim
     if mask is not None and not mask.any():
         # Mask has not selected any series
         print("Empty mask, returning zero-constant average")
@@ -198,12 +211,23 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         if mask is not None and not mask[idx]:
             continue
         if use_c:
-            m = dtw_cc.warping_path(c, seq, **kwargs)
+            if ndim == 1:
+                m = dtw_cc.warping_path(c, seq, **kwargs)
+            else:
+                m = dtw_cc.warping_path_ndim(c, seq, ndim, **kwargs)
         else:
-            m = warping_path(c, seq, **kwargs)
+            if ndim == 1:
+                m = warping_path(c, seq, **kwargs)
+            else:
+                m = dtw_ndim.warping_path(c, seq, **kwargs)
         for i, j in m:
             assoctab[i].append(seq[j])
-    cp = array.array('d', [0] * t)
+    # cp = array.array('d', [0] * t)
+    if ndim == 1:
+        shape = (t,)
+    else:
+        shape = (t, ndim)
+    cp = np.zeros(shape, dtype=np.double)
     for i, values in enumerate(assoctab):
         if len(values) == 0:
             print('WARNING: zero values in assoctab')
@@ -211,5 +235,9 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
             for seq in s:
                 print(seq)
             print(assoctab)
-        cp[i] = sum(values) / len(values)  # barycenter
+        if ndim == 1:
+            cp[i] = sum(values) / len(values)  # barycenter
+        else:
+            for d in range(ndim):
+                cp[i, d] = sum([value[d] for value in values]) / len(values)
     return cp

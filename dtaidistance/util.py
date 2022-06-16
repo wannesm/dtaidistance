@@ -6,7 +6,7 @@ dtaidistance.util
 Utility functions for DTAIDistance.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2018 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -17,6 +17,9 @@ import logging
 from array import array
 from pathlib import Path
 import tempfile
+
+
+logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
 try:
@@ -38,12 +41,94 @@ try:
     from . import dtw_cc_numpy
 except ImportError:
     dtw_cc_numpy = None
-
-
-logger = logging.getLogger("be.kuleuven.dtai.distance")
+except ValueError as exc:
+    logger.warning('Warning: loading library to link with numpy returned an error')
+    logger.warning(exc)
+    dtw_cc_numpy = None
 
 
 dtaidistance_dir = os.path.abspath(os.path.dirname(__file__))
+
+
+def try_import_c(verbose=False):
+    is_complete = True
+    msgs = []
+    global dtw_cc
+    global dtw_cc_omp
+    global dtw_cc_numpy
+    try:
+        from . import dtw_cc
+    except Exception as exc:
+        print('Cannot import C-based library (dtw_cc)')
+        msgs.append('Cannot import C-based library (dtw_cc)')
+        msgs.append(str(exc))
+        dtw_cc = None
+        is_complete = False
+    try:
+        from . import dtw_cc_omp
+    except Exception as exc:
+        print('Cannot import OMP-based library (dtw_cc_omp)')
+        msgs.append('Cannot import OMP-based library (dtw_cc_omp)')
+        msgs.append(str(exc))
+        dtw_cc_omp = None
+        is_complete = False
+    try:
+        from . import dtw_cc_numpy
+    except Exception as exc:
+        print('Cannot import Numpy-based library (dtw_cc_numpy)')
+        msgs.append('Cannot import Numpy-based library (dtw_cc_numpy)')
+        msgs.append(str(exc))
+        dtw_cc_numpy = None
+        is_complete = False
+    try:
+        import numpy
+        msgs.append('Numpy version: {}'.format(numpy.__version__))
+    except Exception as exc:
+        print('Cannot import Numpy (optional dependency)')
+        msgs.append('Cannot import Numpy (optional dependency)')
+        msgs.append(str(exc))
+    try:
+        import matplotlib
+        msgs.append('Matplotlib version: {}'.format(matplotlib.__version__))
+    except Exception as exc:
+        print('Cannot import Matplotlib (optional dependency)')
+        msgs.append('Cannot import Matplotlib (optional dependency)')
+        msgs.append(str(exc))
+    try:
+        import scipy
+        msgs.append('Scipy version: {}'.format(scipy.__version__))
+    except Exception as exc:
+        print('Cannot import SciPy (optional dependency)')
+        msgs.append('Cannot import SciPy (optional dependency)')
+        msgs.append(str(exc))
+    if not is_complete:
+        print('\nNot all libraries are available in your installation. ')
+        print('You can rerun the compilation from source or pip install in verbose mode:\n'
+              'pip install -vvv --upgrade --force-reinstall --no-deps --no-binary dtaidistance dtaidistance')
+        print('In case you need to use an older version of numpy, compile against your current installation:\n'
+              'pip install -vvv --upgrade --force-reinstall --no-deps --no-build-isolation '
+              '--no-binary dtaidistance dtaidistance')
+        print('\nShare the following information when submitting a bug report:')
+    elif verbose:
+        print('All ok ...')
+    if not is_complete or verbose:
+        print('== Packages ==')
+        for msg in msgs:
+            print(f'- {msg}')
+        print('== System information ==')
+        import sys
+        print(sys.implementation)
+        print('== Compilation information ==')
+        try:
+            import pkgutil
+            logtxt = pkgutil.get_data(__name__, "compilation.log")
+            print(logtxt.decode())
+        except Exception as exc:
+            print('Could not read compilation.log')
+            print(exc)
+        print('')
+        print('==')
+    return is_complete
 
 
 def prepare_directory(directory=None):
@@ -93,39 +178,54 @@ class SeriesContainer:
         """Container for a list of series.
 
         This wrapper class knows how to deal with multiple types of datastructures to represent
-        a list of sequences:
+        a sequence of sequences.
+
+        For 1 dimensional time series (e.g. [1,2,3,4]):
         - List[array.array]
-        - List[numpy.array]
+        - List[numpy.array] (array is 1 dimensional)
         - List[List]
-        - numpy.array
+        - numpy.array (2 dimensional)
         - numpy.matrix
+
+        For n-dimensional time series (e.g. [[1,2],[3,4],[5,6]]):
+        - List[numpy.array] (array is 2 dimensional)
+        - List[List[List]]
+        - numpy.array (3 dimensional)
 
         When using the C-based extensions, the data is automatically verified and converted.
         """
         self.support_ndim = support_ndim
+        # Always detect the dimensionality of the time series, even if support_ndim is false
         self.detected_ndim = False
         if isinstance(series, SeriesContainer):
             self.series = series.series
         elif np is not None and isinstance(series, np.ndarray):
-            # A matrix always returns a 2D array, also if you select one row (to be consistent
+            # A np.matrix always returns a 2D array, also if you select one row (to be consistent
             # and always be a matrix datastructure). The methods in this toolbox expect a
             # 1D array thus we need to convert to a 1D or 2D array. This is taken care by asarray
             self.series = np.asarray(series, order="C")
             if self.series.ndim > 2:
                 if not self.support_ndim:
                     raise Exception(f'N-dimensional series are not supported '
-                                    f'(series.ndim = {self.series.ndim})')
-                else:
-                    self.detected_ndim = True
-        elif type(series) == set or type(series) == tuple or type(series) == list:
+                                    f'(series.ndim = {self.series.ndim}) > 2')
+                self.detected_ndim = len(self.series[0, 0])
+            else:
+                self.detected_ndim = 1
+        elif type(series) in [set, tuple, list]:
             self.series = list(series)
             if np is not None and isinstance(self.series[0], np.ndarray):
                 if self.series[0].ndim > 1:
                     if not self.support_ndim:
                         raise Exception(f'N-dimensional series are not supported '
-                                        f'(series[0].ndim = {self.series[0].ndim})')
-                    else:
-                        self.detected_ndim = True
+                                        f'(series[0].ndim = {self.series[0].ndim}) > 1')
+                    self.detected_ndim = len(self.series[0][0])
+                else:
+                    self.detected_ndim = 1
+            elif type(series[0]) in [list, tuple]:
+                if type(series[0][0]) in [list, tuple]:
+                    self.detected_ndim = len(self.series[0][0])
+                else:
+                    self.detected_ndim = 1
         else:
             self.series = series
 

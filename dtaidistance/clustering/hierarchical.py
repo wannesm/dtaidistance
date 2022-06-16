@@ -6,7 +6,7 @@ dtaidistance.clustering.hierarchical
 Time series clustering using hierarchical clustering.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -45,6 +45,7 @@ class Hierarchical:
         The function definition is `def merge_hook(from_idx, to_idx, distance)`, where idx is the index of the series.
     :param order_hook: Function that is called to decide on the next idx out of all shortest distances
     :param show_progress: Use a tqdm progress bar
+    :return: Cluster indices
     """
 
     def __init__(self, dists_fun, dists_options, max_dist=float('inf'),
@@ -59,7 +60,7 @@ class Hierarchical:
     def fit(self, series):
         """Merge sequences.
 
-        :param series: Iterator over series.
+        :param series: Sequence over series.
         :return: Dictionary with as keys the prototype indicices and as values all the indicides of the series in
             that cluster.
         """
@@ -426,7 +427,11 @@ class HierarchicalTree(BaseTree):
     def fit(self, series, *args, **kwargs):
         """Fit a hierarchical clustering tree.
 
-        The linkage tree is available in self.linkage.
+        All arguments are passed when calling the model past to `__init__`.
+        The linkage tree is also available in self.linkage.
+
+        :param series: Sequence over time series
+        :return: Linkage datastructure
         """
         self.series = SeriesContainer.wrap(series)
         self.linkage = []
@@ -480,7 +485,10 @@ class LinkageTree(BaseTree):
     def fit(self, series):
         """Fit a hierarchical clustering tree.
 
-        The linkage tree is available in self.linkage.
+        The linkage tree is also available in self.linkage.
+
+        :param series: Sequence over time series
+        :return: Linkage datastructure
         """
         if np is None:
             raise NumpyException("The fit function requires Numpy to be installed.")
