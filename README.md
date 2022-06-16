@@ -44,6 +44,7 @@ Citing this work:
   package.
 - DTW Barycenter Averaging for clustering (v2.2).
 - Subsequence search and local concurrences (v2.3).
+- Support for N-dimensional time series (v2.3.7).
 
 
 ## Installation
