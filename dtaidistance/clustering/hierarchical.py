@@ -241,8 +241,8 @@ class BaseTree:
 
         node_props = dict()
 
-        max_y = self.series.get_max_y()
-        self.ts_height_factor = (ts_height / max_y) * 0.9
+        min_y, max_y = self.series.get_max_min_y()
+        self.ts_height_factor = (ts_height / 2 / max(abs(max_y), abs(min_y)))
 
         def count(node, height):
             # print('count({},{})'.format(node, height))
@@ -336,9 +336,9 @@ class BaseTree:
                     curcolor = ts_color(int(node))
                 else:
                     curcolor = None
-                ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
-                           bottom_margin + ts_height * cnt_ts + self.ts_height_factor * serie,
-                           color=curcolor)
+                line, = ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
+                                   bottom_margin + ts_height * (cnt_ts + 0.5) + self.ts_height_factor * serie,
+                                   color=curcolor)
                 cnt_ts += 1
 
             else:
@@ -470,13 +470,15 @@ class LinkageTree(BaseTree):
     distance matrix first and is thus not ideal for extremely large data sets.
     """
 
-    def __init__(self, dists_fun, dists_options, method='complete'):
+    def __init__(self, dists_fun, dists_options=None, method='complete'):
         """
 
         :param dists_fun: Distance funcion, e.g. dtw.distance
         :param dists_options: Options passed to dists_fun
         :param method: Linkage method (see scipy.cluster.hierarchy.linkage)
         """
+        if dists_options is None:
+            dists_options = {}
         super().__init__()
         self.dists_fun = dists_fun
         self.dists_options = dists_options

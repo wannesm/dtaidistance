@@ -155,6 +155,26 @@ def test_linkage_tree():
         print("Dot saved to", graphviz_fn)
 
 
+@numpyonly
+def test_trace_hierarchical():
+    with util_numpy.test_uses_numpy() as np, util_numpy.test_uses_scipy() as scipy:
+        nb = 20
+        rsrc_fn = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'rsrc', 'Trace_TRAIN.txt')
+        data = np.loadtxt(rsrc_fn)
+        labels = data[:, 0]
+        series = data[:, 1:]
+        model = clustering.LinkageTree(dtw.distance_matrix_fast, {'parallel': True})
+        model.fit(series[:nb])
+
+        if not dtwvis.test_without_visualization() and directory:
+            import matplotlib.pyplot as plt
+            hierarchy_fn = os.path.join(directory, "trace_hierarchical.png")
+            fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(5, 5))
+            plt.rcParams['font.family'] = 'monospace'
+            ts_label = lambda idx: f'{int(idx):>2}={int(labels[idx])}'
+            model.plot(hierarchy_fn, axes=ax, show_ts_label=ts_label, ts_label_margin=300)
+
+
 @scipyonly
 @numpyonly
 def test_controlchart():
@@ -253,9 +273,10 @@ if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print(f"Saving files to {directory}")
     # test_clustering_tree()
-    test_clustering_tree_ndim()
+    # test_clustering_tree_ndim()
     # test_clustering_tree_maxdist()
     # test_linkage_tree()
+    test_trace_hierarchical()
     # test_controlchart()
     # test_plotbug1()
     # test_clustering_centroid()

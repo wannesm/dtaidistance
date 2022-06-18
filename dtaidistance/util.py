@@ -282,6 +282,17 @@ class SeriesContainer:
                 max_y = max(max_y, np.max(serie), abs(np.min(serie)))
         return max_y
 
+    def get_max_min_y(self):
+        min_y, max_y = 0, 0
+        if isinstance(self.series, np.ndarray) and len(self.series.shape) == 2:
+            min_y = np.min(self.series)
+            max_y = np.max(self.series)
+        else:
+            for serie in self.series:
+                min_y = min(min_y, np.min(self.serie))
+                max_y = max(max_y, np.max(self.serie))
+        return min_y, max_y
+
     def get_max_length(self):
         max_length = 0
         if isinstance(self.series, np.ndarray) and len(self.series.shape) == 2:
