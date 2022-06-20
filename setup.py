@@ -458,7 +458,8 @@ set_setup_kwargs(
         'DTAIDistance documentation': 'http://dtaidistance.readthedocs.io/en/latest/',
         'DTAIDistance source': 'https://github.com/wannesm/dtaidistance'
     },
-    packages=['dtaidistance', 'dtaidistance.clustering', 'dtaidistance.subsequence'],
+    packages=['dtaidistance', 'dtaidistance.clustering', 'dtaidistance.subsequence',
+              'dtaidistance.connectors'],
     python_requires='>=3.5',
     install_requires=install_requires,
     setup_requires=setup_requires,
