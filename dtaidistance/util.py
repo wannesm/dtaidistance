@@ -289,8 +289,8 @@ class SeriesContainer:
             max_y = np.max(self.series)
         else:
             for serie in self.series:
-                min_y = min(min_y, np.min(self.serie))
-                max_y = max(max_y, np.max(self.serie))
+                min_y = min(min_y, np.min(serie))
+                max_y = max(max_y, np.max(serie))
         return min_y, max_y
 
     def get_max_length(self):
