@@ -11,7 +11,7 @@ on:
   push:
     branches: [ deploy ]
   pull_request:
-    banches: [ deploy ]
+    branches: [ deploy ]
 
 jobs:
   # Explore-GitHub-Actions:
