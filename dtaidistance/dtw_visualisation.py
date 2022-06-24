@@ -98,7 +98,8 @@ def plot_warp(from_s, to_s, new_s, path, filename=None, fig=None, axs=None):
     return fig, axs
 
 
-def plot_warping(s1, s2, path, filename=None, fig=None, axs=None):
+def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
+                 series_line_options=None, warping_line_options=None):
     """Plot the optimal warping between to sequences.
 
     :param s1: From sequence.
@@ -107,6 +108,10 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None):
     :param filename: Filename path (optional).
     :param fig: Matplotlib Figure object
     :param axs: Array of Matplotlib axes.Axes objects (length == 2)
+    :param series_line_options: Dictionary of options to pass to matplotlib plot
+        None will not pass any options
+    :param warping_line_options: Dictionary of options to pass to matplotlib ConnectionPatch
+        None will use {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     :return: Figure, list[Axes]
     """
     try:
@@ -120,16 +125,19 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None):
         fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
     elif fig is None or axs is None:
         raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
-    axs[0].plot(s1)
-    axs[1].plot(s2)
+    if series_line_options is None:
+        series_line_options = {}
+    axs[0].plot(s1, **series_line_options)
+    axs[1].plot(s2, **series_line_options)
     plt.tight_layout()
     lines = []
-    line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    if warping_line_options is None:
+        warping_line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
         con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=axs[0].transData,
-                              xyB=[c_c, s2[c_c]], coordsB=axs[1].transData, **line_options)
+                              xyB=[c_c, s2[c_c]], coordsB=axs[1].transData, **warping_line_options)
         lines.append(con)
     for line in lines:
         fig.add_artist(line)
