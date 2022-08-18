@@ -165,9 +165,17 @@ class SubsequenceAlignment:
     def get_match(self, idx):
         return SAMatch(idx, self)
 
+    def best_match_fast(self):
+        self.use_c = True
+        return self.best_match()
+
     def best_match(self):
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
+
+    def kbest_matches_fast(self, k=1, overlap=0):
+        self.use_c = True
+        return self.kbest_matches(k=k, overlap=overlap)
 
     def kbest_matches(self, k=1, overlap=0):
         """Yields the next best match. Stops at k matches (use None for all matches).
@@ -534,10 +542,18 @@ class SubsequenceSearch:
                 self.dists_options['max_dist'] = max_dist
             self.distances[idx] = dist
 
+    def best_match_fast(self):
+        self.dists_options['use_c'] = True
+        return self.best_match()
+
     def best_match(self):
         self.align(k=1)
         best_idx = np.argmin(self.distances)
         return SSMatch(best_idx, self)
+
+    def kbest_matches_fast(self, k=1):
+        self.dists_options['use_c'] = True
+        return self.kbest_matches(k=k)
 
     def kbest_matches(self, k=1):
         self.align(k=k)
