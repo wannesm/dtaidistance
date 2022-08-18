@@ -468,14 +468,14 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series):
+def subsequence_search(query, series, dists_options=None):
     """See SubsequenceSearch.
 
     :param query:
     :param series:
     :return:
     """
-    ss = SubsequenceSearch(query, series)
+    ss = SubsequenceSearch(query, series, dists_options=dists_options)
     return ss
 
 
@@ -508,6 +508,10 @@ class SubsequenceSearch:
 
     def reset(self):
         self.distances = None
+
+    def align_fast(self, k=None):
+        self.dists_options['use_c'] = True
+        return self.align(k=k)
 
     def align(self, k=None):
         if self.distances is not None and self.k >= k:

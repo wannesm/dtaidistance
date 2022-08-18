@@ -5,7 +5,8 @@ import time
 from pathlib import Path
 
 from dtaidistance import util_numpy
-from dtaidistance.subsequence.dtw import subsequence_alignment, local_concurrences, subsequence_search
+from dtaidistance.subsequence.dtw import subsequence_alignment, local_concurrences,\
+    subsequence_search, subsequence_search_fast
 from dtaidistance import dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException
 
@@ -230,7 +231,7 @@ def test_dtw_subseqsearch_eeg():
             si += ws
             ei += ws
         tic = time.perf_counter()
-        sa = subsequence_search(query, s)
+        sa = subsequence_search_fast(query, s, dists_options={'use_c': True})
         best = sa.kbest_matches(k=k)
         toc = time.perf_counter()
         print(f"Searching performed in {toc - tic:0.4f} seconds")
@@ -279,7 +280,7 @@ if __name__ == "__main__":
         # test_dtw_subseq1()
         # test_dtw_subseq_eeg()
         # test_dtw_subseq_bug1()
-        test_dtw_subseq_ndim()
+        # test_dtw_subseq_ndim()
         # test_dtw_localconcurrences_eeg()
-        # test_dtw_subseqsearch_eeg()
+        test_dtw_subseqsearch_eeg()
         # test_dtw_localconcurrences_short()
