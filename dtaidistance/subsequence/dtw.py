@@ -67,7 +67,20 @@ class SAMatch:
 
     @property
     def value(self):
+        """Normalized DTW distance of match.
+
+        Normalization is the DTW distance divided by the query length.
+        """
         return self.alignment.matching[self.idx]
+
+    @property
+    def distance(self):
+        """DTW distance of match.
+
+        This value is dependent on the length of the query. Use the value
+        property when comparing queries of different lengths.
+        """
+        return self.value * len(self.alignment.query)
 
     @property
     def segment(self):
@@ -479,18 +492,36 @@ class LocalConcurrences:
 def subsequence_search(query, series, dists_options=None):
     """See SubsequenceSearch.
 
-    :param query:
-    :param series:
-    :return:
+    :param query: Time series to search for
+    :param series: Iterator over time series to perform search on.
+            This can be for example windows over a long time series.
+    :param dists_options: Options passed on to dtw.distance
+    :return: SubsequenceSearch object
     """
     ss = SubsequenceSearch(query, series, dists_options=dists_options)
     return ss
 
 
 class SSMatch:
+    """Found match by SubsequenceSearch.
+
+    The match is identified by the idx property, which is the index of the matched
+    series in the original list of series. The distance property returns the DTW
+    distance between the query and the series at index idx.
+    """
     def __init__(self, idx, ss):
         self.idx = idx
         self.ss = ss
+
+    @property
+    def distance(self):
+        """DTW distance."""
+        return self.ss.distances[self.idx]
+
+    @property
+    def value(self):
+        """Normalized DTW distance."""
+        return self.distance / len(self.ss.query)
 
     def __str__(self):
         return f'SSMatch({self.idx})'
@@ -506,7 +537,7 @@ class SubsequenceSearch:
         :param query: Time series to search for
         :param s: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
-        :param dists_options: Options for DTW
+        :param dists_options: Options passed on to dtw.distance
         """
         self.query = query
         self.s = s
