@@ -101,6 +101,7 @@
 		C06FD21124AA10F600892537 /* DTAIDistanceCTestMatrix */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestMatrix; sourceTree = BUILT_PRODUCTS_DIR; };
 		C0CAB7A724F3C5A000762BE3 /* dd_globals.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dd_globals.c; sourceTree = "<group>"; };
 		C0CD704724AF4F1F00F1BB3B /* DTAIDistanceCTestAll */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DTAIDistanceCTestAll; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0F8ACE728B03310009FAE9C /* jinja */ = {isa = PBXFileReference; lastKnownFileType = folder; path = jinja; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +178,7 @@
 				C043A85324BC69AC00BFCF3E /* dd_ed.c */,
 				C043A85924BC6A2D00BFCF3E /* dd_globals.h */,
 				C0CAB7A724F3C5A000762BE3 /* dd_globals.c */,
+				C0F8ACE728B03310009FAE9C /* jinja */,
 			);
 			path = DTAIDistanceC;
 			sourceTree = "<group>";

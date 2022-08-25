@@ -14,6 +14,22 @@
 #include "dd_dtw.h"
 #include "dd_dtw_openmp.h"
 
+
+void benchmark1(void);
+void benchmark2(void);
+void benchmark3(void);
+void benchmark4(void);
+void benchmark5(void);
+void benchmark6(void);
+void benchmark7(void);
+void benchmark8(void);
+void benchmark9(void);
+void benchmark10(void);
+void benchmark11(void);
+void benchmark12_subsequence(void);
+void benchmark13(void);
+
+
 void benchmark1() {
     int size=10000;
    double ra1[size], ra2[size];
@@ -150,7 +166,7 @@ void benchmark7() {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
@@ -347,6 +363,39 @@ void benchmark13() {
     free(wps);
 }
 
+void benchmark_ignore() {
+    double s[] = {0., 0, 1, 2, 1, 0, 1, 0, 0,  // 0
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,  // 1
+                  1., 2, 0, 0, 0, 0, 0, 1, 1,  // 2
+                  0., 0, 1, 2, 1, 0, 1, 0, 0,  // 3
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,  // 4
+                  1., 2, 0, 0, 0, 0, 0, 1, 1}; // 5
+    double sr[] = {0., 1, 2, 0, 0, 0, 0, 0, 0, // 1
+                   1., 2, 0, 0, 0, 0, 0, 1, 1, // 2
+                   0., 0, 1, 2, 1, 0, 1, 0, 0};// 3
+    double sc[] = {0., 0, 1, 2, 1, 0, 1, 0, 0, // 3
+                   0., 1, 2, 0, 0, 0, 0, 0, 0};// 4
+    idx_t nb_cols = 9;
+    idx_t nb_rows_r = 3;
+    idx_t nb_rows_c = 2;
+    idx_t nb_rows = 6;
+    double result[6];
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = {.rb=0, .re=0, .cb=0, .ce=0, .triu=false};
+    dtw_distances_matrices(sr, nb_rows_r, nb_cols, sc, nb_rows_c, nb_cols, result, &block, &settings);
+    for (int i=0; i<6; i++) {
+         printf("%.4f ", result[i]);
+     }
+    printf("\n");
+    
+    DTWBlock block2 = {.rb=1, .re=4, .cb=3, .ce=5, .triu=false};
+    dtw_distances_matrix(s, nb_rows, nb_cols, result, &block2, &settings);
+    for (int i=0; i<6; i++) {
+         printf("%.4f ", result[i]);
+     }
+    printf("\n");
+}
+
 
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
@@ -364,11 +413,12 @@ int main(int argc, const char * argv[]) {
 //    benchmark6();
 //    benchmark7();
 //    benchmark8();
-    benchmark9();
+//    benchmark9();
 //    benchmark10();
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
+    benchmark_ignore();
     
     time(&end_t);
     clock_gettime(CLOCK_REALTIME, &end);

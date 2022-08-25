@@ -3,7 +3,7 @@ CC=gcc
 # This works for macos, on linux it can be -lgomp needs to be used
 CFLAGS=-Wall -g -Xpreprocessor -fopenmp -lomp
 CPPFLAGS=
-DEPS = DTAIDistanceC/dd_globals.h
+DEPS = DTAIDistanceC/dd_globals.h jinja
 OBJ = DTAIDistanceC/dd_benchmark.o \
 	  DTAIDistanceC/dd_dtw.o \
 	  DTAIDistanceC/dd_dtw_openmp.o \
@@ -24,9 +24,6 @@ dd_benchmark: $(OBJ)
 clean:
 	rm -f DTAIDistanceC/*.o
 	rm -f dd_benchmark
-
-
-
 
 
 

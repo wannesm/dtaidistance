@@ -140,7 +140,7 @@ seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
 // Block
 DTWBlock dtw_block_empty(void);
 void     dtw_block_print(DTWBlock *block);
-bool     dtw_block_is_valid(DTWBlock *block, idx_t nb_series);
+bool     dtw_block_is_valid(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c);
 
 // Distance matrix
 idx_t dtw_distances_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* output,
@@ -151,7 +151,10 @@ idx_t dtw_distances_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* o
                             DTWBlock* block, DTWSettings* settings);
 idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output,
                                  DTWBlock* block, DTWSettings* settings);
-idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series);
+idx_t dtw_distances_matrices(seq_t *matrix_r, idx_t nb_rows_r, idx_t nb_cols_r,
+                             seq_t *matrix_c, idx_t nb_rows_c, idx_t nb_cols_c,
+                             seq_t* output, DTWBlock* block, DTWSettings* settings);
+idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c);
 
 // DBA
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,
