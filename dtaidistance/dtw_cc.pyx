@@ -618,7 +618,7 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
 
 def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
     cdef Py_ssize_t length
-    length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series)
+    length = dtaidistancec_dtw.dtw_distances_length(&block._block, nb_series, nb_series)
     return length
 
 

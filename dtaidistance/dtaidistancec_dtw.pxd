@@ -69,4 +69,7 @@ cdef extern from "dd_dtw.h":
                             DTWBlock* block, DTWSettings* settings)
     Py_ssize_t dtw_distances_ndim_matrix(seq_t *matrix, Py_ssize_t nb_rows, Py_ssize_t nb_cols, int ndim, seq_t* output,
                                      DTWBlock* block, DTWSettings* settings)
-    Py_ssize_t dtw_distances_length(DTWBlock *block, Py_ssize_t nb_series)
+    Py_ssize_t dtw_distances_matrices(seq_t *matrix_r, Py_ssize_t nb_rows_r, Py_ssize_t nb_cols_r,
+                                      seq_t *matrix_c, Py_ssize_t nb_rows_c, Py_ssize_t nb_cols_c,
+                                      seq_t * output, DTWBlock * block, DTWSettings * settings)
+    Py_ssize_t dtw_distances_length(DTWBlock *block, Py_ssize_t nb_series_r, Py_ssize_t nb_series_c)

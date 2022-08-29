@@ -21,6 +21,10 @@ runtest:
 test:
 	export PYTHONPATH=.;py.test --ignore=venv --benchmark-skip -vv
 
+.PHONY: pypy-test
+pypy-test:
+	export PYTHONPATH=.;pypy3 -m py.test --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
+
 .PHONY: test-windows
 test-windows:
 	pytest --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
@@ -69,6 +73,10 @@ clean:
 .PHONY: build
 build:
 	python3 setup.py build_ext --inplace
+
+.PHONY: pypy-build
+pypy-build:
+	pypy3 setup.py build_ext --inplace
 
 .PHONY: analyze_build
 analyze_build:

@@ -154,6 +154,9 @@ idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int
 idx_t dtw_distances_matrices(seq_t *matrix_r, idx_t nb_rows_r, idx_t nb_cols_r,
                              seq_t *matrix_c, idx_t nb_rows_c, idx_t nb_cols_c,
                              seq_t* output, DTWBlock* block, DTWSettings* settings);
+idx_t dtw_distances_ndim_matrices(seq_t *matrix_r, idx_t nb_rows_r, idx_t nb_cols_r,
+                                  seq_t *matrix_c, idx_t nb_rows_c, idx_t nb_cols_c, int ndim,
+                                  seq_t* output, DTWBlock* block, DTWSettings* settings);
 idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c);
 
 // DBA
