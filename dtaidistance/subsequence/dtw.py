@@ -259,7 +259,7 @@ class SubsequenceAlignment:
 
 
 def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, estimate_settings=None,
-                       only_triu=False, penalty=None):
+                       only_triu=False, penalty=None, window=None):
     """Local concurrences, see LocalConcurrences.
 
     :param series1:
@@ -280,7 +280,7 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor,
-                           only_triu=only_triu, penalty=penalty)
+                           only_triu=only_triu, penalty=penalty, window=window)
     if estimate_settings is not None:
         lc.estimate_settings_from_std(series1, estimate_settings)
     lc.align()
@@ -310,7 +310,7 @@ class LCMatch:
 
 
 class LocalConcurrences:
-    def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False, penalty=None):
+    def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False, penalty=None, window=None):
         """Version identification based on local concurrences.
 
         Find recurring patterns across two time series. Used to identify whether one time series is
@@ -358,6 +358,7 @@ class LocalConcurrences:
         self.delta = delta
         self.delta_factor = delta_factor
         self.penalty = penalty
+        self.window = window
         self._wp = None  # warping paths
 
     def reset(self):
@@ -388,7 +389,8 @@ class LocalConcurrences:
         _, wp = dtw.warping_paths_affinity(self.series1, self.series2,
                                            gamma=self.gamma, tau=self.tau,
                                            delta=self.delta, delta_factor=self.delta_factor,
-                                           only_triu=self.only_triu, penalty=self.penalty)
+                                           only_triu=self.only_triu, penalty=self.penalty,
+                                           window=self.window)
         self._wp = ma.masked_array(wp)
         if self.only_triu:
             il = np.tril_indices(self._wp.shape[0])
