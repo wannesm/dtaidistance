@@ -183,10 +183,19 @@ class KMeans(Medoids):
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.kmeansplusplus_centers method.")
         logger.debug('Start K-means++ initialization ... ')
+        ndim = self.series.detected_ndim
+        print(self.dists_options)
+        print(dtw_ndim.distance(series[0], series[5], **self.dists_options))
         if use_c:
-            fn = distance_matrix_fast
+            if ndim == 1:
+                fn = distance_matrix_fast
+            else:
+                fn = dtw_ndim.distance_matrix_fast
         else:
-            fn = distance_matrix
+            if ndim == 1:
+                fn = distance_matrix
+            else:
+                fn = dtw_ndim.distance_matrix
         indices = []
         if self.initialize_sample_size is None:
             n_samples = min(2 + int(math.log(self.k)), len(series) - self.k)

@@ -758,24 +758,37 @@ def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
-    if block is None:
-        it_r = range(len(s))
-    else:
-        it_r = range(block[0][0], block[0][1])
+    block, triu = _complete_block(block, len(s))
+    it_r = range(block[0][0], block[0][1])
     if show_progress:
         it_r = tqdm(it_r)
     idx = 0
     for r in it_r:
-        if block is None:
-            it_c = range(r + 1, len(s))
-        elif len(block) > 2 and block[2] is False:
-            it_c = range(block[1][0], min(len(s), block[1][1]))
-        else:
+        if triu:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
+        else:
+            it_c = range(block[1][0], min(len(s), block[1][1]))
         for c in it_c:
             dists[idx] = distance(s[r], s[c], **dist_opts)
             idx += 1
     return dists
+
+
+def _complete_block(block, nb_series):
+    """Expand block variable to represent exact indices of ranges.
+
+    :param block: None, 0, or tuple
+    :param nb_series: Number of series in the list
+    :return: Block with filled in indices, Boolean to indicate triu
+    """
+    if block is None or block == 0:
+        block = ((0, nb_series), (0, nb_series))
+        return block, True
+    else:
+        if len(block) > 2 and block[2] is False:
+            return block, False
+        else:
+            return block, True
 
 
 def _distance_matrix_idxs(block, nb_series):
@@ -783,14 +796,8 @@ def _distance_matrix_idxs(block, nb_series):
         if np is not None:
             idxs = np.triu_indices(nb_series, k=1)
             return idxs
-        # Numpy is not available
-        block = ((0, nb_series), (0, nb_series))
-        triu = True
-    else:
-        if len(block) > 2 and block[2] is False:
-            triu = False
-        else:
-            triu = True
+    # Numpy is not available or not triu
+    block, triu = _complete_block(block, nb_series)
     idxsl_r = []
     idxsl_c = []
     for r in range(block[0][0], block[0][1]):

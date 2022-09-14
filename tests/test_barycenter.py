@@ -422,8 +422,10 @@ def test_ndim_barycenter2():
 
 
 @numpyonly
-@pytest.mark.parametrize("use_c,use_parallel", [(False,False), (True,False), (False,True), (True,True)])
-def test_ndim_kmeans(use_c, use_parallel):
+@pytest.mark.parametrize("use_c,use_parallel,kmeanspp",
+                         [(False,False,False), (True,False,False), (False,True,False), (True,True,False),
+                          (False,False,True)])
+def test_ndim_kmeans(use_c, use_parallel, kmeanspp):
     with util_numpy.test_uses_numpy() as np:
         random.seed(3980)
         np.random.seed(3980)
@@ -443,15 +445,19 @@ def test_ndim_kmeans(use_c, use_parallel):
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
                        dists_options={"window": window},
                        initialize_with_kmedoids=False,
-                       initialize_with_kmeanspp=False)
+                       initialize_with_kmeanspp=kmeanspp)
         cluster_idx, performed_it = model.fit(series, use_c=use_c, use_parallel=use_parallel)
         toc = time.perf_counter()
         # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
         # for ki in range(k):
         #     print(f'Cluster {ki+1}: {model.cluster_idx[ki]}')
         #     print(model.means[ki])
-        assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
-        assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
+        if kmeanspp is False:
+            assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'
+            assert set(model.cluster_idx[1]) == {0, 3}, f'{model.cluster_idx[1]} != {{0, 3}}'
+        else:
+            assert set(model.cluster_idx[0]) == {0, 1, 3, 4}, f'{model.cluster_idx[0]} != {{0, 1, 3, 4}}'
+            assert set(model.cluster_idx[1]) == {2, 5}, f'{model.cluster_idx[1]} != {{2, 5}}'
 
 
 @numpyonly
@@ -497,5 +503,5 @@ if __name__ == "__main__":
     # test_ndim_barycenter_single()
     # test_ndim_barycenter()
     # test_ndim_barycenter2()
-    test_ndim_kmeans(use_c=False, use_parallel=False)
+    test_ndim_kmeans(use_c=False, use_parallel=False, kmeanspp=True)
     # test_ndim_kmeans2()
