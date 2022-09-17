@@ -40,6 +40,7 @@ c_args = {
     # GCC should also not be bothered by it but appears to be on some systems.
     'unix': ['-Xpreprocessor', '-fopenmp',
              '-I'+str(dtaidistancec_path),
+             '-I/usr/local/opt/libomp/include',  # In case HomeBrew is used
              '-I/opt/local/include/libomp',  # In case MacPorts is used
             ],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
@@ -48,6 +49,7 @@ c_args = {
                 '-I'+str(dtaidistancec_path)],
     'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
              '-I'+str(dtaidistancec_path),
+             '-I/usr/local/opt/libomp/include',  # In case HomeBrew is used
              '-I/opt/local/include/libomp',  # In case MacPorts is used
              ],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
@@ -55,6 +57,7 @@ c_args = {
 }
 l_args = {
     'unix': ['-Xpreprocessor', '-fopenmp',
+             '-L/usr/local/opt/libomp/lib',  # In case HomeBrew is used
              '-L/opt/local/lib/libomp',  # In case MacPorts is used
              ],  # '-lgomp' / '-lomp'
     'msvc': [],

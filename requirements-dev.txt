@@ -4,3 +4,4 @@ pytest-env
 matplotlib
 numpy
 scipy
+wheel
