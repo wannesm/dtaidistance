@@ -39,21 +39,29 @@ c_args = {
     # not required.
     # GCC should also not be bothered by it but appears to be on some systems.
     'unix': ['-Xpreprocessor', '-fopenmp',
-             '-I'+str(dtaidistancec_path)],
+             '-I'+str(dtaidistancec_path),
+             '-I/opt/local/include/libomp',  # In case MacPorts is used
+            ],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
              '/I'+str(dtaidistancec_path)],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
     'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
-             '-I'+str(dtaidistancec_path)],
+             '-I'+str(dtaidistancec_path),
+             '-I/opt/local/include/libomp',  # In case MacPorts is used
+             ],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
                '-I'+str(dtaidistancec_path)]
 }
 l_args = {
-    'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
+    'unix': ['-Xpreprocessor', '-fopenmp',
+             '-L/opt/local/lib/libomp',  # In case MacPorts is used
+             ],  # '-lgomp' / '-lomp'
     'msvc': [],
     'mingw32': ['-fopenmp'],
-    'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp'], # custom key for Homebrew llvm
+    'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp', # custom key for Homebrew llvm
+             '-L/opt/local/lib/libomp',  # In case MacPorts is used
+             ],
     'gnugcc': ['-Xpreprocessor', '-fopenmp', '-lgomp'] # custom key for GNU GCC
 }
 
