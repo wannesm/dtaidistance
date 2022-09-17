@@ -63,6 +63,7 @@ l_args = {
     'msvc': [],
     'mingw32': ['-fopenmp'],
     'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp', # custom key for Homebrew llvm
+             '-L/usr/local/opt/libomp/lib',  # In case HomeBrew is used
              '-L/opt/local/lib/libomp',  # In case MacPorts is used
              ],
     'gnugcc': ['-Xpreprocessor', '-fopenmp', '-lgomp'] # custom key for GNU GCC
