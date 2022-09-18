@@ -39,35 +39,59 @@ c_args = {
     # not required.
     # GCC should also not be bothered by it but appears to be on some systems.
     'unix': ['-Xpreprocessor', '-fopenmp',
-             '-I'+str(dtaidistancec_path),
-             '-I/usr/local/opt/libomp/include',  # In case HomeBrew is used
-             '-I/opt/local/include/libomp',  # In case MacPorts is used
-            ],
+             '-I'+str(dtaidistancec_path)],
     'msvc': ['/openmp', '/Ox', '/fp:fast', '/favor:INTEL64', '/Og',
              '/I'+str(dtaidistancec_path)],
     'mingw32': ['-fopenmp', '-O3', '-ffast-math', '-march=native', '-DMS_WIN64',
                 '-I'+str(dtaidistancec_path)],
     'llvm': ['-Xpreprocessor', '-fopenmp',  # custom key for Homebrew llvm
-             '-I'+str(dtaidistancec_path),
-             '-I/usr/local/opt/libomp/include',  # In case HomeBrew is used
-             '-I/opt/local/include/libomp',  # In case MacPorts is used
-             ],
+             '-I'+str(dtaidistancec_path)],
     'gnugcc': ['-Xpreprocessor', '-fopenmp',  # custom key for GNU GCC
                '-I'+str(dtaidistancec_path)]
 }
 l_args = {
-    'unix': ['-Xpreprocessor', '-fopenmp',
-             '-L/usr/local/opt/libomp/lib',  # In case HomeBrew is used
-             '-L/opt/local/lib/libomp',  # In case MacPorts is used
-             ],  # '-lgomp' / '-lomp'
+    'unix': ['-Xpreprocessor', '-fopenmp'],  # '-lgomp' / '-lomp'
     'msvc': [],
     'mingw32': ['-fopenmp'],
-    'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp', # custom key for Homebrew llvm
-             '-L/usr/local/opt/libomp/lib',  # In case HomeBrew is used
-             '-L/opt/local/lib/libomp',  # In case MacPorts is used
-             ],
+    'llvm': ['-Xpreprocessor', '-fopenmp', '-lomp'], # custom key for Homebrew llvm
     'gnugcc': ['-Xpreprocessor', '-fopenmp', '-lgomp'] # custom key for GNU GCC
 }
+
+
+# See which paths for libraries exist to add to compiler
+# MacPorts
+p = Path('/usr/local/opt/libomp/include')
+if p.exists():
+    print(f'Adding path to compiler {p}')
+    c_args['unix'].append(f'-I{p}')
+    c_args['llvm'].append(f'-I{p}')
+p = Path('/opt/local/lib/libomp')
+if p.exists():
+    print(f'Adding path to linker {p}')
+    l_args['unix'].append(f'-L{p}')
+    l_args['llvm'].append(f'-L{p}')
+# HomeBrew
+p = Path('/opt/homebrew/include')
+if p.exists():
+    print(f'Adding path to compiler: {p}')
+    c_args['unix'].append(f'-I{p}')
+    c_args['llvm'].append(f'-I{p}')
+p = Path('/opt/homebrew/lib')
+if p.exists():
+    libomp = Path(p / 'libomp.a')
+    if platform.system() == 'Darwin' and libomp.exists():
+        # Force the linker to use the static libomp.a library
+        # This is useful to create wheels for people who do not
+        # have the shared library libomp.{dylib,so} in the right location
+        print(f'Adding libomp to linker: {libomp}')
+        l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
+        l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
+        l_args['unix'].append(str(libomp))
+        l_args['llvm'].append(str(libomp))
+    else:
+        print(f'Adding path to linker: {p}')
+        l_args['unix'].append(f'-L{p}')
+        l_args['llvm'].append(f'-L{p}')
 
 
 class PyTest(TestCommand):
