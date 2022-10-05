@@ -35,6 +35,7 @@ def test_sequences1():
         assert s2a1 == algn_sol1[1]
 
 
+@numpyonly
 def test_sequences2():
     s1 = "GAAAAAAAT"
     s2 = "GAAT"
@@ -46,6 +47,7 @@ def test_sequences2():
     assert s2a1 == algn_sol1[1]
 
 
+@numpyonly
 def test_sequences3():
     s1 = "GAAAAAAAT"
     s2 = "GAATA"
@@ -57,6 +59,7 @@ def test_sequences3():
     assert s2a1 == algn_sol1[1]
 
 
+@numpyonly
 def test_sequences4():
     s1 = "AGACTAGTTACC"
     s2 = "CGAGACGTC"
@@ -72,6 +75,7 @@ def test_sequences4():
     assert s2a1 == algn_sol1[1]
 
 
+@numpyonly
 def test_sequences5():
     s1 = "ATGAGT"
     s2 = "ATGGCGT"
@@ -87,6 +91,7 @@ def test_sequences5():
     assert s2a1 == algn_sol1[1]
 
 
+@numpyonly
 def test_sequences_custom():
 
     scores = read_substitution_matrix(
@@ -111,6 +116,7 @@ def test_sequences_custom():
     assert s2a2 == algn_sol2[1]
 
 
+@numpyonly
 def test_sequences_blosum():
     scores = read_substitution_matrix(
         Path(__file__).parent / "rsrc" / "substitution.txt"

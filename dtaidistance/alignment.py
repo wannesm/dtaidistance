@@ -10,9 +10,12 @@ Sequence alignment (e.g. Needleman–Wunsch).
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
-import numpy as np
-
 from .dp import dp, Direction
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 
 def needleman_wunsch(s1, s2, window=None, max_dist=None,

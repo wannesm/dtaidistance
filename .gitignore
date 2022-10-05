@@ -40,3 +40,4 @@ venv*
 *.supp
 results
 *_test
+dtaidistance/jinja/dtw_cc.pyx

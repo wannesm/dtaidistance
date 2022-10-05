@@ -13,3 +13,9 @@ cdef extern from "dd_dtw_openmp.h":
                                              seq_t* output, DTWBlock* block, DTWSettings* settings)
     Py_ssize_t dtw_distances_ndim_matrix_parallel(seq_t *matrix, Py_ssize_t nb_rows, Py_ssize_t nb_cols, int ndim,
                                                   seq_t* output, DTWBlock* block, DTWSettings* settings)
+    Py_ssize_t dtw_distances_matrices_parallel(seq_t *matrix_r, Py_ssize_t nb_rows_r, Py_ssize_t nb_cols_r,
+                                               seq_t *matrix_c, Py_ssize_t nb_rows_c, Py_ssize_t nb_cols_c,
+                                               seq_t * output, DTWBlock * block, DTWSettings * settings)
+    Py_ssize_t dtw_distances_ndim_matrices_parallel(seq_t *matrix_r, Py_ssize_t nb_rows_r, Py_ssize_t nb_cols_r,
+                                                    seq_t *matrix_c, Py_ssize_t nb_rows_c, Py_ssize_t nb_cols_c, int ndim,
+                                                    seq_t * output, DTWBlock * block, DTWSettings * settings)

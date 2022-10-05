@@ -67,7 +67,20 @@ class SAMatch:
 
     @property
     def value(self):
+        """Normalized DTW distance of match.
+
+        Normalization is the DTW distance divided by the query length.
+        """
         return self.alignment.matching[self.idx]
+
+    @property
+    def distance(self):
+        """DTW distance of match.
+
+        This value is dependent on the length of the query. Use the value
+        property when comparing queries of different lengths.
+        """
+        return self.value * len(self.alignment.query)
 
     @property
     def segment(self):
@@ -165,9 +178,17 @@ class SubsequenceAlignment:
     def get_match(self, idx):
         return SAMatch(idx, self)
 
+    def best_match_fast(self):
+        self.use_c = True
+        return self.best_match()
+
     def best_match(self):
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
+
+    def kbest_matches_fast(self, k=1, overlap=0):
+        self.use_c = True
+        return self.kbest_matches(k=k, overlap=overlap)
 
     def kbest_matches(self, k=1, overlap=0):
         """Yields the next best match. Stops at k matches (use None for all matches).
@@ -238,7 +259,7 @@ class SubsequenceAlignment:
 
 
 def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, estimate_settings=None,
-                       only_triu=False, penalty=None):
+                       only_triu=False, penalty=None, window=None):
     """Local concurrences, see LocalConcurrences.
 
     :param series1:
@@ -259,7 +280,7 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor,
-                           only_triu=only_triu, penalty=penalty)
+                           only_triu=only_triu, penalty=penalty, window=window)
     if estimate_settings is not None:
         lc.estimate_settings_from_std(series1, estimate_settings)
     lc.align()
@@ -289,7 +310,7 @@ class LCMatch:
 
 
 class LocalConcurrences:
-    def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False, penalty=None):
+    def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False, penalty=None, window=None):
         """Version identification based on local concurrences.
 
         Find recurring patterns across two time series. Used to identify whether one time series is
@@ -337,6 +358,7 @@ class LocalConcurrences:
         self.delta = delta
         self.delta_factor = delta_factor
         self.penalty = penalty
+        self.window = window
         self._wp = None  # warping paths
 
     def reset(self):
@@ -367,7 +389,8 @@ class LocalConcurrences:
         _, wp = dtw.warping_paths_affinity(self.series1, self.series2,
                                            gamma=self.gamma, tau=self.tau,
                                            delta=self.delta, delta_factor=self.delta_factor,
-                                           only_triu=self.only_triu, penalty=self.penalty)
+                                           only_triu=self.only_triu, penalty=self.penalty,
+                                           window=self.window)
         self._wp = ma.masked_array(wp)
         if self.only_triu:
             il = np.tril_indices(self._wp.shape[0])
@@ -468,21 +491,39 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series):
+def subsequence_search(query, series, dists_options=None):
     """See SubsequenceSearch.
 
-    :param query:
-    :param series:
-    :return:
+    :param query: Time series to search for
+    :param series: Iterator over time series to perform search on.
+            This can be for example windows over a long time series.
+    :param dists_options: Options passed on to dtw.distance
+    :return: SubsequenceSearch object
     """
-    ss = SubsequenceSearch(query, series)
+    ss = SubsequenceSearch(query, series, dists_options=dists_options)
     return ss
 
 
 class SSMatch:
+    """Found match by SubsequenceSearch.
+
+    The match is identified by the idx property, which is the index of the matched
+    series in the original list of series. The distance property returns the DTW
+    distance between the query and the series at index idx.
+    """
     def __init__(self, idx, ss):
         self.idx = idx
         self.ss = ss
+
+    @property
+    def distance(self):
+        """DTW distance."""
+        return self.ss.distances[self.idx]
+
+    @property
+    def value(self):
+        """Normalized DTW distance."""
+        return self.distance / len(self.ss.query)
 
     def __str__(self):
         return f'SSMatch({self.idx})'
@@ -498,7 +539,7 @@ class SubsequenceSearch:
         :param query: Time series to search for
         :param s: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
-        :param dists_options: Options for DTW
+        :param dists_options: Options passed on to dtw.distance
         """
         self.query = query
         self.s = s
@@ -508,6 +549,10 @@ class SubsequenceSearch:
 
     def reset(self):
         self.distances = None
+
+    def align_fast(self, k=None):
+        self.dists_options['use_c'] = True
+        return self.align(k=k)
 
     def align(self, k=None):
         if self.distances is not None and self.k >= k:
@@ -530,10 +575,18 @@ class SubsequenceSearch:
                 self.dists_options['max_dist'] = max_dist
             self.distances[idx] = dist
 
+    def best_match_fast(self):
+        self.dists_options['use_c'] = True
+        return self.best_match()
+
     def best_match(self):
         self.align(k=1)
         best_idx = np.argmin(self.distances)
         return SSMatch(best_idx, self)
+
+    def kbest_matches_fast(self, k=1):
+        self.dists_options['use_c'] = True
+        return self.kbest_matches(k=k)
 
     def kbest_matches(self, k=1):
         self.align(k=k)

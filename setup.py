@@ -58,6 +58,42 @@ l_args = {
 }
 
 
+# See which paths for libraries exist to add to compiler
+# MacPorts
+p = Path('/usr/local/opt/libomp/include')
+if p.exists():
+    print(f'Adding path to compiler {p}')
+    c_args['unix'].append(f'-I{p}')
+    c_args['llvm'].append(f'-I{p}')
+p = Path('/opt/local/lib/libomp')
+if p.exists():
+    print(f'Adding path to linker {p}')
+    l_args['unix'].append(f'-L{p}')
+    l_args['llvm'].append(f'-L{p}')
+# HomeBrew
+p = Path('/opt/homebrew/include')
+if p.exists():
+    print(f'Adding path to compiler: {p}')
+    c_args['unix'].append(f'-I{p}')
+    c_args['llvm'].append(f'-I{p}')
+p = Path('/opt/homebrew/lib')
+if p.exists():
+    libomp = Path(p / 'libomp.a')
+    if platform.system() == 'Darwin' and libomp.exists():
+        # Force the linker to use the static libomp.a library
+        # This is useful to create wheels for people who do not
+        # have the shared library libomp.{dylib,so} in the right location
+        print(f'Adding libomp to linker: {libomp}')
+        l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
+        l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
+        l_args['unix'].append(str(libomp))
+        l_args['llvm'].append(str(libomp))
+    else:
+        print(f'Adding path to linker: {p}')
+        l_args['unix'].append(f'-L{p}')
+        l_args['llvm'].append(f'-L{p}')
+
+
 class PyTest(TestCommand):
     description = "Run tests"
     user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]

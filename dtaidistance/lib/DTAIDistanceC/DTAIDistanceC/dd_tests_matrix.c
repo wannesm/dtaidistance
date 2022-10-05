@@ -213,6 +213,79 @@ Test(matrix, test_c_block_triu_matrix_parallel) {
     cr_assert_float_eq(result[5], sqrt(2), 0.001);
 }
 
+Test(matrix, test_c_block_triu_matrices_parallel) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s[] = {0., 0, 1, 2, 1, 0, 1, 0, 0,
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,
+                  1., 2, 0, 0, 0, 0, 0, 1, 1,
+                  0., 0, 1, 2, 1, 0, 1, 0, 0,
+                  0., 1, 2, 0, 0, 0, 0, 0, 0,
+                  1., 2, 0, 0, 0, 0, 0, 1, 1};
+    idx_t nb_cols = 9;
+    idx_t nb_rows = 6;
+    double result[6];
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = {.rb=1, .re=4, .cb=3, .ce=5, .triu=false};
+    dtw_distances_matrices_parallel(s, nb_rows, nb_cols, s, nb_rows, nb_cols, result, &block, &settings);
+    cr_assert_float_eq(result[0], sqrt(2), 0.001);
+    cr_assert_float_eq(result[1], 0, 0.001);
+    cr_assert_float_eq(result[2], 2.23606798, 0.001);
+    cr_assert_float_eq(result[3], 1.73205081, 0.001);
+    cr_assert_float_eq(result[4], 0.0, 0.001);
+    cr_assert_float_eq(result[5], sqrt(2), 0.001);
+}
+
+Test(matrix, test_d_matrices) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double sr[] = {0., 1, 2, 0, 0, 0, 0, 0, 0,
+                   1., 2, 0, 0, 0, 0, 0, 1, 1,
+                   0., 0, 1, 2, 1, 0, 1, 0, 0};
+    double sc[] = {0., 0, 1, 2, 1, 0, 1, 0, 0,
+                   0., 1, 2, 0, 0, 0, 0, 0, 0};
+    idx_t nb_cols = 9;
+    idx_t nb_rows_r = 3;
+    idx_t nb_rows_c = 2;
+    double result[6];
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = {.rb=0, .re=0, .cb=0, .ce=0, .triu=false};
+    dtw_distances_matrices(sr, nb_rows_r, nb_cols, sc, nb_rows_c, nb_cols, result, &block, &settings);
+    cr_assert_float_eq(result[0], sqrt(2), 0.001);
+    cr_assert_float_eq(result[1], 0, 0.001);
+    cr_assert_float_eq(result[2], 2.23606798, 0.001);
+    cr_assert_float_eq(result[3], 1.73205081, 0.001);
+    cr_assert_float_eq(result[4], 0.0, 0.001);
+    cr_assert_float_eq(result[5], sqrt(2), 0.001);
+}
+
+Test(matrix, test_d_matrices_parallel) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double sr[] = {0., 1, 2, 0, 0, 0, 0, 0, 0,
+                   1., 2, 0, 0, 0, 0, 0, 1, 1,
+                   0., 0, 1, 2, 1, 0, 1, 0, 0};
+    double sc[] = {0., 0, 1, 2, 1, 0, 1, 0, 0,
+                   0., 1, 2, 0, 0, 0, 0, 0, 0};
+    idx_t nb_cols = 9;
+    idx_t nb_rows_r = 3;
+    idx_t nb_rows_c = 2;
+    double result[6];
+    DTWSettings settings = dtw_settings_default();
+    DTWBlock block = {.rb=0, .re=0, .cb=0, .ce=0, .triu=false};
+    dtw_distances_matrices_parallel(sr, nb_rows_r, nb_cols, sc, nb_rows_c, nb_cols, result, &block, &settings);
+    cr_assert_float_eq(result[0], sqrt(2), 0.001);
+    cr_assert_float_eq(result[1], 0, 0.001);
+    cr_assert_float_eq(result[2], 2.23606798, 0.001);
+    cr_assert_float_eq(result[3], 1.73205081, 0.001);
+    cr_assert_float_eq(result[4], 0.0, 0.001);
+    cr_assert_float_eq(result[5], sqrt(2), 0.001);
+}
+
+
 
 //----------------------------------------------------
 // MARK: NDIM
@@ -231,7 +304,7 @@ Test(matrix_ndim, test_a_ptrs) {
     idx_t lengths[] = {4, 4, 4, 4, 4, 4};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_ptrs(s, 6, lengths, 2, result, &block, &settings);
 //    for (int i=0; i<5; i++) {
 //        printf("%.4f ", result[i]);
@@ -259,7 +332,7 @@ Test(matrix_ndim, test_a_ptrs_parallel) {
     idx_t lengths[] = {4, 4, 4, 4, 4, 4};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_ptrs_parallel(s, 6, lengths, 2, result, &block, &settings);
 //    for (int i=0; i<5; i++) {
 //        printf("%.4f ", result[i]);
@@ -286,7 +359,7 @@ Test(matrix_ndim, test_a_matrix) {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
     cr_assert_float_eq(result[0], 2.4495, 0.001);
     cr_assert_float_eq(result[1], 3.0000, 0.001);
@@ -309,7 +382,7 @@ Test(matrix_ndim, test_a_matrix_parallel) {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_matrix_parallel(s, 6, 4, 2, result, &block, &settings);
     cr_assert_float_eq(result[0], 2.4495, 0.001);
     cr_assert_float_eq(result[1], 3.0000, 0.001);
@@ -400,13 +473,13 @@ Test(aux, test_length_overflow_noblock) {
 //    printf("The max value for sizes, SIZE_MAX = %zu\n", SIZE_MAX);
     
     nb_series = floor(sqrt(idx_t_max));
-    length = dtw_distances_length(&block, nb_series);
+    length = dtw_distances_length(&block, nb_series, nb_series);
     expected_length = nb_series*(nb_series-1)/2;
 //    printf("nb_series = %zu / length = %zu / expected = %zu\n", nb_series, length, expected_length);
     cr_assert_eq(length, expected_length); // no overflow
     
     nb_series = floor(sqrt(idx_t_max)) + 1;
-    length = dtw_distances_length(&block, nb_series);
+    length = dtw_distances_length(&block, nb_series, nb_series);
 //    printf("nb_series = %zu / length = %zu / expected = %zu\n", nb_series, length, expected_length);
     cr_assert_eq(length, 0); // overflow detected
 }
@@ -449,7 +522,7 @@ Test(aux, test_length_overflow_block) {
     // Maximal overflow, fastest test
     nb_series = SIZE_MAX;
     DTWBlock block = {.rb=0, .re=nb_series, .cb=0, .ce=nb_series, .triu=true};
-    length = dtw_distances_length(&block, nb_series);
+    length = dtw_distances_length(&block, nb_series, nb_series);
     expected_length = 0;
     cr_assert_eq(length, expected_length); // overflow
 }
@@ -464,7 +537,7 @@ Test(aux, test_length_nooverflow_block) {
     idx_t b = 10;
     nb_series = 2*b + 1;
     DTWBlock block = {.rb=0, .re=b, .cb=b+1, .ce=2*b+1, .triu=true};
-    length = dtw_distances_length(&block, nb_series);
+    length = dtw_distances_length(&block, nb_series, nb_series);
     expected_length = b*b;
 //    printf("nb_series = %zu / length = %zu / expected = %zu / b = %zu\n", nb_series, length, expected_length, b);
     cr_assert_eq(length, expected_length); // no overflow

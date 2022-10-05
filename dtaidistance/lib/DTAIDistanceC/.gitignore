@@ -1,0 +1,7 @@
+profile*
+DTAIDistanceC/jinja/dd_dtw.c
+DTAIDistanceC/jinja/dd_dtw_openmp.c
+DTAIDistanceC/jinja/dtw_distances_matrix.c
+DTAIDistanceC/jinja/dtw_distances_ptrs.c
+build
+dd_benchmark

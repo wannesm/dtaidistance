@@ -106,6 +106,51 @@ def _check_library(include_omp=False, raise_exception=True):
             raise Exception(msg)
 
 
+class DTWSettings:
+    def __init__(self, window=None, use_pruning=False, max_dist=None, max_step=None,
+                 max_length_diff=None, penalty=None, psi=None):
+        self.window = window
+        self.use_pruning = use_pruning
+        self.max_dist = max_dist
+        self.max_step = max_step
+        self.max_length_diff = max_length_diff
+        self.penalty = penalty
+        self.psi = psi
+
+    @staticmethod
+    def for_dtw(s1, s2, **kwargs):
+        settings = DTWSettings(**kwargs)
+        settings.set_max_dist(s1, s2)
+        return settings
+
+    def set_max_dist(self, s1, s2):
+        if self.use_pruning:
+            self.max_dist = ub_euclidean(s1, s2)**2
+
+    def c_kwargs(self):
+        window = 0 if self.window is None else self.window
+        max_dist = 0 if self.max_dist is None else self.max_dist
+        max_step = 0 if self.max_step is None else self.max_step
+        max_length_diff = 0 if self.max_length_diff is None else self.max_length_diff
+        penalty = 0 if self.penalty is None else self.penalty
+        psi = 0 if self.psi is None else self.psi
+        return {
+            'window': window,
+            'max_dist': max_dist,
+            'max_step': max_step,
+            'max_length_diff': max_length_diff,
+            'penalty': penalty,
+            'psi': psi
+        }
+
+    def __str__(self):
+        r = ''
+        a = self.c_kwargs()
+        for k, v in a.items():
+            r += '{}: {}\n'.format(k, v)
+        return r
+
+
 def lb_keogh(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None):
     """Lowerbound LB_KEOGH"""
@@ -479,48 +524,29 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     r = len(s1)
     c = len(s2)
     _check_library(raise_exception=True)
-    if window is None:
-        window = 0
-    if use_pruning:
-        max_dist = ub_euclidean(s1, s2)**2
-    elif max_dist is None:
-        max_dist = 0
-    if max_step is None:
-        max_step = 0
-    if max_length_diff is None:
-        max_length_diff = 0
-    if penalty is None:
-        penalty = 0
-    if psi is None:
-        psi = 0
-    settings_kwargs = {
-        'window': window,
-        'max_dist': max_dist,
-        'max_step': max_step,
-        'max_length_diff': max_length_diff,
-        'penalty': penalty,
-        'psi': psi
-    }
+    settings = DTWSettings.for_dtw(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning, max_step=max_step,
+                                   max_length_diff=max_length_diff, penalty=penalty, psi=psi)
     if compact:
-        wps_width = dtw_cc.wps_width(r, c, **settings_kwargs)
+        wps_width = dtw_cc.wps_width(r, c, **settings.c_kwargs())
         wps_compact = np.full((len(s1)+1, wps_width), inf)
         if use_ndim:
-            d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, **settings_kwargs)
+            d = dtw_cc.warping_paths_compact_ndim(wps_compact, s1, s2, psi_neg, **settings.c_kwargs())
         else:
-            d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings_kwargs)
+            d = dtw_cc.warping_paths_compact(wps_compact, s1, s2, psi_neg, **settings.c_kwargs())
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
     if use_ndim:
-        d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, **settings_kwargs)
+        d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, **settings.c_kwargs())
     else:
-        d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings_kwargs)
+        d = dtw_cc.warping_paths(dtw, s1, s2, psi_neg, **settings.c_kwargs())
     return d, dtw
 
 
 def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                            penalty=None, psi=None, psi_neg=True,
-                           gamma=1, tau=0, delta=0, delta_factor=1):
+                           gamma=1, tau=0, delta=0, delta_factor=1, exp_avg=None,
+                           use_c=False):
     """
     Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
 
@@ -536,6 +562,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
     :returns: (DTW distance, DTW matrix)
     """
+    if use_c:
+        return warping_paths_affinity_fast(s1, s2, window=window, only_triu=only_triu,
+                                           penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor,
+                                           exp_avg=exp_avg)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
@@ -563,16 +593,25 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
         j_end = min(c, i + max(0, c - r) + window)
         for j in range(j_start, j_end):
             d = np.exp(-gamma*(s1[i] - s2[j])**2)
-            if d < tau:
-                dtw[i1, j + 1] = max(0,
-                                     delta + delta_factor * dtw[i0, j],
-                                     delta + delta_factor * dtw[i0, j + 1] - penalty,
-                                     delta + delta_factor * dtw[i1, j] - penalty)
+            # print(f"{s1[i] - s2[j]=} -> {d=}")
+            dtw_prev = max(dtw[i0, j],
+                           dtw[i0, j + 1] - penalty,
+                           dtw[i1, j] - penalty)
+            if exp_avg is None:
+                if d < tau:
+                    # if dtw_prev > 10 * -delta:
+                    #     dtw_prev = 10 * -delta
+                    dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
+                else:
+                    dtw[i1, j + 1] = max(0, d + dtw_prev)
             else:
-                dtw[i1, j + 1] = max(0,
-                                     d + dtw[i0, j],
-                                     d + dtw[i0, j + 1] - penalty,
-                                     d + dtw[i1, j] - penalty)
+                if d < tau:
+                    d = delta
+                if j == 0 or i0 == 0:
+                    dtw[i1, j + 1] = max(0, d)
+                else:
+                    dtw[i1, j + 1] = max(0, exp_avg * d + (1-exp_avg) * dtw_prev)
+
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]
@@ -601,6 +640,44 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
             if psi_neg:
                 dtw[ir, ic:ic-mic:-1] = -1
             d = vc_mic
+    return d, dtw
+
+
+def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
+                                penalty=None, psi=None, psi_neg=True,
+                                gamma=1, tau=0, delta=0, delta_factor=1,
+                                exp_avg=None, compact=False, use_ndim=False):
+    """Fast C version of :meth:`warping_paths`.
+
+    Additional parameters:
+     :param compact: Return a compact warping paths matrix.
+        Size is ((l1 + 1), min(l2 + 1, abs(l1 - l2) + 2*window + 1)).
+        This option is meant for internal use. For more details, see the C code.
+    """
+    s1 = util_numpy.verify_np_array(s1)
+    s2 = util_numpy.verify_np_array(s2)
+    r = len(s1)
+    c = len(s2)
+    _check_library(raise_exception=True)
+    settings = DTWSettings.for_dtw(s1, s2, window=window, penalty=penalty, psi=psi)
+    if compact:
+        wps_width = dtw_cc.wps_width(r, c, **settings.c_kwargs())
+        wps_compact = np.full((len(s1)+1, wps_width), -inf)
+        if use_ndim:
+            d = dtw_cc.warping_paths_compact_ndim_affinity(wps_compact, s1, s2, only_triu,
+                                                           gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
+        else:
+            d = dtw_cc.warping_paths_compact_affinity(wps_compact, s1, s2, only_triu,
+                                                      gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
+        return d, wps_compact
+
+    dtw = np.full((r + 1, c + 1), -inf)
+    if use_ndim:
+        d = dtw_cc.warping_paths_affinity_ndim(dtw, s1, s2, only_triu,
+                                               gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
+    else:
+        d = dtw_cc.warping_paths_affinity(dtw, s1, s2, only_triu,
+                                          gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
     return d, dtw
 
 
@@ -758,24 +835,37 @@ def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
-    if block is None:
-        it_r = range(len(s))
-    else:
-        it_r = range(block[0][0], block[0][1])
+    block, triu = _complete_block(block, len(s))
+    it_r = range(block[0][0], block[0][1])
     if show_progress:
         it_r = tqdm(it_r)
     idx = 0
     for r in it_r:
-        if block is None:
-            it_c = range(r + 1, len(s))
-        elif len(block) > 2 and block[2] is False:
-            it_c = range(block[1][0], min(len(s), block[1][1]))
-        else:
+        if triu:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
+        else:
+            it_c = range(block[1][0], min(len(s), block[1][1]))
         for c in it_c:
             dists[idx] = distance(s[r], s[c], **dist_opts)
             idx += 1
     return dists
+
+
+def _complete_block(block, nb_series):
+    """Expand block variable to represent exact indices of ranges.
+
+    :param block: None, 0, or tuple
+    :param nb_series: Number of series in the list
+    :return: Block with filled in indices, Boolean to indicate triu
+    """
+    if block is None or block == 0:
+        block = ((0, nb_series), (0, nb_series))
+        return block, True
+    else:
+        if len(block) > 2 and block[2] is False:
+            return block, False
+        else:
+            return block, True
 
 
 def _distance_matrix_idxs(block, nb_series):
@@ -783,14 +873,8 @@ def _distance_matrix_idxs(block, nb_series):
         if np is not None:
             idxs = np.triu_indices(nb_series, k=1)
             return idxs
-        # Numpy is not available
-        block = ((0, nb_series), (0, nb_series))
-        triu = True
-    else:
-        if len(block) > 2 and block[2] is False:
-            triu = False
-        else:
-            triu = True
+    # Numpy is not available or not triu
+    block, triu = _complete_block(block, nb_series)
     idxsl_r = []
     idxsl_c = []
     for r in range(block[0][0], block[0][1]):

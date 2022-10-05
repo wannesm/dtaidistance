@@ -127,7 +127,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         raise Exception('The parameter nb_prob_samples is not available in the Python implementation!')
 
     for it in range(max_it):
-        logger.debug(f'DBA Iteration {it}')
+        logger.debug('DBA Iteration {}'.format(it))
         if use_c:
             assert(c is not None)
             c_copy = c.copy()  # The C code reuses this array
@@ -157,7 +157,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
                     diff += max(abs(av[d] - cv[d]) for d in range(ndim))
             diff /= len(avg)
             if diff <= thr:
-                logger.debug(f'DBA converged at {it} iterations (avg diff={diff}).')
+                logger.debug('DBA converged at {} iterations (avg diff={}).'.format(it, diff))
                 break
         c = avg
     if keep_averages:

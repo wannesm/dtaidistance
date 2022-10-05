@@ -488,6 +488,30 @@ Test(dtw_psi, test_b_a) {
     cr_assert_float_eq(d, 2.138, 0.001);
 }
 
+//----------------------------------------------------
+// MARK: AFFINITY
+
+Test(affinity, test_a) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    dtw_printprecision_set(6);
+    double s[] = {0, -1, -1, 0, 1, 2, 1};
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 0;
+    settings.penalty = 1;
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * 8*8);
+    seq_t tau = 0.36787944117144233;
+    seq_t delta = -0.7357588823428847;
+    seq_t delta_factor = 0.5;
+    seq_t gamma = 1;
+    double d = dtw_warping_paths_affinity(wps, s, 7, s, 7, true, false, true, /*only_triu=*/false, gamma, tau, delta, delta_factor, &settings);
+    cr_assert_float_eq(wps[10], 0.37, 0.01);
+    free(wps);
+    cr_assert_float_eq(d, 7.0, 0.01);
+    dtw_printprecision_reset();
+}
+
 
 // MARK: NDIM
 

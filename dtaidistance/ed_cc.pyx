@@ -41,6 +41,6 @@ def distance_ndim(double[:, :] s1, double[:, :] s2):
     """
     # Assumes C contiguous
     if s1.shape[1] != s2.shape[1]:
-        raise Exception(f"Dimension of sequence entries needs to be the same: {s1.shape[1]} != {s2.shape[1]}")
+        raise Exception("Dimension of sequence entries needs to be the same: {} != {}".format(s1.shape[1], s2.shape[1]))
     ndim = s1.shape[1]
     return dtaidistancec_ed.euclidean_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim)

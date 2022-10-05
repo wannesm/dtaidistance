@@ -17,7 +17,7 @@ import array
 
 from . import dtw
 from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
-    _distance_matrix_length
+    _distance_matrix_length, _complete_block
 from . import util_numpy
 from .exceptions import NumpyException
 
@@ -302,18 +302,16 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
-    if block is None:
-        it_r = range(len(s))
-    else:
-        it_r = range(block[0][0], block[0][1])
+    block, triu = _complete_block(block, len(s))
+    it_r = range(block[0][0], block[0][1])
     if show_progress:
         it_r = tqdm(it_r)
     idx = 0
     for r in it_r:
-        if block is None:
-            it_c = range(r + 1, len(s))
-        else:
+        if triu:
             it_c = range(max(r + 1, block[1][0]), min(len(s), block[1][1]))
+        else:
+            it_c = range(block[1][0], min(len(s), block[1][1]))
         for c in it_c:
             if abs(len(s[r]) - len(s[c])) <= max_length_diff:
                 dists[idx] = distance(s[r], s[c], **dist_opts)
@@ -321,7 +319,7 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
     return dists
 
 
-def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=None,
+def distance_matrix(s, ndim=None, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
                     use_c=False, use_mp=False, show_progress=False, only_triu=False):
@@ -389,6 +387,8 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
         'use_pruning': use_pruning
     }
     s = SeriesContainer.wrap(s)
+    if ndim is None:
+        ndim = s.detected_ndim
     if max_length_diff is None:
         max_length_diff = inf
     dists = None
@@ -441,12 +441,12 @@ def distance_matrix(s, ndim, max_dist=None, use_pruning=False, max_length_diff=N
     return dists_matrix
 
 
-def distance_matrix_fast(s, ndim, max_dist=None, max_length_diff=None,
+def distance_matrix_fast(s, ndim=None, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, only_triu=False):
     """Fast C version of :meth:`distance_matrix`."""
     _check_library(raise_exception=True, include_omp=parallel)
-    return distance_matrix(s, ndim, max_dist=max_dist, max_length_diff=max_length_diff,
+    return distance_matrix(s, ndim=ndim, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
                            use_c=True, show_progress=False, only_triu=only_triu)

@@ -34,12 +34,17 @@ import logging
 import math
 from collections import defaultdict, deque
 import io
-import numpy as np
 
 from .dtw import best_path
+from .util_numpy import NumpyException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 try:
     from tqdm import tqdm
@@ -57,6 +62,8 @@ def warping_paths(s1, s2, weights=None, window=None, **_kwargs):
     :param weights: Weights on s1
     :return: DTW similarity m between s1 and s2, warping paths matrix
     """
+    if np is None:
+        raise NumpyException('The function warping_paths requires numpy.')
     # TODO: copy original function in DTW to support all options and integrate weights
     # print('warping_paths')
     l1 = len(s1)

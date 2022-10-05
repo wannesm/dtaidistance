@@ -1,8 +1,14 @@
-import numpy as np
-from dtaidistance import dtw, clustering
+from dtaidistance import dtw, clustering, util_numpy
 import array
 import pytest
 import math
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 n = 1
 nn = 100
@@ -35,31 +41,36 @@ def test_distance1_wps_python_list(benchmark):
     assert benchmark(d) == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="distance1")
 def test_distance1_wps_c_array(benchmark):
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0] * n)
-    s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0] * n)
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0] * n)
+        s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0] * n)
 
-    def d():
-        dd, _ = dtw.warping_paths_fast(s1, s2, window=window)
-        print(dd)
-        return dd
+        def d():
+            dd, _ = dtw.warping_paths_fast(s1, s2, window=window)
+            print(dd)
+            return dd
 
-    assert benchmark(d) == math.sqrt(2*n)
+        assert benchmark(d) == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="distance1")
 def test_distance1_wps_c_array_compact(benchmark):
-    s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0] * n)
-    s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0] * n)
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0] * n)
+        s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0] * n)
 
-    def d():
-        dd, _ = dtw.warping_paths_fast(s1, s2, window=window, compact=True)
-        return dd
+        def d():
+            dd, _ = dtw.warping_paths_fast(s1, s2, window=window, compact=True)
+            return dd
 
-    assert benchmark(d) == math.sqrt(2*n)
+        assert benchmark(d) == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="distance1")
 def test_distance1_dist_c_np(benchmark):
     s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0]*n)
@@ -96,6 +107,7 @@ def test_distance1_dist_c_array_prune(benchmark):
 # --- DISTANCE MATRIX 1 ---
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_serial_python(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -110,6 +122,7 @@ def test_distance_matrix1_serial_python(benchmark):
     assert m[0] == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_parallel_python(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -124,6 +137,7 @@ def test_distance_matrix1_parallel_python(benchmark):
     assert m[0] == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_parallel_mp_c(benchmark):
     s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -138,6 +152,7 @@ def test_distance_matrix1_parallel_mp_c(benchmark):
     assert m[0] == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_serial_c(benchmark):
     s = [[0., 0, 1, 2, 1, 0, 1, 0, 0]*n,
@@ -152,6 +167,7 @@ def test_distance_matrix1_serial_c(benchmark):
     assert m[0] == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_serial_c_pruned(benchmark):
     s = [[0., 0, 1, 2, 1, 0, 1, 0, 0]*n,
@@ -166,6 +182,7 @@ def test_distance_matrix1_serial_c_pruned(benchmark):
     assert m[0] == math.sqrt(2*n)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="matrix1")
 def test_distance_matrix1_parallel_c(benchmark):
     s = [[0., 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -183,6 +200,7 @@ def test_distance_matrix1_parallel_c(benchmark):
 
 # --- CLUSTER MATRIX 1 ---
 
+@numpyonly
 @pytest.mark.benchmark(group="cluster1")
 def test_cluster1_hierarchical(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,
@@ -197,6 +215,7 @@ def test_cluster1_hierarchical(benchmark):
     benchmark(d)
 
 
+@numpyonly
 @pytest.mark.benchmark(group="cluster1")
 def test_cluster1_linkage(benchmark):
     s = [[0, 0, 1, 2, 1, 0, 1, 0, 0] * n,

@@ -123,8 +123,20 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, DTWS
 // WPS
 seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, DTWSettings *settings);
 seq_t dtw_warping_paths_ndim(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, int ndim, DTWSettings *settings);
+seq_t dtw_warping_paths_affinity(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor, DTWSettings *settings);
+seq_t dtw_warping_paths_affinity_ndim(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu, int ndim, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor, DTWSettings *settings);
 void dtw_expand_wps(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
+void dtw_expand_wps_slice(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, DTWSettings *settings);
+void dtw_expand_wps_affinity(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
+void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, DTWSettings *settings);
+void dtw_wps_negativize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c);
+void dtw_wps_positivize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c);
+void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re);
+void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re);
+idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2);
+idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
+idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t s1, idx_t s2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);
 idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings);
 idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, int ndim, DTWSettings * settings);
@@ -140,7 +152,7 @@ seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
 // Block
 DTWBlock dtw_block_empty(void);
 void     dtw_block_print(DTWBlock *block);
-bool     dtw_block_is_valid(DTWBlock *block, idx_t nb_series);
+bool     dtw_block_is_valid(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c);
 
 // Distance matrix
 idx_t dtw_distances_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths, seq_t* output,
@@ -151,7 +163,13 @@ idx_t dtw_distances_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, seq_t* o
                             DTWBlock* block, DTWSettings* settings);
 idx_t dtw_distances_ndim_matrix(seq_t *matrix, idx_t nb_rows, idx_t nb_cols, int ndim, seq_t* output,
                                  DTWBlock* block, DTWSettings* settings);
-idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series);
+idx_t dtw_distances_matrices(seq_t *matrix_r, idx_t nb_rows_r, idx_t nb_cols_r,
+                             seq_t *matrix_c, idx_t nb_rows_c, idx_t nb_cols_c,
+                             seq_t* output, DTWBlock* block, DTWSettings* settings);
+idx_t dtw_distances_ndim_matrices(seq_t *matrix_r, idx_t nb_rows_r, idx_t nb_cols_r,
+                                  seq_t *matrix_c, idx_t nb_rows_c, idx_t nb_cols_c, int ndim,
+                                  seq_t* output, DTWBlock* block, DTWSettings* settings);
+idx_t dtw_distances_length(DTWBlock *block, idx_t nb_series_r, idx_t nb_series_c);
 
 // DBA
 void dtw_dba_ptrs(seq_t **ptrs, idx_t nb_ptrs, idx_t* lengths,

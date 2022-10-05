@@ -136,6 +136,10 @@ class Hierarchical:
                     cluster_idx[i] = {i}
         return cluster_idx
 
+    def plot(self, *args, **kwargs):
+        raise Exception("Class Hierarchical does not support plotting. "
+                        "Use the class HierarchicalTree.")
+
 
 class BaseTree:
     """Base Tree abstract class.

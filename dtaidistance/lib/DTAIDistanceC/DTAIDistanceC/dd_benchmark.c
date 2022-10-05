@@ -14,6 +14,22 @@
 #include "dd_dtw.h"
 #include "dd_dtw_openmp.h"
 
+
+void benchmark1(void);
+void benchmark2(void);
+void benchmark3(void);
+void benchmark4(void);
+void benchmark5(void);
+void benchmark6(void);
+void benchmark7(void);
+void benchmark8(void);
+void benchmark9(void);
+void benchmark10(void);
+void benchmark11(void);
+void benchmark12_subsequence(void);
+void benchmark13(void);
+
+
 void benchmark1() {
     int size=10000;
    double ra1[size], ra2[size];
@@ -150,7 +166,7 @@ void benchmark7() {
         1., 2, 0, 0, 0, 0, 0, 1};
     DTWSettings settings = dtw_settings_default();
     DTWBlock block = dtw_block_empty();
-    double result[dtw_distances_length(&block, 6)];
+    double result[dtw_distances_length(&block, 6, 6)];
     dtw_distances_ndim_matrix(s, 6, 4, 2, result, &block, &settings);
 }
 
@@ -347,6 +363,58 @@ void benchmark13() {
     free(wps);
 }
 
+void benchmark_affinity() {
+    dtw_printprecision_set(3);
+    double s[] = {0, -1, -1, 0, 1, 2, 1};
+    idx_t l1 = 7;
+    idx_t l2 = 7;
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 2;
+    settings.penalty = 1;
+    idx_t wps_width = dtw_settings_wps_width(l1, l2, &settings);
+    printf("wps_width=%zu\n", wps_width);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (l2+1)*wps_width);
+    seq_t tau = 0.36787944117144233;
+    seq_t delta = -0.7357588823428847;
+    seq_t delta_factor = 0.5;
+    seq_t gamma = 1;
+    double d = dtw_warping_paths_affinity(wps, s, 7, s, 7, true, false,
+                                          /*psi_neg=*/true,
+                                          /*only_triu=*/false,
+                                          gamma, tau, delta, delta_factor, &settings);
+    dtw_print_wps_compact(wps, 7, 7, &settings);
+    
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    idx_t result = dtw_best_path_affinity(wps, i1, i2, l1, l2, l1-3, l2-2, &settings);
+    printf("result=%zu\n", result);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
+    DTWWps p = dtw_wps_parts(l1, l2, &settings);
+    
+//    dtw_wps_negativize(&p, wps, 2, 5);
+//    dtw_wps_positivize(&p, wps, 3, 4);
+    dtw_print_wps(wps, l1, l2, &settings);
+    
+    idx_t r, c, wps_i;
+    r = l1-3; c = l2-2;
+    wps_i = dtw_wps_loc(&p, r, c, l1, l2);
+    printf("wps_full[%zu,%zu] = wps[%zu] = %.3f\n", r, c, wps_i, wps[wps_i]);
+    
+    idx_t maxr, maxc;
+    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
+    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
+    
+    free(wps);
+    printf("d = %.2f\n", d);
+    dtw_printprecision_reset();
+}
+
 
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
@@ -364,11 +432,12 @@ int main(int argc, const char * argv[]) {
 //    benchmark6();
 //    benchmark7();
 //    benchmark8();
-    benchmark9();
+//    benchmark9();
 //    benchmark10();
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
+    benchmark_affinity();
     
     time(&end_t);
     clock_gettime(CLOCK_REALTIME, &end);

@@ -12,7 +12,13 @@ Generic Dynamic Programming functions
 """
 from enum import Enum
 import logging
-import numpy as np
+
+from .util_numpy import NumpyException
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -49,6 +55,8 @@ def dp(s1, s2, fn, border=None, window=None, max_dist=None,
     :param psi: see :meth:`distance`
     :returns: (cost, score matrix, paths matrix)
     """
+    if np is None:
+        raise NumpyException('Function dp requires Numpy.')
     r, c = len(s1), len(s2)
     # Set default parameters
     if max_length_diff is not None and abs(r - c) > max_length_diff:

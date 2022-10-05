@@ -13,9 +13,9 @@ Dynamic Time Warping (DTW) visualisations.
 import os
 import logging
 import math
-import numpy as np
 
 from .util import dtaidistance_dir
+from .util_numpy import NumpyException
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
@@ -25,6 +25,11 @@ try:
 except ImportError:
     # logger.info('C library not available')
     dtw_c = None
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 try:
     from tqdm import tqdm
@@ -41,6 +46,8 @@ def plot_warping(s1, s2, path, filename=None):
     :param path: Optimal warping path.
     :param filename: Filename path (optional).
     """
+    if np is None:
+        raise NumpyException('Function plot_warping requires Numpy.')
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True, sharey=True)
