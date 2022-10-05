@@ -215,7 +215,7 @@ class KMeans(Medoids):
             # Select several new centers and then greedily chose the one that decreases pot as much as possible
             sum_min_dists = np.sum(min_dists)
             if sum_min_dists == 0.0:
-                logger.warning(f'There are only {k_idx} < k={self.k} different series')
+                logger.warning('There are only {} < k={} different series'.format(k_idx, self.k))
                 weights = None
             else:
                 weights = min_dists / sum_min_dists
@@ -310,7 +310,7 @@ class KMeans(Medoids):
                     best_medoid[cluster] = idx
 
             if self.drop_stddev is not None and self.drop_stddev != 0:
-                logger.debug(f'drop_stddev = {drop_stddev}')
+                logger.debug('drop_stddev = {}'.format(drop_stddev))
                 stats = []
                 max_value = []
                 for ki in range(self.k):
@@ -343,15 +343,15 @@ class KMeans(Medoids):
                     mask_new[cluster, idx] = True
                 else:
                     cnt[cluster] += 1
-            logger.debug(f'Ignored instances: {cnt} / {len(clusters_distances)} (max_value = {max_value})')
+            logger.debug('Ignored instances: {} / {} (max_value = {})'.format(cnt, len(clusters_distances), max_value))
             if (mask == mask_new).all():
-                logger.info(f"Stopped after {it_nb} iterations, no change in cluster assignment")
+                logger.info("Stopped after {} iterations, no change in cluster assignment".format(it_nb))
                 break
             mask[:, :] = mask_new
             for ki in range(self.k):
                 if not mask[ki, :].any():
                     idx = np.argmax(distances)
-                    logger.debug(f'Empty cluster {ki}, assigned most dissimilar sequence {idx}={distances[ki]}')
+                    logger.debug('Empty cluster {}, assigned most dissimilar sequence {}={}'.format(ki, idx, distances[ki]))
                     mask[:, idx] = False
                     mask[ki, idx] = True
                     distances[idx] = 0
@@ -382,7 +382,7 @@ class KMeans(Medoids):
                 self.means[ki] = means[ki]
             diff /= difflen
             if diff <= self.thr:
-                print(f"Stopped early after {it_nb} iterations, no change in means")
+                print("Stopped early after {} iterations, no change in means".format(it_nb))
                 break
 
         # Final assignment

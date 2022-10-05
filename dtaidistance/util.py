@@ -114,7 +114,7 @@ def try_import_c(verbose=False):
     if not is_complete or verbose:
         print('== Packages ==')
         for msg in msgs:
-            print(f'- {msg}')
+            print('- {}'.format(msg))
         print('== System information ==')
         import sys
         print(sys.implementation)
@@ -206,8 +206,8 @@ class SeriesContainer:
             self.series = np.asarray(series, order="C")
             if self.series.ndim > 2:
                 if not self.support_ndim:
-                    raise Exception(f'N-dimensional series are not supported '
-                                    f'(series.ndim = {self.series.ndim}) > 2')
+                    raise Exception('N-dimensional series are not supported '
+                                    '(series.ndim = {}) > 2'.format(self.series.ndim))
                 self.detected_ndim = len(self.series[0, 0])
             else:
                 self.detected_ndim = 1
@@ -216,8 +216,8 @@ class SeriesContainer:
             if np is not None and isinstance(self.series[0], np.ndarray):
                 if self.series[0].ndim > 1:
                     if not self.support_ndim:
-                        raise Exception(f'N-dimensional series are not supported '
-                                        f'(series[0].ndim = {self.series[0].ndim}) > 1')
+                        raise Exception('N-dimensional series are not supported '
+                                        '(series[0].ndim = {}) > 1'.format(self.series[0].ndim))
                     self.detected_ndim = len(self.series[0][0])
                 else:
                     self.detected_ndim = 1
@@ -244,7 +244,7 @@ class SeriesContainer:
                 serie = self.series[i]
                 if np is not None and isinstance(serie, np.ndarray):
                     if not self.support_ndim and serie.ndim != 1:
-                        raise Exception(f'N-dimensional arrays are not supported (serie.ndim = {serie.ndim})')
+                        raise Exception('N-dimensional arrays are not supported (serie.ndim = {})'.format(serie.ndim))
                     if not serie.flags.c_contiguous:
                         serie = np.asarray(serie, order="C")
                         self.series[i] = serie

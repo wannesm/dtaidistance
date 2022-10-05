@@ -29,6 +29,10 @@ pypy-test:
 test-windows:
 	pytest --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
 
+.PHONY: test-nolibs
+test-nolibs:
+	export PYTHONPATH=.;pytest --ignore=venv --benchmark-skip -vv -c pytest-nolibs.ini
+
 .PHONY: testall
 testall:
 	export PYTHONPATH=.;py.test --ignore=venv -vv
@@ -57,15 +61,21 @@ benchmark-clustering:
 .PHONY: clean
 clean:
 	python3 setup.py clean
-	rm -f dtaidistance/dtw_c.{c,html,so}
+	rm -f dtaidistance/dtw_c.c
+	rm -f dtaidistance/dtw_c.html
+	rm -f dtaidistance/dtw_c.so
 	rm -f dtaidistance/dtw_c.*.so
-	rm -f dtaidistance/dtw_cc.{c,html}
+	rm -f dtaidistance/dtw_cc.c
+	rm -f dtaidistance/dtw_cc.html
 	rm -f dtaidistance/dtw_cc.*.so
-	rm -f dtaidistance/dtw_cc_*.{c,html}
+	rm -f dtaidistance/dtw_cc_*.c
+	rm -f dtaidistance/dtw_cc_*.html
 	rm -f dtaidistance/dtw_cc_*.*.so
-	rm -f dtaidistance/ed_cc.{c,html}
+	rm -f dtaidistance/ed_cc.c
+	rm -f dtaidistance/ed_cc.html
 	rm -f dtaidistance/ed_cc.*.so
-	rm -f dtaidistance/util_*_cc.{c,html}
+	rm -f dtaidistance/util_*_cc.c
+	rm -f dtaidistance/util_*_cc.html
 	rm -f dtaidistance/util_*_cc.*.so
 	rm -f dtaidistance/*.pyc
 	rm -rf dtaidistance/__pycache__

@@ -1,7 +1,8 @@
+wheel
 pytest
 pytest-benchmark
 pytest-env
 matplotlib
 numpy
 scipy
-wheel
+jinja2

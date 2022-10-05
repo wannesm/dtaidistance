@@ -6,6 +6,9 @@ cdef class DTWBlock:
 cdef class DTWSettings:
     cdef dtaidistancec_dtw.DTWSettings _settings
 
+cdef class DTWWps:
+    cdef dtaidistancec_dtw.DTWWps _wps
+
 cdef class DTWSeriesPointers:
     cdef double **_ptrs
     cdef Py_ssize_t *_lengths

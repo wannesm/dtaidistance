@@ -190,7 +190,7 @@ def plot_warping_single_ax(s1, s2, path, filename=None, fig=None, ax=None):
 
 
 def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
-                      figure=None):
+                      figure=None, matshow_kwargs=None):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -281,7 +281,8 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
-    img = ax3.matshow(paths[1:, 1:])
+    kwargs = {} if matshow_kwargs is None else matshow_kwargs
+    img = ax3.matshow(paths[1:, 1:], **kwargs)
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
     if p is not None:
