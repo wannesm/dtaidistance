@@ -58,31 +58,6 @@ l_args = {
 }
 
 
-# See which paths for libraries exist to add to compiler
-# MacPorts
-p = Path('/usr/local/opt/libomp/include')
-if p.exists():
-    print(f'Adding path to compiler {p}')
-    c_args['unix'].append(f'-I{p}')
-    c_args['llvm'].append(f'-I{p}')
-p = Path('/opt/local/lib/libomp')
-if p.exists():
-    print(f'Adding path to linker {p}')
-    l_args['unix'].append(f'-L{p}')
-    l_args['llvm'].append(f'-L{p}')
-# HomeBrew
-p = Path('/opt/homebrew/include')
-if p.exists():
-    print(f'Adding path to compiler: {p}')
-    c_args['unix'].append(f'-I{p}')
-    c_args['llvm'].append(f'-I{p}')
-p = Path('/opt/homebrew/lib')
-if p.exists():
-    print(f'Adding path to linker: {p}')
-    l_args['unix'].append(f'-L{p}')
-    l_args['llvm'].append(f'-L{p}')
-
-
 class PyTest(TestCommand):
     description = "Run tests"
     user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]
@@ -246,18 +221,6 @@ class MyBuildExtCommand(BuildExtCommand):
         else:
             gcc_is_clang = False
 
-        if self.distribution.forcestatic:
-            libomp = Path(p / 'libomp.a')
-            if platform.system() == 'Darwin' and libomp.exists():
-                # Force the linker to use the static libomp.a library
-                # This is useful to create wheels for people who do not
-                # have the shared library libomp.{dylib,so} in the right location
-                print(f'Removing -lomp and adding libomp to linker: {libomp}')
-                l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
-                l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
-                l_args['unix'].append(str(libomp))
-                l_args['llvm'].append(str(libomp))
-
         if self.distribution.forcellvm or gcc_is_clang or \
                 (c == "unix" and ("llvm" in self.compiler.compiler[0] or
                                   "clang" in self.compiler.compiler[0])):
@@ -277,6 +240,42 @@ class MyBuildExtCommand(BuildExtCommand):
             c = 'gnugcc'
 
         if self.distribution.noopenmp == 0 and self.distribution.forceopenmp == 0:
+            # See which paths for libraries exist to add to compiler
+            # MacPorts
+            p = Path('/usr/local/opt/libomp/include')
+            if p.exists():
+                print(f'Adding path to compiler {p}')
+                c_args['unix'].append(f'-I{p}')
+                c_args['llvm'].append(f'-I{p}')
+            p = Path('/opt/local/lib/libomp')
+            if p.exists():
+                print(f'Adding path to linker {p}')
+                l_args['unix'].append(f'-L{p}')
+                l_args['llvm'].append(f'-L{p}')
+            # HomeBrew
+            p = Path('/opt/homebrew/include')
+            if p.exists():
+                print(f'Adding path to compiler: {p}')
+                c_args['unix'].append(f'-I{p}')
+                c_args['llvm'].append(f'-I{p}')
+            p = Path('/opt/homebrew/lib')
+            if p.exists():
+                libomp = Path(p / 'libomp.a')
+                if self.distribution.forcestatic and platform.system() == 'Darwin' and libomp.exists():
+                        # Force the linker to use the static libomp.a library
+                        # This is useful to create wheels for people who do not
+                        # have the shared library libomp.{dylib,so} in the right location
+                        print(f'Removing -lomp and adding libomp to linker: {libomp}')
+                        l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
+                        l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
+                        l_args['unix'].append(str(libomp))
+                        l_args['llvm'].append(str(libomp))
+                else:
+                    print(f'Adding path to linker: {p}')
+                    l_args['unix'].append(f'-L{p}')
+                    l_args['llvm'].append(f'-L{p}')
+
+            # Try to check availability of OpenMP
             try:
                 check_result = check_openmp(self.compiler.compiler[0], self.distribution.noxpreprocessor,
                                             printfn=print2)
