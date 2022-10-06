@@ -68,7 +68,7 @@ def dependencies(target):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Perform some task')
+    parser = argparse.ArgumentParser(description='Generate source code files from templates')
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbose output')
     parser.add_argument('--quiet', '-q', action='count', default=0, help='Quiet output')
     parser.add_argument('--deps', '-d', action='store_true', help='Print dependencies')
