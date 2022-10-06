@@ -1,9 +1,9 @@
 {%- set s = " " %}
 def warping_path{{suffix}}(
         {%- if "ndim" in suffix -%}
-        double[:, :] s1, double[:, :] s2, int ndim=1,{{s}}
+        {{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2, int ndim=1,{{s}}
         {%- else -%}
-        double[:] s1, double[:] s2,{{s}}
+        {{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2,{{s}}
         {%- endif -%}
         **kwargs):
     # Assumes C contiguous

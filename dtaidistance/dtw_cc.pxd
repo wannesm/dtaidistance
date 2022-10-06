@@ -10,12 +10,12 @@ cdef class DTWWps:
     cdef dtaidistancec_dtw.DTWWps _wps
 
 cdef class DTWSeriesPointers:
-    cdef double **_ptrs
+    cdef float **_ptrs
     cdef Py_ssize_t *_lengths
     cdef Py_ssize_t _nb_ptrs
 
 cdef class DTWSeriesMatrix:
-    cdef double[:,::1] _data
+    cdef float[:,::1] _data
 
 cdef class DTWSeriesMatrixNDim:
-    cdef double[:,:,::1] _data
+    cdef float[:,:,::1] _data

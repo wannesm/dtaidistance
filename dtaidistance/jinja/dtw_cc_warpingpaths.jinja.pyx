@@ -26,12 +26,12 @@
 
 def warping_paths{{ suffix }}(
         {%- if "ndim" in suffix -%}
-        double[:, :] dtw, double[:, :] s1, double[:, :] s2,{{s}}
+        {{seq_tpy}}[:, :] dtw, {{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2,{{s}}
         {%- else -%}
-        double[:, :] dtw, double[:] s1, double[:] s2,{{s}}
+        {{seq_tpy}}[:, :] dtw, {{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2,{{s}}
         {%- endif -%}
         {%- if "affinity" in suffix %}
-        bint only_triu, double gamma, double tau, double delta, double delta_factor,
+        bint only_triu, {{seq_tpy}} gamma, {{seq_tpy}} tau, {{seq_tpy}} delta, {{seq_tpy}} delta_factor,
         {%- endif %}
         bint psi_neg=False, **kwargs):
     {%- if "ndim" in suffix %}
@@ -51,12 +51,12 @@ def warping_paths{{ suffix }}(
     else:
         try:
             # Use cython.view.array to avoid numpy dependency
-            wps = cvarray(shape=shape, itemsize=sizeof(double), format="d")
+            wps = cvarray(shape=shape, itemsize=sizeof({{seq_tpy}}), format="d")
         except MemoryError as exc:
             print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
             raise exc
-    cdef double [:, :] wps_view = wps
-    cdef double d
+    cdef {{seq_tpy}} [:, :] wps_view = wps
+    cdef {{seq_tpy}} d
     {{ select_c_fn("wps_view")}}
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
         {%- if "affinity" in suffix %}
@@ -69,12 +69,12 @@ def warping_paths{{ suffix }}(
 
 def warping_paths_compact{{ suffix }}(
         {%- if "ndim" in suffix -%}
-        double[:, :] dtw, double[:, :] s1, double[:, :] s2,{{s}}
+        {{seq_tpy}}[:, :] dtw, {{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2,{{s}}
         {%- else -%}
-        double[:, :] dtw, double[:] s1, double[:] s2,{{s}}
+        {{seq_tpy}}[:, :] dtw, {{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2,{{s}}
         {%- endif -%}
         {%- if "affinity" in suffix %}
-        bint only_triu, double gamma, double tau, double delta, double delta_factor,
+        bint only_triu, {{seq_tpy}} gamma, {{seq_tpy}} tau, {{seq_tpy}} delta, {{seq_tpy}} delta_factor,
         {%- endif %}
         bint psi_neg=False, **kwargs):
     {%- if "ndim" in suffix %}
@@ -84,6 +84,6 @@ def warping_paths_compact{{ suffix }}(
     {%- endif %}
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    cdef double d
+    cdef {{seq_tpy}} d
     {{ select_c_fn("dtw") }}
     return d

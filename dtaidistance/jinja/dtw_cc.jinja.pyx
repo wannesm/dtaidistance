@@ -196,7 +196,7 @@ cdef class DTWSettings:
 
 cdef class DTWSeriesPointers:
     def __cinit__(self, int nb_series):
-        self._ptrs = <double **> malloc(nb_series * sizeof(double*))
+        self._ptrs = <{{seq_tpy}} **> malloc(nb_series * sizeof({{seq_tpy}}*))
         self._nb_ptrs = nb_series
         if not self._ptrs:
             self._ptrs = NULL
@@ -214,7 +214,7 @@ cdef class DTWSeriesPointers:
 
 
 cdef class DTWSeriesMatrix:
-    def __cinit__(self, double[:, ::1] data):
+    def __cinit__(self, {{seq_tpy}}[:, ::1] data):
         self._data = data
 
     @property
@@ -227,7 +227,7 @@ cdef class DTWSeriesMatrix:
 
 
 cdef class DTWSeriesMatrixNDim:
-    def __cinit__(self, double[:, :, ::1] data):
+    def __cinit__(self, {{seq_tpy}}[:, :, ::1] data):
         self._data = data
 
     @property
@@ -251,7 +251,7 @@ def dtw_series_from_data(data, force_pointers=False):
         ptrs = DTWSeriesPointers(len(data))
         for i in range(len(data)):
             ptr = data[i].ctypes.data  # uniform for memoryviews and numpy
-            ptrs._ptrs[i] = <double *> ptr
+            ptrs._ptrs[i] = <{{seq_tpy}} *> ptr
             ptrs._lengths[i] = len(data[i])
         return ptrs
     try:
@@ -266,12 +266,12 @@ def dtw_series_from_data(data, force_pointers=False):
         raise ValueError(f"Cannot convert data of type {type(data)}")
 
 
-def ub_euclidean(double[:] s1, double[:] s2):
+def ub_euclidean({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2):
     """ See ed.euclidean_distance"""
     return dtaidistancec_dtw.ub_euclidean(&s1[0], len(s1), &s2[0], len(s2))
 
 
-def ub_euclidean_ndim(double[:, :] s1, double[:, :] s2):
+def ub_euclidean_ndim({{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2):
     """ See ed.euclidean_distance_ndim"""
     # Assumes C contiguous
     if s1.shape[1] != s2.shape[1]:
@@ -280,20 +280,20 @@ def ub_euclidean_ndim(double[:, :] s1, double[:, :] s2):
     return dtaidistancec_dtw.ub_euclidean_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim)
 
 
-def lb_keogh(double[:] s1, double[:] s2, **kwargs):
+def lb_keogh({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     return dtaidistancec_dtw.lb_keogh(&s1[0], len(s1), &s2[0], len(s2), &settings._settings)
 
 
-def distance(double[:] s1, double[:] s2, **kwargs):
+def distance({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2, **kwargs):
     """DTW distance.
 
     Assumes C-contiguous arrays.
 
     See distance().
-    :param s1: First sequence (buffer of doubles)
-    :param s2: Second sequence (buffer of doubles)
+    :param s1: First sequence (buffer of {{seq_tpy}}s)
+    :param s2: Second sequence (buffer of {{seq_tpy}}s)
     :param kwargs: Settings (see DTWSettings)
     """
     # Assumes C contiguous
@@ -301,14 +301,14 @@ def distance(double[:] s1, double[:] s2, **kwargs):
     return dtaidistancec_dtw.dtw_distance(&s1[0], len(s1), &s2[0], len(s2), &settings._settings)
 
 
-def distance_ndim(double[:, :] s1, double[:, :] s2, **kwargs):
+def distance_ndim({{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2, **kwargs):
     """DTW distance for n-dimensional arrays.
 
     Assumes C-contiguous arrays.
 
     See distance().
-    :param s1: First sequence (buffer of doubles)
-    :param s2: Second sequence (buffer of doubles)
+    :param s1: First sequence (buffer of {{seq_tpy}}s)
+    :param s2: Second sequence (buffer of {{seq_tpy}}s)
     :param ndim: Number of dimensions
     :param kwargs: Settings (see DTWSettings)
     """
@@ -320,14 +320,14 @@ def distance_ndim(double[:, :] s1, double[:, :] s2, **kwargs):
     return dtaidistancec_dtw.dtw_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim, &settings._settings)
 
 
-def distance_ndim_assinglearray(double[:] s1, double[:] s2, int ndim, **kwargs):
+def distance_ndim_assinglearray({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2, int ndim, **kwargs):
     """DTW distance for n-dimensional arrays.
 
     Assumes C-contiguous arrays (with sequence item as first dimension).
 
     See distance().
-    :param s1: First sequence (buffer of doubles)
-    :param s2: Second sequence (buffer of doubles)
+    :param s1: First sequence (buffer of {{seq_tpy}}s)
+    :param s2: Second sequence (buffer of {{seq_tpy}}s)
     :param ndim: Number of dimensions
     :param kwargs: Settings (see DTWSettings)
     """
@@ -361,34 +361,34 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 {%- include 'dtw_cc_warpingpath.jinja.pyx' %}
 
 
-def wps_negativize(DTWWps p, double[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
+def wps_negativize(DTWWps p, {{seq_tpy}}[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
     dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], rb, re)
 
-def wps_positivize(DTWWps p, double[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
+def wps_positivize(DTWWps p, {{seq_tpy}}[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
     dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], rb, re)
 
-def wps_max(DTWWps p, double[:, :] wps):
+def wps_max(DTWWps p, {{seq_tpy}}[:, :] wps):
     cdef Py_ssize_t r, c
     result = dtaidistancec_dtw.dtw_wps_max(&p._wps, &wps[0,0], &r, &c,
                                            wps.shape[0] - 1, wps.shape[1] - 1)
     return r, c
 
-def wps_expand_slice(double[:, :] wps, double[:, :] slice, Py_ssize_t l1, Py_ssize_t l2,
+def wps_expand_slice({{seq_tpy}}[:, :] wps, {{seq_tpy}}[:, :] slice, Py_ssize_t l1, Py_ssize_t l2,
                      Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce,
                      DTWSettings settings):
     dtaidistancec_dtw.dtw_expand_wps_slice_affinity(&wps[0, 0], &slice[0, 0],
                                                     l1, l2, rb, re, cb, ce,
                                                     &settings._settings)
 
-def wps_print(double[:, :] wps, **kwargs):
+def wps_print({{seq_tpy}}[:, :] wps, **kwargs):
     settings = DTWSettings(**kwargs)
     dtaidistancec_dtw.dtw_print_wps(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
 
-def wps_print_compact(double[:, :] wps, **kwargs):
+def wps_print_compact({{seq_tpy}}[:, :] wps, **kwargs):
     settings = DTWSettings(**kwargs)
     dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
 
-def best_path_compact_affinity(double[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
+def best_path_compact_affinity({{seq_tpy}}[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
     l1 = wps.shape[0] - 1
@@ -415,7 +415,7 @@ def best_path_compact_affinity(double[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, *
 def srand(unsigned int seed):
     dtaidistancec_dtw.dtw_srand(seed)
 
-def warping_path_prob(double[:] s1, double[:] s2, double avg, **kwargs):
+def warping_path_prob({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2, {{seq_tpy}} avg, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -456,8 +456,8 @@ def distance_matrix_length(DTWBlock block, Py_ssize_t nb_series):
 {%- include 'dtw_cc_dba.jinja.pyx' %}
 
 
-cdef dba_inner(cur, double *c_ptr, Py_ssize_t c_len, unsigned char *mask_ptr, int nb_prob_samples, int ndim, DTWSettings settings):
-    cdef double *matrix_ptr;
+cdef dba_inner(cur, {{seq_tpy}} *c_ptr, Py_ssize_t c_len, unsigned char *mask_ptr, int nb_prob_samples, int ndim, DTWSettings settings):
+    cdef {{seq_tpy}} *matrix_ptr;
     cdef DTWSeriesMatrix matrix
     cdef DTWSeriesMatrixNDim matrix_ndim
     cdef DTWSeriesPointers ptrs

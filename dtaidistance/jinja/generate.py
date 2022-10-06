@@ -18,16 +18,37 @@ templateLoader = jinja2.FileSystemLoader(searchpath="./")
 templateEnv = jinja2.Environment(loader=templateLoader)
 
 
+
+seq_t = "float"
+seq_tpy = "float"
+
+
 targets = {
     "dtw_cc.pyx":
         ["dtw_cc.jinja.pyx",
-            {},
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
             ["dtw_cc_warpingpaths.jinja.pyx",
              "dtw_cc_distancematrix.jinja.pyx",
              "dtw_cc_warpingpath.jinja.pyx",
              "dtw_cc_dba.jinja.pyx"]],
+    "dtw_cc_omp.pyx":
+        ["dtw_cc_omp.jinja.pyx",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "dtw_cc.pxd":
+        ["dtw_cc.jinja.pxd",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "dtaidistancec_globals.pxd":
+        ["dtaidistancec_globals.jinja.pxd",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "ed_cc.pyx":
+        ["ed_cc.jinja.pyx",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
 }
-essential_targets = ['dtw_cc.pyx']
+essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd']
 
 
 def generate(target):
