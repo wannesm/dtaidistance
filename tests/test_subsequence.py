@@ -82,7 +82,7 @@ def test_dtw_subseq_eeg():
             fn = directory / "test_dtw_subseq_eeg3.png"
             fig = plt.figure(figsize=(20, 10))
             fig, ax = dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), path=-1, figure=fig)
-            print(f'plotting {len(kmatches)} matches')
+            print('plotting {} matches'.format(len(kmatches)))
             for kmatch in kmatches:
                 dtwvis.plot_warpingpaths_addpath(ax, kmatch.path)
             plt.savefig(fn)
@@ -120,6 +120,7 @@ def test_dtw_subseq_ndim():
         assert m.value == pytest.approx(0.07071067811865482)
 
 
+@pytest.skip()
 @numpyonly
 def test_dtw_localconcurrences_eeg():
     with util_numpy.test_uses_numpy() as np:
@@ -139,12 +140,12 @@ def test_dtw_localconcurrences_eeg():
         delta = -2 * np.exp(-gamma * diffp**2)  # -len(series)/2  # penalty
         delta_factor = 0.5
         tau = np.exp(-gamma * diffp**2)  # threshold
-        print(f'{tau=}, {delta=}')
+        # print(f'{tau=}, {delta=}')
         # tau=0.8532234738897421, delta=-1.7064469477794841
         buffer = 10
         minlen = 20
         lc = local_concurrences(series, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor)
-        print(f'{lc.tau=}, {lc.delta=}')
+        # print(f'{lc.tau=}, {lc.delta=}')
         matches = []
         for match in lc.kbest_matches(k=100, minlen=minlen, buffer=buffer):
             if match is None:
@@ -173,6 +174,7 @@ def test_dtw_localconcurrences_eeg():
             plt.close(fig)
 
 
+@pytest.skip()
 @numpyonly
 def test_dtw_localconcurrences_short():
     with util_numpy.test_uses_numpy() as np:
@@ -234,7 +236,7 @@ def test_dtw_subseqsearch_eeg():
         sa = subsequence_search(query, s, dists_options={'use_c': True})
         best = sa.kbest_matches_fast(k=k)
         toc = time.perf_counter()
-        print(f"Searching performed in {toc - tic:0.4f} seconds")
+        print("Searching performed in {} seconds".format(toc - tic:0.4f))
         # print(sa.distances)
         # print(best)
 
@@ -257,12 +259,12 @@ def test_dtw_subseqsearch_eeg():
             for idx, match in enumerate(best):
                 ax = fig.add_subplot(gs[1, idx])
                 if idx == 0:
-                    ax.set_title(f'Best {k} windows')
+                    ax.set_title('Best {} windows'.format(k))
                 ax.set_ylim((ymin, ymax))
                 ax.plot(s[match.idx])
             ax = fig.add_subplot(gs[2, :])
             ax.set_ylim((ymin, ymax))
-            ax.set_title(f'Series with windows')
+            ax.set_title('Series with windows')
             for idx in s_idx:
                 ax.vlines(idx, ymin, ymax, color='grey', alpha=0.4)
             ax.plot(series)
@@ -274,7 +276,7 @@ def test_dtw_subseqsearch_eeg():
 
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
-    print(f"Saving files to {directory}")
+    print("Saving files to {}".format(directory))
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=6, linewidth=120)
         # test_dtw_subseq1()
