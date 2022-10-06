@@ -21,6 +21,7 @@ templateEnv = jinja2.Environment(loader=templateLoader)
 
 seq_t = "float"
 seq_tpy = "float"
+# Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 
 targets = {
