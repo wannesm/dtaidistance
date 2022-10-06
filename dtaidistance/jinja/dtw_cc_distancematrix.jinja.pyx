@@ -61,11 +61,11 @@ def distance_matrix{{suffix}}(cur,{{s}}
         {%- if "ndim" in suffix %}
         dtaidistancec_dtw.dtw_distances_ndim_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths, ndim,
-            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+            dists.data.as_{{seq_t}}s, &dtwblock._block, &settings._settings)
         {%- else %}
         dtaidistancec_dtw.dtw_distances_ptrs(
             ptrs._ptrs, ptrs._nb_ptrs, ptrs._lengths,
-            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+            dists.data.as_{{seq_t}}s, &dtwblock._block, &settings._settings)
         {%- endif %}
     elif isinstance(cur, DTWSeriesMatrix):
         {%- if "ndim" in suffix %}
@@ -74,13 +74,13 @@ def distance_matrix{{suffix}}(cur,{{s}}
         matrix = cur
         dtaidistancec_dtw.dtw_distances_matrix(
             &matrix._data[0,0], matrix.nb_rows, matrix.nb_cols,
-            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+            dists.data.as_{{seq_t}}s, &dtwblock._block, &settings._settings)
     {%- if "ndim" in suffix %}
     elif isinstance(cur, DTWSeriesMatrixNDim):
         matrixnd = cur
         dtaidistancec_dtw.dtw_distances_ndim_matrix(
             &matrixnd._data[0,0,0], matrixnd.nb_rows, matrixnd.nb_cols, ndim,
-            dists.data.as_doubles, &dtwblock._block, &settings._settings)
+            dists.data.as_{{seq_t}}s, &dtwblock._block, &settings._settings)
     {%- endif %}
     else:
         raise Exception("Unknown series container")

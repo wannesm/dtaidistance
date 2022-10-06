@@ -18,16 +18,38 @@ templateLoader = jinja2.FileSystemLoader(searchpath="./")
 templateEnv = jinja2.Environment(loader=templateLoader)
 
 
+
+seq_t = "double"
+seq_tpy = "double"
+# Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+
+
 targets = {
     "dtw_cc.pyx":
         ["dtw_cc.jinja.pyx",
-            {},
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
             ["dtw_cc_warpingpaths.jinja.pyx",
              "dtw_cc_distancematrix.jinja.pyx",
              "dtw_cc_warpingpath.jinja.pyx",
              "dtw_cc_dba.jinja.pyx"]],
+    "dtw_cc_omp.pyx":
+        ["dtw_cc_omp.jinja.pyx",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "dtw_cc.pxd":
+        ["dtw_cc.jinja.pxd",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "dtaidistancec_globals.pxd":
+        ["dtaidistancec_globals.jinja.pxd",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
+    "ed_cc.pyx":
+        ["ed_cc.jinja.pyx",
+            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            []],
 }
-essential_targets = ['dtw_cc.pyx']
+essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd']
 
 
 def generate(target):
@@ -47,7 +69,7 @@ def dependencies(target):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Perform some task')
+    parser = argparse.ArgumentParser(description='Generate source code files from templates')
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbose output')
     parser.add_argument('--quiet', '-q', action='count', default=0, help='Quiet output')
     parser.add_argument('--deps', '-d', action='store_true', help='Print dependencies')

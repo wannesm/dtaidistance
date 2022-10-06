@@ -78,20 +78,9 @@ if p.exists():
     c_args['llvm'].append(f'-I{p}')
 p = Path('/opt/homebrew/lib')
 if p.exists():
-    libomp = Path(p / 'libomp.a')
-    if platform.system() == 'Darwin' and libomp.exists():
-        # Force the linker to use the static libomp.a library
-        # This is useful to create wheels for people who do not
-        # have the shared library libomp.{dylib,so} in the right location
-        print(f'Adding libomp to linker: {libomp}')
-        l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
-        l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
-        l_args['unix'].append(str(libomp))
-        l_args['llvm'].append(str(libomp))
-    else:
-        print(f'Adding path to linker: {p}')
-        l_args['unix'].append(f'-L{p}')
-        l_args['llvm'].append(f'-L{p}')
+    print(f'Adding path to linker: {p}')
+    l_args['unix'].append(f'-L{p}')
+    l_args['llvm'].append(f'-L{p}')
 
 
 class PyTest(TestCommand):
@@ -126,6 +115,7 @@ class MyDistribution(Distribution):
         ('noxpreprocessor', None, 'Assume OpenMP is built-in (remove -Xpreprocessor argument)'),
         ('forcellvm', None, 'Force compile/linker flags for LLVM (include -lomp argument)'),
         ('forcegnugcc', None, 'Force compile/linker flags for GNU GCC (include -lgomp argument)'),
+        ('forcestatic', None, 'Try to force the linker to use the static OMP library.')
     ]
 
     def __init__(self, attrs=None):
@@ -134,6 +124,7 @@ class MyDistribution(Distribution):
         self.noxpreprocessor = 0
         self.forcellvm = 0
         self.forcegnugcc = 0
+        self.forcestatic = 0
         super().__init__(attrs)
 
 
@@ -232,6 +223,7 @@ class MyBuildExtCommand(BuildExtCommand):
         print2("--noxpreprocessor: {}".format(self.distribution.noxpreprocessor))
         print2("--forcellvm: {}".format(self.distribution.forcellvm))
         print2("--forcegnugcc: {}".format(self.distribution.forcegnugcc))
+        print2("--forcestatic: {}".format(self.distribution.forcestatic))
 
         # Check cython information
         if Cython is None:
@@ -253,6 +245,18 @@ class MyBuildExtCommand(BuildExtCommand):
             gcc_is_clang = check_clang(self.compiler.compiler[0], printfn=print2)
         else:
             gcc_is_clang = False
+
+        if self.distribution.forcestatic:
+            libomp = Path(p / 'libomp.a')
+            if platform.system() == 'Darwin' and libomp.exists():
+                # Force the linker to use the static libomp.a library
+                # This is useful to create wheels for people who do not
+                # have the shared library libomp.{dylib,so} in the right location
+                print(f'Removing -lomp and adding libomp to linker: {libomp}')
+                l_args['unix'] = [a for a in l_args['unix'] if a != '-lomp']
+                l_args['llvm'] = [a for a in l_args['llvm'] if a != '-lomp']
+                l_args['unix'].append(str(libomp))
+                l_args['llvm'].append(str(libomp))
 
         if self.distribution.forcellvm or gcc_is_clang or \
                 (c == "unix" and ("llvm" in self.compiler.compiler[0] or
