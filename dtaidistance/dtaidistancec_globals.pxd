@@ -1,4 +1,4 @@
 
 
 cdef extern from "dd_globals.h":
-    ctypedef float seq_t
+    ctypedef double seq_t
