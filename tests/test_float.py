@@ -6,6 +6,7 @@ from dtaidistance import ed, util_numpy
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
+@pytest.mark.skip
 @numpyonly
 def test_distance1_a():
     with util_numpy.test_uses_numpy() as np:

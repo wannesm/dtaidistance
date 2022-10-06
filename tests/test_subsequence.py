@@ -120,7 +120,7 @@ def test_dtw_subseq_ndim():
         assert m.value == pytest.approx(0.07071067811865482)
 
 
-@pytest.skip()
+@pytest.mark.skip
 @numpyonly
 def test_dtw_localconcurrences_eeg():
     with util_numpy.test_uses_numpy() as np:
@@ -174,7 +174,7 @@ def test_dtw_localconcurrences_eeg():
             plt.close(fig)
 
 
-@pytest.skip()
+@pytest.mark.skip
 @numpyonly
 def test_dtw_localconcurrences_short():
     with util_numpy.test_uses_numpy() as np:
@@ -236,7 +236,7 @@ def test_dtw_subseqsearch_eeg():
         sa = subsequence_search(query, s, dists_options={'use_c': True})
         best = sa.kbest_matches_fast(k=k)
         toc = time.perf_counter()
-        print("Searching performed in {} seconds".format(toc - tic:0.4f))
+        print("Searching performed in {:0.4f} seconds".format(toc - tic))
         # print(sa.distances)
         # print(best)
 
