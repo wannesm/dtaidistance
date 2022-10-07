@@ -16,7 +16,7 @@
 
 
 /* The sequence type type can be customized by changing the typedef. */
-typedef float seq_t;
+typedef double seq_t;
 
 /*! The index type
  
