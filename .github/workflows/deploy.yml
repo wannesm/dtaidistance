@@ -128,9 +128,10 @@ jobs:
       run: |
         # OpenMP libraries are not installed by default on macos
         clang --version
-        clang --version | grep "13\."
+        clang --version | grep "\(13\.\|14\.\)"
         # hardcoded, not ideal
         # https://mac.r-project.org/openmp/
+        # This includes only the dynamic library
         curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
         sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
         ls /usr/local/lib
