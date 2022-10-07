@@ -51,7 +51,7 @@ def warping_paths{{ suffix }}(
     else:
         try:
             # Use cython.view.array to avoid numpy dependency
-            wps = cvarray(shape=shape, itemsize=sizeof({{seq_tpy}}), format="d")
+            wps = cvarray(shape=shape, itemsize=sizeof({{seq_tpy}}), format="{{seq_format}}")
         except MemoryError as exc:
             print("Cannot allocate memory for warping paths matrix. Trying " + str(shape) + ".")
             raise exc

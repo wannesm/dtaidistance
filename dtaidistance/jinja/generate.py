@@ -21,32 +21,35 @@ templateEnv = jinja2.Environment(loader=templateLoader)
 
 seq_t = "double"
 seq_tpy = "double"
+seq_format = "d"  # https://docs.python.org/3/library/array.html
 # Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+
+set_vars = {"seq_tpy": seq_tpy, "seq_t": seq_t, "seq_format": seq_format}
 
 
 targets = {
     "dtw_cc.pyx":
         ["dtw_cc.jinja.pyx",
-            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            set_vars,
             ["dtw_cc_warpingpaths.jinja.pyx",
              "dtw_cc_distancematrix.jinja.pyx",
              "dtw_cc_warpingpath.jinja.pyx",
              "dtw_cc_dba.jinja.pyx"]],
     "dtw_cc_omp.pyx":
         ["dtw_cc_omp.jinja.pyx",
-            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            set_vars,
             []],
     "dtw_cc.pxd":
         ["dtw_cc.jinja.pxd",
-            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            set_vars,
             []],
     "dtaidistancec_globals.pxd":
         ["dtaidistancec_globals.jinja.pxd",
-            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            set_vars,
             []],
     "ed_cc.pyx":
         ["ed_cc.jinja.pyx",
-            {"seq_tpy": seq_tpy, "seq_t": seq_t},
+            set_vars,
             []],
 }
 essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd']
