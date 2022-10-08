@@ -5,6 +5,9 @@ DEPS_dtw_cc_pxd = $(shell python3 generate.py -dq dtw_cc.pxd)
 DEPS_ed_cc = $(shell python3 generate.py -dq ed_cc.pyx)
 
 
+.PHONY: default
+default: clean generate
+
 .PHONY: generate
 generate: jinja replace
 
@@ -54,4 +57,12 @@ debug:
 	@echo $(DEPS_dtw_cc)
 	@echo $(DEPS_globals)
 	@echo $(DEPS_dtw_cc_pxd)
+
+.PHONY: clean
+clean:
+	rm -f dtw_cc.pyx
+	rm -f dtw_cc_omp.pyx
+	rm -f dtw_cc.pxd
+	rm -f ed_cc.pyx
+	rm -f dtaidistancec_globals.pxd
 
