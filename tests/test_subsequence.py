@@ -211,32 +211,45 @@ def test_dtw_localconcurrences_short():
             plt.close(fig)
 
 
-@numpyonly
-def test_dtw_subseqsearch_eeg():
-    with util_numpy.test_uses_numpy() as np:
-        data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
-        data = np.loadtxt(data_fn)
-        series = np.array(data[1500:1700])
-        query = np.array(data[1331:1352])
-        # print(f'{len(series)=}')
+def create_data_subseqsearch_eeg(np):
+    data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
+    data = np.loadtxt(data_fn)
+    series = np.array(data[1500:1700])
+    query = np.array(data[1331:1352])
+    # print(f'{len(series)=}')
 
-        k = 3
-        s = []
-        s_idx = []
-        w = 22  # window size
-        ws = int(np.floor(w/2))  # shift size
-        wn = int(np.floor((len(series) - (w - ws)) / ws))
-        si, ei = 0, w
-        for i in range(wn):
-            s.append(series[si:ei])
-            s_idx.append(si)
-            si += ws
-            ei += ws
-        tic = time.perf_counter()
-        sa = subsequence_search(query, s, dists_options={'use_c': True})
-        best = sa.kbest_matches_fast(k=k)
-        toc = time.perf_counter()
-        print("Searching performed in {:0.4f} seconds".format(toc - tic))
+    k = 3
+    s = []
+    s_idx = []
+    w = 22  # window size
+    ws = int(np.floor(w / 2))  # shift size
+    wn = int(np.floor((len(series) - (w - ws)) / ws))
+    si, ei = 0, w
+    for i in range(wn):
+        s.append(series[si:ei])
+        s_idx.append(si)
+        si += ws
+        ei += ws
+    return query, s, k, series, s_idx
+
+
+@numpyonly
+@pytest.mark.benchmark(group="subseqsearch_eeg")
+def test_dtw_subseqsearch_eeg(benchmark):
+    with util_numpy.test_uses_numpy() as np:
+        query, s, k, series, s_idx = create_data_subseqsearch_eeg(np)
+
+        def run():
+            sa = subsequence_search(query, s, dists_options={'use_c': True})
+            best = sa.kbest_matches_fast(k=k)
+            return best
+        if benchmark is None:
+            tic = time.perf_counter()
+            best = run()
+            toc = time.perf_counter()
+            print("Searching performed in {:0.4f} seconds".format(toc - tic))
+        else:
+            best = benchmark(run)
         # print(sa.distances)
         # print(best)
 
@@ -274,6 +287,27 @@ def test_dtw_subseqsearch_eeg():
             plt.close(fig)
 
 
+@numpyonly
+@pytest.mark.benchmark(group="subseqsearch_eeg")
+def test_dtw_subseqsearch_eeg_ub(benchmark):
+    with util_numpy.test_uses_numpy() as np:
+        query, s, k, series, s_idx = create_data_subseqsearch_eeg(np)
+
+        def run():
+            sa = subsequence_search(query, s, dists_options={'use_c': True}, use_lb=True)
+            best = sa.kbest_matches_fast(k=k)
+            return best
+        if benchmark is None:
+            tic = time.perf_counter()
+            best = run()
+            toc = time.perf_counter()
+            print("Searching performed in {:0.4f} seconds".format(toc - tic))
+        else:
+            best = benchmark(run)
+        # print(sa.distances)
+        # print(best)
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print("Saving files to {}".format(directory))
@@ -284,5 +318,6 @@ if __name__ == "__main__":
         # test_dtw_subseq_bug1()
         # test_dtw_subseq_ndim()
         # test_dtw_localconcurrences_eeg()
-        test_dtw_subseqsearch_eeg()
+        test_dtw_subseqsearch_eeg(benchmark=None)
+        # test_dtw_subseqsearch_eeg_ub(benchmark=None)
         # test_dtw_localconcurrences_short()

@@ -57,6 +57,10 @@ benchmark-matrixc:
 benchmark-clustering:
 	export PYTHONPATH=.;py.test -k cluster ${BENCHMARKSETTINGS}
 
+.PHONY: benchmark-subseqsearch
+benchmark-subseqsearch:
+	export PYTHONPATH=.;py.test -k subseqsearch_eeg ${BENCHMARKSETTINGS}
+
 
 .PHONY: clean
 clean:

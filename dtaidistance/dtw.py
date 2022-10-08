@@ -152,7 +152,7 @@ class DTWSettings:
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None):
+             max_step=None, max_length_diff=None, use_c=False):
     """Lowerbound LB_KEOGH"""
     # TODO: This implementation slower than distance() in C
     if window is None:

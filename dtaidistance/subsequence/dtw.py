@@ -491,7 +491,7 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series, dists_options=None):
+def subsequence_search(query, series, dists_options=None, use_lb=False):
     """See SubsequenceSearch.
 
     :param query: Time series to search for
@@ -500,7 +500,7 @@ def subsequence_search(query, series, dists_options=None):
     :param dists_options: Options passed on to dtw.distance
     :return: SubsequenceSearch object
     """
-    ss = SubsequenceSearch(query, series, dists_options=dists_options)
+    ss = SubsequenceSearch(query, series, dists_options=dists_options, use_lb=use_lb)
     return ss
 
 
@@ -533,7 +533,7 @@ class SSMatch:
 
 
 class SubsequenceSearch:
-    def __init__(self, query, s, dists_options=None):
+    def __init__(self, query, s, dists_options=None, use_lb=False):
         """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
@@ -544,11 +544,19 @@ class SubsequenceSearch:
         self.query = query
         self.s = s
         self.distances = None
+        self.lbs = None
         self.k = None
         self.dists_options = {} if dists_options is None else dists_options
+        self.use_lb = use_lb
 
     def reset(self):
         self.distances = None
+
+    def compute_lbs(self):
+        self.lbs = np.zeros((len(self.s),))
+        for idx, series in enumerate(self.s):
+            self.lbs[idx] = dtw.lb_keogh(self.query, series, **self.dists_options)
+        print(self.lbs)
 
     def align_fast(self, k=None):
         self.dists_options['use_c'] = True
@@ -558,10 +566,14 @@ class SubsequenceSearch:
         if self.distances is not None and self.k >= k:
             return
         self.distances = np.zeros((len(self.s),))
+        if self.use_lb:
+            self.compute_lbs()
         import heapq
         h = [-np.inf]
         max_dist = np.inf
         for idx, series in enumerate(self.s):
+            if self.use_lb and self.lbs[idx] > max_dist:
+                continue
             dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
