@@ -16,7 +16,7 @@ cimport dtaidistancec_ed
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-def distance(double[:] s1, double[:] s2):
+def distance(float[:] s1, float[:] s2):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
@@ -29,7 +29,7 @@ def distance(double[:] s1, double[:] s2):
     return dtaidistancec_ed.euclidean_distance(&s1[0], len(s1), &s2[0], len(s2))
 
 
-def distance_ndim(double[:, :] s1, double[:, :] s2):
+def distance_ndim(float[:, :] s1, float[:, :] s2):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series

@@ -52,7 +52,8 @@ targets = {
             set_vars,
             []],
 }
-essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd']
+essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd',
+                     'dtw_cc_omp.pyx', 'ed_cc.pyx']
 
 
 def generate(target):
