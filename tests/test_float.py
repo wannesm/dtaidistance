@@ -14,10 +14,11 @@ def test_distance1_a():
         print(f's1 itemsize = {s1.itemsize}')
 
         d = dtw.distance_fast(s1, s2)
-        print('d = {}'.format(d))
+        # print('d = {}'.format(d))
+        assert (d) == pytest.approx(1.4142135381698608)
 
         d = ed.distance_fast(s1, s2)
-        print('d = {}'.format(d))
+        # print('d = {}'.format(d))
         assert(d) == pytest.approx(2.8284271247461903)
 
 
