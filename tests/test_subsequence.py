@@ -211,11 +211,11 @@ def test_dtw_localconcurrences_short():
             plt.close(fig)
 
 
-def create_data_subseqsearch_eeg(np):
+def create_data_subseqsearch_eeg(np, dtype=None):
     data_fn = Path(__file__).parent / 'rsrc' / 'EEGRat_10_1000.txt'
     data = np.loadtxt(data_fn)
-    series = np.array(data[1500:1700])
-    query = np.array(data[1331:1352])
+    series = np.array(data[1500:1700], dtype=dtype)
+    query = np.array(data[1331:1352], dtype=dtype)
     # print(f'{len(series)=}')
 
     k = 3
