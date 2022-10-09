@@ -1,6 +1,8 @@
 import math
 import pytest
+import time
 from dtaidistance import ed, util_numpy, dtw
+from dtaidistance.subsequence.dtw import subsequence_search
 
 
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
@@ -22,5 +24,21 @@ def test_distance1_a():
         assert(d) == pytest.approx(2.8284271247461903)
 
 
+@numpyonly
+@pytest.mark.benchmark(group="subseqsearch_eeg")
+def test_dtw_subseqsearch_eeg():
+    with util_numpy.test_uses_numpy() as np:
+        from test_subsequence import create_data_subseqsearch_eeg
+        query, s, k, series, s_idx = create_data_subseqsearch_eeg(np, dtype=np.float32)
+        tic = time.perf_counter()
+        sa = subsequence_search(query, s, dists_options={'use_c': True})
+        best = sa.kbest_matches_fast(k=k)
+        toc = time.perf_counter()
+        print("Searching performed in {:0.4f} seconds".format(toc - tic))
+        # print(sa.distances)
+        # print(best)
+
+
 if __name__ == "__main__":
     test_distance1_a()
+    # test_dtw_subseqsearch_eeg()
