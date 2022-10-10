@@ -240,18 +240,21 @@ def test_dtw_subseqsearch_eeg(benchmark):
         query, s, k, series, s_idx = create_data_subseqsearch_eeg(np)
 
         def run():
-            sa = subsequence_search(query, s, dists_options={'use_c': True})
+            sa = subsequence_search(query, s, dists_options={'use_c': True},
+                                    keep_all_distances=False)
             best = sa.kbest_matches_fast(k=k)
-            return best
+            return best, sa
         if benchmark is None:
             tic = time.perf_counter()
-            best = run()
+            best, sa = run()
             toc = time.perf_counter()
             print("Searching performed in {:0.4f} seconds".format(toc - tic))
         else:
             best = benchmark(run)
         # print(sa.distances)
         # print(best)
+
+        assert str(best) == "[SSMatch(15), SSMatch(7), SSMatch(4)]"
 
         if directory and not dtwvis.test_without_visualization():
             try:

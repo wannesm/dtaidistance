@@ -549,7 +549,10 @@ class SubsequenceSearch:
         self.k = None
         self.dists_options = {} if dists_options is None else dists_options
         self.use_lb = use_lb
-        self.keep_all_distances = keep_all_distances
+        if self.k is None:
+            self.keep_all_distances = True
+        else:
+            self.keep_all_distances = keep_all_distances
         if self.use_lb and not self.keep_all_distances:
             raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
 
@@ -579,8 +582,6 @@ class SubsequenceSearch:
         for idx, series in enumerate(self.s):
             if self.use_lb and self.lbs[idx] > max_dist:
                 continue
-            print(f'{len(self.query)=} * {len(series)=} = {len(self.query)*len(series)*8/1024**2}MiB')
-            print(f'{len(self.query)=} * 2 = {len(self.query) * 2 * 8 / 1024 ** 2}MiB')
             dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
