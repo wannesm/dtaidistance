@@ -491,7 +491,7 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series, dists_options=None, use_lb=False):
+def subsequence_search(query, series, dists_options=None, use_lb=False, keep_all_distances=False):
     """See SubsequenceSearch.
 
     :param query: Time series to search for
@@ -500,7 +500,8 @@ def subsequence_search(query, series, dists_options=None, use_lb=False):
     :param dists_options: Options passed on to dtw.distance
     :return: SubsequenceSearch object
     """
-    ss = SubsequenceSearch(query, series, dists_options=dists_options, use_lb=use_lb)
+    ss = SubsequenceSearch(query, series, dists_options=dists_options, use_lb=use_lb,
+                           keep_all_distances=keep_all_distances)
     return ss
 
 
@@ -533,7 +534,7 @@ class SSMatch:
 
 
 class SubsequenceSearch:
-    def __init__(self, query, s, dists_options=None, use_lb=False):
+    def __init__(self, query, s, dists_options=None, use_lb=False, keep_all_distances=False):
         """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
@@ -548,6 +549,9 @@ class SubsequenceSearch:
         self.k = None
         self.dists_options = {} if dists_options is None else dists_options
         self.use_lb = use_lb
+        self.keep_all_distances = keep_all_distances
+        if self.use_lb and not self.keep_all_distances:
+            raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
 
     def reset(self):
         self.distances = None
@@ -565,27 +569,33 @@ class SubsequenceSearch:
     def align(self, k=None):
         if self.distances is not None and self.k >= k:
             return
-        self.distances = np.zeros((len(self.s),))
-        if self.use_lb:
-            self.compute_lbs()
+        if self.keep_all_distances:
+            self.distances = np.zeros((len(self.s),))
+            if self.use_lb:
+                self.compute_lbs()
         import heapq
-        h = [-np.inf]
+        h = [(-np.inf, -1)]
         max_dist = np.inf
         for idx, series in enumerate(self.s):
             if self.use_lb and self.lbs[idx] > max_dist:
                 continue
+            print(f'{len(self.query)=} * {len(series)=} = {len(self.query)*len(series)*8/1024**2}MiB')
+            print(f'{len(self.query)=} * 2 = {len(self.query) * 2 * 8 / 1024 ** 2}MiB')
             dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
                     if not np.isinf(dist):
-                        heapq.heappush(h, -dist)
-                        max_dist = -min(h)
+                        heapq.heappush(h, (-dist, idx))
+                        max_dist = -min(h)[0]
                 else:
                     if not np.isinf(dist):
-                        heapq.heappushpop(h, -dist)
-                        max_dist = -min(h)
+                        heapq.heappushpop(h, (-dist, idx))
+                        max_dist = -min(h)[0]
                 self.dists_options['max_dist'] = max_dist
-            self.distances[idx] = dist
+            if self.keep_all_distances:
+                self.distances[idx] = dist
+        if not self.keep_all_distances:
+            self.distances = h
 
     def best_match_fast(self):
         self.dists_options['use_c'] = True
@@ -601,8 +611,20 @@ class SubsequenceSearch:
         return self.kbest_matches(k=k)
 
     def kbest_matches(self, k=1):
+        """Return the k best matches.
+
+        It is recommended to set k to a value, and not None.
+        If k is set to None, all comparisons are kept and returned. Also no early
+        stopping is applied in case k is None.
+
+        :param k: Number of best matches to return (default is 1)
+        :return: List of SSMatch objects
+        """
         self.align(k=k)
         if k is None:
             return [SSMatch(best_idx, self) for best_idx in range(len(self.distances))]
-        best_idxs = np.argpartition(self.distances, k)
-        return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
+        if self.keep_all_distances:
+            best_idxs = np.argpartition(self.distances, k)
+            return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
+        distances = reversed(sorted(self.distances))
+        return [SSMatch(best_idx, self) for dist, best_idx in distances]
