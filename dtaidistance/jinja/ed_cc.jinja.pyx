@@ -11,12 +11,13 @@ Euclidean Distance (ED), C implementation.
 """
 import logging
 cimport dtaidistancec_ed
+from dtaidistancec_dtw cimport seq_t
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-def distance({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2):
+def distance(seq_t[:] s1, seq_t[:] s2):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
@@ -29,7 +30,7 @@ def distance({{seq_tpy}}[:] s1, {{seq_tpy}}[:] s2):
     return dtaidistancec_ed.euclidean_distance(&s1[0], len(s1), &s2[0], len(s2))
 
 
-def distance_ndim({{seq_tpy}}[:, :] s1, {{seq_tpy}}[:, :] s2):
+def distance_ndim(seq_t[:, :] s1, seq_t[:, :] s2):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
