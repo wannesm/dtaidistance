@@ -362,11 +362,11 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
 {%- include 'dtw_cc_warpingpath.jinja.pyx' %}
 
 
-def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
-    dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], rb, re)
+def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
+    dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
 
-def wps_positivize(DTWWps p, seq_t[:, :] wps, Py_ssize_t rb, Py_ssize_t re):
-    dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], rb, re)
+def wps_positivize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
+    dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
 
 def wps_max(DTWWps p, seq_t[:, :] wps):
     cdef Py_ssize_t r, c

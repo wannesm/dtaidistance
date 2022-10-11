@@ -160,10 +160,45 @@ void dtw_wps_positivize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r
  @param rb Row begin
  @param re Row end
  */
-void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re) {
+void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce) {
+    idx_t i, j, wpsi, cbp, cep, cbs, ces;
     idx_t idx = rb*p->width;;
-    for (idx_t i=rb; i<re; i++) {
-        for (idx_t j=0; j<p->width; j++) {
+    for (i=rb; i<re; i++) {
+        for (j=0; j<p->width; j++) {
+            if (wps[idx] > 0 && wps[idx] != INFINITY) {
+                wps[idx] = -wps[idx];
+            }
+            idx++;
+        }
+    }
+    // above
+    for (i=1; i<rb; i++) {
+        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+        cbp = MAX(cb, cbs);
+        cep = MIN(ce, ces);
+        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+        idx = wpsi + (cb - cbs);
+        for (j=cbp; j<cep; j++) {
+            if (wps[idx] > 0 && wps[idx] != INFINITY) {
+                wps[idx] = -wps[idx];
+            }
+            idx++;
+        }
+    }
+    // below
+    for (i=re; i<l1+1; i++) {
+        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+        cbp = MAX(cb, cbs);
+        cep = MIN(ce, ces);
+        if (cep - cbp == 0) {
+            /* printf("break\n"); */
+            break;
+        }
+        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+        idx = wpsi + (cb - cbs);
+        for (j=cbp; j<cep; j++) {
             if (wps[idx] > 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];
             }
@@ -173,11 +208,46 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re) {
 }
 
 
-void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re) {
+void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce) {
+    idx_t i, j, wpsi, cbp, cep, cbs, ces;
     idx_t idx = rb*p->width;;
-    for (idx_t i=rb; i<re; i++) {
-        for (idx_t j=0; j<p->width; j++) {
+    for (i=rb; i<re; i++) {
+        for (j=0; j<p->width; j++) {
             if (wps[idx] < 0 && wps[idx] != -INFINITY) {
+                wps[idx] = -wps[idx];
+            }
+            idx++;
+        }
+    }
+    // above
+    for (i=1; i<rb; i++) {
+        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+        cbp = MAX(cb, cbs);
+        cep = MIN(ce, ces);
+        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+        idx = wpsi + (cb - cbs);
+        for (j=cbp; j<cep; j++) {
+            if (wps[idx] < 0 && wps[idx] != INFINITY) {
+                wps[idx] = -wps[idx];
+            }
+            idx++;
+        }
+    }
+    // below
+    for (i=re; i<l1+1; i++) {
+        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+        cbp = MAX(cb, cbs);
+        cep = MIN(ce, ces);
+        if (cep - cbp == 0) {
+            /* printf("break\n"); */
+            break;
+        }
+        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+        idx = wpsi + (cb - cbs);
+        for (j=cbp; j<cep; j++) {
+            if (wps[idx] < 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];
             }
             idx++;
@@ -302,6 +372,81 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
         if (ri == r && ci < c) {
             printf("WARNING: dtw_wps_loc: location does not exist: %zu, %zu\n", r, c);
             return 0;
+        }
+        wpsi_start++;
+        min_ci++;
+        ri_width += p->width;
+    }
+
+    return 0;
+}
+
+
+idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
+    idx_t ri, ci, wpsi, wpsi_start;
+    idx_t ri_width = p->width;
+    idx_t min_ci, max_ci;
+
+    // First row is inf
+    ri_width = p->width;
+
+    // A.
+    min_ci = 0;
+    max_ci = p->window + p->ldiffc + 1;
+    for (ri=1; ri<p->ri1+1; ri++) {
+        ci = min_ci;
+        if (ri == r) {
+            *cb = min_ci;
+            *ce = max_ci;
+            return ri_width;
+        }
+        max_ci++;
+        ri_width += p->width;
+    }
+
+    // B.
+    min_ci = 0;
+    max_ci = l2 + 1;
+    for (ri=p->ri1+1; ri<p->ri2+1; ri++) {
+        ci = min_ci;
+        if (ri == r) {
+            *cb = min_ci;
+            *ce = max_ci;
+            return ri_width;
+        }
+        ri_width += p->width;
+    }
+
+    // C.
+    min_ci = 1;
+    max_ci = 1 + 2 * p->window - 1 + p->ldiff + 1;
+    for (ri=p->ri2+1; ri<p->ri3+1; ri++) {
+        ci = min_ci;
+        if (ri == r) {
+            *cb = min_ci;
+            *ce = max_ci;
+            return ri_width;
+        }
+        min_ci++;
+        max_ci++;
+        ri_width += p->width;
+    }
+
+    // D.
+    min_ci = MAX(0, p->ri3 + 1 - p->window - p->ldiff);
+    max_ci = l2 + 1;
+    wpsi_start = 2;
+    if (p->ri2 == p->ri3) {
+        // C is skipped
+        wpsi_start = min_ci + 1;
+    }
+    for (ri=p->ri3+1; ri<l1+1; ri++) {
+        ci = min_ci;
+        wpsi = wpsi_start - 1;
+        if (ri == r) {
+            *cb = min_ci;
+            *ce = max_ci;
+            return ri_width + wpsi;
         }
         wpsi_start++;
         min_ci++;

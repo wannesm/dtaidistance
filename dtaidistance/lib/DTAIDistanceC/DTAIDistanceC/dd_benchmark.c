@@ -395,20 +395,49 @@ void benchmark_affinity() {
     }
     printf("]\n");
     
+    dtw_print_wps(wps, l1, l2, &settings);
     DTWWps p = dtw_wps_parts(l1, l2, &settings);
+    
+//    idx_t rb = 2;
+//    idx_t re = 8;
+//    idx_t cb = 4;
+//    idx_t ce = 8;
+//    seq_t * wps_slice = (seq_t *)malloc(sizeof(seq_t) * (re-rb)*(ce-cb));
+//    for (idx_t i=0; i<(re-rb)*(ce-cb); i++) {
+//        wps_slice[i] = -INFINITY;
+//    }
+//
+//    dtw_expand_wps_slice_affinity(wps, wps_slice, l1, l2, rb, re, cb, ce, &settings);
+//
+//    idx_t wpsi = 0;
+//    for (idx_t r=0; r<(re-rb); r++) {
+//        printf("[ ");
+//        for (idx_t c=0; c<(ce-cb); c++) {
+//            printf("%.2f ", wps_slice[wpsi]);
+//            wpsi++;
+//        }
+//        printf("]\n");
+//    }
     
 //    dtw_wps_negativize(&p, wps, 2, 5);
 //    dtw_wps_positivize(&p, wps, 3, 4);
+    
+    
+//    idx_t r, c, wps_i;
+//    r = l1-3; c = l2-2;
+//    wps_i = dtw_wps_loc(&p, r, c, l1, l2);
+//    printf("wps_full[%zu,%zu] = wps[%zu] = %.3f\n", r, c, wps_i, wps[wps_i]);
+    
+//    idx_t maxr, maxc;
+//    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
+//    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
+    
+    printf("Negativize\n");
+    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 4, 5);
     dtw_print_wps(wps, l1, l2, &settings);
-    
-    idx_t r, c, wps_i;
-    r = l1-3; c = l2-2;
-    wps_i = dtw_wps_loc(&p, r, c, l1, l2);
-    printf("wps_full[%zu,%zu] = wps[%zu] = %.3f\n", r, c, wps_i, wps[wps_i]);
-    
-    idx_t maxr, maxc;
-    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
-    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
+    dtw_print_wps_compact(wps, l1, l2, &settings);
+//    maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
+//    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
     
     free(wps);
     printf("d = %.2f\n", d);
@@ -431,7 +460,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
-//    benchmark8();
+    //benchmark8();
 //    benchmark9();
 //    benchmark10();
 //    benchmark11();

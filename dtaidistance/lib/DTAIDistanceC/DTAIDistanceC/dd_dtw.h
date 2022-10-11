@@ -131,9 +131,10 @@ void dtw_expand_wps_affinity(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSet
 void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, DTWSettings *settings);
 void dtw_wps_negativize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c);
 void dtw_wps_positivize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c);
-void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re);
-void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t rb, idx_t re);
+void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce);
+void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce);
 idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2);
+idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2);
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t s1, idx_t s2, DTWSettings *settings);
