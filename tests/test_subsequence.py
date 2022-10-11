@@ -254,7 +254,10 @@ def test_dtw_subseqsearch_eeg(benchmark):
         # print(sa.distances)
         # print(best)
 
-        assert str(best) == "[SSMatch(15), SSMatch(7), SSMatch(4)]"
+        assert str(best) == "[SSMatch(15), SSMatch(7), SSMatch(4)]", str(best)
+        assert str(best[0]) == str(sa.best_match()), '{} != {}'.format(best[0], sa.best_match())
+        assert str(best[:]) == "[SSMatch(15), SSMatch(7), SSMatch(4)]", str(best[:])
+        assert str(best[0:3]) == "[SSMatch(15), SSMatch(7), SSMatch(4)]", str(best[0:3])
 
         if directory and not dtwvis.test_without_visualization():
             try:

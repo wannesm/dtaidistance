@@ -512,25 +512,52 @@ class SSMatch:
     series in the original list of series. The distance property returns the DTW
     distance between the query and the series at index idx.
     """
-    def __init__(self, idx, ss):
-        self.idx = idx
+    def __init__(self, kidx, ss):
+        self.kidx = kidx
         self.ss = ss
 
     @property
     def distance(self):
         """DTW distance."""
-        return self.ss.distances[self.idx]
+        return self.ss.kbest_distances[self.kidx][0]
 
     @property
     def value(self):
         """Normalized DTW distance."""
         return self.distance / len(self.ss.query)
 
+    @property
+    def idx(self):
+        return self.ss.kbest_distances[self.kidx][1]
+
     def __str__(self):
         return f'SSMatch({self.idx})'
 
     def __repr__(self):
         return self.__str__()
+
+
+class SSMatches:
+    def __init__(self, ss):
+        self.ss = ss
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            start = 0 if key.start is None else key.start
+            return [SSMatch(kip+start, self.ss) for kip, (v, i) in
+                    enumerate(self.ss.kbest_distances[key])]
+        return SSMatch(key, self.ss)
+
+    def __iter__(self):
+        for ki, (v, i) in enumerate(self.ss.kbest_distances):
+            yield SSMatch(ki, self.ss)
+
+    def __str__(self):
+        if len(self.ss.kbest_distances) > 10:
+            return '[' + ', '.join(str(m) for m in self[:5]) + ' ... ' +\
+                   ', '.join(str(m) for m in self[-5:]) + ']'
+        return '[' + ', '.join(str(m) for m in self) + ']'
+
 
 
 class SubsequenceSearch:
@@ -545,6 +572,7 @@ class SubsequenceSearch:
         self.query = query
         self.s = s
         self.distances = None
+        self.kbest_distances = None
         self.lbs = None
         self.k = None
         self.dists_options = {} if dists_options is None else dists_options
@@ -558,12 +586,13 @@ class SubsequenceSearch:
 
     def reset(self):
         self.distances = None
+        self.kbest_distances = None
+        self.lbs = None
 
     def compute_lbs(self):
         self.lbs = np.zeros((len(self.s),))
         for idx, series in enumerate(self.s):
             self.lbs[idx] = dtw.lb_keogh(self.query, series, **self.dists_options)
-        print(self.lbs)
 
     def align_fast(self, k=None):
         self.dists_options['use_c'] = True
@@ -595,8 +624,21 @@ class SubsequenceSearch:
                 self.dists_options['max_dist'] = max_dist
             if self.keep_all_distances:
                 self.distances[idx] = dist
-        if not self.keep_all_distances:
-            self.distances = h
+            self.kbest_distances = sorted((-v, i) for v, i in h)
+
+        self.k = k
+
+    def get_ith_value(self, i):
+        """Return the i-th value from the k-best values.
+
+        :param i: Return i-th best value (i < k)
+        :return: (distance, index)
+        """
+        if self.distances is None or self.k is None:
+            raise ValueError('Align should be called before asking for the i-th value.')
+        if i > self.k:
+            raise ValueError('The i-th value is not available, i={}>k={}'.format(i, self.k))
+        return self.kbest_distances[i]
 
     def best_match_fast(self):
         self.dists_options['use_c'] = True
@@ -604,8 +646,8 @@ class SubsequenceSearch:
 
     def best_match(self):
         self.align(k=1)
-        best_idx = np.argmin(self.distances)
-        return SSMatch(best_idx, self)
+        # _value, best_idx = self.kbest_distances[0]
+        return SSMatch(0, self)
 
     def kbest_matches_fast(self, k=1):
         self.dists_options['use_c'] = True
@@ -622,10 +664,11 @@ class SubsequenceSearch:
         :return: List of SSMatch objects
         """
         self.align(k=k)
-        if k is None:
-            return [SSMatch(best_idx, self) for best_idx in range(len(self.distances))]
-        if self.keep_all_distances:
-            best_idxs = np.argpartition(self.distances, k)
-            return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
-        distances = reversed(sorted(self.distances))
-        return [SSMatch(best_idx, self) for dist, best_idx in distances]
+        # if k is None:
+        #     return [SSMatch(best_idx, self) for best_idx in range(len(self.distances))]
+        # if self.keep_all_distances:
+        #     best_idxs = np.argpartition(self.distances, k)
+            # return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
+        # distances = reversed(sorted(self.h))
+        # return [SSMatch(best_idx, self) for dist, best_idx in distances]
+        return SSMatches(self)
