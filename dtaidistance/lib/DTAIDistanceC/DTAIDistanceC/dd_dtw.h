@@ -31,10 +31,13 @@ static volatile int keepRunning = 1;
  @var printPrecision
  @abstract Number of decimals to print when printing (partial) distances.
  */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 static int printPrecision = 3;
 static int printDigits = 7; // 3+4
 static char printBuffer[20];
 static char printFormat[5];
+#pragma GCC diagnostic pop
 
 
 /**
