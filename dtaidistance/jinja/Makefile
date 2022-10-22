@@ -12,14 +12,16 @@ default: clean generate
 .PHONY: float
 float: ARGS := --seqt=float
 float: clean generate
+	sed -i '' 's/^typedef .* seq_t;$$/typedef float seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: int
 int: ARGS := --seqt=int
 int: clean generate
-	
+	sed -i '' 's/^typedef .* seq_t;$$/typedef int seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: generate
 generate: jinja replace
+	sed -i '' 's/^typedef .* seq_t;$$/typedef double seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: jinja
 jinja: dtw_cc.pyx dtw_cc_omp.pyx dtaidistancec_globals.pxd dtw_cc.pxd
