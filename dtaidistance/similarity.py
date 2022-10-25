@@ -42,7 +42,7 @@ def distance_to_similarity(D, r=None, method='exponential'):
     return S
 
 
-def squash(X, r=None, base=None):
+def squash(X, r=None, base=None, x0=0, method="logistic"):
     """Squash a function monotonically to a range between 0 and 1.
 
     Based on:
@@ -50,8 +50,16 @@ def squash(X, r=None, base=None):
     (2018). Semi-supervised anomaly detection with an application to water analytics.
     In 2018 IEEE international conference on data mining (ICDM) (Vol. 2018, pp. 527-536)
     """
-    if r is None:
-        r = 1
-    if base is None:
-        return 1 - np.exp(-np.power(X, 2) / r**2)
-    return 1 - np.power(base, -np.power(X, 2) / r**2)
+    if method == "gaussian":
+        x0 = 0  # not supported for gaussian
+        if r is None:
+            r = 1
+        if base is None:
+            return 1 - np.exp(-np.power(X - x0, 2) / r**2)
+        return 1 - np.power(base, -np.power(X - x0, 2) / r**2)
+    elif method == "logistic":
+        if r is None:
+            r = 1
+        if base is None:
+            return 1 / (1 + np.exp(-(X - x0) / r))
+        return 1 / (1 + np.power(base, -(X - x0) / r))
