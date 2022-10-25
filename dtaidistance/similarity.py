@@ -11,7 +11,7 @@ def distance_to_similarity(D, r=None, method='exponential'):
     - Exponential: e^(-D / r)
       r is max(D) if not given
     - Reciprocal: 1 / (r + D)
-      r is 0.0000001 if not given
+      r is 1 if not given
     - Reverse: r - D
       r is min(D) + max(D) if not given
 
@@ -31,12 +31,21 @@ def distance_to_similarity(D, r=None, method='exponential'):
         S = np.exp(-np.power(D, 2) / r)
     elif method == 'reciprocal':
         if r is None:
-            r = 0.0000001
+            r = 1
         S = 1 / (r + D)
     elif method == 'reverse':
         if r is None:
             r = np.min(D) + np.max(D)
-        S = r - D
+        S = (r - D) / r
     else:
         raise ValueError("method={} is not supported".format(method))
     return S
+
+
+def squash(X, r=None, base=None):
+    """Squash a function monotonically to a range between 0 and 1."""
+    if r is None:
+        r = 1
+    if base is None:
+        return 1 - np.exp(-np.power(X, 2) / r**2)
+    return 1 - np.power(base, -np.power(X, 2) / r**2)
