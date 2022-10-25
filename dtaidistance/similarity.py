@@ -43,7 +43,13 @@ def distance_to_similarity(D, r=None, method='exponential'):
 
 
 def squash(X, r=None, base=None):
-    """Squash a function monotonically to a range between 0 and 1."""
+    """Squash a function monotonically to a range between 0 and 1.
+
+    Based on:
+    Vercruyssen, V., Meert, W., Verbruggen, G., Maes, K., Baumer, R., & Davis, J.
+    (2018). Semi-supervised anomaly detection with an application to water analytics.
+    In 2018 IEEE international conference on data mining (ICDM) (Vol. 2018, pp. 527-536)
+    """
     if r is None:
         r = 1
     if base is None:
