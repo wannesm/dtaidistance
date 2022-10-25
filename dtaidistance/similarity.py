@@ -10,6 +10,8 @@ def distance_to_similarity(D, r=None, method='exponential'):
     The avaiable methods are:
     - Exponential: e^(-D / r)
       r is max(D) if not given
+    - Gaussian: e^(-D^2 / r^2)
+      r is max(D) if not given
     - Reciprocal: 1 / (r + D)
       r is 1 if not given
     - Reverse: r - D
@@ -28,7 +30,7 @@ def distance_to_similarity(D, r=None, method='exponential'):
     elif method == 'gaussian':
         if r is None:
             r = np.max(D)
-        S = np.exp(-np.power(D, 2) / r)
+        S = np.exp(-np.power(D, 2) / r**2)
     elif method == 'reciprocal':
         if r is None:
             r = 1
@@ -44,6 +46,10 @@ def distance_to_similarity(D, r=None, method='exponential'):
 
 def squash(X, r=None, base=None, x0=0, method="logistic"):
     """Squash a function monotonically to a range between 0 and 1.
+
+    The available methods are:
+    - Logistic: 1 / (1 + e^(-(X-x0) / r)
+    - Gaussian: e^(-(X-x0)^2 / r^2)
 
     Based on:
     Vercruyssen, V., Meert, W., Verbruggen, G., Maes, K., Baumer, R., & Davis, J.
