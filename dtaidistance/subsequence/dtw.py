@@ -622,9 +622,12 @@ class SubsequenceSearch:
                         heapq.heappushpop(h, (-dist, idx))
                         max_dist = -min(h)[0]
                 self.dists_options['max_dist'] = max_dist
-            if self.keep_all_distances:
+            if k is None or self.keep_all_distances:
                 self.distances[idx] = dist
+        if k is not None:
             self.kbest_distances = sorted((-v, i) for v, i in h)
+        else:
+            self.kbest_distances = sorted((self.distances[i], i) for i in np.argsort(self.distances))
 
         self.k = k
 
