@@ -625,9 +625,11 @@ class SubsequenceSearch:
             if k is None or self.keep_all_distances:
                 self.distances[idx] = dist
         if k is not None:
+            # hh = np.array([-v for v, _ in h])
+            # self.kbest_distances = [(-h[i][0], h[i][1]) for i in np.argsort(hh)]
             self.kbest_distances = sorted((-v, i) for v, i in h)
         else:
-            self.kbest_distances = sorted((self.distances[i], i) for i in np.argsort(self.distances))
+            self.kbest_distances = [(self.distances[i], i) for i in np.argsort(self.distances)]
 
         self.k = k
 
