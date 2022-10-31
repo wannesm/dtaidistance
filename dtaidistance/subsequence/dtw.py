@@ -601,7 +601,7 @@ class SubsequenceSearch:
     def align(self, k=None):
         if self.distances is not None and self.k >= k:
             return
-        if self.keep_all_distances:
+        if k is None or self.keep_all_distances:
             self.distances = np.zeros((len(self.s),))
             if self.use_lb:
                 self.compute_lbs()
@@ -612,7 +612,7 @@ class SubsequenceSearch:
             if self.use_lb and self.lbs[idx] > max_dist:
                 continue
             dist = dtw.distance(self.query, series, **self.dists_options)
-            if k is not None and not self.keep_all_distances:
+            if k is not None:
                 if len(h) < k:
                     if not np.isinf(dist):
                         heapq.heappush(h, (-dist, idx))
@@ -622,9 +622,9 @@ class SubsequenceSearch:
                         heapq.heappushpop(h, (-dist, idx))
                         max_dist = -min(h)[0]
                 self.dists_options['max_dist'] = max_dist
-            if k is None or self.keep_all_distances:
+            if self.keep_all_distances:
                 self.distances[idx] = dist
-        if k is not None and not self.keep_all_distances:
+        if k is not None:
             # hh = np.array([-v for v, _ in h])
             # self.kbest_distances = [(-h[i][0], h[i][1]) for i in np.argsort(hh)]
             self.kbest_distances = sorted((-v, i) for v, i in h)
