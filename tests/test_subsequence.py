@@ -234,6 +234,45 @@ def create_data_subseqsearch_eeg(np, dtype=None):
 
 
 @numpyonly
+def test_dtw_subseqsearch_eeg2():
+    with util_numpy.test_uses_numpy() as np:
+        query, s, k, series, s_idx = create_data_subseqsearch_eeg(np)
+        sa = subsequence_search(query, s, dists_options={'use_c': True},
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=k)
+        assert str(best) == "[SSMatch(15), SSMatch(7), SSMatch(4)]", str(best)
+        assert sa.distances is None
+
+        sa = subsequence_search(query, s, dists_options={'use_c': True},
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=1)
+        assert str(best) == "[SSMatch(15)]", str(best)
+
+        sa = subsequence_search(query, s, dists_options={'use_c': True},
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=None)
+        assert str(best) == "[SSMatch(15), SSMatch(7), SSMatch(4), SSMatch(11), SSMatch(6) ... SSMatch(14), SSMatch(10), SSMatch(9), SSMatch(1), SSMatch(3)]", str(best)
+
+        assert best[0].value == pytest.approx(0.08045349583339727)
+
+        sa = subsequence_search(query, s, dists_options={'use_c': True, 'max_dist': 0.0805 * len(query)},
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=k)
+        assert str(best) == "[SSMatch(15)]", str(best)
+
+        sa = subsequence_search(query, s, max_value=0.0805,
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=k)
+        assert str(best) == "[SSMatch(15)]", str(best)
+
+        sa = subsequence_search(query, s, max_dist=0.0805 * len(query),
+                                keep_all_distances=False)
+        best = sa.kbest_matches_fast(k=k)
+        assert str(best) == "[SSMatch(15)]", str(best)
+
+
+
+@numpyonly
 @pytest.mark.benchmark(group="subseqsearch_eeg")
 def test_dtw_subseqsearch_eeg(benchmark):
     with util_numpy.test_uses_numpy() as np:
@@ -324,6 +363,7 @@ if __name__ == "__main__":
         # test_dtw_subseq_bug1()
         # test_dtw_subseq_ndim()
         # test_dtw_localconcurrences_eeg()
-        test_dtw_subseqsearch_eeg(benchmark=None)
+        test_dtw_subseqsearch_eeg2()
+        # test_dtw_subseqsearch_eeg(benchmark=None)
         # test_dtw_subseqsearch_eeg_ub(benchmark=None)
         # test_dtw_localconcurrences_short()

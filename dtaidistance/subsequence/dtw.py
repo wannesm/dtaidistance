@@ -491,17 +491,21 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series, dists_options=None, use_lb=False, keep_all_distances=False):
+def subsequence_search(query, series, dists_options=None, use_lb=False, keep_all_distances=False,
+                       max_dist=None, max_value=None):
     """See SubsequenceSearch.
 
     :param query: Time series to search for
     :param series: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
-    :param dists_options: Options passed on to dtw.distance
+    :param dists_options: Options passed on to `dtw.distance`
+    :param max_dist: Ignore DTW distances larger than this value
+    :param max_value: Ignore normalized DTW distances larger than this value
     :return: SubsequenceSearch object
     """
     ss = SubsequenceSearch(query, series, dists_options=dists_options, use_lb=use_lb,
-                           keep_all_distances=keep_all_distances)
+                           keep_all_distances=keep_all_distances,
+                           max_dist=max_dist, max_value=max_value)
     return ss
 
 
@@ -561,13 +565,18 @@ class SSMatches:
 
 
 class SubsequenceSearch:
-    def __init__(self, query, s, dists_options=None, use_lb=False, keep_all_distances=False):
+    def __init__(self, query, s, dists_options=None, use_lb=False, keep_all_distances=False,
+                 max_dist=None, max_value=None):
         """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
         :param s: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
-        :param dists_options: Options passed on to dtw.distance
+        :param dists_options: Options passed on to `dtw.distance`
+        :param max_dist: Ignore DTW distances larger than this value
+            if max_dist is also given in dists_options, then the one in dists_options is ignored
+            if both max_dist and max_value are given, the smallest is used
+        :param max_value: Ignore normalized DTW distances larger than this value
         """
         self.query = query
         self.s = s
@@ -576,11 +585,15 @@ class SubsequenceSearch:
         self.lbs = None
         self.k = None
         self.dists_options = {} if dists_options is None else dists_options
-        self.use_lb = use_lb
-        if self.k is None:
-            self.keep_all_distances = True
+        if max_dist is None:
+            self.max_dist = self.dists_options.get('max_dist', np.inf)
         else:
-            self.keep_all_distances = keep_all_distances
+            self.max_dist = max_dist
+        if max_value is not None:
+            self.max_dist = min(self.max_dist, max_value * len(self.query))
+        self.dists_options['max_dist'] = self.max_dist
+        self.use_lb = use_lb
+        self.keep_all_distances = keep_all_distances
         if self.use_lb and not self.keep_all_distances:
             raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
 
@@ -607,27 +620,27 @@ class SubsequenceSearch:
                 self.compute_lbs()
         import heapq
         h = [(-np.inf, -1)]
-        max_dist = np.inf
+        max_dist = self.max_dist
         for idx, series in enumerate(self.s):
             if self.use_lb and self.lbs[idx] > max_dist:
                 continue
             dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
-                    if not np.isinf(dist):
+                    if not np.isinf(dist) and dist <= max_dist:
                         heapq.heappush(h, (-dist, idx))
-                        max_dist = -min(h)[0]
+                        max_dist = min(max_dist, -h[0][0])
                 else:
-                    if not np.isinf(dist):
+                    if not np.isinf(dist) and dist <= max_dist:
                         heapq.heappushpop(h, (-dist, idx))
-                        max_dist = -min(h)[0]
+                        max_dist = min(max_dist, -h[0][0])
                 self.dists_options['max_dist'] = max_dist
-            if self.keep_all_distances:
+            if self.keep_all_distances or k is None:
                 self.distances[idx] = dist
         if k is not None:
             # hh = np.array([-v for v, _ in h])
             # self.kbest_distances = [(-h[i][0], h[i][1]) for i in np.argsort(hh)]
-            self.kbest_distances = sorted((-v, i) for v, i in h)
+            self.kbest_distances = sorted((-v, i) for v, i in h if i != -1)
         else:
             self.kbest_distances = [(self.distances[i], i) for i in np.argsort(self.distances)]
 
