@@ -9,6 +9,9 @@ ARGS :=
 .PHONY: default
 default: clean generate
 
+.PHONY: double
+double: default
+
 .PHONY: float
 float: ARGS := --seqt=float
 float: clean generate
