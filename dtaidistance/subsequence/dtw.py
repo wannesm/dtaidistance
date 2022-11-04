@@ -108,12 +108,13 @@ class SubsequenceAlignment:
 
         Based on Fundamentals of Music Processing, Meinard Müller, Springer, 2015.
 
-        Example:
-        query = np.array([1., 2, 0])
-        series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0])
-        sa = subsequence_search(query, series)
-        mf = sa.matching_function()
-        sa.kbest_matches(k=2)
+        Example::
+
+            query = np.array([1., 2, 0])
+            series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0])
+            sa = subsequence_search(query, series)
+            mf = sa.matching_function()
+            sa.kbest_matches(k=2)
 
 
         :param query: Subsequence to search for
@@ -299,6 +300,8 @@ class LCMatch:
     def path(self):
         if self._path is not None:
             return self._path
+        # TODO: always storing the path might be memory hungry
+        #       but recomputing is impossible since the values are negated/masked afterwards
         self._path = self.lc.best_path(self.row, self.col)
         return self._path
 

@@ -17,6 +17,12 @@ def distance_to_similarity(D, r=None, method='exponential'):
     - Reverse: r - D
       r is min(D) + max(D) if not given
 
+    Example usage::
+
+        dist_matrix = dtw.distance_matrix(series)
+        sim_matrix = distance_to_similarity(dist_matrix)
+
+
     :param D: The distance matrix
     :param r: A scaling or smoothing parameter.
     :param method: One of 'exponential', 'reciprocal', 'reverse'
@@ -50,6 +56,12 @@ def squash(X, r=None, base=None, x0=0, method="logistic"):
     The available methods are:
     - Logistic: 1 / (1 + e^(-(X-x0) / r)
     - Gaussian: e^(-(X-x0)^2 / r^2)
+
+    Example usage::
+
+        dist_matrix = dtw.distance_matrix(series)
+        dist_matrix_sq = squash(dist_matrix)
+
 
     Based on:
     Vercruyssen, V., Meert, W., Verbruggen, G., Maes, K., Baumer, R., & Davis, J.
