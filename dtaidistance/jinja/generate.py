@@ -11,18 +11,29 @@ import sys
 import argparse
 import logging
 import jinja2
+from pathlib import Path
+from fileinput import FileInput
 
 
 logger = logging.getLogger(__name__)
 templateLoader = jinja2.FileSystemLoader(searchpath="./")
 templateEnv = jinja2.Environment(loader=templateLoader)
+thisdir = Path(__file__).parent
 
 
-
+# Variables for the Jinja scripts
 seq_t = "double"
 seq_tpy = "double"
 seq_format = "d"  # https://docs.python.org/3/library/array.html
-# Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+
+def change_dd_globals_h():
+    # Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+    dd_globals_h = thisdir.parent / "lib" / "DTAIDistanceC" / "DTAIDistanceC" / "dd_globals.h"
+    with FileInput(files=[dd_globals_h], inplace=True) as f:
+        for line in f:
+            if "typedef" in line and "seq_t" in line:
+                line = "typedef {} seq_t;\n".format(seq_t)
+            print(line, end='')
 
 
 def set_vars():
@@ -54,19 +65,25 @@ def targets():
             ["ed_cc.jinja.pyx",
                 set_vars(),
                 []],
+        "dd_globals.h":
+            [change_dd_globals_h,
+                {}, []],
     }
 essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd',
-                     'dtw_cc_omp.pyx', 'ed_cc.pyx']
+                     'dtw_cc_omp.pyx', 'ed_cc.pyx', 'dd_globals.h']
 
 
 def generate(target):
     logger.info(f'Generating: {target}')
     fno = target
     fni, kwargs, _deps = targets()[target]
-    template = templateEnv.get_template(fni)
-    outputText = template.render(**kwargs)
-    with open(fno, 'w') as o:
-        o.write(outputText)
+    if callable(fni):
+        fni()
+    else:
+        template = templateEnv.get_template(fni)
+        outputText = template.render(**kwargs)
+        with open(fno, 'w') as o:
+            o.write(outputText)
 
 
 def dependencies(target):
