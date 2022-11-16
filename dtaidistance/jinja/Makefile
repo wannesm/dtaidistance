@@ -5,6 +5,16 @@ DEPS_dtw_cc_pxd = $(shell python3 generate.py -dq dtw_cc.pxd)
 DEPS_ed_cc = $(shell python3 generate.py -dq ed_cc.pyx)
 ARGS := 
 
+ifeq ($(OS),Windows_NT) 
+    detected_OS := Windows
+else
+    detected_OS := $(shell sh -c 'uname 2>/dev/null || echo Unknown')
+endif
+SED = sed
+ifeq ($(detected_OS),Darwin)
+    SED = sed -i
+endif
+
 
 .PHONY: default
 default: clean generate
@@ -15,16 +25,16 @@ double: default
 .PHONY: float
 float: ARGS := --seqt=float
 float: clean generate
-	sed -i '' 's/^typedef .* seq_t;$$/typedef float seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+	$(SED) '' 's/^typedef .* seq_t;$$/typedef float seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: int
 int: ARGS := --seqt=int
 int: clean generate
-	sed -i '' 's/^typedef .* seq_t;$$/typedef int seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+	$(SED) '' 's/^typedef .* seq_t;$$/typedef int seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: generate
 generate: jinja replace
-	sed -i '' 's/^typedef .* seq_t;$$/typedef double seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+	$(SED) '' 's/^typedef .* seq_t;$$/typedef double seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: jinja
 jinja: dtw_cc.pyx dtw_cc_omp.pyx dtaidistancec_globals.pxd dtw_cc.pxd
