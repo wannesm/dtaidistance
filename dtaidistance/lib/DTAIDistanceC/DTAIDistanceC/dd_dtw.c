@@ -76,8 +76,8 @@ Compute the DTW between two series.
 seq_t dtw_distance(seq_t *s1, idx_t l1,
                       seq_t *s2, idx_t l2, 
                       DTWSettings *settings) {
-    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
-           settings->psi_2b < l2 && settings->psi_2e < l2);
+    assert(settings->psi_1b <= l1 && settings->psi_1e <= l1 &&
+           settings->psi_2b <= l2 && settings->psi_2e <= l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -258,7 +258,7 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
         ec = ec_next;
         // Deal with Psi-relaxation in last column
         if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
-            assert((i1 + 1)*length - 1 == curidx);
+            assert(!(settings->window == 0 || settings->window == l2) || (i1 + 1)*length - 1 == curidx);
             if (dtw[curidx] < psi_shortest) {
                 // curidx is the last value
                 psi_shortest = dtw[curidx];
@@ -304,8 +304,8 @@ Compute the DTW between two n-dimensional series.
 seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
                       seq_t *s2, idx_t l2, int ndim,
                       DTWSettings *settings) {
-    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
-           settings->psi_2b < l2 && settings->psi_2e < l2);
+    assert(settings->psi_1b <= l1 && settings->psi_1e <= l1 &&
+           settings->psi_2b <= l2 && settings->psi_2e <= l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -493,7 +493,7 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
         ec = ec_next;
         // Deal with Psi-relaxation in last column
         if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
-            assert((i1 + 1)*length - 1 == curidx);
+            assert(!(settings->window == 0 || settings->window == l2) || (i1 + 1)*length - 1 == curidx);
             if (dtw[curidx] < psi_shortest) {
                 // curidx is the last value
                 psi_shortest = dtw[curidx];
@@ -771,11 +771,13 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
     // D. Rows: MAX(overlap_left_ri, overlap_right_ri) < ri <= l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
-    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff);
+    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff );
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=p.ri3; ri<l1; ri++) {
         ri_idx = ri * ndim;
@@ -886,6 +888,9 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
             if (psi_neg) {
                 for (ci=p.width - (l2 - mic); ci<p.width; ci++) {
                     wpsi = l1*p.width + ci;
+                    if (p.window != 0 && p.window != l2) {
+                        wpsi--;
+                    }
                     wps[wpsi] = -1;
                 }
             }
@@ -1043,6 +1048,8 @@ void dtw_expand_wps_slice(seq_t *wps, seq_t *full,
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=MAX(rbs, p.ri3); ri<MIN(res, l1); ri++) {
         if (cbs <= min_ci) {
@@ -1261,11 +1268,13 @@ seq_t dtw_warping_paths_affinity_ndim(seq_t *wps,
     // D. Rows: MAX(overlap_left_ri, overlap_right_ri) < ri <= l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
-    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff);
+    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff );
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=p.ri3; ri<l1; ri++) {
         ri_idx = ri * ndim;
@@ -1372,6 +1381,9 @@ seq_t dtw_warping_paths_affinity_ndim(seq_t *wps,
             if (psi_neg) {
                 for (ci=p.width - (l2 - mic); ci<p.width; ci++) {
                     wpsi = l1*p.width + ci;
+                    if (p.window != 0 && p.window != l2) {
+                        wpsi--;
+                    }
                     wps[wpsi] = -1;
                 }
             }
@@ -1529,6 +1541,8 @@ void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full,
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=MAX(rbs, p.ri3); ri<MIN(res, l1); ri++) {
         if (cbs <= min_ci) {
@@ -1772,6 +1786,8 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
     if (p->ri2 == p->ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p->ri3 - p->ri2;
     }
     for (ri=p->ri3+1; ri<l1+1; ri++) {
         ci = min_ci;
@@ -1800,7 +1816,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
 
 
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
-    idx_t ri, ci, wpsi, wpsi_start;
+    idx_t ri, wpsi, wpsi_start;
     idx_t ri_width = p->width;
     idx_t min_ci, max_ci;
 
@@ -1811,7 +1827,6 @@ idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, id
     min_ci = 0;
     max_ci = p->window + p->ldiffc + 1;
     for (ri=1; ri<p->ri1+1; ri++) {
-        ci = min_ci;
         if (ri == r) {
             *cb = min_ci;
             *ce = max_ci;
@@ -1825,7 +1840,6 @@ idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, id
     min_ci = 0;
     max_ci = l2 + 1;
     for (ri=p->ri1+1; ri<p->ri2+1; ri++) {
-        ci = min_ci;
         if (ri == r) {
             *cb = min_ci;
             *ce = max_ci;
@@ -1838,7 +1852,6 @@ idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, id
     min_ci = 1;
     max_ci = 1 + 2 * p->window - 1 + p->ldiff + 1;
     for (ri=p->ri2+1; ri<p->ri3+1; ri++) {
-        ci = min_ci;
         if (ri == r) {
             *cb = min_ci;
             *ce = max_ci;
@@ -1856,9 +1869,10 @@ idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, id
     if (p->ri2 == p->ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p->ri3 - p->ri2;
     }
     for (ri=p->ri3+1; ri<l1+1; ri++) {
-        ci = min_ci;
         wpsi = wpsi_start - 1;
         if (ri == r) {
             *cb = min_ci;
@@ -1961,6 +1975,8 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
     if (p->ri2 == p->ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p->ri3 - p->ri2;
     }
     for (ri=p->ri3+1; ri<l1+1; ri++) {
         ci = min_ci;
@@ -2016,6 +2032,8 @@ idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
     while (rip > p.ri3 && cip > 0) {
@@ -2029,7 +2047,7 @@ idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
             // Go diagonal
             cip--;
             rip--;
-            wpsi--;
+            wpsi = wpsi - 1;
             ri_width = ri_widthp;
             ri_widthp -= p.width;
         } else if (wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi]) {
@@ -2146,7 +2164,7 @@ idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l
             // Go diagonal
             cip--;
             rip--;
-            wpsi--;
+            wpsi = wpsi - 1;
             ri_width = ri_widthp;
             ri_widthp -= p.width;
         } else if (wps[ri_width + wpsi - 1] >= wps[ri_widthp + wpsi]) {
@@ -2273,7 +2291,10 @@ idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, s
     min_ci = p.ri3 + 1 - p.window - p.ldiff;
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
+        // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
     while (rip > p.ri3 && cip > 0) {
@@ -2414,18 +2435,18 @@ idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, s
  
  @return length of path
  */
-idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings) {
-    return warping_path_ndim(from_s, from_l, to_s, to_l, from_i, to_i, 1, settings);
+seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, DTWSettings * settings) {
+    return dtw_warping_path_ndim(from_s, from_l, to_s, to_l, from_i, to_i, length_i, 1, settings);
 }
 
-idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, int ndim, DTWSettings * settings) {
-    idx_t path_length;
+seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true,                        ndim, settings);
-    path_length = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
+    seq_t d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
+    d = sqrt(d);
+    *length_i = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
     free(wps);
-    return path_length;
+    return d;
 }
 
 /*!
@@ -2433,14 +2454,13 @@ idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, id
  
  @return length of path
  */
-idx_t warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, int ndim, DTWSettings * settings) {
-    idx_t path_length;
+seq_t dtw_warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t *length_i, seq_t avg, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true, ndim, settings);
-    path_length = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
+    seq_t d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true, ndim, settings);
+    *length_i = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
     free(wps);
-    return path_length;
+    return d;
 }
 
 
@@ -3297,10 +3317,18 @@ void dtw_printprecision_reset(void) {
 /* Helper function for debugging. */
 void dtw_print_wps_compact(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     DTWWps p = dtw_wps_parts(l1, l2, settings);
-    for (idx_t ri=0; ri<(l1+1); ri++) {
+    for (idx_t wpsi=0; wpsi<p.width; wpsi++) {
+        dtw_print_nb(wps[wpsi]);
+    }
+    printf("\n");
+    for (idx_t ri=0; ri<l1; ri++) {
         for (idx_t wpsi=0; wpsi<p.width; wpsi++) {
-            dtw_print_nb(wps[ri*p.width+wpsi]);
+            dtw_print_nb(wps[(ri+1)*p.width+wpsi]);
         }
+        if (ri < p.ri1) { printf("  # a %zu", ri); }
+        if (p.ri1 <= ri && ri < p.ri2) { printf("  # b %zu", ri); }
+        if (p.ri2 <= ri && ri < p.ri3) { printf("  # c %zu", ri); }
+        if (p.ri3 <= ri) { printf("  # d %zu", ri); }
         printf("\n");
     }
 }
@@ -3354,7 +3382,7 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
             dtw_print_ch(".inf");
             printf(" ");
         }
-        printf("],  # a\n");
+        printf("],  # a %zu\n", ri);
         max_ci++;
     }
     
@@ -3380,7 +3408,7 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
             dtw_print_ch(".inf");
             printf(" ");
         }
-        printf("],  # b\n");
+        printf("],  # b %zu\n", ri);
     }
     
     // C. Rows: overlap_left_ri <= ri < MAX(parts.overlap_left_ri, parts.overlap_right_ri)
@@ -3409,7 +3437,7 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
             dtw_print_ch(".inf");
             printf(" ");
         }
-        printf("],  # c\n");
+        printf("],  # c %zu\n", ri);
         min_ci++;
         max_ci++;
     }
@@ -3420,6 +3448,8 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=p.ri3; ri<l1; ri++) {
         printf("  [ ");
@@ -3452,9 +3482,9 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
             wpsi++;
         }
         if (ri == l1 - 1) {
-            printf("]]  # d\n");
+            printf("]]  # d %zu\n", ri);
         } else {
-            printf("],  # d\n");
+            printf("],  # d %zu\n", ri);
         }
         min_ci++;
         wpsi_start++;

@@ -301,11 +301,13 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
     // D. Rows: MAX(overlap_left_ri, overlap_right_ri) < ri <= l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
-    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff);
+    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff );
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=p.ri3; ri<l1; ri++) {
         ri_idx = ri * ndim;
@@ -433,6 +435,9 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             if (psi_neg) {
                 for (ci=p.width - (l2 - mic); ci<p.width; ci++) {
                     wpsi = l1*p.width + ci;
+                    if (p.window != 0 && p.window != l2) {
+                        wpsi--;
+                    }
                     wps[wpsi] = -1;
                 }
             }

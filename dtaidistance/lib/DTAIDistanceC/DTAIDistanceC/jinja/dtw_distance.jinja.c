@@ -24,8 +24,8 @@ Compute the DTW between two series.
 seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
                       seq_t *s2, idx_t l2, {% if "ndim" in suffix %}int ndim,{% endif %}
                       DTWSettings *settings) {
-    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
-           settings->psi_2b < l2 && settings->psi_2e < l2);
+    assert(settings->psi_1b <= l1 && settings->psi_1e <= l1 &&
+           settings->psi_2b <= l2 && settings->psi_2e <= l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -227,7 +227,7 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
         ec = ec_next;
         // Deal with Psi-relaxation in last column
         if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
-            assert((i1 + 1)*length - 1 == curidx);
+            assert(!(settings->window == 0 || settings->window == l2) || (i1 + 1)*length - 1 == curidx);
             if (dtw[curidx] < psi_shortest) {
                 // curidx is the last value
                 psi_shortest = dtw[curidx];

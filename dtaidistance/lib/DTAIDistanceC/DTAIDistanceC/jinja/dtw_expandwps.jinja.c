@@ -130,6 +130,8 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=MAX(rbs, p.ri3); ri<MIN(res, l1); ri++) {
         if (cbs <= min_ci) {

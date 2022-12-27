@@ -939,27 +939,31 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
                            only_triu=only_triu)
 
 
-def warping_path(from_s, to_s, **kwargs):
+def warping_path(from_s, to_s, include_distance=False, **kwargs):
     """Compute warping path between two sequences."""
     dist, paths = warping_paths(from_s, to_s, **kwargs)
     path = best_path(paths)
+    if include_distance:
+        return path, dist
     return path
 
 
-def warping_path_fast(from_s, to_s, **kwargs):
+def warping_path_fast(from_s, to_s, include_distance=False, **kwargs):
     """Compute warping path between two sequences."""
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
-    path = dtw_cc.warping_path(from_s, to_s, **settings_kwargs)
-    return path
+    result = dtw_cc.warping_path(from_s, to_s, include_distance=include_distance,
+                                 **settings_kwargs)
+    return result
 
 
-def warping_path_prob(from_s, to_s, avg, use_c=True, **kwargs):
+def warping_path_prob(from_s, to_s, avg, include_distance=False, use_c=True, **kwargs):
     """Compute warping path between two sequences."""
     if not use_c:
         raise AttributeError('warping_path_prob with use_c=False not yet supported')
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
-    path = dtw_cc.warping_path_prob(from_s, to_s, avg, **settings_kwargs)
-    return path
+    result = dtw_cc.warping_path_prob(from_s, to_s, avg,
+                                      include_distance=include_distance, **settings_kwargs)
+    return result
 
 
 def warping_amount(path):

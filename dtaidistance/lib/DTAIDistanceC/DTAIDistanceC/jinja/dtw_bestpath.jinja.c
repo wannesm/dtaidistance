@@ -53,6 +53,8 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
     {%- endif %}
@@ -78,7 +80,7 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
             // Go diagonal
             cip--;
             rip--;
-            wpsi--;
+            wpsi = wpsi - 1;
             ri_width = ri_widthp;
             ri_widthp -= p.width;
         } else if (wps[ri_width + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi]) {

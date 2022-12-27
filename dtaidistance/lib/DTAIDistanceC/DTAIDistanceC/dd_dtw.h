@@ -66,8 +66,8 @@ struct DTWSettings_s {
     seq_t penalty;
     idx_t psi_1b;  // series 1, begin psi
     idx_t psi_1e;  // series 1, end psi
-    idx_t psi_2b;
-    idx_t psi_2e;
+    idx_t psi_2b;  // series 2, begin psi
+    idx_t psi_2e;  // series 2, end psi
     bool use_pruning;
     bool only_ub;
     
@@ -96,8 +96,8 @@ struct DTWWps_s {
     idx_t ldiffr;
     idx_t ldiffc;
     idx_t window;
-    idx_t width;
-    idx_t length;
+    idx_t width;  // Width of warping paths matrix (height is length of series 1 + 1)
+    idx_t length;  // Nb of elements in the warping paths datastructure
     idx_t ri1;
     idx_t ri2;
     idx_t ri3;
@@ -142,10 +142,10 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t s1, idx_t s2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);
-idx_t warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, DTWSettings * settings);
-idx_t warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, int ndim, DTWSettings * settings);
+seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, DTWSettings * settings);
+seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, int ndim, DTWSettings * settings);
 void dtw_srand(unsigned int seed);
-idx_t warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, seq_t avg, int ndim, DTWSettings * settings);
+seq_t dtw_warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t *length_i, seq_t avg, int ndim, DTWSettings * settings);
 DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings);
 
 // Bound

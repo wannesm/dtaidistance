@@ -78,6 +78,18 @@ cdef class DTWWps:
     def __init__(self, l1, l2, DTWSettings settings):
         self._wps = dtaidistancec_dtw.dtw_wps_parts(l1, l2, &settings._settings)
 
+    @property
+    def ri1(self):
+        return self._wps.ri1
+
+    @property
+    def ri2(self):
+        return self._wps.ri2
+
+    @property
+    def ri3(self):
+        return self._wps.ri3
+
 
 cdef class DTWSettings:
     def __cinit__(self):
@@ -473,7 +485,7 @@ def warping_paths_compact_affinity(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2,
     return d
 
 
-def warping_path(seq_t[:] s1, seq_t[:] s2, **kwargs):
+def warping_path(seq_t[:] s1, seq_t[:] s2, include_distance=False, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -483,8 +495,9 @@ def warping_path(seq_t[:] s1, seq_t[:] s2, **kwargs):
     cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
     if not i2:
         raise MemoryError()
+    d = None
     try:
-        path_length = dtaidistancec_dtw.warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &settings._settings)
+        d = dtaidistancec_dtw.dtw_warping_path(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &path_length, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -492,10 +505,12 @@ def warping_path(seq_t[:] s1, seq_t[:] s2, **kwargs):
     finally:
         PyMem_Free(i1)
         PyMem_Free(i2)
+    if include_distance is True:
+        return path, d
     return path
 
 
-def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, **kwargs):
+def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, include_distance=False, int ndim=1, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -505,8 +520,10 @@ def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, **kwargs):
     cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
     if not i2:
         raise MemoryError()
+    d = None
     try:
-        path_length = dtaidistancec_dtw.warping_path_ndim(&s1[0, 0], len(s1), &s2[0, 0], len(s2), i1, i2, ndim, &settings._settings)
+        d = dtaidistancec_dtw.dtw_warping_path_ndim(&s1[0, 0], len(s1), &s2[0, 0], len(s2),
+                                                    i1, i2, &path_length, ndim, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -514,6 +531,8 @@ def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, **kwargs):
     finally:
         PyMem_Free(i1)
         PyMem_Free(i2)
+    if include_distance is True:
+        return path, d
     return path
 
 
@@ -536,13 +555,38 @@ def wps_expand_slice(seq_t[:, :] wps, seq_t[:, :] slice, Py_ssize_t l1, Py_ssize
                                                     l1, l2, rb, re, cb, ce,
                                                     &settings._settings)
 
-def wps_print(seq_t[:, :] wps, **kwargs):
+def wps_print(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     settings = DTWSettings(**kwargs)
-    dtaidistancec_dtw.dtw_print_wps(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
+    dtaidistancec_dtw.dtw_print_wps(&wps[0,0], l1, l2, &settings._settings)
 
-def wps_print_compact(seq_t[:, :] wps, **kwargs):
+def wps_print_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     settings = DTWSettings(**kwargs)
-    dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
+    dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], l1, l2, &settings._settings)
+
+def wps_parts(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
+    settings = DTWSettings(**kwargs)
+    return DTWWps(l1, l2, settings)
+
+def best_path_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
+    cdef Py_ssize_t path_length;
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((l1 + l2) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((l1 + l2) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        path_length = dtaidistancec_dtw.dtw_best_path(&wps[0, 0], i1, i2, l1, l2,
+                                                      &settings._settings)
+        path = []
+        for i in range(path_length):
+            path.append((i1[i], i2[i]))
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
 
 def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
     cdef Py_ssize_t path_length;
@@ -571,7 +615,7 @@ def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **
 def srand(unsigned int seed):
     dtaidistancec_dtw.dtw_srand(seed)
 
-def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
+def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, include_distance=False, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -581,9 +625,11 @@ def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
     cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
     if not i2:
         raise MemoryError()
+    d = None
     try:
-        path_length = dtaidistancec_dtw.warping_path_prob_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2,
-                                                               avg, 1, &settings._settings)
+        d = dtaidistancec_dtw.dtw_warping_path_prob_ndim(&s1[0], len(s1), &s2[0], len(s2),
+                                                         i1, i2, &path_length,
+                                                         avg, 1, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -591,6 +637,8 @@ def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
     finally:
         PyMem_Free(i1)
         PyMem_Free(i2)
+    if include_distance:
+        return path, d
     return path
 
 

@@ -712,7 +712,6 @@
 				OTHER_LDFLAGS = (
 					"-lcriterion",
 					"-lomp",
-					"-fopenmp",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -741,7 +740,6 @@
 				OTHER_LDFLAGS = (
 					"-lcriterion",
 					"-lomp",
-					"-fopenmp",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
