@@ -258,12 +258,18 @@ def test_twoleadecg_1():
         wps_fast_best_path = dtw.best_path(wps_fast)
         d_fast, wps_fast_c = dtw.warping_paths_fast(s1, s2, compact=True, **kwargs)
         wps_fast_c_best_path = dtw.dtw_cc.best_path_compact(wps_fast_c, len(s1), len(s2), **kwargs)
+        path4, d4 = dtw.warping_path(s1, s2, include_distance=True, **kwargs)
+        path5, d5 = dtw.warping_path_fast(s1, s2, include_distance=True, **kwargs)
 
         assert str(wps_best_path) == str(wps_fast_best_path)
         assert str(wps_best_path) == str(wps_fast_c_best_path)
+        assert str(wps_best_path) == str(path4)
+        assert str(wps_best_path) == str(path5)
         np.testing.assert_allclose(wps, wps_fast)
         assert str(path) == str(path_fast)
         assert d == pytest.approx(d_fast)
+        assert d == pytest.approx(d4)
+        assert d == pytest.approx(d5)
 
 @numpyonly
 def test_subsequence():
