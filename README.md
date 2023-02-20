@@ -23,7 +23,7 @@ Example:
 
 Citing this work:
 
-> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck & Pieter Robberechts.  
+> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
 > DTAIDistance (Version v2). Zenodo.  
 > http://doi.org/10.5281/zenodo.5901139
 

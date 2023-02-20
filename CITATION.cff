@@ -13,6 +13,12 @@ authors:
 - family-names: "Robberechts"
   given-names: "Pieter"
   orcid: "https://orcid.org/0000-0002-3734-0047"
+- family-names: "Blockeel"
+  given-names: "Hendrik"
+  orcid: "https://orcid.org/0000-0003-0378-3699"
+- family-names: "Davis"
+  given-names: "Jesse"
+  orcid: "https://orcid.org/0000-0002-3748-9263"
 title: "DTAIDistance"
 version: 2
 doi: 10.5281/zenodo.3981067
