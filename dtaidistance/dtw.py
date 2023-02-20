@@ -154,24 +154,27 @@ class DTWSettings:
 def lb_keogh(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, use_c=False):
     """Lowerbound LB_KEOGH"""
-    # TODO: This implementation slower than distance() in C
+    if use_c:
+        return dtw_cc.lb_keogh(s1, s2, window=window, max_dist=max_dist, max_step=max_step)
     if window is None:
         window = max(len(s1), len(s2))
 
     t = 0
+    imin_diff = max(0, len(s1) - len(s2)) + window - 1
+    imax_diff = max(0, len(s2) - len(s1)) + window
     for i in range(len(s1)):
-        imin = max(0, i - max(0, len(s1) - len(s2)) - window + 1)
-        imax = min(len(s2), i + max(0, len(s2) - len(s1)) + window)
+        imin = max(0, i - imin_diff)
+        imax = min(len(s2), i + imax_diff)
         ui = array_max(s2[imin:imax])
         li = array_min(s2[imin:imax])
         ci = s1[i]
         if ci > ui:
-            t += abs(ci - ui)
+            t += (ci - ui)**2
         elif ci < li:
-            t += abs(ci - li)
+            t += (ci - li)**2
         else:
             pass
-    return t
+    return math.sqrt(t)
 
 
 def ub_euclidean(s1, s2):

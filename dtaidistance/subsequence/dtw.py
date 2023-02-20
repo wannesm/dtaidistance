@@ -494,21 +494,23 @@ class LocalConcurrences:
         return p
 
 
-def subsequence_search(query, series, dists_options=None, use_lb=False, keep_all_distances=False,
-                       max_dist=None, max_value=None):
+
+def subsequence_search(query, series, dists_options=None, use_lb=True,
+                       max_dist=None, max_value=None, use_c=None):
     """See SubsequenceSearch.
 
     :param query: Time series to search for
     :param series: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
     :param dists_options: Options passed on to `dtw.distance`
+    :param use_lb: Use lowerbounds to early abandon options
     :param max_dist: Ignore DTW distances larger than this value
     :param max_value: Ignore normalized DTW distances larger than this value
+    :param use_c: Use fast C implementation if available
     :return: SubsequenceSearch object
     """
     ss = SubsequenceSearch(query, series, dists_options=dists_options, use_lb=use_lb,
-                           keep_all_distances=keep_all_distances,
-                           max_dist=max_dist, max_value=max_value)
+                           max_dist=max_dist, max_value=max_value, use_c=use_c)
     return ss
 
 
@@ -566,16 +568,16 @@ class SSMatches:
         return '[' + ', '.join(str(m) for m in self) + ']'
 
 
-
 class SubsequenceSearch:
-    def __init__(self, query, s, dists_options=None, use_lb=False, keep_all_distances=False,
-                 max_dist=None, max_value=None):
+    def __init__(self, query, s, dists_options=None, use_lb=True, keep_all_distances=False,
+                 max_dist=None, max_value=None, use_c=None):
         """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
         :param s: Iterator over time series to perform search on.
             This can be for example windows over a long time series.
         :param dists_options: Options passed on to `dtw.distance`
+        :param use_lb: Use lowerbounds to early abandon options
         :param max_dist: Ignore DTW distances larger than this value
             if max_dist is also given in dists_options, then the one in dists_options is ignored
             if both max_dist and max_value are given, the smallest is used
@@ -595,20 +597,23 @@ class SubsequenceSearch:
         if max_value is not None:
             self.max_dist = min(self.max_dist, max_value * len(self.query))
         self.dists_options['max_dist'] = self.max_dist
+        if use_c is not None:
+            self.dists_options['use_c'] = use_c
         self.use_lb = use_lb
+
         self.keep_all_distances = keep_all_distances
-        if self.use_lb and not self.keep_all_distances:
-            raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
+        # if self.use_lb and not self.keep_all_distances:
+        #     raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
 
     def reset(self):
         self.distances = None
         self.kbest_distances = None
         self.lbs = None
 
-    def compute_lbs(self):
-        self.lbs = np.zeros((len(self.s),))
-        for idx, series in enumerate(self.s):
-            self.lbs[idx] = dtw.lb_keogh(self.query, series, **self.dists_options)
+    # def compute_lbs(self):
+    #     self.lbs = np.zeros((len(self.s),))
+    #     for idx, series in enumerate(self.s):
+    #         self.lbs[idx] = dtw.lb_keogh(self.query, series, **self.dists_options)
 
     def align_fast(self, k=None):
         self.dists_options['use_c'] = True
@@ -619,14 +624,16 @@ class SubsequenceSearch:
             return
         if k is None or self.keep_all_distances:
             self.distances = np.zeros((len(self.s),))
-            if self.use_lb:
-                self.compute_lbs()
+            # if self.use_lb:
+            #     self.compute_lbs()
         import heapq
         h = [(-np.inf, -1)]
         max_dist = self.max_dist
         for idx, series in enumerate(self.s):
-            if self.use_lb and self.lbs[idx] > max_dist:
-                continue
+            if self.use_lb:
+                lb = dtw.lb_keogh(self.query, series, **self.dists_options)
+                if lb > max_dist:
+                    continue
             dist = dtw.distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
@@ -648,6 +655,7 @@ class SubsequenceSearch:
             self.kbest_distances = [(self.distances[i], i) for i in np.argsort(self.distances)]
 
         self.k = k
+        return self.kbest_distances
 
     def get_ith_value(self, i):
         """Return the i-th value from the k-best values.

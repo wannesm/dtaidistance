@@ -31,16 +31,22 @@ void benchmark13(void);
 
 
 void benchmark1() {
-    int size=10000;
-    double ra1[size], ra2[size];
-    int i;
-    for (i=0; i<size; i++) {
-       ra1[i] = rand() % 10;
-       ra2[i] = rand() % 10;
-    }
+//    int size=10000;
+//    double ra1[size], ra2[size];
+//    int i;
+//    for (i=0; i<size; i++) {
+//       ra1[i] = rand() % 10;
+//       ra2[i] = rand() % 10;
+//    }
+    
+    int size=4;
+    double ra1[] = {1., 2, 1, 3};
+    double ra2[] = {3., 4, 3, 0};
    
     DTWSettings settings = dtw_settings_default();
-    double d = dtw_distance(ra1, size, ra2, size, &settings);
+//    double d = dtw_distance(ra1, size, ra2, size, &settings);
+    settings.window=2;
+    double d = lb_keogh(ra1, size, ra2, size, &settings);
    
     printf("... done\n");
     printf("DTW = %f\n", d);
@@ -237,27 +243,27 @@ void benchmark9() {
 }
 
 void benchmark10() {
-    double s1[] = {1.8896,-0.23712,-0.23712,-0.20134,-0.16556,-0.20134,-0.16556,-0.12978,-0.058224,0.013335,0.031225,0.10278,0.013335,-0.094004,-0.058224,-0.11189,-0.14767,-0.16556,-0.14767,-0.094004,-0.14767,-0.16556,-0.16556,-0.21923,-0.21923,-0.25501,-0.20134,-0.20134,-0.18345,-0.23712,-0.20134,-0.23712,-0.12978,-0.11189,-0.46969,-1.2747,-2.3481,-2.8133,-2.7775,-2.5986,-2.3839,-2.0082,-1.8651,-1.6146,-1.3463,-1.1495,-0.88115,-0.55914,-0.34446,-0.16556,-0.0045548,0.2459,0.53214,0.65737,0.71104,0.74682,0.76471,0.76471,0.80049,0.81838,0.87204,0.88993,0.97938,0.97938,1.0152,1.0867,1.1583,1.1762,1.212,1.2656,1.2656,1.2477,1.2656,1.1762,1.0867,0.99727,0.88993,0.74682,0.63948,0.58581,0.47847,0.38902};
-    int l1 = 82;
-    double s2[] = {1,0.93163,0.094486,0.094486,0.038006,0.080366,0.080366,0.052126,0.080366,0.12273,0.22157,0.29217,0.41925,0.48985,0.39101,0.39101,0.30629,0.24981,0.19333,0.080366,-0.0043544,-0.018474,-0.089075,-0.11731,-0.14555,-0.17379,-0.21615,-0.27263,-0.20203,-0.315,-0.25851,-0.17379,-0.28675,-0.24439,0.16509,-0.11731,-1.0069,-1.9812,-2.4895,-2.786,-2.9272,-2.4612,-2.0518,-1.8964,-1.8258,-1.7411,-1.6705,-1.2893,-0.99276,-0.65388,-0.37148,-0.30087,-0.046714,0.30629,0.53221,0.65929,0.65929,0.72989,0.74401,0.87109,0.89933,0.95581,0.96993,1.0546,1.1394,1.2523,1.2523,1.2947,1.3088,1.3512,1.2806,1.2806,1.1394,1.097,0.89933,0.72989,0.67341,0.54633,0.37689,0.23569,0.10861,0.080366,-0.074955};
-    int l2 = 83;
-    idx_t i1s[] = {81, 81, 81, 80, 79, 78, 77, 76, 75, 74, 73, 72, 71, 70, 69, 69, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 53, 52, 51, 50, 49, 48, 48, 47, 46, 45, 44, 43, 42, 42, 42, 41, 40, 39, 38, 37, 36, 36, 35, 34, 33, 32, 31, 31, 30, 29, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-    idx_t i2s[] = {80, 79, 78, 77, 77, 76, 75, 74, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 64, 63, 63, 62, 61, 60, 59, 59, 58, 58, 58, 58, 57, 56, 55, 54, 53, 52, 52, 51, 50, 49, 48, 47, 47, 46, 45, 44, 43, 42, 41, 41, 40, 39, 38, 37, 36, 35, 35, 34, 33, 32, 31, 30, 29, 28, 28, 28, 27, 26, 26, 25, 25, 24, 23, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 4, 4, 4, 4, 4, 3, 2, 1};
-    idx_t ils = 102;
+    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0};
+    int l1 = 4;
+    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0};
+    int l2 = 4;
+    idx_t i1s[] = {3, 2, 2, 1, 0};
+    idx_t i2s[] = {3, 2, 1, 0, 0};
+    idx_t ils = 5;
     DTWSettings settings = dtw_settings_default();
-    settings.window = 5;
-    dtw_settings_set_psi(2, &settings);
-    
+//    settings.window = 5;
+//    dtw_settings_set_psi(2, &settings);
+    int ndim = 2;
     
     idx_t *i1 = (idx_t *)malloc((l1 + l2) * sizeof(idx_t));
     idx_t *i2 = (idx_t *)malloc((l1 + l2) * sizeof(idx_t));
     idx_t length_i;
     seq_t d;
 
-    d = dtw_distance(s1, l1, s2, l2, &settings);
+    d = dtw_distance_ndim(s1, l1, s2, l2, ndim, &settings);
     printf("d =. %.2f\n", d);
     
-    d = dtw_warping_path(s1, l1, s2, l2, i1, i2, &length_i, &settings);
+    d = dtw_warping_path_ndim(s1, l1, s2, l2, i1, i2, &length_i, ndim, &settings);
     
     printf("d = %.2f\n", d);
     printf("path[:%zu] = [", length_i);
@@ -268,7 +274,7 @@ void benchmark10() {
     
     DTWWps p = dtw_wps_parts(l1, l2, &settings);
     seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * p.length);
-    d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, true, &settings);
+    d = dtw_warping_paths_ndim(wps, s1, l1, s2, l2, true, true, true, ndim, &settings);
     dtw_print_wps_compact(wps, l1, l2, &settings);
     
 }
@@ -580,7 +586,7 @@ int main(int argc, const char * argv[]) {
     time(&start_t);
     clock_gettime(CLOCK_REALTIME, &start);
     
-//    benchmark1();
+    benchmark1();
 //    benchmark2();
 //    benchmark3();
 //    benchmark4();
@@ -589,7 +595,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark7();
     //benchmark8();
 //    benchmark9();
-    benchmark10();
+//    benchmark10();
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();

@@ -2570,35 +2570,29 @@ seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) 
         window = MAX(l1, l2);
     }
     idx_t imin, imax;
-    idx_t t = 0;
+    seq_t t = 0;
     seq_t ui;
     seq_t li;
     seq_t ci;
-    idx_t ldiff12 = l1 + 1;
-    if (ldiff12 > l2) {
-        ldiff12 -= l2;
-        if (ldiff12 > window) {
-            ldiff12 -= window;
-        } else {
-            ldiff12 = 0;
-        }
-    } else {
-        ldiff12 = 0;
+    idx_t imin_diff = window - 1;
+    if (l1 > l2) {
+        imin_diff += l1 - l2;
     }
-    idx_t ldiff21 = l2 + window;
-    if (ldiff21 > l1) {
-        ldiff21 -= l1;
-    } else {
-        ldiff21 = 0;
+    idx_t imax_diff = window;
+    if (l1 < l2) {
+        imax_diff += l2 - l1;
     }
     
     for (idx_t i=0; i<l1; i++) {
-        if (i > ldiff12) {
-            imin = i - ldiff12;
+        if (i > imin_diff) {
+            imin = i - imin_diff;
         } else {
             imin = 0;
         }
-        imax = MAX(l2, ldiff21);
+        imax = i + imax_diff;
+        if (imax > l2) {
+            imax = l2;
+        }
         ui = 0;
         for (idx_t j=imin; j<imax; j++) {
             if (s2[j] > ui) {
@@ -2613,12 +2607,12 @@ seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) 
         }
         ci = s1[i];
         if (ci > ui) {
-            t += ci - ui;
+            t += (ci - ui)*(ci - ui);
         } else if (ci < li) {
-            t += li - ci;
+            t += (li - ci)*(li - ci);
         }
     }
-    return t;
+    return sqrt(t);
 }
 
 

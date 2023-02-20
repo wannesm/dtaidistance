@@ -59,7 +59,7 @@ benchmark-clustering:
 
 .PHONY: benchmark-subseqsearch
 benchmark-subseqsearch:
-	export PYTHONPATH=.;py.test -k subseqsearch_eeg ${BENCHMARKSETTINGS}
+	export PYTHONPATH=.;py.test -k test_dtw_subseqsearch_eeg_lb ${BENCHMARKSETTINGS}
 
 
 .PHONY: clean

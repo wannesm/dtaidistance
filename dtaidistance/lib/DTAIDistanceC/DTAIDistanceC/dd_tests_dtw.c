@@ -795,3 +795,19 @@ Test(dba, test_a_ptrs) {
     
     free(s);
 }
+
+//----------------------------------------------------
+// MARK: BOUNDS
+
+Test(bounds, test_keogh_lb_1) {
+#ifdef SKIPALL
+    cr_skip_test();
+#endif
+    int size=4;
+    double ra1[] = {1., 2, 1, 3};
+    double ra2[] = {3., 4, 3, 0};
+    DTWSettings settings = dtw_settings_default();
+    settings.window=2;
+    double d = lb_keogh(ra1, size, ra2, size, &settings);
+    cr_assert_float_eq(d, 2.23606797749979, 0.001);
+}
