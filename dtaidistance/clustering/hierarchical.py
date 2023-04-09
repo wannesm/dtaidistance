@@ -340,7 +340,7 @@ class BaseTree:
                     curcolor = ts_color(int(node))
                 else:
                     curcolor = None
-                line, = ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
+                line = ax[1].plot(ts_left_margin + ts_sample_length * np.arange(len(serie)),
                                    bottom_margin + ts_height * (cnt_ts + 0.5) + self.ts_height_factor * serie,
                                    color=curcolor)
                 cnt_ts += 1
