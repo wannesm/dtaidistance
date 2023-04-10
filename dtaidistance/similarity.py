@@ -7,7 +7,7 @@ except ImportError:
 def distance_to_similarity(D, r=None, method='exponential'):
     """Transform a distance matrix to a similarity matrix.
 
-    The avaiable methods are:
+    The available methods are:
     - Exponential: e^(-D / r)
       r is max(D) if not given
     - Gaussian: e^(-D^2 / r^2)
@@ -25,7 +25,7 @@ def distance_to_similarity(D, r=None, method='exponential'):
 
     :param D: The distance matrix
     :param r: A scaling or smoothing parameter.
-    :param method: One of 'exponential', 'reciprocal', 'reverse'
+    :param method: One of 'exponential', 'gaussian', 'reciprocal', 'reverse'
     :return: Similarity matrix S
     """
     method = method.lower()
