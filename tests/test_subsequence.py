@@ -121,6 +121,17 @@ def test_dtw_subseq_ndim():
         assert m.value == pytest.approx(0.07071067811865482)
 
 
+@numpyonly
+def test_dtw_subseq_ndim2():
+    use_c = False
+    with util_numpy.test_uses_numpy() as np:
+        s = [np.array([[1., 1], [2, 2], [3, 3]]),
+             np.array([[2, 2], [3, 3], [1, 1]])]
+        query = np.array([[2.0, 2.1], [3.1, 3.0]])
+        sa = subsequence_search(query, s)
+        print(sa.best_match())
+
+
 @pytest.mark.skip
 @numpyonly
 def test_dtw_localconcurrences_eeg():
@@ -397,6 +408,7 @@ if __name__ == "__main__":
         # test_dtw_subseq_eeg()
         # test_dtw_subseq_bug1()
         # test_dtw_subseq_ndim()
+        test_dtw_subseq_ndim2()
         # test_dtw_localconcurrences_eeg()
         # test_dtw_subseqsearch_eeg2()
         # test_lc_pat1()
@@ -405,7 +417,7 @@ if __name__ == "__main__":
         # cProfile.run('test_lc_pat1()')
         # test_dtw_subseqsearch_eeg2()
         # test_dtw_subseqsearch_eeg(benchmark=None)
-        test_dtw_subseqsearch_eeg_lb(benchmark=None, use_c=True, use_lb=False)
+        # test_dtw_subseqsearch_eeg_lb(benchmark=None, use_c=True, use_lb=False)
         # test_eeg_lb(benchmark=None, use_c=False)
         # test_dtw_localconcurrences_short()
         # test_lb1(use_c=True)
