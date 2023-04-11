@@ -51,3 +51,39 @@ by using the method argument.
     distance_to_similarity(distances, method='reciprocal')
     distance_to_similarity(distances, method='reverse')
 
+When reapplying the distance_to_similarity function over multiple matrices, it is advised
+to set the r argument manually (or extract them using the return_params
+option). Otherwise they are computed based on
+the given distance matrix and will be different from call to call.
+
+Squashing
+~~~~~~~~~
+
+Similarity reverses high values to low and low to high. If you want to
+maintain the direction but squash the distances between 0 and 1, you can
+use the squash function (based on Vercruyssen et al., Semi-supervised anomaly detection with an application to
+water analytics, ICDM, 2018).
+
+.. code-block:: python
+
+    similarity.squash(dtw.distance_matrix(s))
+
+Which results in:
+
+.. code-block:: python
+
+    [[0.00 0.75 0.99 0.00 0.75 0.99]
+     [0.75 0.00 0.94 0.75 0.00 0.94]
+     [0.99 0.94 0.00 0.99 0.94 0.00]
+     [0.00 0.75 0.99 0.00 0.75 0.99]
+     [0.75 0.00 0.94 0.75 0.00 0.94]
+     [0.99 0.94 0.00 0.99 0.94 0.00]]
+
+You can observe the diagonal is all zeros again (when rounded, the values
+are slightly larger than zero because logistic squashing is used). And
+the most different series are close to 1.
+
+When reapplying the squash function over multiple matrices, it is advised
+to set the x0 and r argument manually (or extract them using the return_params
+option). Otherwise they are computed based on
+the given distance matrix and will be different from call to call.

@@ -4,7 +4,7 @@ except ImportError:
     np = None
 
 
-def distance_to_similarity(D, r=None, method='exponential'):
+def distance_to_similarity(D, r=None, method='exponential', return_params=False):
     """Transform a distance matrix to a similarity matrix.
 
     The available methods are:
@@ -47,10 +47,13 @@ def distance_to_similarity(D, r=None, method='exponential'):
         S = (r - D) / r
     else:
         raise ValueError("method={} is not supported".format(method))
-    return S
+    if return_params:
+        return S, r
+    else:
+        return S
 
 
-def squash(X, r=None, base=None, x0=0, method="logistic"):
+def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False):
     """Squash a function monotonically to a range between 0 and 1.
 
     The available methods are:
@@ -67,17 +70,34 @@ def squash(X, r=None, base=None, x0=0, method="logistic"):
     Vercruyssen, V., Meert, W., Verbruggen, G., Maes, K., Baumer, R., & Davis, J.
     (2018). Semi-supervised anomaly detection with an application to water analytics.
     In 2018 IEEE international conference on data mining (ICDM) (Vol. 2018, pp. 527-536)
+
+    :param X: Distances values
+    :param r: The slope of the squashing (see the formula above)
+    :param x0: The midpoint of the squashing (see the formula above)
+    :param method: The choice of sqaush function: logistic or gaussian
+    :param return_params: Also return the used values for r and X0
     """
+    result = None
     if method == "gaussian":
         x0 = 0  # not supported for gaussian
         if r is None:
             r = 1
         if base is None:
-            return 1 - np.exp(-np.power(X - x0, 2) / r**2)
-        return 1 - np.power(base, -np.power(X - x0, 2) / r**2)
+            result = 1 - np.exp(-np.power(X - x0, 2) / r**2)
+        else:
+            result = 1 - np.power(base, -np.power(X - x0, 2) / r**2)
     elif method == "logistic":
+        if x0 is None:
+            x0 = np.mean(X)
         if r is None:
-            r = 1
+            r = x0 / 6
         if base is None:
-            return 1 / (1 + np.exp(-(X - x0) / r))
-        return 1 / (1 + np.power(base, -(X - x0) / r))
+            result = 1 / (1 + np.exp(-(X - x0) / r))
+        else:
+            result = 1 / (1 + np.power(base, -(X - x0) / r))
+    else:
+        raise ValueError("Unknown value for method")
+    if return_params:
+        return result, r, x0
+    else:
+        return result
