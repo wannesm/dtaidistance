@@ -1,10 +1,24 @@
-Similarity
-----------
+Similarity vs Distance
+----------------------
 
-Instead of expressing a distance, thus how far two instances are apart,
-one can also express a similarity, how close two instances are.
-Whereas a distance is larger than zero and have no upperbound,
-similarity is between 0 and 1.
+Distances such as Euclidean distance or Dynamic Time Warping (DTW)
+return a value that expresses *how far two instances are apart*.
+Such a distance is equal to zero, when the instances are equal, or larger than
+zero. In certain cases you might need to translate this distance to:
+
+- A *similarity measure* that inverts the meaning of the returned
+  values and expresses *how close to instances are*. Typically also
+  bounded between 0 and 1, where now 1 means that two instances are equal.
+
+- A *bounded distance* that limits the range of the distance between
+  0 and 1, where 0 means that two instances are equal. This can be achieved
+  by squashing to distance between 0 and 1.
+
+The DTAIDistance toolbox provides a number of transformations to
+translate a distance to a similarity measure or to a squashed distance.
+
+Similarity
+~~~~~~~~~~
 
 Some methods require as input a similarity instead of a distance
 (e.g., spectral clustering). Therefore, it might be useful to translate
