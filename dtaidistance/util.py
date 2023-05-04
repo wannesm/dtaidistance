@@ -173,6 +173,15 @@ def read_substitution_matrix(file):
     return matrix
 
 
+def detect_ndim(s):
+    if np is not None and isinstance(s, np.ndarray):
+        return s.ndim
+    if type(s) is list and len(s) > 0:
+        return detect_ndim(s[0]) + 1
+    if type(s) in [int, float]:
+        return 0
+    return None
+
 class SeriesContainer:
     def __init__(self, series, support_ndim=True):
         """Container for a list of series.

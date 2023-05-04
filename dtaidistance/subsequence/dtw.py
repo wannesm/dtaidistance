@@ -494,7 +494,6 @@ class LocalConcurrences:
         return p
 
 
-
 def subsequence_search(query, series, dists_options=None, use_lb=True,
                        max_dist=None, max_value=None, use_c=None):
     """See SubsequenceSearch.
@@ -561,6 +560,11 @@ class SSMatches:
         for ki, (v, i) in enumerate(self.ss.kbest_distances):
             yield SSMatch(ki, self.ss)
 
+    def __len__(self):
+        if self.ss.kbest_distances is None:
+            return 0
+        return len(self.ss.kbest_distances)
+
     def __str__(self):
         if len(self.ss.kbest_distances) > 10:
             return '[' + ', '.join(str(m) for m in self[:5]) + ' ... ' +\
@@ -570,7 +574,7 @@ class SSMatches:
 
 class SubsequenceSearch:
     def __init__(self, query, s, dists_options=None, use_lb=True, keep_all_distances=False,
-                 max_dist=None, max_value=None, use_c=None):
+                 max_dist=None, max_value=None, use_c=None, use_ndim=None):
         """Search the best matching (subsequence) time series compared to a given time series.
 
         :param query: Time series to search for
@@ -584,6 +588,10 @@ class SubsequenceSearch:
         :param max_value: Ignore normalized DTW distances larger than this value
         """
         self.query = query
+        if use_ndim is None:
+            self.use_ndim = (util.detect_ndim(query) > 1)
+        else:
+            self.use_ndim = use_ndim
         self.s = s
         self.distances = None
         self.kbest_distances = None
@@ -620,6 +628,15 @@ class SubsequenceSearch:
         return self.align(k=k)
 
     def align(self, k=None):
+        if self.use_ndim:
+            distance = dtw_ndim.distance
+            lb_keogh = None
+            if self.use_lb:
+                self.use_lb = False
+                logger.warning('The setting use_lb is ignored for multivariate series.')
+        else:
+            distance = dtw.distance
+            lb_keogh = dtw.lb_keogh
         if self.distances is not None and self.k >= k:
             return
         if k is None or self.keep_all_distances:
@@ -631,10 +648,10 @@ class SubsequenceSearch:
         max_dist = self.max_dist
         for idx, series in enumerate(self.s):
             if self.use_lb:
-                lb = dtw.lb_keogh(self.query, series, **self.dists_options)
+                lb = lb_keogh(self.query, series, **self.dists_options)
                 if lb > max_dist:
                     continue
-            dist = dtw.distance(self.query, series, **self.dists_options)
+            dist = distance(self.query, series, **self.dists_options)
             if k is not None:
                 if len(h) < k:
                     if not np.isinf(dist) and dist <= max_dist:

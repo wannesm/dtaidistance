@@ -4,12 +4,13 @@ import random
 import time
 from pathlib import Path
 
-from dtaidistance import util_numpy
+from dtaidistance import util_numpy, util
 from dtaidistance.subsequence.dtw import subsequence_alignment, local_concurrences,\
     subsequence_search
 from dtaidistance import dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException
 from dtaidistance.dtw import lb_keogh
+from dtaidistance import dtw, dtw_ndim
 
 directory = None
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
@@ -122,14 +123,18 @@ def test_dtw_subseq_ndim():
 
 
 @numpyonly
-def test_dtw_subseq_ndim2():
-    use_c = False
+@pytest.mark.parametrize("use_c", [False, True])
+def test_dtw_subseq_ndim2(use_c):
     with util_numpy.test_uses_numpy() as np:
         s = [np.array([[1., 1], [2, 2], [3, 3]]),
-             np.array([[2, 2], [3, 3], [1, 1]])]
+             np.array([[2., 2], [3, 3], [1, 1]])]
         query = np.array([[2.0, 2.1], [3.1, 3.0]])
-        sa = subsequence_search(query, s)
-        print(sa.best_match())
+        d1 = [dtw_ndim.distance(si, query, use_c=use_c) for si in s]
+        sa = subsequence_search(query, s, use_lb=False, use_c=use_c)
+        assert str(sa.best_match()) == 'SSMatch(0)'
+        d2 = [m.distance for m in sa.kbest_matches(k=2)]
+        for d1i, d2i in zip(d1, d2):
+            assert d1i == pytest.approx(d2i)
 
 
 @pytest.mark.skip
@@ -408,7 +413,7 @@ if __name__ == "__main__":
         # test_dtw_subseq_eeg()
         # test_dtw_subseq_bug1()
         # test_dtw_subseq_ndim()
-        test_dtw_subseq_ndim2()
+        test_dtw_subseq_ndim2(use_c=True)
         # test_dtw_localconcurrences_eeg()
         # test_dtw_subseqsearch_eeg2()
         # test_lc_pat1()
