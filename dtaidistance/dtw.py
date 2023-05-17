@@ -185,7 +185,8 @@ def ub_euclidean(s1, s2):
 def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False, only_ub=False):
+             use_c=False, use_pruning=False, only_ub=False,
+             inner_distance="squared euclidean"):
     """
     Dynamic Time Warping.
 
@@ -216,10 +217,14 @@ def distance(s1, s2,
     :param use_pruning: Prune values based on Euclidean distance.
         This is the same as passing ub_euclidean() to max_dist
     :param only_ub: Only compute the upper bound (Euclidean).
+    :param inner_distance: Distance between two points in the time series.
+        One of 'squared euclidean', 'euclidean'
 
     Returns: DTW distance
     """
     if use_c:
+        if inner_distance != "squared euclidean":
+            raise AttributeError('The use_c=True argument requires inner_distance=squared euclidean')
         if dtw_cc is None:
             logger.warning("C-library not available, using the Python version")
         else:
@@ -252,6 +257,13 @@ def distance(s1, s2,
         penalty = 0
     else:
         penalty *= penalty
+    idist_fn = None
+    if inner_distance == "squared euclidean":
+        idist_fn = lambda a, b: (a - b) ** 2
+    elif inner_distance == "euclidean":
+        idist_fn = lambda a, b: abs(a - b)
+    else:
+        raise AttributeError("Unknown value for argument inner_distance")
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
@@ -286,7 +298,8 @@ def distance(s1, s2,
         if psi_1b != 0 and j_start == 0 and i < psi_1b:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
-            d = (s1[i] - s2[j])**2
+            # d = (s1[i] - s2[j])**2
+            d = idist_fn(s1[i], s2[j])
             if d > max_step:
                 continue
             assert j + 1 - skip >= 0
@@ -322,7 +335,8 @@ def distance(s1, s2,
             d = min(dtw[i1 * length + min(c, c + window - 1) - skip], psi_shortest)
     if max_dist and d > max_dist:
         d = inf
-    d = math.sqrt(d)
+    if inner_distance == "squared euclidean":
+        d = math.sqrt(d)
     return d
 
 
