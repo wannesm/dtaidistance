@@ -143,6 +143,13 @@ cdef class DTWSettings:
                 self._settings.only_ub = False
             else:
                 self._settings.only_ub = kwargs["only_ub"]
+        if "inner_dist" in kwargs:
+            if kwargs["inner_dist"] == "squared euclidean" or kwargs["inner_dist"] == 0:
+                self._settings.inner_dist = 0
+            elif kwargs["inner_dist"] == "euclidean" or kwargs["inner_dist"] == 1:
+                self._settings.inner_dist = 1
+            else:
+                raise AttributeError("Unknown inner_dist: {}".format(kwargs["inner_dist"]))
 
     @property
     def window(self):
@@ -181,6 +188,15 @@ cdef class DTWSettings:
     def only_ub(self):
         return self._settings.only_ub
 
+    @property
+    def inner_dist(self):
+        if self._settings.inner_dist == 0:
+            return "squared euclidean"
+        elif self._settings.inner_dist == 1:
+            return "euclidean"
+        else:
+            return "unknown inner distance"
+
     def __str__(self):
         return (
             "DTWSettings {\n"
@@ -192,6 +208,7 @@ cdef class DTWSettings:
             f"  psi = {self.psi}\n"
             f"  use_pruning = {self.use_pruning}\n"
             f"  only_ub = {self.only_ub}\n"
+            f"  inner_dist = {self.inner_dist}\n"
             "}")
 
 
@@ -389,6 +406,27 @@ def wps_print_compact(seq_t[:, :] wps, **kwargs):
     settings = DTWSettings(**kwargs)
     dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
 
+def best_path_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
+    cdef Py_ssize_t path_length;
+    settings = DTWSettings(**kwargs)
+    cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((l1 + l2) * sizeof(Py_ssize_t))
+    if not i1:
+        raise MemoryError()
+    cdef Py_ssize_t *i2 = <Py_ssize_t *> PyMem_Malloc((l1 + l2) * sizeof(Py_ssize_t))
+    if not i2:
+        raise MemoryError()
+    try:
+        path_length = dtaidistancec_dtw.dtw_best_path(&wps[0,0], i1, i2, l1, l2,
+                                                      &settings._settings)
+        path = []
+        for i in range(path_length):
+            path.append((i1[i], i2[i]))
+        path.reverse()
+    finally:
+        PyMem_Free(i1)
+        PyMem_Free(i2)
+    return path
+
 def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
@@ -416,9 +454,10 @@ def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **
 def srand(unsigned int seed):
     dtaidistancec_dtw.dtw_srand(seed)
 
-def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
+def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, include_distance=False, **kwargs):
     # Assumes C contiguous
     cdef Py_ssize_t path_length;
+    cdef seq_t dist;
     settings = DTWSettings(**kwargs)
     cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((len(s1) + len(s2)) * sizeof(Py_ssize_t))
     if not i1:
@@ -427,8 +466,8 @@ def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
     if not i2:
         raise MemoryError()
     try:
-        path_length = dtaidistancec_dtw.warping_path_prob_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2,
-                                                               avg, 1, &settings._settings)
+        dist = dtaidistancec_dtw.dtw_warping_path_prob_ndim(&s1[0], len(s1), &s2[0], len(s2), i1, i2, &path_length,
+                                                            avg, 1, &settings._settings)
         path = []
         for i in range(path_length):
             path.append((i1[i], i2[i]))
@@ -436,6 +475,8 @@ def warping_path_prob(seq_t[:] s1, seq_t[:] s2, seq_t avg, **kwargs):
     finally:
         PyMem_Free(i1)
         PyMem_Free(i2)
+    if include_distance:
+        return path, dist
     return path
 
 {% set suffix = '' %}

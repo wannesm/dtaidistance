@@ -107,11 +107,18 @@ void benchmark3() {
 }
 
 void benchmark4() {
-    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
-    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+//    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0}; int l1 = 9;
+//    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0}; int l2 = 9;
+    double s1[] = {0., 0., 1., 2., 1., 0., 1., 0., 0., 2., 1., 0., 0.}; int l1 = 13;
+    double s2[] = {0., 1., 2., 3., 1., 0., 0., 0., 2., 1., 0., 0., 0.}; int l2 = 13;
     DTWSettings settings = dtw_settings_default();
     settings.use_pruning = true;
-    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    settings.inner_dist = 0;
+    dtw_settings_set_psi(2, &settings);
+//    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    seq_t wps[wps_length];
+    double d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, false, &settings);
     printf("d=%f\n", d);
 }
 
@@ -593,7 +600,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
-    //benchmark8();
+//    benchmark8();
 //    benchmark9();
 //    benchmark10();
 //    benchmark11();

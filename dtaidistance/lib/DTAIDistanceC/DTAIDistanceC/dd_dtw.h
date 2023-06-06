@@ -40,6 +40,11 @@ static char printFormat[5];
 #pragma GCC diagnostic pop
 
 
+// Inner distance options
+//const int kSquaredEuclidean = 0;
+//const int kEuclidean = 1;
+
+
 /**
 Settings for DTW operations:
  
@@ -70,6 +75,7 @@ struct DTWSettings_s {
     idx_t psi_2e;  // series 2, end psi
     bool use_pruning;
     bool only_ub;
+    int inner_dist; // 0=squared euclidean, 1=euclidean
     
 };
 typedef struct DTWSettings_s DTWSettings;
@@ -122,12 +128,19 @@ typedef seq_t (*DTWFnPtr)(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings 
 
 seq_t dtw_distance(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
 seq_t dtw_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, DTWSettings *settings);
+seq_t dtw_distance_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
+seq_t dtw_distance_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, DTWSettings *settings);
 
 // WPS
 seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, DTWSettings *settings);
 seq_t dtw_warping_paths_ndim(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, int ndim, DTWSettings *settings);
+seq_t dtw_warping_paths_euclidean(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, DTWSettings *settings);
+seq_t dtw_warping_paths_ndim_euclidean(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, int ndim, DTWSettings *settings);
 seq_t dtw_warping_paths_affinity(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor, DTWSettings *settings);
 seq_t dtw_warping_paths_affinity_ndim(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu, int ndim, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor, DTWSettings *settings);
+seq_t dtw_warping_paths_affinity_ndim_euclidean(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2,
+                        bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu, int ndim,
+                        seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor, DTWSettings *settings);
 void dtw_expand_wps(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
 void dtw_expand_wps_slice(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, DTWSettings *settings);
 void dtw_expand_wps_affinity(seq_t *wps, seq_t *full, idx_t l1, idx_t l2, DTWSettings *settings);
@@ -151,7 +164,10 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings);
 // Bound
 seq_t ub_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2);
 seq_t ub_euclidean_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim);
+seq_t ub_euclidean_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2);
+seq_t ub_euclidean_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim);
 seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
+seq_t lb_keogh_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings);
 
 // Block
 DTWBlock dtw_block_empty(void);

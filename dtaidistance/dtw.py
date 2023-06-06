@@ -17,6 +17,7 @@ import array
 from . import ed
 from . import util
 from . import util_numpy
+from . import innerdistance
 from .util import SeriesContainer
 from .exceptions import NumpyException
 
@@ -108,7 +109,7 @@ def _check_library(include_omp=False, raise_exception=True):
 
 class DTWSettings:
     def __init__(self, window=None, use_pruning=False, max_dist=None, max_step=None,
-                 max_length_diff=None, penalty=None, psi=None):
+                 max_length_diff=None, penalty=None, psi=None, inner_dist=innerdistance.default):
         self.window = window
         self.use_pruning = use_pruning
         self.max_dist = max_dist
@@ -116,6 +117,7 @@ class DTWSettings:
         self.max_length_diff = max_length_diff
         self.penalty = penalty
         self.psi = psi
+        self.inner_dist = inner_dist
 
     @staticmethod
     def for_dtw(s1, s2, **kwargs):
@@ -134,13 +136,15 @@ class DTWSettings:
         max_length_diff = 0 if self.max_length_diff is None else self.max_length_diff
         penalty = 0 if self.penalty is None else self.penalty
         psi = 0 if self.psi is None else self.psi
+        inner_dist = innerdistance.to_c(self.inner_dist)
         return {
             'window': window,
             'max_dist': max_dist,
             'max_step': max_step,
             'max_length_diff': max_length_diff,
             'penalty': penalty,
-            'psi': psi
+            'psi': psi,
+            'inner_dist': inner_dist
         }
 
     def __str__(self):
@@ -152,12 +156,13 @@ class DTWSettings:
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None, use_c=False):
+             max_step=None, max_length_diff=None, use_c=False, inner_dist=innerdistance.default):
     """Lowerbound LB_KEOGH"""
     if use_c:
-        return dtw_cc.lb_keogh(s1, s2, window=window, max_dist=max_dist, max_step=max_step)
+        return dtw_cc.lb_keogh(s1, s2, window=window, max_dist=max_dist, max_step=max_step, inner_dist=inner_dist)
     if window is None:
         window = max(len(s1), len(s2))
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
 
     t = 0
     imin_diff = max(0, len(s1) - len(s2)) + window - 1
@@ -169,24 +174,24 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
         li = array_min(s2[imin:imax])
         ci = s1[i]
         if ci > ui:
-            t += (ci - ui)**2
+            t += idist_fn(ci, ui)  # (ci - ui)**2
         elif ci < li:
-            t += (ci - li)**2
+            t += idist_fn(ci, li)  # (ci - li)**2
         else:
             pass
-    return math.sqrt(t)
+    return result_fn(t)
 
 
-def ub_euclidean(s1, s2):
+def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
     """ See ed.euclidean_distance"""
-    return ed.distance(s1, s2)
+    return ed.distance(s1, s2, inner_dist=inner_dist)
 
 
 def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
              use_c=False, use_pruning=False, only_ub=False,
-             inner_distance="squared euclidean"):
+             inner_dist=innerdistance.default):
     """
     Dynamic Time Warping.
 
@@ -217,14 +222,12 @@ def distance(s1, s2,
     :param use_pruning: Prune values based on Euclidean distance.
         This is the same as passing ub_euclidean() to max_dist
     :param only_ub: Only compute the upper bound (Euclidean).
-    :param inner_distance: Distance between two points in the time series.
-        One of 'squared euclidean', 'euclidean'
+    :param inner_dist: Distance between two points in the time series.
+        One of 'squared euclidean' (default), 'euclidean'
 
     Returns: DTW distance
     """
     if use_c:
-        if inner_distance != "squared euclidean":
-            raise AttributeError('The use_c=True argument requires inner_distance=squared euclidean')
         if dtw_cc is None:
             logger.warning("C-library not available, using the Python version")
         else:
@@ -235,7 +238,8 @@ def distance(s1, s2,
                                  penalty=penalty,
                                  psi=psi,
                                  use_pruning=use_pruning,
-                                 only_ub=only_ub)
+                                 only_ub=only_ub,
+                                 inner_dist=inner_dist)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -257,13 +261,7 @@ def distance(s1, s2,
         penalty = 0
     else:
         penalty *= penalty
-    idist_fn = None
-    if inner_distance == "squared euclidean":
-        idist_fn = lambda a, b: (a - b) ** 2
-    elif inner_distance == "euclidean":
-        idist_fn = lambda a, b: abs(a - b)
-    else:
-        raise AttributeError("Unknown value for argument inner_distance")
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
@@ -335,13 +333,13 @@ def distance(s1, s2,
             d = min(dtw[i1 * length + min(c, c + window - 1) - skip], psi_shortest)
     if max_dist and d > max_dist:
         d = inf
-    if inner_distance == "squared euclidean":
-        d = math.sqrt(d)
+    d = result_fn(d)
     return d
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False,
+                  inner_dist=innerdistance.default):
     """Same as :meth:`distance` but with different defaults to chose the fast C-based version of
     the implementation (use_c = True).
 
@@ -362,7 +360,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                         penalty=penalty,
                         psi=psi,
                         use_pruning=use_pruning,
-                        only_ub=only_ub)
+                        only_ub=only_ub,
+                        inner_dist=inner_dist)
     return d
 
 
@@ -391,7 +390,7 @@ def _process_psi_arg(psi):
 
 def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True,
-                  use_c=False, use_ndim=False):
+                  use_c=False, use_ndim=False, inner_dist=innerdistance.default):
     """
     Dynamic Time Warping.
 
@@ -411,19 +410,19 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
     :param use_c: Use the C implementation instead of Python
     :param use_ndim: The input series is >1 dimensions.
         Use cost = EuclideanDistance(s1[i], s2[j])
+    :param inner_dist: Distance between two points in the time series.
+        One of 'squared euclidean' (default), 'euclidean'
     :returns: (DTW distance, DTW matrix)
     """
     if use_c:
         return warping_paths_fast(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning,
                                   max_step=max_step, max_length_diff=max_length_diff,
                                   penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False,
-                                  use_ndim=use_ndim)
+                                  use_ndim=use_ndim, inner_dist=inner_dist)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
-    if use_ndim:
-        cost = lambda x, y: np.sum((x - y) ** 2)
-    else:
-        cost = lambda x, y: (x - y) ** 2
+    # Always use ndim to use np functions
+    cost, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=True)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -493,7 +492,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
                 ec_next = j + 1
         ec = ec_next
     # Decide which d to return
-    dtw = np.sqrt(dtw)
+    dtw = result_fn(dtw)
     if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
@@ -528,7 +527,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
                        max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False,
-                       use_ndim=False):
+                       use_ndim=False, inner_dist=innerdistance.default):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:
@@ -542,7 +541,7 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     c = len(s2)
     _check_library(raise_exception=True)
     settings = DTWSettings.for_dtw(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning, max_step=max_step,
-                                   max_length_diff=max_length_diff, penalty=penalty, psi=psi)
+                                   max_length_diff=max_length_diff, penalty=penalty, psi=psi, inner_dist=inner_dist)
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings.c_kwargs())
         wps_compact = np.full((len(s1)+1, wps_width), inf)

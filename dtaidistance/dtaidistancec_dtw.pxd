@@ -15,6 +15,7 @@ cdef extern from "dd_dtw.h":
         Py_ssize_t psi_2e
         bint use_pruning
         bint only_ub
+        int inner_dist
 
     ctypedef struct DTWBlock:
         Py_ssize_t rb

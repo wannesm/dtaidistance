@@ -106,6 +106,10 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     min_ci = 1;
     max_ci = 1 + 2 * p.window - 1 + p.ldiff;
     if (rbs < p.ri3) {
+        // if (rbs > p.ri2) {
+        //     min_ci += rbs - p.ri2;
+        //     max_ci += rbs - p.ri2;
+        // }
         for (ri=MAX(rbs, p.ri2); ri<MIN(res, p.ri3); ri++) {
             if (cbs == 0) {
                 full[(ri+1)*fwidth + min_ci] = wps[(ri+1)*p.width + 0];
@@ -133,6 +137,10 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     } else {
         min_ci = 1 + p.ri3 - p.ri2;
     }
+    // if (rbs > p.ri3) {
+    //     min_ci += rbs - p.ri3;
+    //     wpsi_start += rbs - p.ri3;
+    // }
     for (ri=MAX(rbs, p.ri3); ri<MIN(res, l1); ri++) {
         if (cbs <= min_ci) {
             wpsi = wpsi_start;

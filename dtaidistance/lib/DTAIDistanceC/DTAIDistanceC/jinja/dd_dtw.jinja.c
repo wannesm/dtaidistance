@@ -26,7 +26,8 @@ DTWSettings dtw_settings_default(void) {
         .psi_2b = 0,
         .psi_2e = 0,
         .use_pruning = false,
-        .only_ub = false
+        .only_ub = false,
+        .inner_dist = 0
     };
     return s;
 }
@@ -59,15 +60,26 @@ void dtw_settings_print(DTWSettings *settings) {
                                              settings->psi_2b, settings->psi_2e);
     printf("  use_pruning = %d\n", settings->use_pruning);
     printf("  only_ub = %d\n", settings->only_ub);
+    printf("  inner_dist = %d\n", settings->inner_dist);
     printf("}\n");
 }
 
 // MARK: DTW
 
 {% set suffix = '' %}
+{% set inner_dist = 'squaredeuclidean' %}
 {%- include 'dtw_distance.jinja.c' %}
 
 {% set suffix = '_ndim' %}
+{% set inner_dist = 'squaredeuclidean' %}
+{%- include 'dtw_distance.jinja.c' %}
+
+{% set suffix = '' %}
+{% set inner_dist = 'euclidean' %}
+{%- include 'dtw_distance.jinja.c' %}
+
+{% set suffix = '_ndim' %}
+{% set inner_dist = 'euclidean' %}
 {%- include 'dtw_distance.jinja.c' %}
 
 // MARK: WPS
@@ -101,6 +113,23 @@ seq_t dtw_warping_paths(seq_t *wps,
 }
 
 {% set suffix = '_ndim' %}
+{% set inner_dist = 'squaredeuclidean' %}
+{%- include 'dtw_warpingpaths.jinja.c' %}
+
+seq_t dtw_warping_paths_euclidean(
+        seq_t *wps,
+        seq_t *s1, idx_t l1,
+        seq_t *s2, idx_t l2,
+        bool return_dtw, bool do_sqrt, bool psi_neg,
+        DTWSettings *settings) {
+    return dtw_warping_paths_ndim_euclidean(
+            wps, s1, l1, s2, l2,
+            return_dtw, do_sqrt, psi_neg, 1,
+            settings);
+}
+
+{% set suffix = '_ndim' %}
+{% set inner_dist = 'euclidean' %}
 {%- include 'dtw_warpingpaths.jinja.c' %}
 
 
@@ -122,6 +151,11 @@ seq_t dtw_warping_paths_affinity(seq_t *wps,
 
 
 {% set suffix = '_affinity_ndim' %}
+{% set inner_dist = 'squaredeuclidean' %}
+{%- include 'dtw_warpingpaths.jinja.c' %}
+
+{% set suffix = '_affinity_ndim' %}
+{% set inner_dist = 'euclidean' %}
 {%- include 'dtw_warpingpaths.jinja.c' %}
 
 
@@ -767,7 +801,15 @@ idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, s
 /*!
  Compute warping path between two sequences.
  
- @return length of path
+ @param from_s First sequence
+ @param from_l Length of first sequence
+ @param to_s Second sequence
+ @param to_l Length of second sequence
+ @param from_i Stores warping path indices for the first sequence
+ @param to_i Stores warping path indices for the second sequence
+ @param length_i Stores resulting path  length for from_i and to_i
+ @param settings Settings object
+ @return distance
  */
 seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, DTWSettings * settings) {
     return dtw_warping_path_ndim(from_s, from_l, to_s, to_l, from_i, to_i, length_i, 1, settings);
@@ -776,8 +818,13 @@ seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx
 seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    seq_t d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
-    d = sqrt(d);
+    seq_t d;
+    if (settings->inner_dist == 1) {
+        d = dtw_warping_paths_ndim_euclidean(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
+    } else {
+        d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
+        d = sqrt(d);
+    }
     *length_i = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
     free(wps);
     return d;
@@ -894,66 +941,31 @@ seq_t ub_euclidean_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim) {
     return euclidean_distance_ndim(s1, l1, s2, l2, ndim);
 }
 
+/*!
+ Euclidean upper bound for DTW.
+ 
+ @see ed.euclidean_distance.
+ */
+seq_t ub_euclidean_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2) {
+    return euclidean_distance_euclidean(s1, l1, s2, l2);
+}
+
 
 /*!
- Keogh lower bound for DTW.
- */
-seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) {
-    idx_t window = settings->window;
-    if (window == 0) {
-        window = MAX(l1, l2);
-    }
-    idx_t imin, imax;
-    idx_t t = 0;
-    seq_t ui;
-    seq_t li;
-    seq_t ci;
-    idx_t ldiff12 = l1 + 1;
-    if (ldiff12 > l2) {
-        ldiff12 -= l2;
-        if (ldiff12 > window) {
-            ldiff12 -= window;
-        } else {
-            ldiff12 = 0;
-        }
-    } else {
-        ldiff12 = 0;
-    }
-    idx_t ldiff21 = l2 + window;
-    if (ldiff21 > l1) {
-        ldiff21 -= l1;
-    } else {
-        ldiff21 = 0;
-    }
-    
-    for (idx_t i=0; i<l1; i++) {
-        if (i > ldiff12) {
-            imin = i - ldiff12;
-        } else {
-            imin = 0;
-        }
-        imax = MAX(l2, ldiff21);
-        ui = 0;
-        for (idx_t j=imin; j<imax; j++) {
-            if (s2[j] > ui) {
-                ui = s2[j];
-            }
-        }
-        li = INFINITY;
-        for (idx_t j=imin; j<imax; j++) {
-            if (s2[j] < li) {
-                li = s2[j];
-            }
-        }
-        ci = s1[i];
-        if (ci > ui) {
-            t += ci - ui;
-        } else if (ci < li) {
-            t += li - ci;
-        }
-    }
-    return t;
+ Euclidean upper bound for DTW.
+ 
+ @see ed.euclidean_distance_ndim.
+*/
+seq_t ub_euclidean_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim) {
+    return euclidean_distance_ndim_euclidean(s1, l1, s2, l2, ndim);
 }
+
+
+{% set inner_dist = 'squaredeuclidean' %}
+{%- include 'lb_keogh.jinja.c' %}
+
+{% set inner_dist = 'euclidean' %}
+{%- include 'lb_keogh.jinja.c' %}
 
 
 // MARK: Block

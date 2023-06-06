@@ -17,7 +17,7 @@ from dtaidistancec_dtw cimport seq_t
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 
 
-def distance(seq_t[:] s1, seq_t[:] s2):
+def distance(seq_t[:] s1, seq_t[:] s2, int inner_dist=0):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
@@ -27,10 +27,15 @@ def distance(seq_t[:] s1, seq_t[:] s2):
     :param s2: Sequence of numbers
     :return: Euclidean distance
     """
-    return dtaidistancec_ed.euclidean_distance(&s1[0], len(s1), &s2[0], len(s2))
+    if inner_dist == 0:
+        return dtaidistancec_ed.euclidean_distance(&s1[0], len(s1), &s2[0], len(s2))
+    elif inner_dist == 1:
+        return dtaidistancec_ed.euclidean_distance_euclidean(&s1[0], len(s1), &s2[0], len(s2))
+    else:
+        raise AttributeError("Unknown inner distance")
 
 
-def distance_ndim(seq_t[:, :] s1, seq_t[:, :] s2):
+def distance_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int inner_dist=0):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
@@ -44,5 +49,9 @@ def distance_ndim(seq_t[:, :] s1, seq_t[:, :] s2):
     if s1.shape[1] != s2.shape[1]:
         raise Exception("Dimension of sequence entries needs to be the same: {} != {}".format(s1.shape[1], s2.shape[1]))
     ndim = s1.shape[1]
-    return dtaidistancec_ed.euclidean_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim)
-
+    if inner_dist == 0:
+        return dtaidistancec_ed.euclidean_distance_ndim(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim)
+    elif inner_dist == 1:
+        return dtaidistancec_ed.euclidean_distance_ndim_euclidean(&s1[0, 0], len(s1), &s2[0, 0], len(s2), ndim)
+    else:
+        raise AttributeError("Unknown inner distance")

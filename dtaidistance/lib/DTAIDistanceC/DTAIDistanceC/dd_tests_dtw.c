@@ -77,6 +77,27 @@ ParameterizedTest(struct dtw_test_params *param, dtw, test_series1) {
     cr_assert_float_eq(d, sqrt(2), 0.001);
 }
 
+ParameterizedTestParameters(dtw, test_series1_e) {
+    static struct dtw_test_params params[] = {
+        {.fn = fn_dtw_distance, .settings={.window=0, .inner_dist=1}, .id=0},
+        {.fn = fn_dtw_warping_paths_distance, .settings={.window=0, .inner_dist=1}, .id=1},
+        {.fn = fn_dtw_distance, .settings={.window=0, .inner_dist=1, .use_pruning=true}, .id=2}
+    };
+    idx_t nb_params = sizeof (params) / sizeof (struct dtw_test_params);
+    return cr_make_param_array(struct dtw_test_params, params, nb_params);
+}
+
+ParameterizedTest(struct dtw_test_params *param, dtw, test_series1_e) {
+    #ifdef SKIPALL
+    cr_skip_test();
+    #endif
+    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
+    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+    double d = get_function(param->fn)(s1, 9, s2, 9, &param->settings);
+//    printf("d=%f\n", d);
+    cr_assert_float_eq(d, 2, 0.001);
+}
+
 
 ParameterizedTestParameters(dtw, test_series2) {
     static struct dtw_test_params params[] = {
