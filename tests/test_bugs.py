@@ -315,6 +315,40 @@ def test_bug_size():
         assert d1 == pytest.approx(d2)
 
 
+@numpyonly
+def test_bug5_path():
+    """
+    without psi: [(0, 0), (0, 1), (1, 2), (1, 3), (2, 4)]
+    with psi:            [(0, 1), (1, 2), (1, 3), (2, 4)]
+
+    Why is this not (with psi): [(2,4), (1,3), (0,2)] ?
+    Answer:
+    Numerical inaccuracies. When choosing the best path from (1,3) the
+    three options are [1.0, 1.9999999999999996, 0.9999999999999996].
+    Thus moving left (last one) is chosen instead of the expected diagonal.
+
+    In theory:
+    Path 1: (0,2), (1,3), (2,4) = sqrt(1**2 + 0 + 0) = 1
+    Path 2: (0,1), (1,2), (1,3), (2,4) = sqrt(0 + 1**2 + 0 + 0) = 1
+    And path 1 should be chosen because the diagonal move has priority.
+
+    In practice, floating point inaccuracies:
+    Path 1: (2.1-3.1) = 1.0
+    Path 2: (4.1-3.1) = 0.9999999999999996
+
+    """
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([2.1, 4.1, 5.1])
+        s2 = np.array([1.1, 2.1, 3.1, 4.1, 5.1])
+        d1, wps = dtw.warping_paths(s1, s2, psi=[0, 0, len(s2), len(s2)])
+        best_path = dtw.best_path(wps)
+        print(best_path)
+
+        # if directory and not dtwvis.test_without_visualization():
+        #     dtwvis.plot_warpingpaths(s1, s2, wps, best_path, filename=directory / 'bug5_warpingpaths.png')
+        #     dtwvis.plot_matrix(wps, shownumbers=True, filename=directory / 'bug5_matrix.png')
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     # with util_numpy.test_uses_numpy() as np:
@@ -334,5 +368,5 @@ if __name__ == "__main__":
     # test_bug1_psi()
     # test_bug2()
     # test_bug3()
-    test_bug4()
+    test_bug5_path()
     # test_bug_size()

@@ -223,7 +223,12 @@ def distance(s1, s2,
         This is the same as passing ub_euclidean() to max_dist
     :param only_ub: Only compute the upper bound (Euclidean).
     :param inner_dist: Distance between two points in the time series.
-        One of 'squared euclidean' (default), 'euclidean'
+        One of 'squared euclidean' (default), 'euclidean'.
+        When using the pure Python implementation (thus use_c=False) then the argument can also
+        be an object that has as callable arguments 'inner_dist' and 'result'. The 'inner_dist'
+        function computes the distance between two points (e.g., squared euclidean) and 'result'
+        is the function to apply to the final distance (e.g., sqrt when using squared euclidean).
+        You can also inherit from the 'innerdistance.CustomInnerDist' class.
 
     Returns: DTW distance
     """

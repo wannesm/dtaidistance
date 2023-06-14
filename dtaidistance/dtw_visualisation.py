@@ -357,18 +357,19 @@ def plot_matrix(distances, shownumbers=False, filename=None, fig=None, ax=None):
     ax.yaxis.set_ticks_position('both')
 
     im = ax.imshow(distances)
-    idxs = [str(i) for i in range(len(distances))]
+    idxs_y = [str(i) for i in range(distances.shape[0])]
+    idxs_x = [str(i) for i in range(distances.shape[1])]
     # Show all ticks
-    ax.set_xticks(np.arange(len(idxs)))
-    ax.set_xticklabels(idxs)
-    ax.set_yticks(np.arange(len(idxs)))
-    ax.set_yticklabels(idxs)
+    ax.set_xticks(np.arange(len(idxs_x)))
+    ax.set_xticklabels(idxs_x)
+    ax.set_yticks(np.arange(len(idxs_y)))
+    ax.set_yticklabels(idxs_y)
 
     ax.set_title("Distances between series", pad=30)
 
     if shownumbers:
-        for i in range(len(idxs)):
-            for j in range(len(idxs)):
+        for i in range(len(idxs_y)):
+            for j in range(len(idxs_x)):
                 if not np.isinf(distances[i, j]):
                     l = "{:.2f}".format(distances[i, j])
                     ax.text(j, i, l, ha="center", va="center", color="w")

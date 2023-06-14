@@ -85,10 +85,20 @@ class CustomInnerDist:
 
     @staticmethod
     def inner_dist(x, y):
+        """The distance between two points in the series.
+
+        For example, for default DTW this would be the Squared Euclidean
+        distance: (a-b)**2.
+        """
         raise Exception("Function not defined")
 
     @staticmethod
     def result(x):
+        """The transformation applied to the sum of all inner distances.
+
+        For example, for default DTW, which uses Squared Euclidean, this
+        would be: sqrt(d). Because d = (a_0-b_0)**2 + (a_1-b_1)**2 ...
+        """
         raise Exception("Function not defined")
 
 
