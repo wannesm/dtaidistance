@@ -27,7 +27,8 @@ DTWSettings dtw_settings_default(void) {
         .psi_2e = 0,
         .use_pruning = false,
         .only_ub = false,
-        .inner_dist = 0
+        .inner_dist = 0,
+        .window_type = 0
     };
     return s;
 }
@@ -61,6 +62,7 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  use_pruning = %d\n", settings->use_pruning);
     printf("  only_ub = %d\n", settings->only_ub);
     printf("  inner_dist = %d\n", settings->inner_dist);
+    printf("  window_type = %d\n", settings->window_type);
     printf("}\n");
 }
 
@@ -605,10 +607,15 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
 
 
 {% set suffix = '' %}
+{% set use_isclose = 0 %}
 {%- include 'dtw_bestpath.jinja.c' %}
 
+{% set suffix = '' %}
+{% set use_isclose = 1 %}
+{%- include 'dtw_bestpath.jinja.c' %}
 
 {% set suffix = '_affinity' %}
+{% set use_isclose = 0 %}
 {%- include 'dtw_bestpath.jinja.c' %}
 
 

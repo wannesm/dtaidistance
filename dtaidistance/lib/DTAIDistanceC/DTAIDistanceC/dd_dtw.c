@@ -27,7 +27,8 @@ DTWSettings dtw_settings_default(void) {
         .psi_2e = 0,
         .use_pruning = false,
         .only_ub = false,
-        .inner_dist = 0
+        .inner_dist = 0,
+        .window_type = 0
     };
     return s;
 }
@@ -61,6 +62,7 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  use_pruning = %d\n", settings->use_pruning);
     printf("  only_ub = %d\n", settings->only_ub);
     printf("  inner_dist = %d\n", settings->inner_dist);
+    printf("  window_type = %d\n", settings->window_type);
     printf("}\n");
 }
 
@@ -3206,6 +3208,7 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
 }
 
 
+
 /*!
 Compute best path between two series.
  
@@ -3219,6 +3222,7 @@ Compute best path between two series.
  @param settings for Dynamic Time Warping.
  @return length of path
  */
+
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
                     
                     DTWSettings *settings) {
@@ -3327,6 +3331,129 @@ idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
 
 
 /*!
+Compute best path between two series.
+ 
+ @param wps Array of length `(l1+1)*min(l2+1, abs(l1-l2) + 2*window-1)` with the warping paths.
+ @param i1 Array of length l1+l2 to store the indices for the first sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param i2 Array of length l1+l2 to store the indices for the second sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param l1 Length of first array.
+ @param l2 Length of second array.
+ @param rtol Relative tolerance for isclose, typical value is 1e-05
+ @param atol Absolute tolerance for isclose, typical value is 1e-08
+ @param settings for Dynamic Time Warping.
+ @return length of path
+ */
+
+idx_t dtw_best_path_isclose(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
+                    seq_t rtol, seq_t atol,
+                    DTWSettings *settings) {
+    DTWWps p = dtw_wps_parts(l1, l2, settings);
+
+    idx_t i = 0;
+    idx_t rip = l1;
+    idx_t cip = l2;
+    idx_t min_ci;
+    idx_t wpsi_start, wpsi;
+    idx_t ri_widthp = p.width * (rip - 1);
+    idx_t ri_width = p.width * rip;
+
+    // D. ri3 <= ri < l1
+    min_ci = p.ri3 + 1 - p.window - p.ldiff;
+    wpsi_start = 2;
+    if (p.ri2 == p.ri3) {
+        wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
+    }
+    wpsi = wpsi_start + (l2 - min_ci) - 1;
+    while (rip > p.ri3 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if ((wps[ri_widthp + wpsi - 1] <= wps[ri_width  + wpsi - 1] || fabs(wps[ri_widthp + wpsi - 1] - wps[ri_width  + wpsi - 1]) <= (atol + rtol * fabs(wps[ri_width  + wpsi - 1]))) &&
+            (wps[ri_widthp + wpsi - 1] <= wps[ri_widthp + wpsi] || fabs(wps[ri_widthp + wpsi - 1] - wps[ri_widthp + wpsi]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi])))) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi = wpsi - 1;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if ((wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi] || fabs(wps[ri_width + wpsi - 1] - wps[ri_widthp + wpsi]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi])))) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+
+    // C. ri2 <= ri < ri3
+    while (rip > p.ri2 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if ((wps[ri_widthp + wpsi] <= wps[ri_width  + wpsi - 1] || fabs(wps[ri_widthp + wpsi] - wps[ri_width  + wpsi - 1]) <= (atol + rtol * fabs(wps[ri_width  + wpsi - 1]))) &&
+            (wps[ri_widthp + wpsi] <= wps[ri_widthp + wpsi + 1] || fabs(wps[ri_widthp + wpsi] - wps[ri_widthp + wpsi + 1]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi + 1])))) {
+            // Go diagonal
+            cip--;
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if ((wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi + 1] || fabs(wps[ri_width + wpsi - 1] - wps[ri_widthp + wpsi + 1]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi + 1])))) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            wpsi++;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+
+    // A-B. 0 <= ri < ri2
+    while (rip > 0 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if ((wps[ri_widthp + wpsi - 1] <= wps[ri_width  + wpsi - 1] || fabs(wps[ri_widthp + wpsi - 1] - wps[ri_width  + wpsi - 1]) <= (atol + rtol * fabs(wps[ri_width  + wpsi - 1]))) &&
+            (wps[ri_widthp + wpsi - 1] <= wps[ri_widthp + wpsi] || fabs(wps[ri_widthp + wpsi - 1] - wps[ri_widthp + wpsi]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi])))) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else {
+            if ((wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi] || fabs(wps[ri_width + wpsi - 1] - wps[ri_widthp + wpsi]) <= (atol + rtol * fabs(wps[ri_widthp + wpsi])))) {
+                // Go left
+                cip--;
+                wpsi--;
+            } else {
+                // Go up
+                rip--;
+                ri_width = ri_widthp;
+                ri_widthp -= p.width;
+            }
+        }
+    }
+    return i;
+}
+
+
+/*!
 Compute best path in affinity matrix for two series.
  
  @param wps Array of length `(l1+1)*min(l2+1, abs(l1-l2) + 2*window-1)` with the warping paths.
@@ -3341,6 +3468,7 @@ Compute best path in affinity matrix for two series.
  @param settings for Dynamic Time Warping.
  @return length of path
  */
+
 idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
                     idx_t rs, idx_t cs,
                     DTWSettings *settings) {

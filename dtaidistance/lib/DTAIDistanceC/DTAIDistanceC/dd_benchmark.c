@@ -109,17 +109,31 @@ void benchmark3() {
 void benchmark4() {
 //    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0}; int l1 = 9;
 //    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0}; int l2 = 9;
-    double s1[] = {0., 0., 1., 2., 1., 0., 1., 0., 0., 2., 1., 0., 0.}; int l1 = 13;
-    double s2[] = {0., 1., 2., 3., 1., 0., 0., 0., 2., 1., 0., 0., 0.}; int l2 = 13;
+//    double s1[] = {0., 0., 1., 2., 1., 0., 1., 0., 0., 2., 1., 0., 0.}; int l1 = 13;
+//    double s2[] = {0., 1., 2., 3., 1., 0., 0., 0., 2., 1., 0., 0., 0.}; int l2 = 13;
+    double s1[] = {2.1, 4.1, 5.1}; int l1 = 3;
+    double s2[] = {1.1, 2.1, 3.1, 4.1, 5.1}; int l2 = 5;
     DTWSettings settings = dtw_settings_default();
     settings.use_pruning = true;
     settings.inner_dist = 0;
-    dtw_settings_set_psi(2, &settings);
+    settings.psi_2b = l2;
+    settings.psi_2e = l2;
+//    dtw_settings_set_psi(2, &settings);
 //    double d = dtw_distance(s1, 9, s2, 9, &settings);
     idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
     seq_t wps[wps_length];
     double d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, false, &settings);
     printf("d=%f\n", d);
+    
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    dtw_best_path_isclose(wps, i1, i2, l1, l2, 1e-05, 1e-08, &settings);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
 }
 
 void benchmark5() {
@@ -593,10 +607,10 @@ int main(int argc, const char * argv[]) {
     time(&start_t);
     clock_gettime(CLOCK_REALTIME, &start);
     
-    benchmark1();
+//    benchmark1();
 //    benchmark2();
 //    benchmark3();
-//    benchmark4();
+    benchmark4();
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();

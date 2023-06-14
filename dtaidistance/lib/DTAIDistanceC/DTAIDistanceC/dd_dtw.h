@@ -41,8 +41,12 @@ static char printFormat[5];
 
 
 // Inner distance options
-//const int kSquaredEuclidean = 0;
-//const int kEuclidean = 1;
+//const int kSquaredEuclideanInnerDist = 0;
+//const int kEuclideanInnerDist = 1;
+
+// Band type
+//const int kSakoeChibaBand = 0;
+//const int kSlantedBand = 1;
 
 
 /**
@@ -76,6 +80,7 @@ struct DTWSettings_s {
     bool use_pruning;
     bool only_ub;
     int inner_dist; // 0=squared euclidean, 1=euclidean
+    int window_type; // 0=band around two diagonals, 1=band around slanted diagonal
     
 };
 typedef struct DTWSettings_s DTWSettings;
@@ -153,6 +158,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2);
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2);
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
+idx_t dtw_best_path_isclose(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t rtol, seq_t atol, DTWSettings *settings);
 idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t s1, idx_t s2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);
 seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, DTWSettings * settings);
