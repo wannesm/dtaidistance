@@ -235,8 +235,8 @@ class KMeans(Medoids):
         logger.debug('... Done')
         return means
 
-    def fit_fast(self, series):
-        return self.fit(series, use_c=True, use_parallel=True)
+    def fit_fast(self, series, monitor_distances=None):
+        return self.fit(series, use_c=True, use_parallel=True, monitor_distances=monitor_distances)
 
     def fit(self, series, use_c=False, use_parallel=True, monitor_distances=None):
         """Perform K-means clustering.
