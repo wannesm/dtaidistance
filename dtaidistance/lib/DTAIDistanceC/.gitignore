@@ -1,4 +1,5 @@
 profile*
+DTAIDistanceC/jinja/dd_ed.c
 DTAIDistanceC/jinja/dd_dtw.c
 DTAIDistanceC/jinja/dd_dtw_openmp.c
 DTAIDistanceC/jinja/dtw_distances_matrix.c

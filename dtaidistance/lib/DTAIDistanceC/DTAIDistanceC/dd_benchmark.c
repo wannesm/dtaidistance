@@ -128,7 +128,7 @@ void benchmark4() {
     idx_t i1[l1+l2];
     idx_t i2[l1+l2];
     for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
-    dtw_best_path_isclose(wps, i1, i2, l1, l2, 1e-05, 1e-08, &settings);
+    dtw_best_path_isclose(wps, i1, i2, l1, l2, /*rtol=*/1e-05, /*atol=*/1e-08, &settings);
     printf("[");
     for (idx_t i=0; i<(l1+l2); i++) {
         printf("(%zu,%zu)", i1[i], i2[i]);

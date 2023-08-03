@@ -214,7 +214,10 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx
         cbp = MAX(cb, cbs);
         cep = MIN(ce, ces);
         /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
+        idx = wpsi;
+        if (cb > cbs) {
+            idx += cb - cbs;
+        }
         for (j=cbp; j<cep; j++) {
             if (wps[idx] > 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];
@@ -233,7 +236,10 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx
             break;
         }
         /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
+        idx = wpsi;
+        if (cb > cbs) {
+            idx += cb - cbs;
+        }
         for (j=cbp; j<cep; j++) {
             if (wps[idx] > 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];

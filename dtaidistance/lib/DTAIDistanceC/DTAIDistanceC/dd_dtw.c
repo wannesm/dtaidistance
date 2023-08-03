@@ -1843,7 +1843,7 @@ void dtw_expand_wps_slice(seq_t *wps, seq_t *full,
         max_ci = p.window + p.ldiffc; // ri < overlap_right_i
         max_ci += rbs;
         for (ri=rbs; ri<MIN(res, p.ri1); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -1864,7 +1864,7 @@ void dtw_expand_wps_slice(seq_t *wps, seq_t *full,
     max_ci = MIN(ces, l2); // ri >= overlap_right_i
     if (rbs < p.ri2) {
         for (ri=MAX(rbs, p.ri1); ri<MIN(res, p.ri2); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -2676,7 +2676,7 @@ void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full,
         max_ci = p.window + p.ldiffc; // ri < overlap_right_i
         max_ci += rbs;
         for (ri=rbs; ri<MIN(res, p.ri1); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -2697,7 +2697,7 @@ void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full,
     max_ci = MIN(ces, l2); // ri >= overlap_right_i
     if (rbs < p.ri2) {
         for (ri=MAX(rbs, p.ri1); ri<MIN(res, p.ri2); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -2816,7 +2816,10 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx
         cbp = MAX(cb, cbs);
         cep = MIN(ce, ces);
         /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
+        idx = wpsi;
+        if (cb > cbs) {
+            idx += cb - cbs;
+        }
         for (j=cbp; j<cep; j++) {
             if (wps[idx] > 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];
@@ -2835,7 +2838,10 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx
             break;
         }
         /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
+        idx = wpsi;
+        if (cb > cbs) {
+            idx += cb - cbs;
+        }
         for (j=cbp; j<cep; j++) {
             if (wps[idx] > 0 && wps[idx] != INFINITY) {
                 wps[idx] = -wps[idx];
