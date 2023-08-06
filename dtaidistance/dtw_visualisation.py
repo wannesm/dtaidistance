@@ -189,8 +189,23 @@ def plot_warping_single_ax(s1, s2, path, filename=None, fig=None, ax=None):
     return fig, ax
 
 
+def path_slice(path, rb=None, re=None, cb=None, ce=None):
+    path2 = []
+    for t in path:
+        if rb is not None and t[0] < rb:
+            continue
+        if cb is not None and t[1] < cb:
+            continue
+        if re is not None and t[0] > (re - 1):
+            continue
+        if ce is not None and t[1] > (ce - 1):
+            continue
+        path2.append((t[0] - rb, t[1] - cb))
+    return path2
+
+
 def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
-                      figure=None, matshow_kwargs=None):
+                      figure=None, matshow_kwargs=None, includes_zero=True):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -238,7 +253,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     min_s1_x = np.min(s1)
     max_s1_y = len(s1)
 
-    if path is None:
+    if path is None and includes_zero is True:
         p = dtw.best_path(paths)
     elif path == -1:
         p = None
@@ -282,7 +297,10 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
     kwargs = {} if matshow_kwargs is None else matshow_kwargs
-    img = ax3.matshow(paths[1:, 1:], **kwargs)
+    if includes_zero:
+        img = ax3.matshow(paths[1:, 1:], **kwargs)
+    else:
+        img = ax3.matshow(paths, **kwargs)
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
     if p is not None:

@@ -566,7 +566,7 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
 
 def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                            penalty=None, psi=None, psi_neg=True,
-                           gamma=1, tau=0, delta=0, delta_factor=1, exp_avg=None,
+                           gamma=1, tau=0, delta=0, delta_factor=1,
                            use_c=False):
     """
     Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
@@ -585,8 +585,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     """
     if use_c:
         return warping_paths_affinity_fast(s1, s2, window=window, only_triu=only_triu,
-                                           penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor,
-                                           exp_avg=exp_avg)
+                                           penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
@@ -618,20 +617,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
             dtw_prev = max(dtw[i0, j],
                            dtw[i0, j + 1] - penalty,
                            dtw[i1, j] - penalty)
-            if exp_avg is None:
-                if d < tau:
-                    # if dtw_prev > 10 * -delta:
-                    #     dtw_prev = 10 * -delta
-                    dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
-                else:
-                    dtw[i1, j + 1] = max(0, d + dtw_prev)
+            if d < tau:
+                dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
             else:
-                if d < tau:
-                    d = delta
-                if j == 0 or i0 == 0:
-                    dtw[i1, j + 1] = max(0, d)
-                else:
-                    dtw[i1, j + 1] = max(0, exp_avg * d + (1-exp_avg) * dtw_prev)
+                dtw[i1, j + 1] = max(0, d + dtw_prev)
 
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
@@ -667,7 +656,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
 def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
                                 penalty=None, psi=None, psi_neg=True,
                                 gamma=1, tau=0, delta=0, delta_factor=1,
-                                exp_avg=None, compact=False, use_ndim=False):
+                                compact=False, use_ndim=False):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:

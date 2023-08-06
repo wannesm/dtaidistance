@@ -78,6 +78,18 @@ cdef class DTWWps:
     def __init__(self, l1, l2, DTWSettings settings):
         self._wps = dtaidistancec_dtw.dtw_wps_parts(l1, l2, &settings._settings)
 
+    @property
+    def ri1(self):
+        return self._wps.ri1
+
+    @property
+    def ri2(self):
+        return self._wps.ri2
+
+    @property
+    def ri3(self):
+        return self._wps.ri3
+
 
 cdef class DTWSettings:
     def __cinit__(self):
@@ -539,6 +551,11 @@ def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, include_distan
         return path, dist
     return path
 
+def wps_negativize_value(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c):
+    dtaidistancec_dtw.dtw_wps_negativize_value(&p._wps, &wps[0,0], l1, l2, r, c)
+
+def wps_positivize_value(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c):
+    dtaidistancec_dtw.dtw_wps_positivize_value(&p._wps, &wps[0,0], l1, l2, r, c)
 
 def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
     dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
@@ -546,10 +563,9 @@ def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_s
 def wps_positivize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
     dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
 
-def wps_max(DTWWps p, seq_t[:, :] wps):
+def wps_max(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2):
     cdef Py_ssize_t r, c
-    result = dtaidistancec_dtw.dtw_wps_max(&p._wps, &wps[0,0], &r, &c,
-                                           wps.shape[0] - 1, wps.shape[1] - 1)
+    result = dtaidistancec_dtw.dtw_wps_max(&p._wps, &wps[0, 0], &r, &c, l1, l2)
     return r, c
 
 def wps_expand_slice(seq_t[:, :] wps, seq_t[:, :] slice, Py_ssize_t l1, Py_ssize_t l2,
@@ -559,13 +575,13 @@ def wps_expand_slice(seq_t[:, :] wps, seq_t[:, :] slice, Py_ssize_t l1, Py_ssize
                                                     l1, l2, rb, re, cb, ce,
                                                     &settings._settings)
 
-def wps_print(seq_t[:, :] wps, **kwargs):
+def wps_print(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     settings = DTWSettings(**kwargs)
-    dtaidistancec_dtw.dtw_print_wps(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
+    dtaidistancec_dtw.dtw_print_wps(&wps[0,0], l1, l2, &settings._settings)
 
-def wps_print_compact(seq_t[:, :] wps, **kwargs):
+def wps_print_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     settings = DTWSettings(**kwargs)
-    dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], wps.shape[0]-1, wps.shape[1]-1, &settings._settings)
+    dtaidistancec_dtw.dtw_print_wps_compact(&wps[0,0], l1, l2, &settings._settings)
 
 def best_path_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     cdef Py_ssize_t path_length;
@@ -588,11 +604,9 @@ def best_path_compact(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, **kwargs):
         PyMem_Free(i2)
     return path
 
-def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
+def best_path_compact_affinity(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rs, Py_ssize_t cs, **kwargs):
     cdef Py_ssize_t path_length;
     settings = DTWSettings(**kwargs)
-    l1 = wps.shape[0] - 1
-    l2 = wps.shape[1] - 1
     cdef Py_ssize_t *i1 = <Py_ssize_t *> PyMem_Malloc((l1 + l2) * sizeof(Py_ssize_t))
     if not i1:
         raise MemoryError()
