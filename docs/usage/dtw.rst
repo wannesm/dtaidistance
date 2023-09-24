@@ -11,7 +11,7 @@ Dynamic Time Warping (DTW)
     path = dtw.warping_path(s1, s2)
     dtwvis.plot_warping(s1, s2, path, filename="warp.png")
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=5
+.. figure:: /_static/dtw_example.png
    :alt: DTW Example
 
 

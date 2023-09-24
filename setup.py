@@ -459,7 +459,8 @@ else:
 install_requires = ['numpy']  # 'cython>=0.29.6',
 setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
 tests_require = ['pytest', 'pytest-benchmark']
-dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy']
+dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy',
+                               'sphinx', 'sphinx_rtd_theme']
 
 # Check version number
 init_fn = here / 'dtaidistance' / '__init__.py'

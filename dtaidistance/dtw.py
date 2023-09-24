@@ -197,13 +197,13 @@ def distance(s1, s2,
 
     This function keeps a compact matrix, not the full warping paths matrix.
 
-    Uses dynamic programming to compute:
+    Uses dynamic programming to compute::
 
-    wps[i, j] = (s1[i]-s2[j])**2 + min(
-                    wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
-                    wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
-                    wps[i-1, j-1])            // diagonal   / match
-    dtw = sqrt(wps[-1, -1])
+        wps[i, j] = (s1[i]-s2[j])**2 + min(
+                        wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
+                        wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
+                        wps[i-1, j-1])            // diagonal   / match
+        dtw = sqrt(wps[-1, -1])
 
     :param s1: First sequence
     :param s2: Second sequence
@@ -216,7 +216,7 @@ def distance(s1, s2,
     :param psi: Psi relaxation parameter (ignore start and end of matching).
         If psi is a single integer, it is used for both start and end relaxations of both series.
         If psi is a 4-tuple, it is used as the psi-relaxation for
-         (begin series1, end series1, begin series2, end series2)
+        (begin series1, end series1, begin series2, end series2).
         Useful for cyclical series.
     :param use_c: Use fast pure c compiled functions
     :param use_pruning: Prune values based on Euclidean distance.
