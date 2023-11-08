@@ -67,6 +67,15 @@ def test_distance1_b():
 
 
 @numpyonly
+def test_distance1_b_e():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = [0, 0, 1, 2, 1, 0, 1, 0, 0]
+        s2 = [0, 1, 2, 0, 0, 0, 0, 0, 0]
+        d2, wps = dtw.warping_paths(s1, s2, inner_dist='euclidean')
+        assert d2 == pytest.approx(2)
+
+
+@numpyonly
 def test_distance1_d():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
@@ -74,6 +83,14 @@ def test_distance1_d():
         d = dtw.distance_fast(s1, s2)
         assert(d) == pytest.approx(math.sqrt(2))
 
+
+@numpyonly
+def test_distance1_d_e():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 1, 2, 1, 0, 1, 0, 0])
+        s2 = np.array([0., 1, 2, 0, 0, 0, 0, 0, 0])
+        d = dtw.distance_fast(s1, s2, inner_dist='euclidean')
+        assert(d) == pytest.approx(2)
 
 @numpyonly
 def test_distance1_c():
@@ -181,11 +198,12 @@ if __name__ == "__main__":
         np.set_printoptions(precision=3, linewidth=120)
     # test_distance1_a()
     # test_distance1_b()
-    try:
-        test_distance_matrix2_e()
-    except Exception as exc:
-        print(exc)
-        print(dtw.try_import_c())
+    test_distance1_d_e()
+    # try:
+    #     test_distance_matrix2_e()
+    # except Exception as exc:
+    #     print(exc)
+    #     print(dtw.try_import_c())
     # run_distance_matrix_block(parallel=False, use_c=True, compact=True)
     # test_expected_length1()
     # test_condensed_index1()

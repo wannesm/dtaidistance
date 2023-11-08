@@ -16,17 +16,35 @@ Compute best path between two series.
  @param rs Start position row.
  @param cs Start position column.
  {%- endif %}
+ {%- if use_isclose == 1 %}
+ @param rtol Relative tolerance for isclose, typical value is 1e-05
+ @param atol Absolute tolerance for isclose, typical value is 1e-08
+ {%- endif %}
  @param settings for Dynamic Time Warping.
  @return length of path
  */
-{%- if "affinity" in suffix %}
-{%- set cmp=">=" %}
+{% macro cmpfn(a, b) -%}
+{%- if use_isclose == 1 -%}
+({{a}} <= {{b}} || fabs({{a}} - {{b}}) <= (atol + rtol * fabs({{b}})))
 {%- else %}
-{%- set cmp="<=" %}
+{%- if "affinity" in suffix -%}
+{{a}} >= {{b}}
+{%- else -%}
+{{a}} <= {{b}}
 {%- endif %}
-idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
+{%- endif %}
+{%- endmacro -%}
+{%- if use_isclose == 1 %}
+{%- set suffix2 = "_isclose" %}
+{%- else %}
+{%- set suffix2 = "" %}
+{%- endif %}
+idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
                     {% if "affinity" in suffix -%}
                     idx_t rs, idx_t cs,
+                    {%- endif -%}
+                    {%- if use_isclose == 1 -%}
+                    seq_t rtol, seq_t atol,
                     {%- endif %}
                     DTWSettings *settings) {
     DTWWps p = dtw_wps_parts(l1, l2, settings);
@@ -53,6 +71,8 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
     {%- endif %}
@@ -73,15 +93,15 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
             i++;
         }
         {%- endif %}
-        if (wps[ri_widthp + wpsi - 1] {{cmp}} wps[ri_width  + wpsi - 1] &&
-            wps[ri_widthp + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi]) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1]")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi]")}}) {
             // Go diagonal
             cip--;
             rip--;
-            wpsi--;
+            wpsi = wpsi - 1;
             ri_width = ri_widthp;
             ri_widthp -= p.width;
-        } else if (wps[ri_width + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi]) {
+        } else if ({{cmpfn("wps[ri_width + wpsi - 1]","wps[ri_widthp + wpsi]")}}) {
             // Go left
             cip--;
             wpsi--;
@@ -111,14 +131,14 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
             i++;
         }
         {%- endif %}
-        if (wps[ri_widthp + wpsi] {{cmp}} wps[ri_width  + wpsi - 1] &&
-            wps[ri_widthp + wpsi] {{cmp}} wps[ri_widthp + wpsi + 1]) {
+        if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1]")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1]")}}) {
             // Go diagonal
             cip--;
             rip--;
             ri_width = ri_widthp;
             ri_widthp -= p.width;
-        } else if (wps[ri_width + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi + 1]) {
+        } else if ({{cmpfn("wps[ri_width + wpsi - 1]","wps[ri_widthp + wpsi + 1]")}}) {
             // Go left
             cip--;
             wpsi--;
@@ -149,8 +169,8 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
             i++;
         }
         {%- endif %}
-        if (wps[ri_widthp + wpsi - 1] {{cmp}} wps[ri_width  + wpsi - 1] &&
-            wps[ri_widthp + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi]) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1]")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi]")}}) {
             // Go diagonal
             cip--;
             rip--;
@@ -158,7 +178,7 @@ idx_t dtw_best_path{{suffix}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t 
             ri_width = ri_widthp;
             ri_widthp -= p.width;
         } else {
-            if (wps[ri_width + wpsi - 1] {{cmp}} wps[ri_widthp + wpsi]) {
+            if ({{cmpfn("wps[ri_width + wpsi - 1]","wps[ri_widthp + wpsi]")}}) {
                 // Go left
                 cip--;
                 wpsi--;

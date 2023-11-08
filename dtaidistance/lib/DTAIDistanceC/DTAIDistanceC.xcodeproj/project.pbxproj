@@ -84,6 +84,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C01B248429A3B0C00050C980 /* DTAIDistanceCBenchmark.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DTAIDistanceCBenchmark.entitlements; sourceTree = "<group>"; };
 		C043A85224BC69AC00BFCF3E /* dd_ed.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dd_ed.h; sourceTree = "<group>"; };
 		C043A85324BC69AC00BFCF3E /* dd_ed.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dd_ed.c; sourceTree = "<group>"; };
 		C043A85924BC6A2D00BFCF3E /* dd_globals.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dd_globals.h; sourceTree = "<group>"; };
@@ -146,6 +147,7 @@
 		C06FD1CA24A652B400892537 = {
 			isa = PBXGroup;
 			children = (
+				C01B248429A3B0C00050C980 /* DTAIDistanceCBenchmark.entitlements */,
 				C06FD1D524A652B400892537 /* DTAIDistanceC */,
 				C06FD1D424A652B400892537 /* Products */,
 			);
@@ -588,7 +590,9 @@
 		C06FD1FB24A94A2600892537 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DTAIDistanceCBenchmark.entitlements;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 2462T87J45;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -612,7 +616,9 @@
 		C06FD1FC24A94A2600892537 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = DTAIDistanceCBenchmark.entitlements;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 2462T87J45;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -712,7 +718,6 @@
 				OTHER_LDFLAGS = (
 					"-lcriterion",
 					"-lomp",
-					"-fopenmp",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -741,7 +746,6 @@
 				OTHER_LDFLAGS = (
 					"-lcriterion",
 					"-lomp",
-					"-fopenmp",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

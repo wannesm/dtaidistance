@@ -6,15 +6,15 @@
 {%- endif %}
 def dba{{suffix}}(cur,{{s}}
         {%- if "ndim" in suffix -%}
-        {{seq_tpy}}[:, :] c, unsigned char[:] mask, int nb_prob_samples, int ndim,{{s}}
+        seq_t[:, :] c, unsigned char[:] mask, int nb_prob_samples, int ndim,{{s}}
         {%- else -%}
-        {{seq_tpy}}[:] c, unsigned char[:] mask, int nb_prob_samples,{{s}}
+        seq_t[:] c, unsigned char[:] mask, int nb_prob_samples,{{s}}
         {%- endif -%}
         **kwargs):
     {%- if "ndim" in suffix %}
-    cdef {{seq_tpy}} *c_ptr = &c[0, 0];
+    cdef seq_t *c_ptr = &c[0, 0];
     {%- else %}
-    cdef {{seq_tpy}} *c_ptr = &c[0];
+    cdef seq_t *c_ptr = &c[0];
     {%- endif %}
     cdef unsigned char *mask_ptr = &mask[0];
     settings = DTWSettings(**kwargs)

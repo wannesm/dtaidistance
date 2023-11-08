@@ -5,6 +5,12 @@ Compute the DTW between two n-dimensional series.
 Compute the DTW between two series.
 {%- endif %}
 
+{%- if "euclidean" == inner_dist %}
+Use the Euclidean inner distance.
+{%- else %}{# inner_dist == "squaredeuclidean"  #}
+Use the Squared Euclidean inner distance.
+{%- endif %}
+
 @param s1 First sequence
 @param l1 Length of first sequence. {% if "ndim" in suffix %}In tuples, real length should be length*ndim.{% endif %}
 @param s2 Second sequence
@@ -21,11 +27,21 @@ Compute the DTW between two series.
 {%- set i="i_idx" %}
 {%- set j="j_idx" %}
 {%- endif %}
-seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
+{%- if "euclidean" == inner_dist %}
+{%- set suffix2="_euclidean" %}
+{%- else %}
+{%- set suffix2="" %}
+{%- endif %}
+seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
                       seq_t *s2, idx_t l2, {% if "ndim" in suffix %}int ndim,{% endif %}
                       DTWSettings *settings) {
-    assert(settings->psi_1b < l1 && settings->psi_1e < l1 &&
-           settings->psi_2b < l2 && settings->psi_2e < l2);
+    {%- if inner_dist != "euclidean" %}
+    if (settings->inner_dist == 1) {
+        return dtw_distance{{ suffix }}_euclidean(s1, l1, s2, l2, {% if "ndim" in suffix %}ndim, {% endif %} settings);
+    }
+    {%- endif %}
+    assert(settings->psi_1b <= l1 && settings->psi_1e <= l1 &&
+           settings->psi_2b <= l2 && settings->psi_2e <= l2);
     idx_t ldiff;
     idx_t dl;
     // DTWPruned
@@ -45,9 +61,13 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
     #endif
     if (settings->use_pruning || settings->only_ub) {
         {%- if "ndim" in suffix %}
-        max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
+        max_dist = ub_euclidean_ndim{{ suffix2 }}(s1, l1, s2, l2, ndim);
         {%- else %}
-        max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+        max_dist = ub_euclidean{{ suffix2 }}(s1, l1, s2, l2);
+        {%- endif %}
+        {%- if "euclidean" == inner_dist %}
+        {%- else %}
+        max_dist = pow(max_dist, 2);
         {%- endif %}
         if (settings->only_ub) {
             return max_dist;
@@ -174,10 +194,17 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
             {%- if "ndim" in suffix %}
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[i_idx + d_i], s2[j_idx + d_i]);
+                d += SEDIST(s1[i_idx + d_i], s2[j_idx + d_i]);
             }
-            {%- else %}
-            d = EDIST(s1[i], s2[j]);
+            {%- if "euclidean" == inner_dist %}
+            d = sqrt(d);
+            {%- endif %}
+            {%- else %}{# ndim not in suffix #}
+            {%- if "euclidean" == inner_dist %}
+            d = fabs(s1[i] - s2[j]);
+            {%- else %}{# inner_dist == "squared euclidean" #}
+            d = SEDIST(s1[i], s2[j]);
+            {%- endif %}
             {%- endif %}
             if (d > max_step) {
                 // Let the value be INFINITY as initialized
@@ -227,7 +254,7 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
         ec = ec_next;
         // Deal with Psi-relaxation in last column
         if (settings->psi_1e != 0 && minj == l2 && l1 - 1 - i <= settings->psi_1e) {
-            assert((i1 + 1)*length - 1 == curidx);
+            assert(!(settings->window == 0 || settings->window == l2) || (i1 + 1)*length - 1 == curidx);
             if (dtw[curidx] < psi_shortest) {
                 // curidx is the last value
                 psi_shortest = dtw[curidx];
@@ -240,7 +267,11 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
     if (window - 1 < 0) {
         l2 += window - 1;
     }
+    {%- if "euclidean" == inner_dist %}
+    seq_t result = dtw[length * i1 + l2 - skip];
+    {%- else %}
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
+    {%- endif %}
     // Deal with psi-relaxation in the last row
     if (settings->psi_2e != 0) {
         for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
@@ -248,7 +279,11 @@ seq_t dtw_distance{{ suffix }}(seq_t *s1, idx_t l1,
                 psi_shortest = dtw[i1*length + i];
             }
         }
+        {%- if "euclidean" == inner_dist %}
+        result = psi_shortest;
+        {%- else %}
         result = sqrt(psi_shortest);
+        {%- endif %}
     }
     free(dtw);
     // signal(SIGINT, SIG_DFL);  // not compatible with OMP

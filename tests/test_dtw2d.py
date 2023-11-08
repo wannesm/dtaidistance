@@ -71,6 +71,22 @@ def test_distance2():
 
 
 @numpyonly
+def test_distance3():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([[0., 0.], [1., 2.], [1., 0.], [1., 0.]])
+        s2 = np.array([[0., 1.], [2., 0.], [0., 0.], [0., 0.]])
+
+        d1 = dtw_ndim.distance(s1, s2)
+        print(d1)
+
+        d2,  paths2 = dtw_ndim.warping_paths(s1, s2)
+        print(d2)
+        print(paths2)
+
+        path3 = dtw_ndim.warping_path(s1, s2)
+        print(path3)
+
+@numpyonly
 def test_visualisation_a():
     with util_numpy.test_uses_numpy() as np:
         s1 = np.array([[0, 0], [0, 1], [2, 1], [0, 1], [0, 0]], dtype=np.double)
@@ -191,7 +207,8 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(sys.stdout))
     # test_distance1_a()
     # test_distance1_b()
-    test_distance2()
+    # test_distance2()
+    test_distance3()
     # test_visualisation_a()
     # test_visualisation_b()
     # test_distances2_fast()

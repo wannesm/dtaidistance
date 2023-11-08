@@ -20,7 +20,12 @@
 {%- endif -%}
 
 
-seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
+{%- if "euclidean" == inner_dist %}
+{%- set suffix2="_euclidean" %}
+{%- else %}
+{%- set suffix2="" %}
+{%- endif %}
+seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
                         seq_t *s1, idx_t l1,
                         seq_t *s2, idx_t l2,
                         bool return_dtw, bool do_sqrt, bool psi_neg,
@@ -34,6 +39,13 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
                         seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor,
                         {% endif -%}
                         DTWSettings *settings) {
+
+    {%- if inner_dist != "euclidean" %}
+    if (settings->inner_dist == 1) {
+        return dtw_warping_paths{{ suffix }}_euclidean(wps, s1, l1, s2, l2,
+                return_dtw, do_sqrt, psi_neg, {% if "affinity" in suffix %}only_triu,{% endif %}{% if "ndim" in suffix %}ndim, {% endif %}{% if "affinity" in suffix -%}gamma, tau, delta, delta_factor, {% endif %}settings);
+    }
+    {%- endif %}
     {%- if "affinity" in suffix %}
     seq_t dtw_prev;
     {%- else %}
@@ -49,10 +61,14 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
     {%- if "affinity" not in suffix %}
     if (settings->use_pruning || settings->only_ub) {
         if (ndim == 1) {
-            p.max_dist = pow(ub_euclidean(s1, l1, s2, l2), 2);
+            p.max_dist = ub_euclidean(s1, l1, s2, l2);
         } else {
-            p.max_dist = pow(ub_euclidean_ndim(s1, l1, s2, l2, ndim), 2);
+            p.max_dist = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
         }
+        {%- if "euclidean" == inner_dist %}
+        {%- else %}
+        p.max_dist = pow(p.max_dist, 2);
+        {%- endif %}
         if (settings->only_ub) {
             if (do_sqrt) {
                 return sqrt(p.max_dist);
@@ -130,8 +146,11 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += SEDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
+            {%- if "euclidean" == inner_dist %}
+            d = sqrt(d);
+            {%- endif %}
             {%- if "affinity" in suffix %}
             {{ affstep("-1", "-1", "  ") }}
             {%- else %}
@@ -196,8 +215,11 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += SEDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
+            {%- if "euclidean" == inner_dist %}
+            d = sqrt(d);
+            {%- endif %}
             {%- if "affinity" in suffix %}
             {{ affstep("-1", "-1", "  ") }}
             {%- else %}
@@ -263,8 +285,11 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += SEDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
+            {%- if "euclidean" == inner_dist %}
+            d = sqrt(d);
+            {%- endif %}
             {%- if "affinity" in suffix %}
             {{ affstep("-1", "  ", "+1") }}
             {%- else %}
@@ -301,11 +326,13 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
     // D. Rows: MAX(overlap_left_ri, overlap_right_ri) < ri <= l1
     // [x 0 0 0 0]
     // [x x 0 0 0]
-    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff);
+    min_ci = MAX(0, p.ri3 + 1 - p.window - p.ldiff );
     wpsi_start = 2;
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
     for (ri=p.ri3; ri<l1; ri++) {
         ri_idx = ri * ndim;
@@ -338,8 +365,11 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             ci_idx = ci * ndim;
             d = 0;
             for (int d_i=0; d_i<ndim; d_i++) {
-                d += EDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+                d += SEDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
             }
+            {%- if "euclidean" == inner_dist %}
+            d = sqrt(d);
+            {%- endif %}
             {%- if "affinity" in suffix %}
             {{ affstep("-1", "-1", "  ") }}
             {%- else %}
@@ -433,6 +463,9 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             if (psi_neg) {
                 for (ci=p.width - (l2 - mic); ci<p.width; ci++) {
                     wpsi = l1*p.width + ci;
+                    if (p.window != 0 && p.window != l2) {
+                        wpsi--;
+                    }
                     wps[wpsi] = -1;
                 }
             }
@@ -447,6 +480,9 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
         rvalue = {{infinity}};
     }
 
+
+    {%- if "euclidean" == inner_dist %}
+    {%- else %}
     if (do_sqrt) {
         for (idx_t i=0; i<p.length ; i++) {
             if (wps[i] > 0) {
@@ -459,6 +495,7 @@ seq_t dtw_warping_paths{{ suffix }}(seq_t *wps,
             }
         }
     }
+    {%- endif %}
 
     return rvalue;
 }

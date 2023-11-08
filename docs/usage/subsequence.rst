@@ -52,11 +52,11 @@ If you want to find all matches (or the k best):
    :alt: Subsequence alignment k-best matches
 
 
-DTW subsequence search
-~~~~~~~~~~~~~~~~~~~~~~
+DTW subsequence search (KNN)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Similar to using alignment, we can also iterate over a sequence of series or windows
-to search for the best match:
+to search for the best match, or best k matches (k-Nearest Neighbors):
 
 ::
 

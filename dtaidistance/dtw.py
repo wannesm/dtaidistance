@@ -17,6 +17,7 @@ import array
 from . import ed
 from . import util
 from . import util_numpy
+from . import innerdistance
 from .util import SeriesContainer
 from .exceptions import NumpyException
 
@@ -108,7 +109,7 @@ def _check_library(include_omp=False, raise_exception=True):
 
 class DTWSettings:
     def __init__(self, window=None, use_pruning=False, max_dist=None, max_step=None,
-                 max_length_diff=None, penalty=None, psi=None):
+                 max_length_diff=None, penalty=None, psi=None, inner_dist=innerdistance.default):
         self.window = window
         self.use_pruning = use_pruning
         self.max_dist = max_dist
@@ -116,6 +117,7 @@ class DTWSettings:
         self.max_length_diff = max_length_diff
         self.penalty = penalty
         self.psi = psi
+        self.inner_dist = inner_dist
 
     @staticmethod
     def for_dtw(s1, s2, **kwargs):
@@ -134,13 +136,15 @@ class DTWSettings:
         max_length_diff = 0 if self.max_length_diff is None else self.max_length_diff
         penalty = 0 if self.penalty is None else self.penalty
         psi = 0 if self.psi is None else self.psi
+        inner_dist = innerdistance.to_c(self.inner_dist)
         return {
             'window': window,
             'max_dist': max_dist,
             'max_step': max_step,
             'max_length_diff': max_length_diff,
             'penalty': penalty,
-            'psi': psi
+            'psi': psi,
+            'inner_dist': inner_dist
         }
 
     def __str__(self):
@@ -152,49 +156,54 @@ class DTWSettings:
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None):
+             max_step=None, max_length_diff=None, use_c=False, inner_dist=innerdistance.default):
     """Lowerbound LB_KEOGH"""
-    # TODO: This implementation slower than distance() in C
+    if use_c:
+        return dtw_cc.lb_keogh(s1, s2, window=window, max_dist=max_dist, max_step=max_step, inner_dist=inner_dist)
     if window is None:
         window = max(len(s1), len(s2))
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
 
     t = 0
+    imin_diff = max(0, len(s1) - len(s2)) + window - 1
+    imax_diff = max(0, len(s2) - len(s1)) + window
     for i in range(len(s1)):
-        imin = max(0, i - max(0, len(s1) - len(s2)) - window + 1)
-        imax = min(len(s2), i + max(0, len(s2) - len(s1)) + window)
+        imin = max(0, i - imin_diff)
+        imax = min(len(s2), i + imax_diff)
         ui = array_max(s2[imin:imax])
         li = array_min(s2[imin:imax])
         ci = s1[i]
         if ci > ui:
-            t += abs(ci - ui)
+            t += idist_fn(ci, ui)  # (ci - ui)**2
         elif ci < li:
-            t += abs(ci - li)
+            t += idist_fn(ci, li)  # (ci - li)**2
         else:
             pass
-    return t
+    return result_fn(t)
 
 
-def ub_euclidean(s1, s2):
+def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
     """ See ed.euclidean_distance"""
-    return ed.distance(s1, s2)
+    return ed.distance(s1, s2, inner_dist=inner_dist)
 
 
 def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False, only_ub=False):
+             use_c=False, use_pruning=False, only_ub=False,
+             inner_dist=innerdistance.default):
     """
     Dynamic Time Warping.
 
     This function keeps a compact matrix, not the full warping paths matrix.
 
-    Uses dynamic programming to compute:
+    Uses dynamic programming to compute::
 
-    wps[i, j] = (s1[i]-s2[j])**2 + min(
-                    wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
-                    wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
-                    wps[i-1, j-1])            // diagonal   / match
-    dtw = sqrt(wps[-1, -1])
+        wps[i, j] = (s1[i]-s2[j])**2 + min(
+                        wps[i-1, j  ] + penalty,  // vertical   / insertion / expansion
+                        wps[i  , j-1] + penalty,  // horizontal / deletion  / compression
+                        wps[i-1, j-1])            // diagonal   / match
+        dtw = sqrt(wps[-1, -1])
 
     :param s1: First sequence
     :param s2: Second sequence
@@ -207,12 +216,19 @@ def distance(s1, s2,
     :param psi: Psi relaxation parameter (ignore start and end of matching).
         If psi is a single integer, it is used for both start and end relaxations of both series.
         If psi is a 4-tuple, it is used as the psi-relaxation for
-         (begin series1, end series1, begin series2, end series2)
+        (begin series1, end series1, begin series2, end series2).
         Useful for cyclical series.
     :param use_c: Use fast pure c compiled functions
     :param use_pruning: Prune values based on Euclidean distance.
         This is the same as passing ub_euclidean() to max_dist
     :param only_ub: Only compute the upper bound (Euclidean).
+    :param inner_dist: Distance between two points in the time series.
+        One of 'squared euclidean' (default), 'euclidean'.
+        When using the pure Python implementation (thus use_c=False) then the argument can also
+        be an object that has as callable arguments 'inner_dist' and 'result'. The 'inner_dist'
+        function computes the distance between two points (e.g., squared euclidean) and 'result'
+        is the function to apply to the final distance (e.g., sqrt when using squared euclidean).
+        You can also inherit from the 'innerdistance.CustomInnerDist' class.
 
     Returns: DTW distance
     """
@@ -227,7 +243,8 @@ def distance(s1, s2,
                                  penalty=penalty,
                                  psi=psi,
                                  use_pruning=use_pruning,
-                                 only_ub=only_ub)
+                                 only_ub=only_ub,
+                                 inner_dist=inner_dist)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -249,6 +266,7 @@ def distance(s1, s2,
         penalty = 0
     else:
         penalty *= penalty
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
@@ -283,7 +301,8 @@ def distance(s1, s2,
         if psi_1b != 0 and j_start == 0 and i < psi_1b:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
-            d = (s1[i] - s2[j])**2
+            # d = (s1[i] - s2[j])**2
+            d = idist_fn(s1[i], s2[j])
             if d > max_step:
                 continue
             assert j + 1 - skip >= 0
@@ -319,12 +338,13 @@ def distance(s1, s2,
             d = min(dtw[i1 * length + min(c, c + window - 1) - skip], psi_shortest)
     if max_dist and d > max_dist:
         d = inf
-    d = math.sqrt(d)
+    d = result_fn(d)
     return d
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False,
+                  inner_dist=innerdistance.default):
     """Same as :meth:`distance` but with different defaults to chose the fast C-based version of
     the implementation (use_c = True).
 
@@ -345,7 +365,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                         penalty=penalty,
                         psi=psi,
                         use_pruning=use_pruning,
-                        only_ub=only_ub)
+                        only_ub=only_ub,
+                        inner_dist=inner_dist)
     return d
 
 
@@ -374,7 +395,7 @@ def _process_psi_arg(psi):
 
 def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True,
-                  use_c=False, use_ndim=False):
+                  use_c=False, use_ndim=False, inner_dist=innerdistance.default):
     """
     Dynamic Time Warping.
 
@@ -394,19 +415,19 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
     :param use_c: Use the C implementation instead of Python
     :param use_ndim: The input series is >1 dimensions.
         Use cost = EuclideanDistance(s1[i], s2[j])
+    :param inner_dist: Distance between two points in the time series.
+        One of 'squared euclidean' (default), 'euclidean'
     :returns: (DTW distance, DTW matrix)
     """
     if use_c:
         return warping_paths_fast(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning,
                                   max_step=max_step, max_length_diff=max_length_diff,
                                   penalty=penalty, psi=psi, psi_neg=psi_neg, compact=False,
-                                  use_ndim=use_ndim)
+                                  use_ndim=use_ndim, inner_dist=inner_dist)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
-    if use_ndim:
-        cost = lambda x, y: np.sum((x - y) ** 2)
-    else:
-        cost = lambda x, y: (x - y) ** 2
+    # Always use ndim to use np functions
+    cost, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=True)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -476,7 +497,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
                 ec_next = j + 1
         ec = ec_next
     # Decide which d to return
-    dtw = np.sqrt(dtw)
+    dtw = result_fn(dtw)
     if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
@@ -511,7 +532,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
 
 def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
                        max_step=None, max_length_diff=None, penalty=None, psi=None, psi_neg=True, compact=False,
-                       use_ndim=False):
+                       use_ndim=False, inner_dist=innerdistance.default):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:
@@ -525,7 +546,7 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
     c = len(s2)
     _check_library(raise_exception=True)
     settings = DTWSettings.for_dtw(s1, s2, window=window, max_dist=max_dist, use_pruning=use_pruning, max_step=max_step,
-                                   max_length_diff=max_length_diff, penalty=penalty, psi=psi)
+                                   max_length_diff=max_length_diff, penalty=penalty, psi=psi, inner_dist=inner_dist)
     if compact:
         wps_width = dtw_cc.wps_width(r, c, **settings.c_kwargs())
         wps_compact = np.full((len(s1)+1, wps_width), inf)
@@ -545,7 +566,7 @@ def warping_paths_fast(s1, s2, window=None, max_dist=None, use_pruning=False,
 
 def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                            penalty=None, psi=None, psi_neg=True,
-                           gamma=1, tau=0, delta=0, delta_factor=1, exp_avg=None,
+                           gamma=1, tau=0, delta=0, delta_factor=1,
                            use_c=False):
     """
     Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
@@ -564,8 +585,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     """
     if use_c:
         return warping_paths_affinity_fast(s1, s2, window=window, only_triu=only_triu,
-                                           penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor,
-                                           exp_avg=exp_avg)
+                                           penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     r, c = len(s1), len(s2)
@@ -597,20 +617,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
             dtw_prev = max(dtw[i0, j],
                            dtw[i0, j + 1] - penalty,
                            dtw[i1, j] - penalty)
-            if exp_avg is None:
-                if d < tau:
-                    # if dtw_prev > 10 * -delta:
-                    #     dtw_prev = 10 * -delta
-                    dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
-                else:
-                    dtw[i1, j + 1] = max(0, d + dtw_prev)
+            if d < tau:
+                dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
             else:
-                if d < tau:
-                    d = delta
-                if j == 0 or i0 == 0:
-                    dtw[i1, j + 1] = max(0, d)
-                else:
-                    dtw[i1, j + 1] = max(0, exp_avg * d + (1-exp_avg) * dtw_prev)
+                dtw[i1, j + 1] = max(0, d + dtw_prev)
 
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
@@ -646,7 +656,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
 def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
                                 penalty=None, psi=None, psi_neg=True,
                                 gamma=1, tau=0, delta=0, delta_factor=1,
-                                exp_avg=None, compact=False, use_ndim=False):
+                                compact=False, use_ndim=False):
     """Fast C version of :meth:`warping_paths`.
 
     Additional parameters:
@@ -939,27 +949,31 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
                            only_triu=only_triu)
 
 
-def warping_path(from_s, to_s, **kwargs):
+def warping_path(from_s, to_s, include_distance=False, **kwargs):
     """Compute warping path between two sequences."""
     dist, paths = warping_paths(from_s, to_s, **kwargs)
     path = best_path(paths)
+    if include_distance:
+        return path, dist
     return path
 
 
-def warping_path_fast(from_s, to_s, **kwargs):
+def warping_path_fast(from_s, to_s, include_distance=False, **kwargs):
     """Compute warping path between two sequences."""
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
-    path = dtw_cc.warping_path(from_s, to_s, **settings_kwargs)
-    return path
+    result = dtw_cc.warping_path(from_s, to_s, include_distance=include_distance,
+                                 **settings_kwargs)
+    return result
 
 
-def warping_path_prob(from_s, to_s, avg, use_c=True, **kwargs):
+def warping_path_prob(from_s, to_s, avg, include_distance=False, use_c=True, **kwargs):
     """Compute warping path between two sequences."""
     if not use_c:
         raise AttributeError('warping_path_prob with use_c=False not yet supported')
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
-    path = dtw_cc.warping_path_prob(from_s, to_s, avg, **settings_kwargs)
-    return path
+    result = dtw_cc.warping_path_prob(from_s, to_s, avg,
+                                      include_distance=include_distance, **settings_kwargs)
+    return result
 
 
 def warping_amount(path):

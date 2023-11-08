@@ -15,6 +15,7 @@ cdef extern from "dd_dtw.h":
         Py_ssize_t psi_2e
         bint use_pruning
         bint only_ub
+        int inner_dist
 
     ctypedef struct DTWBlock:
         Py_ssize_t rb
@@ -68,8 +69,8 @@ cdef extern from "dd_dtw.h":
                                        Py_ssize_t ce, DTWSettings *settings)
     void dtw_wps_negativize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
     void dtw_wps_positivize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
-    void dtw_wps_positivize(DTWWps *p, seq_t *wps, Py_ssize_t rb, Py_ssize_t re)
-    void dtw_wps_negativize(DTWWps *p, seq_t *wps, Py_ssize_t rb, Py_ssize_t re)
+    void dtw_wps_positivize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce)
+    void dtw_wps_negativize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce)
     Py_ssize_t dtw_wps_loc(DTWWps *p, Py_ssize_t r, Py_ssize_t c, Py_ssize_t l1, Py_ssize_t l2)
     Py_ssize_t dtw_wps_max(DTWWps * p, seq_t *wps, Py_ssize_t *r, Py_ssize_t *c, Py_ssize_t l1, Py_ssize_t l2)
     Py_ssize_t dtw_best_path(seq_t *wps, Py_ssize_t *i1, Py_ssize_t *i2, Py_ssize_t l1, Py_ssize_t l2,
@@ -79,13 +80,13 @@ cdef extern from "dd_dtw.h":
                                       DTWSettings *settings)
     Py_ssize_t dtw_best_path_prob(seq_t *wps, Py_ssize_t *i1, Py_ssize_t *i2, Py_ssize_t l1, Py_ssize_t l2,
                                   seq_t avg, DTWSettings *settings);
-    Py_ssize_t warping_path(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
-                            Py_ssize_t *from_i, Py_ssize_t *to_i, DTWSettings * settings)
-    Py_ssize_t warping_path_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t * to_s, Py_ssize_t to_l,
-                                 Py_ssize_t *from_i, Py_ssize_t *to_i, int ndim, DTWSettings * settings)
+    seq_t dtw_warping_path(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
+                           Py_ssize_t *from_i, Py_ssize_t *to_i, Py_ssize_t *length_i, DTWSettings * settings)
+    seq_t dtw_warping_path_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t * to_s, Py_ssize_t to_l,
+                                Py_ssize_t *from_i, Py_ssize_t *to_i, Py_ssize_t *length_i, int ndim, DTWSettings * settings)
     void dtw_srand(unsigned int seed)
-    Py_ssize_t warping_path_prob_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
-                                      Py_ssize_t *from_i, Py_ssize_t *to_i, seq_t avg, int ndim, DTWSettings * settings)
+    seq_t dtw_warping_path_prob_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
+                                     Py_ssize_t *from_i, Py_ssize_t *to_i, Py_ssize_t *length_i, seq_t avg, int ndim, DTWSettings * settings)
     DTWWps dtw_wps_parts(Py_ssize_t l1, Py_ssize_t l2, DTWSettings * settings)
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)

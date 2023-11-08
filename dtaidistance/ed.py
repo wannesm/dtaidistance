@@ -14,6 +14,7 @@ import logging
 import math
 
 from . import util_numpy
+from . import innerdistance
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -44,7 +45,7 @@ def _check_library(raise_exception=True):
             raise Exception(msg)
 
 
-def distance(s1, s2):
+def distance(s1, s2, inner_dist=innerdistance.default):
     """ Euclidean distance between two sequences. Supports different lengths.
 
     If the two series differ in length, compare the last element of the shortest series
@@ -53,8 +54,10 @@ def distance(s1, s2):
 
     :param s1: Sequence of numbers
     :param s2: Sequence of numbers
+    :param inner_dist: Inner distance function between two values
     :return: Euclidean distance
     """
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist=inner_dist, use_ndim=False)
     n = min(len(s1), len(s2))
     ub = 0
     for v1, v2 in zip(s1, s2):
@@ -64,19 +67,19 @@ def distance(s1, s2):
     if len(s1) > len(s2):
         v2 = s2[n - 1]
         for v1 in s1[n:]:
-            ub += (v1 - v2)**2
+            ub += idist_fn(v1, v2)  # (v1 - v2)**2
     elif len(s1) < len(s2):
         v1 = s1[n-1]
         for v2 in s2[n:]:
-            ub += (v1 - v2)**2
-    return math.sqrt(ub)
+            ub += idist_fn(v1, v2)  # (v1 - v2)**2
+    return result_fn(ub)  # math.sqrt(ub)
 
 
-def distance_fast(s1, s2):
+def distance_fast(s1, s2, inner_dist=innerdistance.default):
     _check_library(raise_exception=True)
     # Check that Numpy arrays for C contiguous
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     # Move data to C library
-    d = ed_cc.distance(s1, s2)
+    d = ed_cc.distance(s1, s2, innerdistance.to_c(inner_dist))
     return d

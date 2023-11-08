@@ -31,19 +31,25 @@ void benchmark13(void);
 
 
 void benchmark1() {
-    int size=10000;
-   double ra1[size], ra2[size];
-   int i;
-   for (i=0; i<size; i++) {
-       ra1[i] = rand() % 10;
-       ra2[i] = rand() % 10;
-   }
+//    int size=10000;
+//    double ra1[size], ra2[size];
+//    int i;
+//    for (i=0; i<size; i++) {
+//       ra1[i] = rand() % 10;
+//       ra2[i] = rand() % 10;
+//    }
+    
+    int size=4;
+    double ra1[] = {1., 2, 1, 3};
+    double ra2[] = {3., 4, 3, 0};
    
-   DTWSettings settings = dtw_settings_default();
-   double d = dtw_distance(ra1, size, ra2, size, &settings);
+    DTWSettings settings = dtw_settings_default();
+//    double d = dtw_distance(ra1, size, ra2, size, &settings);
+    settings.window=2;
+    double d = lb_keogh(ra1, size, ra2, size, &settings);
    
-   printf("... done\n");
-   printf("DTW = %f\n", d);
+    printf("... done\n");
+    printf("DTW = %f\n", d);
 }
 
 void benchmark2() {
@@ -101,12 +107,33 @@ void benchmark3() {
 }
 
 void benchmark4() {
-    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0};
-    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0};
+//    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0}; int l1 = 9;
+//    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0}; int l2 = 9;
+//    double s1[] = {0., 0., 1., 2., 1., 0., 1., 0., 0., 2., 1., 0., 0.}; int l1 = 13;
+//    double s2[] = {0., 1., 2., 3., 1., 0., 0., 0., 2., 1., 0., 0., 0.}; int l2 = 13;
+    double s1[] = {2.1, 4.1, 5.1}; int l1 = 3;
+    double s2[] = {1.1, 2.1, 3.1, 4.1, 5.1}; int l2 = 5;
     DTWSettings settings = dtw_settings_default();
     settings.use_pruning = true;
-    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    settings.inner_dist = 0;
+    settings.psi_2b = l2;
+    settings.psi_2e = l2;
+//    dtw_settings_set_psi(2, &settings);
+//    double d = dtw_distance(s1, 9, s2, 9, &settings);
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    seq_t wps[wps_length];
+    double d = dtw_warping_paths(wps, s1, l1, s2, l2, true, true, false, &settings);
     printf("d=%f\n", d);
+    
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    dtw_best_path_isclose(wps, i1, i2, l1, l2, /*rtol=*/1e-05, /*atol=*/1e-08, &settings);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
 }
 
 void benchmark5() {
@@ -237,24 +264,40 @@ void benchmark9() {
 }
 
 void benchmark10() {
-    ssize_t from_l = 276;
-    double from_s[] = {1.000000, 0.544070, 0.657863, 0.611239, 0.545413, 0.532156, 0.593013, 0.595280, 0.538277, 0.563429, 0.595956, 0.632915, 0.584646, 0.623187, 0.605955, 0.590372, 0.627021, 0.613486, 0.623053, 0.546018, 0.641136, 0.549395, 0.610697, 0.577974, 0.635666, 0.574218, 0.606361, 0.638053, 0.640597, 0.605811, 0.654865, 0.629337, 0.673546, 0.640830, 0.671068, 0.595392, 0.589426, 0.615870, 0.667038, 0.603801, 0.633861, 0.647193, 0.644830, 0.643686, 0.623500, 0.562371, 0.610632, 0.607732, 0.642409, 0.577916, 0.686207, 0.612979, 1.008782, 2.308254, 3.486516, 3.827367, 3.817775, 1.011998, -1.248066, -1.879353, -1.948347, -1.901329, -1.919121, -1.922147, -1.981481, -1.971905, -1.987526, -1.879364, -1.900581, -1.882505, -1.873600, -1.887615, -1.950244, -1.890422, -1.878405, -1.860656, -1.909900, -1.866172, -1.881603, -1.831401, -1.782852, -1.761904, -1.843545, -1.821094, -1.793479, -1.738491, -1.714164, -1.781086, -1.701718, -1.758649, -1.636158, -1.676155, -1.635285, -1.664891, -1.653706, -1.599270, -1.585701, -1.570689, -1.556533, -1.525705, -1.534395, -1.514424, -1.458524, -1.434051, -1.399409, -1.439524, -1.388384, -1.314108, -1.287314, -1.243788, -1.266220, -1.217401, -1.140410, -1.077915, -1.036099, -1.023596, -0.941927, -0.964608, -0.926929, -0.806925, -0.815029, -0.802277, -0.777635, -0.716090, -0.718716, -0.598533, -0.622565, -0.642872, -0.617758, -0.554491, -0.510171, -0.502370, -0.387559, -0.408328, -0.360836, -0.336752, -0.271082, -0.231045, -0.255034, -0.195860, -0.131653, -0.091147, -0.019169, -0.133735, -0.076408, -0.063702, -0.058617, -0.010619, 0.071344, 0.021106, 0.102681, 0.119364, 0.118388, 0.150217, 0.146642, 0.149047, 0.161994, 0.241047, 0.237758, 0.275506, 0.318240, 0.378176, 0.376945, 0.304307, 0.358492, 0.292572, 0.337857, 0.372190, 0.370101, 0.404809, 0.370491, 0.415970, 0.403825, 0.436792, 0.406125, 0.401529, 0.476474, 0.441693, 0.443843, 0.385452, 0.463724, 0.446300, 0.444850, 0.483742, 0.485856, 0.534248, 0.538898, 0.464345, 0.513746, 0.494470, 0.539834, 0.522132, 0.518813, 0.524532, 0.563958, 0.553137, 0.601160, 0.551513, 0.547417, 0.546696, 0.586591, 0.526562, 0.545691, 0.572212, 0.520881, 0.581978, 0.570224, 0.566690, 0.570693, 0.569991, 0.545721, 0.597788, 0.572688, 0.571803, 0.635557, 0.500596, 0.551952, 0.591300, 0.551031, 0.572876, 0.558675, 0.592231, 0.584321, 0.570917, 0.605592, 0.656936, 0.565111, 0.552405, 0.564911, 0.583119, 0.633982, 0.579977, 0.625352, 0.589820, 0.575724, 0.605493, 0.535555, 0.549415, 0.553527, 0.595383, 0.534560, 0.530545, 0.611951, 0.586050, 0.545310, 0.550911, 0.563941, 0.609545, 0.536540, 0.590553, 0.553134, 0.588189, 0.533342, 0.587944, 0.582966, 0.598148, 0.600321, 0.566576, 0.671940, 0.621281, 0.555147, 0.581241, 0.674639, 0.576070, 0.637210, 0.578224, 0.588226, 0.577886, 0.598069, 0.583695, 0.602877, 0.554263, 0.514147, 0.603773, 0.596331, 0.583224};
-    ssize_t to_l = 276;
-    double to_s[] = {1.000000, 0.544070, 0.657863, 0.611239, 0.545413, 0.532156, 0.593013, 0.595280, 0.538277, 0.563429, 0.595956, 0.632915, 0.584646, 0.623187, 0.605955, 0.590372, 0.627021, 0.613486, 0.623053, 0.546018, 0.641136, 0.549395, 0.610697, 0.577974, 0.635666, 0.574218, 0.606361, 0.638053, 0.640597, 0.605811, 0.654865, 0.629337, 0.673546, 0.640830, 0.671068, 0.595392, 0.589426, 0.615870, 0.667038, 0.603801, 0.633861, 0.647193, 0.644830, 0.643686, 0.623500, 0.562371, 0.610632, 0.607732, 0.642409, 0.577916, 0.686207, 0.612979, 1.008782, 2.308254, 3.486516, 3.827367, 3.817775, 1.011998, -1.248066, -1.879353, -1.948347, -1.901329, -1.919121, -1.922147, -1.981481, -1.971905, -1.987526, -1.879364, -1.900581, -1.882505, -1.873600, -1.887615, -1.950244, -1.890422, -1.878405, -1.860656, -1.909900, -1.866172, -1.881603, -1.831401, -1.782852, -1.761904, -1.843545, -1.821094, -1.793479, -1.738491, -1.714164, -1.781086, -1.701718, -1.758649, -1.636158, -1.676155, -1.635285, -1.664891, -1.653706, -1.599270, -1.585701, -1.570689, -1.556533, -1.525705, -1.534395, -1.514424, -1.458524, -1.434051, -1.399409, -1.439524, -1.388384, -1.314108, -1.287314, -1.243788, -1.266220, -1.217401, -1.140410, -1.077915, -1.036099, -1.023596, -0.941927, -0.964608, -0.926929, -0.806925, -0.815029, -0.802277, -0.777635, -0.716090, -0.718716, -0.598533, -0.622565, -0.642872, -0.617758, -0.554491, -0.510171, -0.502370, -0.387559, -0.408328, -0.360836, -0.336752, -0.271082, -0.231045, -0.255034, -0.195860, -0.131653, -0.091147, -0.019169, -0.133735, -0.076408, -0.063702, -0.058617, -0.010619, 0.071344, 0.021106, 0.102681, 0.119364, 0.118388, 0.150217, 0.146642, 0.149047, 0.161994, 0.241047, 0.237758, 0.275506, 0.318240, 0.378176, 0.376945, 0.304307, 0.358492, 0.292572, 0.337857, 0.372190, 0.370101, 0.404809, 0.370491, 0.415970, 0.403825, 0.436792, 0.406125, 0.401529, 0.476474, 0.441693, 0.443843, 0.385452, 0.463724, 0.446300, 0.444850, 0.483742, 0.485856, 0.534248, 0.538898, 0.464345, 0.513746, 0.494470, 0.539834, 0.522132, 0.518813, 0.524532, 0.563958, 0.553137, 0.601160, 0.551513, 0.547417, 0.546696, 0.586591, 0.526562, 0.545691, 0.572212, 0.520881, 0.581978, 0.570224, 0.566690, 0.570693, 0.569991, 0.545721, 0.597788, 0.572688, 0.571803, 0.635557, 0.500596, 0.551952, 0.591300, 0.551031, 0.572876, 0.558675, 0.592231, 0.584321, 0.570917, 0.605592, 0.656936, 0.565111, 0.552405, 0.564911, 0.583119, 0.633982, 0.579977, 0.625352, 0.589820, 0.575724, 0.605493, 0.535555, 0.549415, 0.553527, 0.595383, 0.534560, 0.530545, 0.611951, 0.586050, 0.545310, 0.550911, 0.563941, 0.609545, 0.536540, 0.590553, 0.553134, 0.588189, 0.533342, 0.587944, 0.582966, 0.598148, 0.600321, 0.566576, 0.671940, 0.621281, 0.555147, 0.581241, 0.674639, 0.576070, 0.637210, 0.578224, 0.588226, 0.577886, 0.598069, 0.583695, 0.602877, 0.554263, 0.514147, 0.603773, 0.596331, 0.583224};
-//    DTWSettings {
-//      window = 0
-//      max_dist = 0.000000
-//      max_step = 0.000000
-//      max_length_diff = 0
-//      penalty = 0.000000
-//      psi = 0
-//      use_pruning = 0
-//      only_ub = 0
-//    }
-    idx_t *from_i = (idx_t *)malloc((from_l + to_l) * sizeof(idx_t));
-    idx_t *to_i = (idx_t *)malloc((from_l + to_l) * sizeof(idx_t));
+    double s1[] = {0, 0, 1, 2, 1, 0, 1, 0};
+    int l1 = 4;
+    double s2[] = {0, 1, 2, 0, 0, 0, 0, 0};
+    int l2 = 4;
+    idx_t i1s[] = {3, 2, 2, 1, 0};
+    idx_t i2s[] = {3, 2, 1, 0, 0};
+    idx_t ils = 5;
     DTWSettings settings = dtw_settings_default();
-    warping_path(from_s, from_l, to_s, to_l, from_i, to_i, &settings);
+//    settings.window = 5;
+//    dtw_settings_set_psi(2, &settings);
+    int ndim = 2;
+    
+    idx_t *i1 = (idx_t *)malloc((l1 + l2) * sizeof(idx_t));
+    idx_t *i2 = (idx_t *)malloc((l1 + l2) * sizeof(idx_t));
+    idx_t length_i;
+    seq_t d;
+
+    d = dtw_distance_ndim(s1, l1, s2, l2, ndim, &settings);
+    printf("d =. %.2f\n", d);
+    
+    d = dtw_warping_path_ndim(s1, l1, s2, l2, i1, i2, &length_i, ndim, &settings);
+    
+    printf("d = %.2f\n", d);
+    printf("path[:%zu] = [", length_i);
+    for (idx_t i=length_i-1; i>=0; i--) {
+        printf("(%zd, %zd), ", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
+    DTWWps p = dtw_wps_parts(l1, l2, &settings);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * p.length);
+    d = dtw_warping_paths_ndim(wps, s1, l1, s2, l2, true, true, true, ndim, &settings);
+    dtw_print_wps_compact(wps, l1, l2, &settings);
+    
 }
 
 void benchmark11() {
@@ -395,24 +438,164 @@ void benchmark_affinity() {
     }
     printf("]\n");
     
+    dtw_print_wps(wps, l1, l2, &settings);
     DTWWps p = dtw_wps_parts(l1, l2, &settings);
+    
+    printf("Slice:\n");
+    idx_t rb = 4;
+    idx_t re = 7;
+    idx_t cb = 3;
+    idx_t ce = 6;
+    seq_t * wps_slice = (seq_t *)malloc(sizeof(seq_t) * (re-rb)*(ce-cb));
+    for (idx_t i=0; i<(re-rb)*(ce-cb); i++) {
+        wps_slice[i] = -INFINITY;
+    }
+
+    dtw_expand_wps_slice_affinity(wps, wps_slice, l1, l2, rb, re, cb, ce, &settings);
+
+    idx_t wpsi = 0;
+    for (idx_t r=0; r<(re-rb); r++) {
+        printf("[ ");
+        for (idx_t c=0; c<(ce-cb); c++) {
+            printf("%.2f ", wps_slice[wpsi]);
+            wpsi++;
+        }
+        printf("]\n");
+    }
     
 //    dtw_wps_negativize(&p, wps, 2, 5);
 //    dtw_wps_positivize(&p, wps, 3, 4);
+    
+    
+//    idx_t r, c, wps_i;
+//    r = l1-3; c = l2-2;
+//    wps_i = dtw_wps_loc(&p, r, c, l1, l2);
+//    printf("wps_full[%zu,%zu] = wps[%zu] = %.3f\n", r, c, wps_i, wps[wps_i]);
+    
+//    idx_t maxr, maxc;
+//    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
+//    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
+    
+    printf("Negativize\n");
+    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 4, 5);
     dtw_print_wps(wps, l1, l2, &settings);
-    
-    idx_t r, c, wps_i;
-    r = l1-3; c = l2-2;
-    wps_i = dtw_wps_loc(&p, r, c, l1, l2);
-    printf("wps_full[%zu,%zu] = wps[%zu] = %.3f\n", r, c, wps_i, wps[wps_i]);
-    
-    idx_t maxr, maxc;
-    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
-    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
+    dtw_print_wps_compact(wps, l1, l2, &settings);
+//    maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
+//    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
     
     free(wps);
     printf("d = %.2f\n", d);
     dtw_printprecision_reset();
+}
+
+void wps_test(void) {
+    dtw_printprecision_set(0);
+    
+    idx_t l1 = 8065;
+    idx_t l2 = 8065;
+    idx_t idx;
+    
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 50;
+    settings.penalty = 0.0018315638888734178;
+    idx_t wps_width = dtw_settings_wps_width(l1, l2, &settings);
+    printf("wps_width=%zu\n", wps_width);
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * (l2+1)*wps_width);
+    seq_t * series1 = (seq_t *)malloc(sizeof(seq_t) * l1);
+    seq_t * series2 = (seq_t *)malloc(sizeof(seq_t) * l2);
+    
+    FILE *in_file;
+    double number;
+
+    // read series
+    in_file = fopen("/Users/wannes/Projects/Research/2016-DTW/repo_dtw/tests/rsrc/series1.txt", "r");
+    if (in_file == NULL) {
+        printf("Can't open file for reading.\n");
+        return;
+    }
+    idx = 0;
+    for (idx_t i=0; i<l1+1; i++) {
+        fscanf(in_file, "%lf", &number);
+        series1[idx] = number;
+        idx++;
+    }
+    in_file = fopen("/Users/wannes/Projects/Research/2016-DTW/repo_dtw/tests/rsrc/series2.txt", "r");
+    if (in_file == NULL) {
+        printf("Can't open file for reading.\n");
+        return;
+    }
+    idx = 0;
+    for (idx_t i=0; i<l1+1; i++) {
+        fscanf(in_file, "%lf", &number);
+        series2[idx] = number;
+        idx++;
+    }
+    
+    // compute wps
+    seq_t tau = 0.01831563888873418;
+    seq_t delta = -0.03663127777746836;
+    seq_t delta_factor = 0.9;
+    seq_t gamma = 0.0008575903363340125;
+    double d = dtw_warping_paths_affinity(wps, series1, l1, series2, l2, true, false,
+                                          /*psi_neg=*/true,
+                                          /*only_triu=*/false,
+                                          gamma, tau, delta, delta_factor, &settings);
+    printf("d=%.2f\n", d);
+    
+    // read wps
+    in_file = fopen("/Users/wannes/Projects/Research/2016-DTW/repo_dtw/tests/rsrc/wps.txt", "r");
+    if (in_file == NULL) {
+        printf("Can't open file for reading.\n");
+        return;
+    }
+    idx = 0;
+    for (idx_t i=0; i<l1+1; i++) {
+        for (idx_t j=0; j<wps_width; j++) {
+            fscanf(in_file, "%lf", &number);
+            assert(wps[idx] == number);
+            idx++;
+        }
+    }
+    
+//    dtw_print_wps(wps, l1, l2, &settings);
+    DTWWps p = dtw_wps_parts(l1, l2, &settings);
+    
+    printf("Negativize\n");
+    dtw_wps_negativize(&p, wps, l1, l2, 1, 7930, 1, 7943);
+    
+    printf("Slice:\n");
+    idx_t rb = 7928; //7900;
+    idx_t re = rb+10; //7950;
+    idx_t cb = rb-60;//rb; //7900;
+    idx_t ce = rb+60;//re; //7950;
+    seq_t * wps_slice = (seq_t *)malloc(sizeof(seq_t) * (re-rb)*(ce-cb));
+    for (idx_t i=0; i<(re-rb)*(ce-cb); i++) {
+        wps_slice[i] = -INFINITY;
+    }
+    dtw_expand_wps_slice_affinity(wps, wps_slice, l1, l2, rb, re, cb, ce, &settings);
+    idx_t wpsi = 0;
+    for (idx_t r=0; r<(re-rb); r++) {
+        printf("[ ");
+        for (idx_t c=0; c<(ce-cb); c++) {
+            dtw_print_nb(wps_slice[wpsi]);
+            wpsi++;
+        }
+        printf("]\n");
+    }
+    
+    wpsi = rb*p.width;
+    printf("wps (wpsi=%zu):\n", wpsi);
+//    for (idx_t r=0; r<(re-rb); r++) {
+//        printf("[ ");
+//        for (idx_t c=0; c<p.width; c++) {
+//            dtw_print_nb(wps[wpsi]);
+//            wpsi++;
+//        }
+//        printf("]\n");
+//    }
+    
+    
+    free(wps);
 }
 
 
@@ -427,7 +610,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark1();
 //    benchmark2();
 //    benchmark3();
-//    benchmark4();
+    benchmark4();
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
@@ -437,7 +620,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
-    benchmark_affinity();
+//    benchmark_affinity();
+//    wps_test();
     
     time(&end_t);
     clock_gettime(CLOCK_REALTIME, &end);

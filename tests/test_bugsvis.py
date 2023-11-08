@@ -73,7 +73,7 @@ def test_bug3():
             np.array([1., 2, 0, 0, 0, 0, 0, 1, 1, 3, 4, 5]),
             np.array([0., 0, 1, 2, 1, 0, 1]),
             np.array([0., 1, 2, 0, 0, 0, 0, 0]),
-            np.array([1., 2, 0, 0, 0, 0, 0, 1, 1])])
+            np.array([1., 2, 0, 0, 0, 0, 0, 1, 1])], dtype=object)
         ds = dtw.distance_matrix(series)
         print(ds)
 

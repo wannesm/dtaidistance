@@ -403,7 +403,7 @@ if cythonize is not None:
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
-            ["dtaidistance/dtw_cc.pyx", "dtaidistance/dtw_cc.pxd",
+            ["dtaidistance/dtw_cc.pyx",
              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
              "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"
              ],
@@ -447,8 +447,8 @@ if cythonize is not None:
     else:
         print("WARNING: Numpy was not found, preparing a version without Numpy support.")
 
-    ext_modules = cythonize(extensions)
-                            # compiler_directives={'language_level': "3"})
+    ext_modules = cythonize(extensions, language_level=2)
+
 else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
@@ -459,7 +459,8 @@ else:
 install_requires = ['numpy']  # 'cython>=0.29.6',
 setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
 tests_require = ['pytest', 'pytest-benchmark']
-dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy']
+dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy',
+                               'sphinx', 'sphinx_rtd_theme']
 
 # Check version number
 init_fn = here / 'dtaidistance' / '__init__.py'

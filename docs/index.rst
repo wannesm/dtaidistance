@@ -29,6 +29,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/clustering
    usage/subsequence
    usage/sequence
+   usage/similarity
    usage/changelist
 
 

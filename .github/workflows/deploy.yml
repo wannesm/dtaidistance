@@ -10,8 +10,8 @@ name: Python package
 on:
   push:
     branches: [ deploy ]
-#  pull_request:
-#    branches: [ deploy ]
+  # pull_request:
+  #   branches: [ deploy ]
 
 jobs:
   # Explore-GitHub-Actions:
@@ -83,7 +83,7 @@ jobs:
       matrix:
         # os: [ubuntu-20.04,ubuntu-18.04]
         # python-version: ["3.8","3.9","3.10"]
-        os: [ubuntu-18.04]
+        os: [ubuntu-22.04]
         # cibuildwheel will automatically provide all Python versions
         python-version: ["3.9"]
     steps:

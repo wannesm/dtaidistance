@@ -32,13 +32,18 @@ targets = {
             {},
             ["dtw_distance.jinja.c", "dtw_distances.jinja.c",
              "dtw_warpingpaths.jinja.c", "dtw_dba.jinja.c",
-             "dtw_expandwps.jinja.c", "dtw_bestpath.jinja.c"]],
+             "dtw_expandwps.jinja.c", "dtw_bestpath.jinja.c",
+             "lb_keogh.jinja.c"]],
     "dd_dtw_openmp.c":
         ["dd_dtw_openmp.jinja.c",
             {},
             ["dtw_distances_parallel.jinja.c"]],
+    "dd_ed.c":
+        ["dd_ed.jinja.c",
+            {},
+            ["ed_distance.jinja.c"]],
 }
-essential_targets = ['dd_dtw.c', 'dd_dtw_openmp.c']
+essential_targets = ['dd_dtw.c', 'dd_dtw_openmp.c', 'dd_ed.c']
 
 
 def generate(target):
@@ -62,6 +67,8 @@ def main(argv=None):
     parser.add_argument('--verbose', '-v', action='count', default=0, help='Verbose output')
     parser.add_argument('--quiet', '-q', action='count', default=0, help='Quiet output')
     parser.add_argument('--deps', '-d', action='store_true', help='Print dependencies')
+    parser.add_argument('--targets', '-t', action='store_true', help='Print targets')
+    parser.add_argument('--all', '-a', action='store_true', help='Use all targets')
     # parser.add_argument('--output', '-o', required=True, help='Output file')
     # parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     parser.add_argument('input', nargs='*', help='List of target files to generate')
@@ -82,6 +89,13 @@ def main(argv=None):
         for target in inputs:
             deps += dependencies(target)
         print(' '.join(deps))
+        return 0
+
+    if args.targets:
+        if args.all:
+            print(' '.join(targets.keys()))
+        else:
+            print(' '.join(inputs))
         return 0
 
     for target in inputs:

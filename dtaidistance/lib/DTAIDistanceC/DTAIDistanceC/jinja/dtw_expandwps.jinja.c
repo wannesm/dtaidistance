@@ -66,7 +66,7 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
         max_ci = p.window + p.ldiffc; // ri < overlap_right_i
         max_ci += rbs;
         for (ri=rbs; ri<MIN(res, p.ri1); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -87,7 +87,7 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     max_ci = MIN(ces, l2); // ri >= overlap_right_i
     if (rbs < p.ri2) {
         for (ri=MAX(rbs, p.ri1); ri<MIN(res, p.ri2); ri++) {
-            if (cb == 0) {
+            if (cbs == 0) {
                 full[fwidth*(ri + 1)] = wps[p.width*(ri + 1)];
             }
             if (cbs <= min_ci) {
@@ -106,6 +106,10 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     min_ci = 1;
     max_ci = 1 + 2 * p.window - 1 + p.ldiff;
     if (rbs < p.ri3) {
+        // if (rbs > p.ri2) {
+        //     min_ci += rbs - p.ri2;
+        //     max_ci += rbs - p.ri2;
+        // }
         for (ri=MAX(rbs, p.ri2); ri<MIN(res, p.ri3); ri++) {
             if (cbs == 0) {
                 full[(ri+1)*fwidth + min_ci] = wps[(ri+1)*p.width + 0];
@@ -130,7 +134,13 @@ void dtw_expand_wps_slice{{suffix}}(seq_t *wps, seq_t *full,
     if (p.ri2 == p.ri3) {
         // C is skipped
         wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
     }
+    // if (rbs > p.ri3) {
+    //     min_ci += rbs - p.ri3;
+    //     wpsi_start += rbs - p.ri3;
+    // }
     for (ri=MAX(rbs, p.ri3); ri<MIN(res, l1); ri++) {
         if (cbs <= min_ci) {
             wpsi = wpsi_start;

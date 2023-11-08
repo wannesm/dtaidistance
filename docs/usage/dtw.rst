@@ -11,7 +11,7 @@ Dynamic Time Warping (DTW)
     path = dtw.warping_path(s1, s2)
     dtwvis.plot_warping(s1, s2, path, filename="warp.png")
 
-.. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/dtw_example.png?v=5
+.. figure:: /_static/dtw_example.png
    :alt: DTW Example
 
 
@@ -269,19 +269,20 @@ documentation for a visual example).
 Multi-dimensionsal DTW
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Compare two multi-dimensional sequences.
+To compare two multivariate sequences, a multivariate time series with n_timesteps and
+at each timestep a vector with n_values is stored in a two dimensional array of size
+(n_timesteps,n_values). The first dimension of the data structure is the
+sequence item index (i.e., time series index, time step) and the second dimension
+is the index of the value in the vector.
 
-Assumes the first dimension of the data structure to be the sequence item index
-(or time series index).
-
-For example, two 2-dimensional series with five timesteps:
+For example, two 2-dimensional multivariate series with five timesteps:
 
 ::
 
     from dtaidistance import dtw_ndim
 
-    series1 = np.array([[0, 0],  # first 2-dim point at t=0
-                        [0, 1],  # second 2-dim point at t=1
+    series1 = np.array([[0, 0],  # first point at t=0
+                        [0, 1],  # second point at t=1
                         [2, 1],
                         [0, 1],
                         [0, 0]], dtype=np.double)
@@ -302,3 +303,8 @@ n-dimensional sequences. If you want to compute the independent DTW
     dtw_i = 0
     for dim in range(ndim):
         dtw_i += dtw.distance(s1[:,dim], s2[:,dim])
+
+To compute a distance matrix between multivariate time series, the same
+data structures are for univariate DTW are supported. The only difference
+is that when all data is stored in a Numpy array, this is now a 3-dimensional
+array with as size (n_series, n_timesteps, n_values).

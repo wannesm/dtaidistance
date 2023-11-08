@@ -214,7 +214,7 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
             if ndim == 1:
                 m = dtw_cc.warping_path(c, seq, **kwargs)
             else:
-                m = dtw_cc.warping_path_ndim(c, seq, ndim, **kwargs)
+                m = dtw_cc.warping_path_ndim(c, seq, ndim=ndim, **kwargs)
         else:
             if ndim == 1:
                 m = warping_path(c, seq, **kwargs)
