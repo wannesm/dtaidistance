@@ -17,6 +17,9 @@ def distance_to_similarity(D, r=None, method='exponential', return_params=False)
     - Reverse: r - D
       r is min(D) + max(D) if not given
 
+    All of these methods are monotonically decreasing transformations. The order of the
+    distances thus remains unchanged (only the direction).
+
     Example usage::
 
         dist_matrix = dtw.distance_matrix(series)
