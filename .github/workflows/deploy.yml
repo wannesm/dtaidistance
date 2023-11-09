@@ -120,8 +120,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-11, macos-12]
-        python-version: ["3.8","3.9","3.10"]
+        os: [macos-11, macos-12, macos-13]
+        python-version: ["3.8","3.9","3.10", "3.11"]
     steps:
     - uses: actions/checkout@v2
     - name: Install OpenMP
@@ -173,6 +173,66 @@ jobs:
         name: wheels
         path: dist/*.whl
 
+  build_macos_arm:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-13-arm64]
+        python-version: ["3.11"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install OpenMP
+      run: |
+        # OpenMP libraries are not installed by default on macos
+        clang --version
+        clang --version | grep "\(13\.\|14\.\)"
+        # hardcoded, not ideal
+        # https://mac.r-project.org/openmp/
+        # This includes only the dynamic library
+        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
+        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+        ls /usr/local/lib
+        ls /usr/local/include
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-benchmark build
+        python -m pip install numpy scipy matplotlib>=3.0.0
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Compile and install
+      run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
+        python -m pip install . -v
+        ls ${{ github.workspace }}/build || true
+    - name: Test installation
+      run : |
+        mv dtaidistance dtaidistance_pkg
+        python ./util/check_installation.py
+        mv dtaidistance_pkg dtaidistance
+    - name: Test with pytest
+      run: |
+        export LDFLAGS="-L/usr/local/lib"
+        export CPPFLAGS="-I/usr/local/include"
+        mv dtaidistance dtaidistance_pkg
+        pytest --ignore=venv --benchmark-skip
+        mv dtaidistance_pkg dtaidistance
+    - name: Build
+      run: |
+        python -m build
+    - name: Store wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: wheels
+        path: dist/*.whl
+
+
   build_windows:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -180,7 +240,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [windows-2019, windows-2022]
-        python-version: ["3.8","3.9","3.10"]
+        python-version: ["3.8","3.9","3.10", "3.11"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
