@@ -182,6 +182,7 @@ def detect_ndim(s):
         return 0
     return None
 
+
 class SeriesContainer:
     def __init__(self, series, support_ndim=True):
         """Container for a list of series.
