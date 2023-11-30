@@ -28,8 +28,7 @@ class SymbolAlignment:
         for sidx in range(len(sc)):
             for midx in range(len(self.codebook)):
                 medoidd = np.array(self.codebook[midx])
-                sa = subsequence_alignment(medoidd, sc[sidx])
-                sa.use_c = self.use_c
+                sa = subsequence_alignment(medoidd, sc[sidx], use_c=self.use_c)
                 for match in sa.kbest_matches(k=None):
                     patterns[sidx, match.segment[0]:match.segment[1], midx] = match.value
         patterns[:, :, len(self.codebook)] = 0
