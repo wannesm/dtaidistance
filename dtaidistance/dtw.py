@@ -414,7 +414,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
     :param use_c: Use the C implementation instead of Python
     :param use_ndim: The input series is >1 dimensions.
-        Use cost = EuclideanDistance(s1[i], s2[j])
+        Use cost = SquaredEuclideanDistance(s1[i], s2[j])
     :param inner_dist: Distance between two points in the time series.
         One of 'squared euclidean' (default), 'euclidean'
     :returns: (DTW distance, DTW matrix)
