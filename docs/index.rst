@@ -30,6 +30,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/subsequence
    usage/sequence
    usage/similarity
+   usage/advanced
    usage/changelist
 
 
