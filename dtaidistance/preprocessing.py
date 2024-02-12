@@ -19,7 +19,7 @@ def differencing(series, smooth=None):
     :param series: Time series (must be numpy compatible)
     :param smooth: Smooth the series by removing the `smooth` percentage ([0-1])
         of highest frequency.
-    :return: Differenced Numpy array
+    :return: Differenced Numpy array of length len(series) - 1
     """
     try:
         import numpy as np

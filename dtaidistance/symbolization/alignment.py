@@ -70,20 +70,23 @@ class SymbolAlignment:
             sequences_idx.append(sequence_idx)
         return sequences, sequences_idx
 
-    def plot(self, series, sequences, sequences_idx, labels=None, filename=None):
+    def plot(self, series, sequences, sequences_idx, labels=None, filename=None, figsize=None):
         try:
             import matplotlib.pyplot as plt
             from matplotlib import gridspec
         except ImportError:
             raise MatplotlibException("No matplotlib available")
+        if figsize is None:
+            figsize = (12, 8)
         sc = SeriesContainer(series)
-        fig, axs = plt.subplots(nrows=len(sc), ncols=1, sharex=True, sharey="col", figsize=(12, 8))
+        fig, axs = plt.subplots(nrows=len(sc), ncols=1, sharex=True, sharey="col", figsize=figsize)
         for r in range(series.shape[0]):
+            avg_value = series[r, :].mean()
             axs[r].plot(series[r, :])
             if labels is not None:
                 axs[r].set_ylabel(f"L={labels[r]}")
             for symbol, (fidx, lidx) in zip(sequences[r], sequences_idx[r]):
-                axs[r].text(fidx, 0, str(symbol))
+                axs[r].text(fidx, avg_value, str(symbol))
         if filename is not None:
             fig.savefig(filename)
             plt.close(fig)
