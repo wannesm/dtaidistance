@@ -6,7 +6,7 @@ dtaidistance.dtw
 Dynamic Time Warping (DTW)
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2024 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -183,7 +183,7 @@ def lb_keogh(s1, s2, window=None, max_dist=None,
 
 
 def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
-    """ See ed.euclidean_distance"""
+    """ See :meth:`dtaidistance.ed.euclidean_distance`"""
     return ed.distance(s1, s2, inner_dist=inner_dist)
 
 
@@ -208,7 +208,8 @@ def distance(s1, s2,
     :param s1: First sequence
     :param s2: Second sequence
     :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
-        It includes the diagonal, meaning that an Euclidean distance is obtained by setting window=1.
+        It includes the diagonal, meaning that an Euclidean distance is obtained by setting
+        ``window=1.``
     :param max_dist: Stop if the returned values will be larger than this value
     :param max_step: Do not allow steps larger than this value
     :param max_length_diff: Return infinity if length of two series is larger

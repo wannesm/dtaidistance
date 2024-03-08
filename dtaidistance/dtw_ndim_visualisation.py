@@ -39,11 +39,12 @@ except ImportError:
 
 
 def plot_warping(s1, s2, path, filename=None):
-    """Plot the optimal warping between to sequences.
+    """Plot the optimal warping between two sequences.
 
     :param s1: From sequence.
     :param s2: To sequence.
     :param path: Optimal warping path.
+        Can be computed with methods like ``dtw_ndim.warping_path``.
     :param filename: Filename path (optional).
     """
     if np is None:

@@ -46,6 +46,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    modules/ed
    modules/clustering
    modules/subsequence
+   modules/preprocessing
 
 
 Indices and tables
