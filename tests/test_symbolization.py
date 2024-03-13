@@ -82,6 +82,6 @@ def test_trace1():
         sequences, sequences_idx = sa.hangover(symbols, threshold=4)
         if directory is not None and not dtwvis.test_without_visualization():
             sa.plot(series, sequences, sequences_idx,
-                    labels=labels, filename=directory / "series.png")
+                    ylabels=labels, filename=directory / "series.png")
             sa.plot(seriesd, sequences, sequences_idx,
-                    labels=labels, filename=directory / "seriesd.png")
+                    ylabels=labels, filename=directory / "seriesd.png")

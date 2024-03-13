@@ -194,18 +194,20 @@ class SubsequenceAlignment:
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
 
-    def kbest_matches_fast(self, k=1, overlap=0):
+    def kbest_matches_fast(self, k=1, overlap=0, minlength=2):
         use_c = self.use_c
         self.use_c = True
-        result = self.kbest_matches(k=k, overlap=overlap)
+        result = self.kbest_matches(k=k, overlap=overlap, minlength=minlength)
         self.use_c = use_c
         return result
 
-    def kbest_matches(self, k=1, overlap=0):
+    def kbest_matches(self, k=1, overlap=0, minlength=2, maxlength=None):
         """Yields the next best match. Stops at k matches (use None for all matches).
 
         :param k: Number of matches to yield. None is all matches.
         :param overlap: Matches cannot overlap unless overlap > 0.
+        :param minlength: Minimal length of the matched sequence.
+            If k is set to None, matches with one value can occur if minlength is set to 1.
         :return: Yield an SAMatch object
         """
         self.align()
@@ -222,6 +224,11 @@ class SubsequenceAlignment:
             b, e = match.segment
             cur_overlap = min(overlap, e - b - 1)
             mb, me = best_idx + 1 - (e - b) + cur_overlap, best_idx + 1
+            if ((minlength is not None and e-b+1 < minlength) or
+                    (maxlength is not None and e-b+1 > maxlength)):
+                # Found sequence is too short or too long
+                matching[best_idx] = maxv
+                continue
             if np.isinf(np.max(matching[mb:me])):
                 # No overlapping matches
                 matching[best_idx] = maxv

@@ -56,7 +56,7 @@ def distance_to_similarity(D, r=None, method='exponential', return_params=False)
         return S
 
 
-def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False):
+def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False, keep_sign=False):
     """Squash a function monotonically to a range between 0 and 1.
 
     The available methods are:
@@ -78,17 +78,26 @@ def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False
     :param r: The slope of the squashing (see the formula above)
     :param x0: The midpoint of the squashing (see the formula above)
     :param method: The choice of sqaush function: logistic or gaussian
+    :param keep_sign: Negative values should stay negative.
     :param return_params: Also return the used values for r and X0
     """
     result = None
+    if keep_sign:
+        Xs = np.sign(X)
+        Xz = 0
+        X = np.abs(X)
+    else:
+        Xs = 1
     if method == "gaussian":
         x0 = 0  # not supported for gaussian
         if r is None:
             r = 1
         if base is None:
             result = 1 - np.exp(-np.power(X - x0, 2) / r**2)
+            Xz = 1 - np.exp(-np.power(0 - x0, 2) / r**2)
         else:
             result = 1 - np.power(base, -np.power(X - x0, 2) / r**2)
+            Xz = 1 - np.power(base, -np.power(0 - x0, 2) / r**2)
     elif method == "logistic":
         if x0 is None:
             x0 = np.mean(X)
@@ -96,10 +105,14 @@ def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False
             r = x0 / 6
         if base is None:
             result = 1 / (1 + np.exp(-(X - x0) / r))
+            Xz = 1 / (1 + np.exp(-(0 - x0) / r))
         else:
             result = 1 / (1 + np.power(base, -(X - x0) / r))
+            Xz = 1 / (1 + np.power(base, -(0 - x0) / r))
     else:
         raise ValueError("Unknown value for method")
+    if keep_sign:
+        result = Xs * (result - Xz)
     if return_params:
         return result, r, x0
     else:

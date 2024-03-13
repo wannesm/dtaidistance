@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 from ..util import SeriesContainer
@@ -7,13 +8,17 @@ from ..similarity import distance_to_similarity
 
 
 class SymbolAlignment:
-    def __init__(self, codebook):
+    def __init__(self, codebook, maxcompression=0.5, maxexpansion=2):
         """Translate a time series with continuous values to a list of discrete
         symbols based on motifs in a codebook.
 
         :param codebook: List of motifs.
+        :param maxcompression: Maximally allowed compression of a codeword for it to be recognized
+        :param maxexpansion: Maximally allowed expansion of a codeword for it to be recognized
         """
         self.codebook = codebook
+        self.maxcompression = maxcompression
+        self.maxexpansion = maxexpansion
         self.use_c = False
         self.symbols = None
         self._agg_fn = self.agg_min
@@ -60,13 +65,60 @@ class SymbolAlignment:
             for midx in range(len(self.codebook)):
                 medoidd = np.array(self.codebook[midx])
                 sa = subsequence_alignment(medoidd, sc[sidx], use_c=self.use_c)
-                for match in sa.kbest_matches(k=None):
-                    patterns[sidx, match.segment[0]:match.segment[1], midx] = match.value
+                for match in sa.kbest_matches(k=None,
+                                              minlength=math.floor(len(medoidd)*self.maxcompression),
+                                              maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
+                    patterns[sidx, match.segment[0]:match.segment[1]+1, midx] = match.value
                     max_value = max(max_value, match.value)
         patterns[:, :, len(self.codebook)] = 0
-        print(f"{np.max(patterns)=}")
         patterns[:, :, len(self.codebook)] = np.max(patterns) + 1
         best_patterns = self._agg_fn(patterns, max_value)
+        self.symbols = best_patterns
+        return best_patterns
+
+    def align2(self, series):
+        """Perform alignment.
+
+        Based on the Matching Pursuit algorithm.
+
+        :param series: List of time series or a numpy array
+        """
+        sc = SeriesContainer(series)
+
+        for sidx in range(len(sc)):
+            curseries = sc[sidx].copy()
+            patterns = []
+            for midx in range(len(self.codebook)):
+                medoidd = np.array(self.codebook[midx])
+                sa = subsequence_alignment(medoidd, curseries, use_c=self.use_c)
+                for match in sa.kbest_matches(k=None,
+                                              minlength=math.floor(len(medoidd)*self.maxcompression),
+                                              maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
+                    patterns.append((midx, match.segment[0], match.segment[1]+1,
+                                     curseries[match.segment[0]:match.segment[1]+1]))
+            print(f"Series {sidx}: found {len(patterns)} patterns")
+            D = np.zeros((len(patterns), len(curseries)))
+            for i, (_, bi, ei, ts) in enumerate(patterns):
+                D[i, bi:ei] = ts
+
+            noword = len(self.codebook)
+            best_patterns = np.full(series.shape, noword, dtype=int)
+            bestpatvalue = np.inf
+            its = 0
+            while bestpatvalue > 0:
+                print(f"Iteration {sidx} -- {its}")
+                dotprod = np.einsum('j,kj->k', curseries, D)
+                bestpatidx = np.argmax(dotprod)
+                bestpatvalue = dotprod[bestpatidx]
+                if bestpatvalue == 0:
+                    break
+                pattern = patterns[bestpatidx]
+                freeidxs = best_patterns[sidx, pattern[1]:pattern[2]] == noword
+                best_patterns[sidx, pattern[1]:pattern[2]][freeidxs] = pattern[0]
+                curseries[pattern[1]:pattern[2]] = 0
+                D[bestpatidx, :] = 0
+                its += 1
+
         self.symbols = best_patterns
         return best_patterns
 
@@ -103,7 +155,8 @@ class SymbolAlignment:
             sequences_idx.append(sequence_idx)
         return sequences, sequences_idx
 
-    def plot(self, series, sequences, sequences_idx, labels=None, filename=None, figsize=None):
+    def plot(self, series, sequences, sequences_idx, ylabels=None, filename=None, figsize=None,
+             xlimits=None, symbollabels=None):
         try:
             import matplotlib.pyplot as plt
             from matplotlib import gridspec
@@ -113,15 +166,28 @@ class SymbolAlignment:
             figsize = (12, 8)
         sc = SeriesContainer(series)
         fig, axs = plt.subplots(nrows=len(sc), ncols=1, sharex=True, sharey="col", figsize=figsize)
+        if len(sc) == 1:
+            axs = [axs]
         for r in range(series.shape[0]):
             # avg_value = series[r, :].mean()
             avg_value = series.min() + (series.max() - series.min()) / 2
-            axs[r].plot(series[r, :])
-            if labels is not None:
-                axs[r].set_ylabel(f"L={labels[r]}")
+            if xlimits is None:
+                axs[r].plot(series[r, :])
+            else:
+                axs[r].plot(series[r, xlimits[0]:xlimits[1]])
+            if ylabels is not None:
+                axs[r].set_ylabel(f"L={ylabels[r]}")
             for symbol, (fidx, lidx) in zip(sequences[r], sequences_idx[r]):
-                axs[r].vlines(fidx, series.min(), series.max(), colors='k', alpha=0.2)
-                axs[r].text(fidx, avg_value, str(symbol), alpha=0.5)
+                if xlimits is None:
+                    delta = 0
+                elif xlimits[0] <= fidx <= xlimits[1]:
+                    delta = xlimits[0]
+                else:
+                    continue
+                axs[r].vlines(fidx-delta, series.min(), series.max(), colors='k', alpha=0.2)
+                if symbollabels is not None:
+                    symbol = symbollabels(symbol)
+                axs[r].text(fidx-delta, avg_value, str(symbol), alpha=0.5)
         if filename is not None:
             fig.savefig(filename)
             plt.close(fig)
