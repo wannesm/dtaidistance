@@ -97,6 +97,45 @@ def logdomain(series):
     return series
 
 
+def mixedlinearlogdomain(series, c=10):
+    """Transform to a mixture between linear and log domain
+    (and retain the sign of the signal).
+
+    The transformation is (for positive values):
+    x            if x<=c
+    c+ln(x-c+1)  if x>c
+
+    :param series: Time series (must be numpy compatible)
+    :param c: Switch between linear to log domain at this value, should be <= 1.
+        If two numbers are given as a tuple, the first one is used for positive
+        values, the second for negative values.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise NumpyException("Transforming to log domain requires Numpy")
+
+    if type(c) in [tuple, list]:
+        pos = np.heaviside(series, 1)
+        seriesp = pos*series
+        seriesn = (1-pos)*np.abs(series)
+        cc = c[0]
+        step = np.heaviside(seriesp - cc, 1)
+        seriesp = (1 - step) * seriesp + step * (cc + np.log1p(step * (seriesp - cc)))
+        cc = -c[1]
+        step = np.heaviside(seriesn - cc, 1)
+        seriesn = (1 - step) * seriesn + step * (cc + np.log1p(step * (seriesn - cc)))
+        series = -seriesn + seriesp
+    else:
+        sign = np.sign(series)
+        series = np.abs(series)
+        step = np.heaviside(series-c, 1)
+        # should be vectorized
+        # step is in log1p to avoid nan
+        series = sign * ((1-step)*series + step*(c+np.log1p(step*(series-c))))
+    return series
+
+
 def znormal(series):
     """Z-normalize the time series.
 

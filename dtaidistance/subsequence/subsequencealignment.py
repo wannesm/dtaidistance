@@ -48,14 +48,16 @@ except ImportError:
     dtw_cc = None
 
 
-def subsequence_alignment(query, series, use_c=False):
+def subsequence_alignment(query, series, penalty=0.1, use_c=False):
     """See SubsequenceAligment.
 
     :param query:
     :param series:
+    :param penalty:
+    :param use_c:
     :return:
     """
-    sa = SubsequenceAlignment(query, series, use_c=use_c)
+    sa = SubsequenceAlignment(query, series, penalty=penalty, use_c=use_c)
     sa.align()
     return sa
 

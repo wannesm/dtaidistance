@@ -54,6 +54,8 @@ class SymbolAlignment:
     def align(self, series):
         """Perform alignment.
 
+        For each time point, select the best matching motif.
+
         :param series: List of time series or a numpy array
         """
         sc = SeriesContainer(series)
@@ -88,6 +90,7 @@ class SymbolAlignment:
         for sidx in range(len(sc)):
             curseries = sc[sidx].copy()
             patterns = []
+            max_value = 0
             for midx in range(len(self.codebook)):
                 medoidd = np.array(self.codebook[midx])
                 sa = subsequence_alignment(medoidd, curseries, use_c=self.use_c)
@@ -95,28 +98,39 @@ class SymbolAlignment:
                                               minlength=math.floor(len(medoidd)*self.maxcompression),
                                               maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
                     patterns.append((midx, match.segment[0], match.segment[1]+1,
-                                     curseries[match.segment[0]:match.segment[1]+1]))
-            print(f"Series {sidx}: found {len(patterns)} patterns")
-            D = np.zeros((len(patterns), len(curseries)))
-            for i, (_, bi, ei, ts) in enumerate(patterns):
-                D[i, bi:ei] = ts
+                                     curseries[match.segment[0]:match.segment[1]+1], match.value))
+                    max_value = max(max_value, match.value)
+            # print(f"Series {sidx}: found {len(patterns)} patterns")
+            # D = np.zeros((len(patterns), len(curseries)))
+            # for i, (_, bi, ei, ts) in enumerate(patterns):
+            #     D[i, bi:ei] = ts
+            D = np.zeros(len(patterns))
+            L = np.zeros(len(patterns))
+            for i, (_, bi, ei, ts, v) in enumerate(patterns):
+                D[i] = v
+                L[i] = ei - bi + 1
+            # Trade-off between length and similarity
+            S = distance_to_similarity(D, r=max_value, method='exponential') * L
 
             noword = len(self.codebook)
             best_patterns = np.full(series.shape, noword, dtype=int)
             bestpatvalue = np.inf
             its = 0
             while bestpatvalue > 0:
-                print(f"Iteration {sidx} -- {its}")
-                dotprod = np.einsum('j,kj->k', curseries, D)
-                bestpatidx = np.argmax(dotprod)
-                bestpatvalue = dotprod[bestpatidx]
+                # print(f"Iteration {sidx} -- {its}")
+                # dotprod = np.einsum('j,kj->k', curseries, D)
+                # bestpatidx = np.argmax(dotprod)
+                # bestpatvalue = dotprod[bestpatidx]
+                bestpatidx = np.argmax(S)
+                bestpatvalue = S[bestpatidx]
                 if bestpatvalue == 0:
                     break
                 pattern = patterns[bestpatidx]
                 freeidxs = best_patterns[sidx, pattern[1]:pattern[2]] == noword
                 best_patterns[sidx, pattern[1]:pattern[2]][freeidxs] = pattern[0]
-                curseries[pattern[1]:pattern[2]] = 0
-                D[bestpatidx, :] = 0
+                # curseries[pattern[1]:pattern[2]] = 0
+                # D[bestpatidx, :] = 0
+                S[bestpatidx] = 0
                 its += 1
 
         self.symbols = best_patterns
