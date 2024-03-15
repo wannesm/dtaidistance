@@ -19,6 +19,7 @@ from . import dtw
 from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
     _distance_matrix_length, _complete_block
 from . import util_numpy
+from . import innerdistance
 from .exceptions import NumpyException
 
 try:
@@ -86,7 +87,8 @@ def ub_euclidean(s1, s2):
 
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False, only_ub=False):
+             use_c=False, use_pruning=False, only_ub=False,
+             inner_dist=innerdistance.default):
     """(Dependent) Dynamic Time Warping using multidimensional sequences.
 
     Assumes the first dimension to be the sequence item index, and the second
@@ -143,7 +145,8 @@ def distance(s1, s2, window=None, max_dist=None,
                                  penalty=penalty,
                                  psi=psi,
                                  use_pruning=use_pruning,
-                                 only_ub=only_ub)
+                                 only_ub=only_ub,
+                                 inner_dist=inner_dist)
     if np is None:
         raise NumpyException("Numpy is required for the dtw_ndim.distance method "
                              "(Numpy is not required for the distance_fast method that uses the C library")
@@ -168,6 +171,7 @@ def distance(s1, s2, window=None, max_dist=None,
         penalty = 0
     else:
         penalty *= penalty
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
     if psi is None:
         psi = 0
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
@@ -203,7 +207,8 @@ def distance(s1, s2, window=None, max_dist=None,
         if psi != 0 and j_start == 0 and i < psi:
             dtw[i1 * length] = 0
         for j in range(j_start, j_end):
-            d = np.sum((s1[i] - s2[j]) ** 2)
+            # d = np.sum((s1[i] - s2[j]) ** 2)
+            d = idist_fn(s1[i], s2[j])
             if d > max_step:
                 continue
             assert j + 1 - skip >= 0
@@ -237,11 +242,13 @@ def distance(s1, s2, window=None, max_dist=None,
         d = math.sqrt(d)
     if max_dist and d > max_dist:
         d = inf
+    d = result_fn(d)
     return d
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False):
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False,
+                  inner_dist=innerdistance.default):
     """Fast C version of :meth:`distance`.
 
     Note: the series are expected to be arrays of the type ``double``.
@@ -268,7 +275,8 @@ def distance_fast(s1, s2, window=None, max_dist=None,
                              penalty=penalty,
                              psi=psi,
                              use_pruning=use_pruning,
-                             only_ub=only_ub)
+                             only_ub=only_ub,
+                             inner_dist=inner_dist)
     return d
 
 
