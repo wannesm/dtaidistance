@@ -330,7 +330,8 @@ def distance_matrix_python(s, block=None, show_progress=False, max_length_diff=N
 def distance_matrix(s, ndim=None, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
-                    use_c=False, use_mp=False, show_progress=False, only_triu=False):
+                    use_c=False, use_mp=False, show_progress=False, only_triu=False,
+                    inner_dist=innerdistance.default):
     """Distance matrix for all n-dimensional sequences in s.
 
     This method returns the dependent DTW (DTW_D) [1] distance between two
@@ -392,7 +393,8 @@ def distance_matrix(s, ndim=None, max_dist=None, use_pruning=False, max_length_d
         'max_length_diff': max_length_diff,
         'penalty': penalty,
         'psi': psi,
-        'use_pruning': use_pruning
+        'use_pruning': use_pruning,
+        'inner_dist': inner_dist
     }
     s = SeriesContainer.wrap(s)
     if ndim is None:
@@ -451,13 +453,15 @@ def distance_matrix(s, ndim=None, max_dist=None, use_pruning=False, max_length_d
 
 def distance_matrix_fast(s, ndim=None, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True, only_triu=False):
+                         block=None, compact=False, parallel=True, only_triu=False,
+                         inner_dist=innerdistance.default):
     """Fast C version of :meth:`distance_matrix`."""
     _check_library(raise_exception=True, include_omp=parallel)
     return distance_matrix(s, ndim=ndim, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
-                           use_c=True, show_progress=False, only_triu=only_triu)
+                           use_c=True, show_progress=False, only_triu=only_triu,
+                           inner_dist=inner_dist)
 
 
 def warping_path(from_s, to_s, **kwargs):

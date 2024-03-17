@@ -702,7 +702,8 @@ def distance_matrix_func(use_c=False, parallel=False, show_progress=False):
 def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
-                    use_c=False, use_mp=False, show_progress=False, only_triu=False):
+                    use_c=False, use_mp=False, show_progress=False, only_triu=False,
+                    inner_dist=innerdistance.default):
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
@@ -753,7 +754,8 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
         'max_length_diff': max_length_diff,
         'penalty': penalty,
         'psi': psi,
-        'use_pruning': use_pruning
+        'use_pruning': use_pruning,
+        'inner_dist': inner_dist
     }
     s = SeriesContainer.wrap(s)
     if max_length_diff is None:
@@ -928,7 +930,7 @@ def _distance_matrix_length(block, nb_series):
 def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, use_mp=False,
-                         only_triu=False):
+                         only_triu=False, inner_dist=innerdistance.default):
     """Same as :meth:`distance_matrix` but with different defaults to choose the
     fast parallized C version (use_c = True and parallel = True).
 
@@ -947,7 +949,7 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
                            max_step=max_step, penalty=penalty, psi=psi,
                            block=block, compact=compact, parallel=parallel,
                            use_c=True, use_mp=use_mp, show_progress=False,
-                           only_triu=only_triu)
+                           only_triu=only_triu, inner_dist=inner_dist)
 
 
 def warping_path(from_s, to_s, include_distance=False, **kwargs):
