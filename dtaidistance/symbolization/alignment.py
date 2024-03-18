@@ -78,14 +78,21 @@ class SymbolAlignment:
         self.symbols = best_patterns
         return best_patterns
 
-    def align2(self, series):
+    def align2(self, series, max_overlap=None):
         """Perform alignment.
 
-        Based on the Matching Pursuit algorithm.
+        Inspired on the Matching Pursuit algorithm.
+        But only one motif is matched to a subsequence. No aggregation within the same subsequence.
 
         :param series: List of time series or a numpy array
+        :param max_overlap: Maximal overlap when matching codewords.
+            If not given, this is based on maxcompression and maxexpansion.
         """
         sc = SeriesContainer(series)
+        noword = len(self.codebook)
+        best_patterns = np.full(series.shape, noword, dtype=int)
+        if max_overlap is None:
+            max_overlap = max(self.maxcompression, 1./self.maxexpansion)
 
         for sidx in range(len(sc)):
             curseries = sc[sidx].copy()
@@ -103,17 +110,19 @@ class SymbolAlignment:
             # print(f"Series {sidx}: found {len(patterns)} patterns")
             # D = np.zeros((len(patterns), len(curseries)))
             # for i, (_, bi, ei, ts) in enumerate(patterns):
-            #     D[i, bi:ei] = ts
+            #     D[i, bi:ei] = ts # should be normalized for matching pursuit if we use the factors
             D = np.zeros(len(patterns))
-            L = np.zeros(len(patterns))
+            L = np.zeros(len(patterns), dtype=int)
+            B = np.zeros(len(patterns), dtype=int)
+            E = np.zeros(len(patterns), dtype=int)
             for i, (_, bi, ei, ts, v) in enumerate(patterns):
                 D[i] = v
                 L[i] = ei - bi + 1
+                B[i] = bi
+                E[i] = ei + 1  # Use next position for length and overlap computation
             # Trade-off between length and similarity
             S = distance_to_similarity(D, r=max_value, method='exponential') * L
 
-            noword = len(self.codebook)
-            best_patterns = np.full(series.shape, noword, dtype=int)
             bestpatvalue = np.inf
             its = 0
             while bestpatvalue > 0:
@@ -128,6 +137,10 @@ class SymbolAlignment:
                 pattern = patterns[bestpatidx]
                 freeidxs = best_patterns[sidx, pattern[1]:pattern[2]] == noword
                 best_patterns[sidx, pattern[1]:pattern[2]][freeidxs] = pattern[0]
+                # Remove patterns with more overlap than max_overlap
+                overlaps = (np.maximum(0, np.minimum(E[bestpatidx], E) -
+                                          np.maximum(B[bestpatidx], B)) / L[bestpatidx]) > max_overlap
+                S[overlaps] = 0
                 # curseries[pattern[1]:pattern[2]] = 0
                 # D[bestpatidx, :] = 0
                 S[bestpatidx] = 0
