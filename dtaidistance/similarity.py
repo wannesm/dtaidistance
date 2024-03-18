@@ -31,15 +31,15 @@ def distance_to_similarity(D, r=None, a=None, method='exponential', return_param
     :param method: One of 'exponential', 'gaussian', 'reciprocal', 'reverse'
     :param return_params: Return the value used for parameter r
     :param cover_quantile: Compute r such that the function covers the `cover_quantile` fraction of the data.
-        Expects a value in [0,1]. If a tuple (quantile, value) is given, then r and a are set such that
-        at quantile the given value is reached (if not given, value is 0.01).
+        Expects a value in [0,1]. If a tuple (quantile, value) is given, then r (and a) are set such that
+        at the quantile the given value is reached (if not given, value is 1-quantile).
     :return: Similarity matrix S
     """
     if cover_quantile is not False:
         if type(cover_quantile) in [tuple, list]:
             cover_quantile, cover_quantile_target = cover_quantile
         else:
-            cover_quantile_target = 0.01
+            cover_quantile_target = 1 - cover_quantile
     else:
         cover_quantile_target = None
     method = method.lower()
@@ -105,14 +105,14 @@ def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False
     :param keep_sign: Negative values should stay negative
     :param return_params: Also return the used values for r and X0
     :param cover_quantile: Compute r such that the function covers the `cover_quantile` fraction of the data.
-        Expects a value in [0,1]. If a tuple (quantile, value) is given, then r and a are set such that
-        at quantile the given value is reached (if not given, value is 0.01).
+        Expects a value in [0,1]. If a tuple (quantile, value) is given, then r (and a) are set such that
+        at the quantile the given value is reached (if not given, value is quantile).
     """
     if cover_quantile is not False:
         if type(cover_quantile) in [tuple, list]:
             cover_quantile, cover_quantile_target = cover_quantile
         else:
-            cover_quantile_target = 0.99
+            cover_quantile_target = cover_quantile
     else:
         cover_quantile_target = None
     result = None
@@ -144,10 +144,10 @@ def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False
                 r = -(np.quantile(X, cover_quantile)-x0)/np.log(1-cover_quantile_target)
         if base is None:
             result = 1 - np.exp(-(X - x0) / r)
-            Xz = 1 - np.exp(-(0 - x0) / r)
+            Xz = 1 - np.exp(x0 / r)
         else:
             result = 1 - np.power(base, -(X - x0) / r)
-            Xz = 1 - np.power(base, -(0 - x0) / r)
+            Xz = 1 - np.power(base, x0 / r)
     elif method == "logistic":
         if x0 is None:
             x0 = np.mean(X)
