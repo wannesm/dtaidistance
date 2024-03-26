@@ -100,6 +100,7 @@ def squash(X, r=None, base=None, x0=None, method="logistic", return_params=False
 
     :param X: Distances values
     :param r: The slope of the squashing (see the formula above)
+    :param base: Use this value as base instead of e
     :param x0: The midpoint of the squashing (see the formula above)
     :param method: The choice of sqaush function: logistic, gaussian, or exponential
     :param keep_sign: Negative values should stay negative

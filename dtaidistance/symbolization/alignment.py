@@ -25,6 +25,7 @@ class SymbolAlignment:
         self._agg_args = None
 
     def set_agg_min(self):
+        """Set mininum aggregation for the align2 method."""
         self._agg_fn = self.agg_min
         self._agg_args = None
 
@@ -32,6 +33,7 @@ class SymbolAlignment:
         return np.argmin(patterns, axis=2).astype(int)
 
     def set_agg_prob(self, window=10):
+        """Set probabilistic aggregation for the align2 method."""
         self._agg_fn = self.agg_prob
         self._agg_args = (window,)
 
@@ -51,10 +53,10 @@ class SymbolAlignment:
             best[:, ti] = np.argmax(logprobs[:, ti:, :].sum(axis=1), axis=1)
         return best
 
-    def align(self, series):
+    def align2(self, series):
         """Perform alignment.
 
-        For each time point, select the best matching motif.
+        For each time point, select the best matching motif and aggregate the results.
 
         :param series: List of time series or a numpy array
         """
@@ -78,16 +80,16 @@ class SymbolAlignment:
         self.symbols = best_patterns
         return best_patterns
 
-    def align2(self, series, max_overlap=None):
+    def align(self, series, max_overlap=None):
         """Perform alignment.
 
-        Inspired on the Matching Pursuit algorithm.
-        But only one motif is matched to a subsequence. No aggregation within the same subsequence.
+        Only one motif is matched to a subsequence. No aggregation within the same subsequence.
 
         :param series: List of time series or a numpy array
         :param max_overlap: Maximal overlap when matching codewords.
             If not given, this is based on maxcompression and maxexpansion.
         """
+        # Inspired on the Matching Pursuit algorithm.
         sc = SeriesContainer(series)
         noword = len(self.codebook)
         best_patterns = np.full(series.shape, noword, dtype=int)
