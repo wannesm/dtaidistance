@@ -49,6 +49,10 @@ class SquaredEuclidean:
             return np.sqrt(x)
         return math.sqrt(x)
 
+    @staticmethod
+    def inner_val(x):
+        return x*x
+
 
 class SquaredEuclideanNdim:
 
@@ -59,6 +63,10 @@ class SquaredEuclideanNdim:
     @staticmethod
     def result(x):
         return np.sqrt(x)
+
+    @staticmethod
+    def inner_val(x):
+        return x * x
 
 
 class Euclidean:
@@ -71,6 +79,10 @@ class Euclidean:
     def result(x):
         return x
 
+    @staticmethod
+    def inner_val(x):
+        return x
+
 
 class EuclideanNdim:
 
@@ -80,6 +92,10 @@ class EuclideanNdim:
 
     @staticmethod
     def result(x):
+        return x
+
+    @staticmethod
+    def inner_val(x):
         return x
 
 
@@ -108,8 +124,13 @@ class CustomInnerDist:
         """
         raise Exception("Function not defined")
 
+    @staticmethod
+    def inner_val(x):
+        """The transformation applied to input settings like max_step."""
+        raise Exception("Function not defined")
 
-def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
+
+def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
     use_cls = None
     if inner_dist == "squared euclidean":
         if use_ndim:
@@ -124,8 +145,13 @@ def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
     elif hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
         use_cls = inner_dist
     else:
-        raise AttributeError("Unknown value for argument inner_dist")
-    return use_cls.inner_dist, use_cls.result
+        raise AttributeError(f"Unknown value for argument inner_dist: {inner_dist}")
+    return use_cls
+
+
+def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
+    use_cls = inner_dist_cls(inner_dist, use_ndim)
+    return use_cls.inner_dist, use_cls.result, use_cls.inner_val
 
 
 def to_c(inner_dist):
