@@ -239,6 +239,11 @@ class SeriesContainer:
         else:
             self.series = series
 
+    def set_detected_ndim(self, ndim):
+        if ndim is None:
+            return
+        self.detected_ndim = ndim
+
     def c_data_compat(self):
         """Return a datastructure that the C-component knows how to handle.
         The method tries to avoid copying or reallocating memory.

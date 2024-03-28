@@ -156,13 +156,13 @@ class DTWSettings:
 
 
 def lb_keogh(s1, s2, window=None, max_dist=None,
-             max_step=None, max_length_diff=None, use_c=False, inner_dist=innerdistance.default):
+             max_step=None, max_length_diff=None, use_c=False, use_ndim=False, inner_dist=innerdistance.default):
     """Lowerbound LB_KEOGH"""
     if use_c:
         return dtw_cc.lb_keogh(s1, s2, window=window, max_dist=max_dist, max_step=max_step, inner_dist=inner_dist)
     if window is None:
         window = max(len(s1), len(s2))
-    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=use_ndim)
 
     t = 0
     imin_diff = max(0, len(s1) - len(s2)) + window - 1
@@ -191,7 +191,7 @@ def distance(s1, s2,
              window=None, max_dist=None, max_step=None,
              max_length_diff=None, penalty=None, psi=None,
              use_c=False, use_pruning=False, only_ub=False,
-             inner_dist=innerdistance.default):
+             inner_dist=innerdistance.default, use_ndim=False):
     """
     Dynamic Time Warping.
 
@@ -245,7 +245,8 @@ def distance(s1, s2,
                                  psi=psi,
                                  use_pruning=use_pruning,
                                  only_ub=only_ub,
-                                 inner_dist=inner_dist)
+                                 inner_dist=inner_dist,
+                                 use_ndim=use_ndim)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -267,7 +268,7 @@ def distance(s1, s2,
         penalty = 0
     else:
         penalty *= penalty
-    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=False)
+    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=use_ndim)
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
     length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     # print("length (py) = {}".format(length))
@@ -345,7 +346,7 @@ def distance(s1, s2,
 
 def distance_fast(s1, s2, window=None, max_dist=None,
                   max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False,
-                  inner_dist=innerdistance.default):
+                  inner_dist=innerdistance.default, use_ndim=False):
     """Same as :meth:`distance` but with different defaults to chose the fast C-based version of
     the implementation (use_c = True).
 
@@ -358,16 +359,28 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     # Move data to C library
-    d = dtw_cc.distance(s1, s2,
-                        window=window,
-                        max_dist=max_dist,
-                        max_step=max_step,
-                        max_length_diff=max_length_diff,
-                        penalty=penalty,
-                        psi=psi,
-                        use_pruning=use_pruning,
-                        only_ub=only_ub,
-                        inner_dist=inner_dist)
+    if use_ndim is False:
+        d = dtw_cc.distance(s1, s2,
+                            window=window,
+                            max_dist=max_dist,
+                            max_step=max_step,
+                            max_length_diff=max_length_diff,
+                            penalty=penalty,
+                            psi=psi,
+                            use_pruning=use_pruning,
+                            only_ub=only_ub,
+                            inner_dist=inner_dist)
+    else:
+        d = dtw_cc.distance_ndim(s1, s2,
+                                 window=window,
+                                 max_dist=max_dist,
+                                 max_step=max_step,
+                                 max_length_diff=max_length_diff,
+                                 penalty=penalty,
+                                 psi=psi,
+                                 use_pruning=use_pruning,
+                                 only_ub=only_ub,
+                                 inner_dist=inner_dist)
     return d
 
 
@@ -375,8 +388,16 @@ def _distance_with_params(t):
     return distance(t[0], t[1], **t[2])
 
 
+def _distance_with_params_ndim(t):
+    return distance(t[0], t[1], use_ndim=True, **t[2])
+
+
 def _distance_c_with_params(t):
     return dtw_cc.distance(t[0], t[1], **t[2])
+
+
+def _distance_c_with_params_ndim(t):
+    return dtw_cc.distance_ndim(t[0], t[1], **t[2])
 
 
 def _process_psi_arg(psi):
@@ -428,7 +449,7 @@ def warping_paths(s1, s2, window=None, max_dist=None, use_pruning=False,
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     # Always use ndim to use np functions
-    cost, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=True)
+    cost, result_fn = innerdistance.inner_dist_fns(inner_dist, use_ndim=use_ndim)
     r, c = len(s1), len(s2)
     if max_length_diff is not None and abs(r - c) > max_length_diff:
         return inf
@@ -703,7 +724,7 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
                     window=None, max_step=None, penalty=None, psi=None,
                     block=None, compact=False, parallel=False,
                     use_c=False, use_mp=False, show_progress=False, only_triu=False,
-                    inner_dist=innerdistance.default):
+                    inner_dist=innerdistance.default, use_ndim=False):
     """Distance matrix for all sequences in s.
 
     :param s: Iterable of series
@@ -758,6 +779,10 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
         'inner_dist': inner_dist
     }
     s = SeriesContainer.wrap(s)
+    if use_ndim:
+        ndim = s.detected_ndim
+    else:
+        ndim = 1
     if max_length_diff is None:
         max_length_diff = inf
     dists = None
@@ -771,29 +796,43 @@ def distance_matrix(s, max_dist=None, use_pruning=False, max_length_diff=None,
     if use_c and parallel and not use_mp and dtw_cc_omp is not None:
         logger.info("Compute distances in C (parallel=OMP)")
         dist_opts['block'] = block
-        dists = dtw_cc_omp.distance_matrix(s, **dist_opts)
+        if use_ndim:
+            dists = dtw_cc_omp.distance_matrix_ndim(s, ndim, **dist_opts)
+        else:
+            dists = dtw_cc_omp.distance_matrix(s, **dist_opts)
 
     elif use_c and parallel and (dtw_cc_omp is None or use_mp):
         logger.info("Compute distances in C (parallel=MP)")
         idxs = _distance_matrix_idxs(block, len(s))
+        if use_ndim:
+            fn = _distance_c_with_params_ndim
+        else:
+            fn = _distance_c_with_params
         with mp.Pool() as p:
-            dists = p.map(_distance_c_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+            dists = p.map(fn, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
 
     elif use_c and not parallel:
         logger.info("Compute distances in C (parallel=No)")
         dist_opts['block'] = block
-        dists = dtw_cc.distance_matrix(s, **dist_opts)
+        if use_ndim:
+            dists = dtw_cc.distance_matrix_ndim(s, ndim, **dist_opts)
+        else:
+            dists = dtw_cc.distance_matrix(s, **dist_opts)
 
     elif not use_c and parallel:
         logger.info("Compute distances in Python (parallel=MP)")
         idxs = _distance_matrix_idxs(block, len(s))
+        if use_ndim:
+            fn = _distance_with_params_ndim
+        else:
+            fn = _distance_with_params
         with mp.Pool() as p:
-            dists = p.map(_distance_with_params, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
+            dists = p.map(fn, [(s[r], s[c], dist_opts) for c, r in zip(*idxs)])
 
     elif not use_c and not parallel:
         logger.info("Compute distances in Python (parallel=No)")
         dists = distance_matrix_python(s, block=block, show_progress=show_progress,
-                                       dist_opts=dist_opts)
+                                       dist_opts=dist_opts, use_ndim=use_ndim)
 
     else:
         raise Exception(f'Unsupported combination of: parallel={parallel}, '
@@ -844,7 +883,7 @@ def distance_array_index(a, b, nb_series):
     return idx
 
 
-def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
+def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None, use_ndim=False):
     if dist_opts is None:
         dist_opts = {}
     dists = array.array('d', [inf] * _distance_matrix_length(block, len(s)))
@@ -859,7 +898,7 @@ def distance_matrix_python(s, block=None, show_progress=False, dist_opts=None):
         else:
             it_c = range(block[1][0], min(len(s), block[1][1]))
         for c in it_c:
-            dists[idx] = distance(s[r], s[c], **dist_opts)
+            dists[idx] = distance(s[r], s[c], use_ndim=use_ndim, **dist_opts)
             idx += 1
     return dists
 
@@ -952,9 +991,9 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
                            only_triu=only_triu, inner_dist=inner_dist)
 
 
-def warping_path(from_s, to_s, include_distance=False, **kwargs):
+def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs):
     """Compute warping path between two sequences."""
-    dist, paths = warping_paths(from_s, to_s, **kwargs)
+    dist, paths = warping_paths(from_s, to_s, use_ndim=use_ndim, **kwargs)
     path = best_path(paths)
     if include_distance:
         return path, dist

@@ -216,6 +216,7 @@ class SubsequenceSearch:
         import heapq
         h = [(-np.inf, -1)]
         max_dist = self.max_dist
+        self.dists_options['max_dist'] = max_dist
         for idx, series in enumerate(self.s):
             if self.use_lb:
                 lb = lb_keogh(self.query, series, **self.dists_options)

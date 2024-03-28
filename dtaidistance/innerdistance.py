@@ -45,6 +45,8 @@ class SquaredEuclidean:
 
     @staticmethod
     def result(x):
+        if np is not None and isinstance(x, np.ndarray):
+            return np.sqrt(x)
         return math.sqrt(x)
 
 
@@ -87,6 +89,9 @@ class CustomInnerDist:
     def inner_dist(x, y):
         """The distance between two points in the series.
 
+        For n-dimensional data, the two arguments x and y will be vectors.
+        Otherwise, they are scalars.
+
         For example, for default DTW this would be the Squared Euclidean
         distance: (a-b)**2.
         """
@@ -95,6 +100,8 @@ class CustomInnerDist:
     @staticmethod
     def result(x):
         """The transformation applied to the sum of all inner distances.
+
+        The variable x can be both a single number as a matrix.
 
         For example, for default DTW, which uses Squared Euclidean, this
         would be: sqrt(d). Because d = (a_0-b_0)**2 + (a_1-b_1)**2 ...
