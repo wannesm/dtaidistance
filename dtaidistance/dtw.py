@@ -11,24 +11,18 @@ Dynamic Time Warping (DTW)
 
 """
 import logging
-import math
 import array
+import math
 
 from . import ed
 from . import util
 from . import util_numpy
 from . import innerdistance
 from .util import SeriesContainer
-from .exceptions import NumpyException
+from .exceptions import NumpyException, CythonException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
-
-dtw_ndim = None
-try:
-    from . import dtw_ndim
-except ImportError:
-    logger.debug('DTAIDistance ndim library not available')
 
 dtw_cc = None
 try:
@@ -92,7 +86,7 @@ def _check_library(include_omp=False, raise_exception=True):
               "See the documentation for alternative installation options."
         logger.error(msg)
         if raise_exception:
-            raise Exception(msg)
+            raise CythonException(msg)
     if include_omp and (dtw_cc_omp is None or not dtw_cc_omp.is_openmp_supported()):
         msg = "The compiled dtaidistance C-OMP library "
         if dtw_cc_omp and not dtw_cc_omp.is_openmp_supported():
@@ -104,7 +98,7 @@ def _check_library(include_omp=False, raise_exception=True):
                "See the documentation for alternative installation options."
         logger.error(msg)
         if raise_exception:
-            raise Exception(msg)
+            raise CythonException(msg)
 
 
 class DTWSettings:
@@ -130,7 +124,7 @@ class DTWSettings:
         :param inner_dist: Distance between two points in the time series.
             One of 'squared euclidean' (default), 'euclidean'.
             When using the pure Python implementation (thus use_c=False) then the argument can also
-            be an object that has as callable arguments 'inner_dist' and 'result'. The 'inner_dist'
+            be an object that has as callable arguments 'inner_dist', 'result', and 'inner_val'. The 'inner_dist'
             function computes the distance between two points (e.g., squared euclidean) and 'result'
             is the function to apply to the final distance (e.g., sqrt when using squared euclidean).
             You can also inherit from the 'innerdistance.CustomInnerDist' class.
@@ -165,6 +159,11 @@ class DTWSettings:
         else:
             self.adj_penalty = inner_val(self.penalty)
 
+        if self.max_length_diff is None:
+            self.adj_max_length_diff = inf
+        else:
+            self.adj_max_length_diff = self.max_length_diff
+
     @staticmethod
     def for_dtw(s1, s2, **kwargs):
         settings = DTWSettings(**kwargs)
@@ -196,7 +195,8 @@ class DTWSettings:
         window = 0 if self.window is None else self.window
         max_dist = 0 if self.max_dist is None else self.max_dist
         max_step = 0 if self.max_step is None else self.max_step
-        max_length_diff = 0 if self.max_length_diff is None else self.max_length_diff
+        max_length_diff = 0 if (self.max_length_diff is None or math.isinf(self.max_length_diff)) \
+            else self.max_length_diff
         penalty = 0 if self.penalty is None else self.penalty
         psi = 0 if self.psi is None else self.psi
         use_pruning = 0 if self.use_pruning is None else self.use_pruning
@@ -282,19 +282,16 @@ def distance(s1, s2, only_ub=False, **kwargs):
             return distance_fast(s1, s2, **s.kwargs())
     idist_fn, result_fn, ival_fn = innerdistance.inner_dist_fns(s.inner_dist, use_ndim=s.use_ndim)
     r, c = len(s1), len(s2)
-    if s.max_length_diff is not None and abs(r - c) > s.max_length_diff:
+    if s.adj_max_length_diff is not None and abs(r - c) > s.adj_max_length_diff:
         return inf
     if only_ub:
         return ival_fn(ub_euclidean(s1, s2, inner_dist=s.inner_dist))
 
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(s.psi)
     length = min(c + 1, abs(r - c) + 2 * (s.window - 1) + 1 + 1 + 1)
-    # print("length (py) = {}".format(length))
     dtw = array.array('d', [inf] * (2 * length))
     sc = 0
     ec = 0
-    ec_next = 0
-    smaller_found = False
     for i in range(psi_2b + 1):
         dtw[i] = 0
     skip = 0
@@ -363,7 +360,7 @@ def distance(s1, s2, only_ub=False, **kwargs):
 
 
 def distance_fast(s1, s2, only_ub=False, **kwargs):
-    """Same as :meth:`distance` but with different defaults to chose the fast C-based version of
+    """Same as :meth:`distance` but with different defaults to choose the fast C-based version of
     the implementation (use_c = True).
 
     Note: the series are expected to be arrays of the type ``double``.
@@ -423,7 +420,7 @@ def warping_paths(s1, s2, psi_neg=True, **kwargs):
     :param s1: First sequence
     :param s2: Second sequence
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
-    :param kwargs: see :class:`DTWSettings`
+    :param kwargs: See arguments for :class:`DTWSettings`
     :returns: (DTW distance, DTW matrix)
     """
     s = DTWSettings.for_dtw(s1, s2, **kwargs)
@@ -433,7 +430,7 @@ def warping_paths(s1, s2, psi_neg=True, **kwargs):
         raise NumpyException("Numpy is required for the warping_paths method")
     cost, result_fn, ival_fn = innerdistance.inner_dist_fns(s.inner_dist, use_ndim=s.use_ndim)
     r, c = len(s1), len(s2)
-    if s.max_length_diff is not None and abs(r - c) > s.max_length_diff:
+    if s.adj_max_length_diff is not None and abs(r - c) > s.adj_max_length_diff:
         return inf
     psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(s.psi)
     dtw = np.full((r + 1, c + 1), inf)
@@ -442,12 +439,9 @@ def warping_paths(s1, s2, psi_neg=True, **kwargs):
         dtw[0, i] = 0
     for i in range(psi_1b + 1):
         dtw[i, 0] = 0
-    i0 = 1
     i1 = 0
     sc = 0
     ec = 0
-    smaller_found = False
-    ec_next = 0
     for i in range(r):
         i0 = i
         i1 = i + 1
@@ -521,16 +515,18 @@ def warping_paths(s1, s2, psi_neg=True, **kwargs):
 def warping_paths_fast(s1, s2, psi_neg=True, compact=False, **kwargs):
     """Fast C version of :meth:`warping_paths`.
 
-    Additional parameters:
-     :param compact: Return a compact warping paths matrix.
+    :param s1: See :meth:`warping_paths`
+    :param s2: See :meth:`warping_paths`
+    :param psi_neg: See :meth:`warping_paths`
+    :param compact: Return a compact warping paths matrix.
         Size is ((l1 + 1), min(l2 + 1, abs(l1 - l2) + 2*window + 1)).
         This option is meant for internal use. For more details, see the C code.
+    :param kwargs: See :meth:`warping_paths`
     """
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     r = len(s1)
     c = len(s2)
-    s = DTWSettings(**kwargs)
     _check_library(raise_exception=True)
     settings = DTWSettings.for_dtw(s1, s2, **kwargs)
     if compact:
@@ -698,7 +694,7 @@ def distance_matrix(s, block=None, compact=False, parallel=False,
         the pure Python version (thus not the C-based implementations).
     :param only_triu: Only compute upper traingular matrix of warping paths.
         This is useful if s1 and s2 are the same series and the matrix would be mirrored around the diagonal.
-    :param kwargs: Arguments for :class:`DTWSettings`
+    :param kwargs: See arguments for :class:`DTWSettings`
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
     settings = DTWSettings(**kwargs)
@@ -728,9 +724,6 @@ def distance_matrix(s, block=None, compact=False, parallel=False,
         ndim = s.detected_ndim
     else:
         ndim = 1
-    if settings.max_length_diff is None:
-        max_length_diff = inf
-    dists = None
     if settings.use_c:
         for k, v in dist_opts.items():
             if v is None:
@@ -925,7 +918,7 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
     if not use_mp and parallel:
         try:
             _check_library(raise_exception=True, include_omp=True)
-        except Exception:
+        except CythonException:
             use_mp = True
     return distance_matrix(s, max_dist=max_dist, use_pruning=use_pruning,
                            max_length_diff=max_length_diff, window=window,
@@ -1035,8 +1028,10 @@ def warp(from_s, to_s, path=None, **kwargs):
 def best_path(paths, row=None, col=None, use_max=False):
     """Compute the optimal path from the nxm warping paths matrix.
 
+    :param paths: Warping paths matrix
     :param row: If given, start from this row (instead of lower-right corner)
     :param col: If given, start from this column (instead of lower-right corner)
+    :param use_max: Find maximal path instead of minimal path
     :return: Array of (row, col) representing the best path
     """
     if use_max:
@@ -1101,11 +1096,12 @@ def warping_path_args_to_c(s1, s2, **kwargs):
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     _check_library(raise_exception=True)
+
     def get(key):
         value = kwargs.get(key, None)
         if value is None:
             return 0
         return value
     settings_kwargs = {key: get(key) for key in
-        ['window', 'max_dist', 'max_step', 'max_length_diff', 'penalty', 'psi']}
+                       ['window', 'max_dist', 'max_step', 'max_length_diff', 'penalty', 'psi']}
     return s1, s2, settings_kwargs

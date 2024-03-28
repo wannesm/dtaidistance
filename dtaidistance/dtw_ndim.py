@@ -6,7 +6,7 @@ dtaidistance.dtw_ndim
 Dynamic Time Warping (DTW) for N-dimensional series.
 
 All the functionality in this subpackage is also available in
-the dtw subpackage with argument use_ndim.
+the dtw subpackage with argument ``use_ndim=True``.
 
 :author: Wannes Meert
 :copyright: Copyright 2017-2024 KU Leuven, DTAI Research Group.
@@ -15,51 +15,16 @@ the dtw subpackage with argument use_ndim.
 """
 import os
 import logging
-import math
-import array
 
 from . import dtw
 from . import ed
-from .dtw import _check_library, SeriesContainer, _distance_matrix_idxs, distances_array_to_matrix,\
-    _distance_matrix_length, _complete_block
+from .dtw import SeriesContainer
 from . import util_numpy
 from . import innerdistance
-from .exceptions import NumpyException
-
-try:
-    if util_numpy.test_without_numpy():
-        raise ImportError()
-    import numpy as np
-    array_min = np.min
-except ImportError:
-    np = None
-    array_min = min
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 dtaidistance_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir)
-
-try:
-    from . import dtw_cc
-except ImportError:
-    # logger.info('C library not available')
-    dtw_cc = None
-
-dtw_cc_omp = None
-try:
-    from . import dtw_cc_omp
-except ImportError:
-    logger.debug('DTAIDistance C-OMP library not available')
-    dtw_cc_omp = None
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    logger.info('tqdm library not available')
-    tqdm = None
-
-
-inf = float("inf")
 
 
 def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
