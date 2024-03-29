@@ -1,7 +1,5 @@
 version: 2
 
-requirements_file: requirements.txt
-
 build:
   os: ubuntu-22.04
   tools:
