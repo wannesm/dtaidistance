@@ -108,7 +108,7 @@ class DTWSettings:
         """Settings for Dynamic Time Warping distance methods.
 
         :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
-            It includes the diagonal, meaning that an Euclidean distance is obtained by setting
+            It includes the diagonal, meaning that Euclidean distance is obtained by setting
             ``window=1.``
         :param max_dist: Stop if the returned values will be larger than this value
         :param max_step: Do not allow steps larger than this value
@@ -551,7 +551,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                            gamma=1, tau=0, delta=0, delta_factor=1,
                            use_c=False):
     """
-    Dynamic Time Warping warping paths using an affinity/similarity matrix instead of a distance matrix.
+    Dynamic Time Warping paths using an affinity/similarity matrix instead of a distance matrix.
 
     The full matrix of all warping paths (or accumulated cost matrix) is built.
 
@@ -563,6 +563,11 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     :param penalty: see :meth:`distance`
     :param psi: see :meth:`distance`
     :param psi_neg: Replace values that should be skipped because of psi-relaxation with -1.
+    :param gamma:
+    :param tau:
+    :param delta:
+    :param delta_factor:
+    :param use_c:
     :returns: (DTW distance, DTW matrix)
     """
     if use_c:
@@ -584,7 +589,6 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
         dtw[0, i] = 0
     for i in range(psi_1b + 1):
         dtw[i, 0] = 0
-    i0 = 1
     i1 = 0
     for i in range(r):
         i0 = i
@@ -641,10 +645,21 @@ def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
                                 compact=False, use_ndim=False):
     """Fast C version of :meth:`warping_paths`.
 
-    Additional parameters:
-     :param compact: Return a compact warping paths matrix.
+    :param s1:
+    :param s2:
+    :param window:
+    :param only_triu:
+    :param penalty:
+    :param psi:
+    :param psi_neg:
+    :param gamma:
+    :param tau:
+    :param delta:
+    :param delta_factor:
+    :param compact: Return a compact warping paths matrix.
         Size is ((l1 + 1), min(l2 + 1, abs(l1 - l2) + 2*window + 1)).
         This option is meant for internal use. For more details, see the C code.
+    :param use_ndim:
     """
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
@@ -657,7 +672,8 @@ def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
         wps_compact = np.full((len(s1)+1, wps_width), -inf)
         if use_ndim:
             d = dtw_cc.warping_paths_compact_ndim_affinity(wps_compact, s1, s2, only_triu,
-                                                           gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
+                                                           gamma, tau, delta, delta_factor, psi_neg,
+                                                           **settings.c_kwargs())
         else:
             d = dtw_cc.warping_paths_compact_affinity(wps_compact, s1, s2, only_triu,
                                                       gamma, tau, delta, delta_factor, psi_neg, **settings.c_kwargs())
@@ -911,7 +927,7 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=No
     fast parallized C version (use_c = True and parallel = True).
 
     This method uses the C-compiled version of the DTW algorithm and uses parallelization.
-    By default this is the OMP C parallelization. If the OMP functionality is not available
+    By default, this is the OMP C parallelization. If the OMP functionality is not available
     the parallelization is changed to use Python's multiprocessing library.
     """
     _check_library(raise_exception=True, include_omp=False)
@@ -988,7 +1004,7 @@ def warping_path_penalty(s1, s2, penalty_post=0, **kwargs):
     :param s2: Second sequence
     :param penalty_post: Penalty to be added after path calculation, for compression/extension
 
-    :returns [DTW distance, best path, DTW distance between 2 path elements, DTW matrix]
+    :returns DTW distance, the best path, DTW distance between 2 path elements, DTW matrix
     """
     dist, paths = warping_paths(s1, s2, **kwargs)
     path = best_path(paths)

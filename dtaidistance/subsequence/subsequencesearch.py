@@ -119,12 +119,12 @@ class SSMatches:
     def __getitem__(self, key):
         if isinstance(key, slice):
             start = 0 if key.start is None else key.start
-            return [SSMatch(kip+start, self.ss) for kip, (v, i) in
+            return [SSMatch(kip+start, self.ss) for kip, (_v, _i) in
                     enumerate(self.ss.kbest_distances[key])]
         return SSMatch(key, self.ss)
 
     def __iter__(self):
-        for ki, (v, i) in enumerate(self.ss.kbest_distances[:self.k]):
+        for ki, (_v, _i) in enumerate(self.ss.kbest_distances[:self.k]):
             yield SSMatch(ki, self.ss)
 
     def __len__(self):
@@ -178,7 +178,7 @@ class SubsequenceSearch:
 
         self.keep_all_distances = keep_all_distances
         # if self.use_lb and not self.keep_all_distances:
-        #     raise ValueError("If use_lb is true, then keep_all_distances should also be true.")
+        #     raise ValueError("If argument use_lb is true, then keep_all_distances should also be true.")
 
     def reset(self):
         self.distances = None
@@ -280,7 +280,7 @@ class SubsequenceSearch:
         """Return the k best matches.
 
         It is recommended to set k to a value, and not None.
-        If k is set to None, all comparisons are kept and returned. Also no early
+        If k is set to None, all comparisons are kept and returned. Also, no early
         stopping is applied in case k is None.
 
         :param k: Number of best matches to return (default is 1)
@@ -291,7 +291,7 @@ class SubsequenceSearch:
         #     return [SSMatch(best_idx, self) for best_idx in range(len(self.distances))]
         # if self.keep_all_distances:
         #     best_idxs = np.argpartition(self.distances, k)
-            # return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
+        #     return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
         # distances = reversed(sorted(self.h))
         # return [SSMatch(best_idx, self) for dist, best_idx in distances]
         return SSMatches(self)

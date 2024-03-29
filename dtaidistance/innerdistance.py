@@ -16,6 +16,10 @@ import logging
 from . import util
 from . import util_numpy
 
+# The available inner distances, with their integer identifier are:
+# - 0: squared euclidean
+# - 1: euclidean
+
 try:
     if util_numpy.test_without_numpy():
         raise ImportError()
@@ -131,7 +135,6 @@ class CustomInnerDist:
 
 
 def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
-    use_cls = None
     if inner_dist == "squared euclidean":
         if use_ndim:
             use_cls = SquaredEuclideanNdim
@@ -163,4 +166,3 @@ def to_c(inner_dist):
         raise AttributeError('Custom inner distance functions are not supported for the fast C implementation')
     else:
         raise AttributeError('Unknown inner_dist: {}'.format(inner_dist))
-

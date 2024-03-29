@@ -6,12 +6,11 @@ dtaidistance.ed
 Euclidean Distance (ED)
 
 :author: Wannes Meert
-:copyright: Copyright 2020 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2020-2024 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
 import logging
-import math
 
 from . import util_numpy
 from . import innerdistance
@@ -55,6 +54,7 @@ def distance(s1, s2, inner_dist=innerdistance.default, use_ndim=False):
     :param s1: Sequence of numbers
     :param s2: Sequence of numbers
     :param inner_dist: Inner distance function between two values
+    :param use_ndim: Use n-dimensional methods
     :return: Euclidean distance
     """
     idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist=inner_dist, use_ndim=use_ndim)

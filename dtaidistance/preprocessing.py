@@ -28,6 +28,7 @@ def differencing(series, smooth=None, diff_args=None):
         import numpy as np
     except ImportError:
         raise NumpyException("Differencing requires Numpy")
+    axis = 0
     if isinstance(series, np.ndarray):
         if len(series.shape) == 1:
             axis = 0
