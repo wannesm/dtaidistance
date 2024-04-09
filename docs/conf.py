@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.mathjax']
+              'sphinx.ext.mathjax']
 
 autoclass_content = 'both'
 
@@ -157,6 +157,3 @@ texinfo_documents = [
      author, 'DTAIDistance', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-

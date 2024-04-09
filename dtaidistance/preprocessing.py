@@ -45,6 +45,9 @@ def differencing(series, smooth=None, diff_args=None):
 def smoothing(series, smooth):
     """Smooth the series.
 
+    Since version 2.4 the filter uses Gustafsson’s method for handling the edges
+    of the series.
+
     :param series: Time series (must be numpy compatible)
     :param smooth: Smooth the series by removing the highest frequencies.
         The cut-off frequency is computed using the `smooth` argument. This
@@ -106,6 +109,7 @@ def mixedlinearlogdomain(series, c=10):
     x            if x<=c
     c+ln(x-c+1)  if x>c
 
+    :type c: Union[int,list]
     :param series: Time series (must be numpy compatible)
     :param c: Switch between linear to log domain at this value, should be <= 1.
         If two numbers are given as a tuple, the first one is used for positive

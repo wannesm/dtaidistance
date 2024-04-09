@@ -138,6 +138,10 @@ class SSMatches:
 
 
 class SubsequenceSearch:
+    """
+    :type distances: Optional[Iterable]
+    """
+
     def __init__(self, query, s, dists_options=None, use_lb=True, keep_all_distances=False,
                  max_dist=None, max_value=None, use_c=None, use_ndim=None):
         """Search the best matching (subsequence) time series compared to a given time series.
