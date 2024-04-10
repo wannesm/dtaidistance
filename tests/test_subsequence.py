@@ -12,7 +12,7 @@ from dtaidistance.exceptions import MatplotlibException
 from dtaidistance.dtw import lb_keogh
 from dtaidistance import dtw, dtw_ndim
 
-directory = None
+directory = Path(os.environ['TESTDIR']) if 'TESTDIR' in os.environ else None
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
 
 
@@ -41,6 +41,18 @@ def test_dtw_subseq1():
                 plt.close()
         best_k = sa.kbest_matches(k=3)
         assert match.path == [(0, 2), (1, 3), (2, 4)]
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+
+
+@numpyonly
+def test_dtw_subseq1_maxrangefactor():
+    with util_numpy.test_uses_numpy() as np:
+        query = np.array([1., 2, 0])
+        series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0])
+        sa = subsequence_alignment(query, series)
+        best_k = list(sa.best_matches(max_rangefactor=1.2))
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        best_k = list(sa.best_matches_fast(max_rangefactor=1.2))
         assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
 
 

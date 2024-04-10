@@ -80,12 +80,15 @@ class SymbolAlignment:
         self.symbols = best_patterns
         return best_patterns
 
-    def align(self, series, max_overlap=None):
+    def align(self, series, max_rangefactor=None, max_overlap=None):
         """Perform alignment.
 
         Only one motif is matched to a subsequence. No aggregation within the same subsequence.
 
         :param series: List of time series or a numpy array
+        :param max_rangefactor: the range between the first (best) match and the last match
+            can be at most a factor of ``maxrangefactor``. For example, if the first match has
+            value v_f, then the last match has a value ``v_l < v_f*maxfactorrange``.
         :param max_overlap: Maximal overlap when matching codewords.
             If not given, this is based on maxcompression and maxexpansion.
         """
@@ -103,9 +106,9 @@ class SymbolAlignment:
             for midx in range(len(self.codebook)):
                 medoidd = np.array(self.codebook[midx])
                 sa = subsequence_alignment(medoidd, curseries, use_c=self.use_c)
-                for match in sa.kbest_matches(k=None,
-                                              minlength=math.floor(len(medoidd)*self.maxcompression),
-                                              maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
+                for match in sa.best_matches(max_rangefactor=max_rangefactor,
+                                             minlength=math.floor(len(medoidd)*self.maxcompression),
+                                             maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
                     patterns.append((midx, match.segment[0], match.segment[1]+1,
                                      curseries[match.segment[0]:match.segment[1]+1], match.value))
                     max_value = max(max_value, match.value)
@@ -151,10 +154,11 @@ class SymbolAlignment:
         self.symbols = best_patterns
         return best_patterns
 
-    def align_fast(self, series):
+    def align_fast(self, *args, **kwargs):
+        """See :meth:`align`."""
         use_c = self.use_c
         self.use_c = True
-        result = self.align(series)
+        result = self.align(*args, **kwargs)
         self.use_c = use_c
         return result
 
