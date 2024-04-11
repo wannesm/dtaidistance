@@ -48,11 +48,22 @@ def test_dtw_subseq1():
 def test_dtw_subseq1_maxrangefactor():
     with util_numpy.test_uses_numpy() as np:
         query = np.array([1., 2, 0])
-        series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0])
+        series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         sa = subsequence_alignment(query, series)
         best_k = list(sa.best_matches(max_rangefactor=1.2))
         assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
         best_k = list(sa.best_matches_fast(max_rangefactor=1.2))
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+
+
+def test_dtw_subseq1_knee():
+    with util_numpy.test_uses_numpy() as np:
+        query = np.array([1., 2, 0])
+        series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        sa = subsequence_alignment(query, series)
+        best_k = list(sa.best_matches_knee(alpha=0.3))
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        best_k = list(sa.best_matches_knee_fast(alpha=0.3))
         assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
 
 

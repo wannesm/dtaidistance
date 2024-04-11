@@ -365,3 +365,33 @@ def argmax(a):
             imax, vmax = i, v
     return imax
 
+
+class DetectKnee:
+    def __init__(self, alpha=0.3):
+        """EWMA based knee detection.
+
+        https://cseweb.ucsd.edu//~snoeren/papers/plush-usenix06.pdf
+        """
+        self.cnt = 0
+        self.arrvar_fraction = 4
+        self.alpha = alpha
+        self.arr = None
+        self.arrvar = None
+        self.max_thr = None
+
+    def dostop(self, value):
+        if self.arr is None:
+            self.arr = value
+            self.arrvar = 0
+            return False
+
+        rvalue = False
+        self.max_thr = self.arr + self.arrvar_fraction * self.arrvar
+        # We need to see at least three instances to compute a reasonable arrvar
+        if self.cnt > 2 and value > self.max_thr:
+            rvalue = True
+
+        self.arrvar = self.alpha * max(0, value - self.arr) + (1.0 - self.alpha) * self.arrvar
+        self.arr = self.alpha * value + (1.0 - self.alpha) * self.arr
+        self.cnt += 1
+        return rvalue

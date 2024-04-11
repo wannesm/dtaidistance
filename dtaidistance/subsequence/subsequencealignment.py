@@ -238,19 +238,50 @@ class SubsequenceAlignment:
         :return:
         """
         return self._best_matches(k=None, max_rangefactor=max_rangefactor,
+                                  detectknee_alpha=None,
                                   overlap=overlap,
                                   minlength=minlength, maxlength=maxlength)
 
-    def _best_matches(self, k=None, overlap=0, minlength=2, maxlength=None, max_rangefactor=None):
+    def best_matches_knee_fast(self, *args, **kwargs):
+        """See :meth:`best_matches_knee`."""
+        use_c = self.use_c
+        self.use_c = True
+        result = self.best_matches_knee(*args, **kwargs)
+        self.use_c = use_c
+        return result
+
+    def best_matches_knee(self, alpha=0.3, overlap=0, minlength=2, maxlength=None):
+        """Yields the next best match. Stops when the current match is larger than
+        maxrangefactor times the first match.
+
+        :param alpha: The factor for the exponentially moving average that keeps
+            track of the curve to detect the knee. The higher, the more sensitive
+            to recent values (and differences).
+        :param overlap: Matches cannot overlap unless ``overlap > 0``.
+        :param minlength: Minimal length of the matched sequence.
+        :param maxlength: Maximal length of the matched sequence.
+        :return:
+        """
+        return self._best_matches(k=None, max_rangefactor=None,
+                                  detectknee_alpha=alpha,
+                                  overlap=overlap,
+                                  minlength=minlength, maxlength=maxlength)
+
+    def _best_matches(self, k=None, overlap=0, minlength=2, maxlength=None,
+                      max_rangefactor=None, detectknee_alpha=None):
         self.align()
         matching = np.array(self.matching)
         maxv = np.ceil(np.max(matching) + 1)
         matching[:min(len(self.query) - 1, overlap)] = maxv
         ki = 0
         max_dist = np.inf
+        if detectknee_alpha is not None:
+            dk = util.DetectKnee(alpha=detectknee_alpha)
+        else:
+            dk = None
         while k is None or ki < k:
             best_idx = np.argmin(matching)
-            if best_idx == 0 or np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
+            if np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
                 # No more matches found
                 break
             if max_rangefactor is not None:
@@ -258,6 +289,9 @@ class SubsequenceAlignment:
                     max_dist = matching[best_idx] * max_rangefactor
                 elif matching[best_idx] > max_dist:
                     # Remaining matches are larger than a factor of the first match
+                    break
+            if detectknee_alpha is not None:
+                if dk.dostop(matching[best_idx]):
                     break
             match = self.get_match(best_idx)
             b, e = match.segment

@@ -80,7 +80,7 @@ class SymbolAlignment:
         self.symbols = best_patterns
         return best_patterns
 
-    def align(self, series, max_rangefactor=None, max_overlap=None):
+    def align(self, series, max_rangefactor=None, detectknee_alpha=None, max_overlap=None):
         """Perform alignment.
 
         Only one motif is matched to a subsequence. No aggregation within the same subsequence.
@@ -106,9 +106,15 @@ class SymbolAlignment:
             for midx in range(len(self.codebook)):
                 medoidd = np.array(self.codebook[midx])
                 sa = subsequence_alignment(medoidd, curseries, use_c=self.use_c)
-                for match in sa.best_matches(max_rangefactor=max_rangefactor,
-                                             minlength=math.floor(len(medoidd)*self.maxcompression),
-                                             maxlength=math.ceil(len(medoidd)*self.maxexpansion)):
+                if max_rangefactor is not None:
+                    itr = sa.best_matches(max_rangefactor=max_rangefactor,
+                                          minlength=math.floor(len(medoidd) * self.maxcompression),
+                                          maxlength=math.ceil(len(medoidd) * self.maxexpansion))
+                else:
+                    itr = sa.best_matches_knee(alpha=detectknee_alpha,
+                                          minlength=math.floor(len(medoidd) * self.maxcompression),
+                                          maxlength=math.ceil(len(medoidd) * self.maxexpansion))
+                for match in itr:
                     patterns.append((midx, match.segment[0], match.segment[1]+1,
                                      curseries[match.segment[0]:match.segment[1]+1], match.value))
                     max_value = max(max_value, match.value)
@@ -198,7 +204,7 @@ class SymbolAlignment:
         if figsize is None:
             figsize = (12, 8)
         sc = SeriesContainer(series)
-        fig, axs = plt.subplots(nrows=len(sc), ncols=1, sharex=True, sharey="col", figsize=figsize)
+        fig, axs = plt.subplots(nrows=len(sc), ncols=1, sharex='all', sharey='col', figsize=figsize)
         if len(sc) == 1:
             axs = [axs]
         for r in range(series.shape[0]):
