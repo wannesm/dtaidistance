@@ -88,6 +88,51 @@ def smoothing(series, smooth):
     return series
 
 
+def derivative(series, smooth=None, diff_args=None):
+    """Derivative series.
+
+    Based on Keogh, E. and Pazzani, M. "Derivative Dynamic Time Warping".
+    SIAM International Conference on Data Mining, 2002.
+
+    :param series: Time series (must be numpy compatible)
+    :param smooth: Smooth the derivative series by removing the highest frequencies.
+        The cut-off frequency is computed using the `smooth` argument. This
+        fraction (a number between 0.0 and 0.5) of the highest frequencies is
+        removed.
+    :param diff_args: Arguments to pass the numpy.diff
+    :return: Differenced Numpy array of length len(series) - 1
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise NumpyException("Differencing requires Numpy")
+    axis = 0
+    if isinstance(series, np.ndarray):
+        if len(series.shape) == 1:
+            axis = 0
+        else:
+            axis = 1
+
+    if axis == 0:
+        qim = series[:-2]
+        qi = series[1:-1]
+        qip = series[2:]
+    else:
+        raise NotImplementedError("Derivative for axis!=0 is not yet implemented")
+
+    seriesd = np.zeros(series.shape[axis])
+    seriesd[1:-1] = np.add(np.subtract(qi, qim), (np.subtract(qip, qim) / 2)) / 2
+    if axis == 0:
+        seriesd[0] = series[1] - series[0]
+        seriesd[-1] = series[-1] - series[-2]
+    else:
+        raise NotImplementedError("Derivative for axis!=0 is not yet implemented")
+
+    if smooth is not None:
+        seriesd = smoothing(seriesd, smooth)
+    return seriesd
+
+
 def logdomain(series):
     """Transform to the log domain and retain the sign of the signal.
 
