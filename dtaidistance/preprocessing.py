@@ -88,18 +88,21 @@ def smoothing(series, smooth):
     return series
 
 
-def derivative(series, smooth=None, diff_args=None):
+def derivative(series, smooth=None):
     """Derivative series.
 
     Based on Keogh, E. and Pazzani, M. "Derivative Dynamic Time Warping".
     SIAM International Conference on Data Mining, 2002.
+
+    The smoothing argument is used to smooth after computing the derivative. To apply the
+    smoothing as explained in Keogh et al. (2002) one should do exponential smoothing before
+    applying this method.
 
     :param series: Time series (must be numpy compatible)
     :param smooth: Smooth the derivative series by removing the highest frequencies.
         The cut-off frequency is computed using the `smooth` argument. This
         fraction (a number between 0.0 and 0.5) of the highest frequencies is
         removed.
-    :param diff_args: Arguments to pass the numpy.diff
     :return: Differenced Numpy array of length len(series) - 1
     """
     try:
