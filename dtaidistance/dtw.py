@@ -108,10 +108,17 @@ class DTWSettings:
         """Settings for Dynamic Time Warping distance methods.
 
         :param window: Only allow for maximal shifts from the two diagonals smaller than this number.
+            The maximally allowed warping, thus difference between indices i in series 1 and j in series 2,
+            is thus |i-j| < 2*window + |len(s1) - len(s2)|.
             It includes the diagonal, meaning that Euclidean distance is obtained by setting
             ``window=1.``
+            If the two series are of equal length, this means that the band you see appearing
+            on the cumulative cost matrix is of width 2*window-1. In other definitions of DTW
+            this is referred to as the window.
         :param max_dist: Stop if the returned values will be larger than this value
-        :param max_step: Do not allow steps larger than this value
+        :param max_step: Do not allow steps larger than this value.
+            If the difference between two values in the two series is larger than this, thus
+            if |s1[i]-s2[j]| > max_step, replace that value with infinity.
         :param max_length_diff: Return infinity if length of two series is larger
         :param penalty: Penalty to add if compression or expansion is applied
         :param psi: Psi relaxation parameter (ignore start and end of matching).
