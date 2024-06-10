@@ -799,7 +799,7 @@ def distance_matrix(s, block=None, compact=False, parallel=False,
                         f'use_c={s.use_c}, dtw_cc_omp={dtw_cc_omp}, use_mp={use_mp}')
 
     exp_length = _distance_matrix_length(block, len(s))
-    assert len(dists) == exp_length, "len(dists)={} != {}".format(len(dists), exp_length)
+    assert len(dists) == exp_length, "len(dists)={} != {} (block = {})".format(len(dists), exp_length, block)
     if compact:
         return dists
 

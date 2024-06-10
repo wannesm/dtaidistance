@@ -103,15 +103,18 @@ def distance_matrix_ndim(cur, int ndim, block=None, **kwargs):
     cdef Py_ssize_t block_re=0
     cdef Py_ssize_t block_cb=0
     cdef Py_ssize_t block_ce=0
+    cdef bint block_triu=True
     cdef Py_ssize_t ri = 0
     if block is not None and block != 0.0:
         block_rb = block[0][0]
         block_re = block[0][1]
         block_cb = block[1][0]
         block_ce = block[1][1]
+        if len(block) > 2:
+            block_triu = block[2]
 
     settings = DTWSettings(**kwargs)
-    cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce)
+    cdef DTWBlock dtwblock = DTWBlock(rb=block_rb, re=block_re, cb=block_cb, ce=block_ce, triu=block_triu)
     length = distance_matrix_length(dtwblock, len(cur))
 
     # Correct block
