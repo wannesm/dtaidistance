@@ -116,7 +116,7 @@ if __name__ == "__main__":
     logger.addHandler(sh)
     logger.propagate = 0
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
-    print(f"Saving files to {directory}")
+    print("Saving files to {}".format(directory))
     # test_bug1()
     test_bug2()
     # test_bug3()

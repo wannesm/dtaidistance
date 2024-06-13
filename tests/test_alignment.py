@@ -150,7 +150,7 @@ def test_substitution_function():
 
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
-    print(f"Saving files to {directory}")
+    print("Saving files to {}".format(directory))
     test_sequences1()
     test_sequences2()
     test_sequences3()

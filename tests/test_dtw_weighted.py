@@ -105,8 +105,8 @@ def test_distance2():
         prototypeidx = 0
         ml_values, cl_values, clfs, importances = \
             dtww.series_to_dt(s, l, prototypeidx, max_clfs=50, savefig=savefig)
-        logger.debug(f"ml_values = {dict(ml_values)}")
-        logger.debug(f"cl_values = {dict(cl_values)}")
+        # logger.debug(f"ml_values = {dict(ml_values)}")
+        # logger.debug(f"cl_values = {dict(cl_values)}")
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values, only_max=False, strict_cl=True)
 
         if not dtwvis.test_without_visualization():
@@ -165,8 +165,8 @@ def test_distance4():
         prototypeidx = 0
         ml_values, cl_values, clf, importances = \
             dtww.series_to_dt(s, l, prototypeidx, window=2, min_ig=0.1, savefig=savefig)
-        logger.debug(f"ml_values = {dict(ml_values)}")
-        logger.debug(f"cl_values = {dict(cl_values)}")
+        # logger.debug(f"ml_values = {dict(ml_values)}")
+        # logger.debug(f"cl_values = {dict(cl_values)}")
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
@@ -191,8 +191,8 @@ def test_distance5():
 
         prototypeidx = 0
         ml_values, cl_values, clf, importances = dtww.series_to_dt(s, l, prototypeidx, window=4)
-        logger.debug(f"ml_values = {dict(ml_values)}")
-        logger.debug(f"cl_values = {dict(cl_values)}")
+        # logger.debug(f"ml_values = {dict(ml_values)}")
+        # logger.debug(f"cl_values = {dict(cl_values)}")
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:
@@ -218,8 +218,8 @@ def test_distance6():
         labels[l == l[prototypeidx]] = 1
         ml_values, cl_values, clf, importances = \
             dtww.series_to_dt(s, labels, prototypeidx, window=0, min_ig=0.1, savefig=savefig)
-        logger.debug(f"ml_values = {dict(ml_values)}")
-        logger.debug(f"cl_values = {dict(cl_values)}")
+        # logger.debug(f"ml_values = {dict(ml_values)}")
+        # logger.debug(f"cl_values = {dict(cl_values)}")
         weights = dtww.compute_weights_from_mlclvalues(s[prototypeidx], ml_values, cl_values,
                                                        only_max=False, strict_cl=True)
         if directory:

@@ -85,7 +85,7 @@ def test_warping_path1():
         path3 = [(0, 0), (1, 0), (2, 1), (3, 2), (4, 3), (5, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9), (10, 10)]
         assert len(path1) == len(path3)
         assert len(path2) == len(path3)
-        assert d1 == pytest.approx(d2), f"{d1} != {d2}"
+        assert d1 == pytest.approx(d2), "{} != {}".format(d1, d2)
         assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path1, path3))
         assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path2, path3))
 
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     with util_numpy.test_uses_numpy() as np:
         np.set_printoptions(precision=2, linewidth=120)
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
-    print(f"Saving files to {directory}")
+    print("Saving files to {}".format(directory))
     # test_normalize()
     test_normalize2()
     # test_normalize2_prob()
