@@ -16,6 +16,10 @@ import logging
 from . import util
 from . import util_numpy
 
+# The available inner distances, with their integer identifier are:
+# - 0: squared euclidean
+# - 1: euclidean
+
 try:
     if util_numpy.test_without_numpy():
         raise ImportError()
@@ -45,7 +49,13 @@ class SquaredEuclidean:
 
     @staticmethod
     def result(x):
+        if np is not None and isinstance(x, np.ndarray):
+            return np.sqrt(x)
         return math.sqrt(x)
+
+    @staticmethod
+    def inner_val(x):
+        return x*x
 
 
 class SquaredEuclideanNdim:
@@ -58,6 +68,10 @@ class SquaredEuclideanNdim:
     def result(x):
         return np.sqrt(x)
 
+    @staticmethod
+    def inner_val(x):
+        return x * x
+
 
 class Euclidean:
 
@@ -67,6 +81,10 @@ class Euclidean:
 
     @staticmethod
     def result(x):
+        return x
+
+    @staticmethod
+    def inner_val(x):
         return x
 
 
@@ -80,12 +98,19 @@ class EuclideanNdim:
     def result(x):
         return x
 
+    @staticmethod
+    def inner_val(x):
+        return x
+
 
 class CustomInnerDist:
 
     @staticmethod
     def inner_dist(x, y):
         """The distance between two points in the series.
+
+        For n-dimensional data, the two arguments x and y will be vectors.
+        Otherwise, they are scalars.
 
         For example, for default DTW this would be the Squared Euclidean
         distance: (a-b)**2.
@@ -96,14 +121,20 @@ class CustomInnerDist:
     def result(x):
         """The transformation applied to the sum of all inner distances.
 
+        The variable x can be both a single number as a matrix.
+
         For example, for default DTW, which uses Squared Euclidean, this
         would be: sqrt(d). Because d = (a_0-b_0)**2 + (a_1-b_1)**2 ...
         """
         raise Exception("Function not defined")
 
+    @staticmethod
+    def inner_val(x):
+        """The transformation applied to input settings like max_step."""
+        raise Exception("Function not defined")
 
-def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
-    use_cls = None
+
+def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
     if inner_dist == "squared euclidean":
         if use_ndim:
             use_cls = SquaredEuclideanNdim
@@ -117,8 +148,13 @@ def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
     elif hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
         use_cls = inner_dist
     else:
-        raise AttributeError("Unknown value for argument inner_dist")
-    return use_cls.inner_dist, use_cls.result
+        raise AttributeError(f"Unknown value for argument inner_dist: {inner_dist}")
+    return use_cls
+
+
+def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
+    use_cls = inner_dist_cls(inner_dist, use_ndim)
+    return use_cls.inner_dist, use_cls.result, use_cls.inner_val
 
 
 def to_c(inner_dist):
@@ -130,4 +166,3 @@ def to_c(inner_dist):
         raise AttributeError('Custom inner distance functions are not supported for the fast C implementation')
     else:
         raise AttributeError('Unknown inner_dist: {}'.format(inner_dist))
-

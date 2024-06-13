@@ -182,6 +182,7 @@ def detect_ndim(s):
         return 0
     return None
 
+
 class SeriesContainer:
     def __init__(self, series, support_ndim=True):
         """Container for a list of series.
@@ -237,6 +238,11 @@ class SeriesContainer:
                     self.detected_ndim = 1
         else:
             self.series = series
+
+    def set_detected_ndim(self, ndim):
+        if ndim is None:
+            return
+        self.detected_ndim = ndim
 
     def c_data_compat(self):
         """Return a datastructure that the C-component knows how to handle.
@@ -359,3 +365,40 @@ def argmax(a):
             imax, vmax = i, v
     return imax
 
+
+class DetectKnee:
+    def __init__(self, alpha=0.3):
+        """Exponential Weighted Moving Average (EWMA) based knee detection.
+
+        Useful to detect when values start increasing at an increased rate.
+
+        Based on:
+        https://cseweb.ucsd.edu//~snoeren/papers/plush-usenix06.pdf
+
+        :param alpha: EWMA parameter, in [0,1]
+            Low values prefer old values, high values prefer recent values.
+        """
+        self.cnt = 0  # Number of data points seen
+        self.min_points = 3  # Minimal number of data points to see before stopping
+        self.arrvar_fraction = 4
+        self.alpha = alpha  # EWMA parameter
+        self.arr = None
+        self.arrvar = None
+        self.max_thr = None
+
+    def dostop(self, value):
+        if self.arr is None:
+            self.arr = value
+            self.arrvar = 0
+            return False
+
+        rvalue = False
+        self.max_thr = self.arr + self.arrvar_fraction * self.arrvar
+        # We need to see at least min_points instances to compute a reasonable arrvar
+        if self.cnt >= self.min_points and value > self.max_thr:
+            rvalue = True
+
+        self.arrvar = self.alpha * max(0, value - self.arr) + (1.0 - self.alpha) * self.arrvar
+        self.arr = self.alpha * value + (1.0 - self.alpha) * self.arr
+        self.cnt += 1
+        return rvalue

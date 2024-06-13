@@ -6,7 +6,7 @@ dtaidistance.dtw_visualisation
 Dynamic Time Warping (DTW) visualisations.
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2022 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2024 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -100,11 +100,12 @@ def plot_warp(from_s, to_s, new_s, path, filename=None, fig=None, axs=None):
 
 def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
                  series_line_options=None, warping_line_options=None):
-    """Plot the optimal warping between to sequences.
+    """Plot the optimal warping between two sequences.
 
     :param s1: From sequence.
     :param s2: To sequence.
     :param path: Optimal warping path.
+        Can be computed with methods like :meth:`dtaidistance.dtw.warping_path`.
     :param filename: Filename path (optional).
     :param fig: Matplotlib Figure object
     :param axs: Array of Matplotlib axes.Axes objects (length == 2)

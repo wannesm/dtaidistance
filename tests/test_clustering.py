@@ -88,6 +88,28 @@ def test_clustering_tree_ndim():
 
 
 @numpyonly
+def test_kmeans_ndim():
+    with util_numpy.test_uses_numpy() as np:
+        np.random.seed(seed=3980)
+        arr = np.random.random((10, 10, 3))
+
+        model = clustering.kmeans.KMeans(k=2)
+        cl, p = model.fit(arr, use_c=True)
+        assert str(cl) == "{0: {1, 2, 4, 6}, 1: {0, 3, 5, 7, 8, 9}}"
+
+
+@numpyonly
+def test_kmeans_ndim2():
+    with util_numpy.test_uses_numpy() as np:
+        np.random.seed(seed=3980)
+        arr = np.random.random((10, 10, 3))
+
+        model = clustering.kmeans.KMeans(k=2)
+        cl, p = model.fit(arr, use_parallel=False, use_c=True)
+        assert str(cl) == "{0: {1, 2, 4, 6}, 1: {0, 3, 5, 7, 8, 9}}"
+
+
+@numpyonly
 def test_clustering_tree_maxdist():
     with util_numpy.test_uses_numpy() as np:
         s = np.array([

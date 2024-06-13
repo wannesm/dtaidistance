@@ -20,6 +20,11 @@ class ScipyException(PackageMissingException):
         super().__init__(message)
 
 
+class CythonException(PackageMissingException):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class PyClusteringException(PackageMissingException):
     def __init__(self, message):
         super().__init__(message)

@@ -48,14 +48,16 @@ except ImportError:
     dtw_cc = None
 
 
-def subsequence_alignment(query, series, use_c=False):
+def subsequence_alignment(query, series, penalty=0.1, use_c=False):
     """See SubsequenceAligment.
 
     :param query:
     :param series:
+    :param penalty:
+    :param use_c:
     :return:
     """
-    sa = SubsequenceAlignment(query, series, use_c=use_c)
+    sa = SubsequenceAlignment(query, series, penalty=penalty, use_c=use_c)
     sa.align()
     return sa
 
@@ -194,34 +196,112 @@ class SubsequenceAlignment:
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
 
-    def kbest_matches_fast(self, k=1, overlap=0):
+    def kbest_matches_fast(self, *args, **kwargs):
+        """See :meth:`kbest_matches`."""
         use_c = self.use_c
         self.use_c = True
-        result = self.kbest_matches(k=k, overlap=overlap)
+        result = self.kbest_matches(*args, **kwargs)
         self.use_c = use_c
         return result
 
-    def kbest_matches(self, k=1, overlap=0):
+    def kbest_matches(self, k=1, overlap=0, minlength=2, maxlength=None):
         """Yields the next best match. Stops at k matches (use None for all matches).
 
         :param k: Number of matches to yield. None is all matches.
         :param overlap: Matches cannot overlap unless overlap > 0.
+        :param minlength: Minimal length of the matched sequence.
+            If k is set to None, matches with one value can occur if minlength is set to 1.
+        :param maxlength: Maximal length of the matched sequence.
         :return: Yield an SAMatch object
         """
+        return self._best_matches(k=k, overlap=overlap,
+                                  minlength=minlength, maxlength=maxlength)
+
+    def best_matches_fast(self, *args, **kwargs):
+        """See :meth:`best_matches`."""
+        use_c = self.use_c
+        self.use_c = True
+        result = self.best_matches(*args, **kwargs)
+        self.use_c = use_c
+        return result
+
+    def best_matches(self, max_rangefactor=2, overlap=0, minlength=2, maxlength=None):
+        """Yields the next best match. Stops when the current match is larger than
+        maxrangefactor times the first match.
+
+        :param max_rangefactor: The range between the first (best) match and the last match
+            can be at most a factor of ``maxrangefactor``. For example, if the first match has
+            value v_f, then the last match has a value ``v_l < v_f*maxfactorrange``.
+        :param overlap: Matches cannot overlap unless ``overlap > 0``.
+        :param minlength: Minimal length of the matched sequence.
+        :param maxlength: Maximal length of the matched sequence.
+        :return:
+        """
+        return self._best_matches(k=None, max_rangefactor=max_rangefactor,
+                                  detectknee_alpha=None,
+                                  overlap=overlap,
+                                  minlength=minlength, maxlength=maxlength)
+
+    def best_matches_knee_fast(self, *args, **kwargs):
+        """See :meth:`best_matches_knee`."""
+        use_c = self.use_c
+        self.use_c = True
+        result = self.best_matches_knee(*args, **kwargs)
+        self.use_c = use_c
+        return result
+
+    def best_matches_knee(self, alpha=0.3, overlap=0, minlength=2, maxlength=None):
+        """Yields the next best match. Stops when the current match is larger than
+        maxrangefactor times the first match.
+
+        :param alpha: The factor for the exponentially moving average that keeps
+            track of the curve to detect the knee. The higher, the more sensitive
+            to recent values (and differences).
+        :param overlap: Matches cannot overlap unless ``overlap > 0``.
+        :param minlength: Minimal length of the matched sequence.
+        :param maxlength: Maximal length of the matched sequence.
+        :return:
+        """
+        return self._best_matches(k=None, max_rangefactor=None,
+                                  detectknee_alpha=alpha,
+                                  overlap=overlap,
+                                  minlength=minlength, maxlength=maxlength)
+
+    def _best_matches(self, k=None, overlap=0, minlength=2, maxlength=None,
+                      max_rangefactor=None, detectknee_alpha=None):
         self.align()
         matching = np.array(self.matching)
         maxv = np.ceil(np.max(matching) + 1)
         matching[:min(len(self.query) - 1, overlap)] = maxv
         ki = 0
+        max_dist = np.inf
+        if detectknee_alpha is not None:
+            dk = util.DetectKnee(alpha=detectknee_alpha)
+        else:
+            dk = None
         while k is None or ki < k:
             best_idx = np.argmin(matching)
-            if best_idx == 0 or np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
+            if np.isinf(matching[best_idx]) or matching[best_idx] == maxv:
                 # No more matches found
                 break
+            if max_rangefactor is not None:
+                if ki == 0:
+                    max_dist = matching[best_idx] * max_rangefactor
+                elif matching[best_idx] > max_dist:
+                    # Remaining matches are larger than a factor of the first match
+                    break
+            if detectknee_alpha is not None:
+                if dk.dostop(matching[best_idx]):
+                    break
             match = self.get_match(best_idx)
             b, e = match.segment
             cur_overlap = min(overlap, e - b - 1)
             mb, me = best_idx + 1 - (e - b) + cur_overlap, best_idx + 1
+            if ((minlength is not None and e-b+1 < minlength) or
+                    (maxlength is not None and e-b+1 > maxlength)):
+                # Found sequence is too short or too long
+                matching[best_idx] = maxv
+                continue
             if np.isinf(np.max(matching[mb:me])):
                 # No overlapping matches
                 matching[best_idx] = maxv
