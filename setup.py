@@ -253,12 +253,14 @@ class MyBuildExtCommand(BuildExtCommand):
                 l_args['unix'].append(f'-L{p}')
                 l_args['llvm'].append(f'-L{p}')
             # HomeBrew
-            p = Path('/opt/homebrew/include')
+            #p = Path('/opt/homebrew/include')
+            p = Path('/opt/homebrew/opt/libomp/include') # Location changed
             if p.exists():
                 print(f'Adding path to compiler: {p}')
                 c_args['unix'].append(f'-I{p}')
                 c_args['llvm'].append(f'-I{p}')
-            p = Path('/opt/homebrew/lib')
+            #p = Path('/opt/homebrew/lib')
+            p = Path('/opt/homebrew/opt/libomp/lib') # Location changed
             if p.exists():
                 libomp = Path(p / 'libomp.a')
                 if self.distribution.forcestatic and platform.system() == 'Darwin' and libomp.exists():
