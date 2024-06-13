@@ -128,7 +128,7 @@ jobs:
       run: |
         # OpenMP libraries are not installed by default on macos
         clang --version
-        clang --version | grep "\(13\.\|14\.\)"
+        clang --version | grep "\(13\.\|14\.\|15\.\)"
         # hardcoded, not ideal
         # https://mac.r-project.org/openmp/
         # This includes only the dynamic library
@@ -187,7 +187,7 @@ jobs:
       run: |
         # OpenMP libraries are not installed by default on macos
         clang --version
-        clang --version | grep "\(13\.\|14\.\)"
+        clang --version | grep "\(13\.\|14\.\|15\.\)"
         # hardcoded, not ideal
         # https://mac.r-project.org/openmp/
         # This includes only the dynamic library
