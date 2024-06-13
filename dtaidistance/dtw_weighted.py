@@ -294,8 +294,8 @@ def dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_
         clf = classifier()
         cur_features = features[:, idx_s:idx_e]
         clf.fit(cur_features, targets, ignore_features=ignore_features, min_ig=min_ig)
-        logger.debug(f"Learned classifier {len(clfss) + 1}: idx = f{idx}/{idx_s}:f{idx+patternlen}/{idx_e}, "
-                     f"nb nodes = {clf.tree_.nb_nodes}, used features = {clf.tree_.used_features}")
+        # logger.debug(f"Learned classifier {len(clfss) + 1}: idx = f{idx}/{idx_s}:f{idx+patternlen}/{idx_e}, "
+        #              f"nb nodes = {clf.tree_.nb_nodes}, used features = {clf.tree_.used_features}")
         if clf.tree_.nb_nodes <= 1:
             continue
         clf.set_features(list(range(idx_s, idx_e)))
@@ -304,8 +304,8 @@ def dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_
     clfs = []
     for clf_idx, clf in enumerate(clfss):
         score = clf.score(max_kd)
-        logger.debug(f"Clf[{clf_idx:<2}] - Score = {score}, Entropy = {clf.avg_impurity()}, "
-                     f"depth = {clf.tree_.depth}, nbnodes = {clf.tree_.nb_nodes}")
+        # logger.debug(f"Clf[{clf_idx:<2}] - Score = {score}, Entropy = {clf.avg_impurity()}, "
+        #              f"depth = {clf.tree_.depth}, nbnodes = {clf.tree_.nb_nodes}")
         clfs.append((score, -clf.tree_.nb_nodes, clf))
     clfs.sort(reverse=True)
     min_score = clfs[-1][0]
@@ -321,7 +321,7 @@ def dt_windows(features, targets, classifier, patternlen, max_clfs, min_ig, min_
 
     if max_clfs is not None:
         clfs = clfs[:max_clfs]
-    logger.debug(f"Kept {len(clfs)} classifiers with score >= {minallowed_score}, clfs_use = {clfs_use}")
+    # logger.debug(f"Kept {len(clfs)} classifiers with score >= {minallowed_score}, clfs_use = {clfs_use}")
     for clf_score, clf_nbnodes, clf in clfs:
         new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
         # if len(used_features) == 0:
@@ -347,14 +347,14 @@ def dt_onewindow(features, targets, classifier, max_clfs, min_ig, min_purity):
     while not_empty and not (max_clfs is not None and len(clfs) >= max_clfs):
         clf = classifier()
         clf.fit(features, targets, ignore_features=ignore_features, min_ig=min_ig)
-        logger.debug(f"Learned classifier {len(clfs) + 1}: nb nodes = {clf.tree_.nb_nodes}")
+        # logger.debug(f"Learned classifier {len(clfs) + 1}: nb nodes = {clf.tree_.nb_nodes}")
         if clf.tree_.nb_nodes <= 1:
             not_empty = False
             continue
         clfs.append(clf)
         new_cl_values, used_features = decisiontree_to_clweights(clf, min_purity)
         if len(used_features) == 0:
-            logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
+            # logger.debug(f"No features used, ignore all features in tree: {clf.tree_.used_features}")
             used_features.update(clf.tree_.used_features)
         update_cl_values(cl_values, new_cl_values)
         update_importances(importances, new_cl_values, clf_w)
@@ -423,15 +423,16 @@ def decisiontree_to_clweights(clf, min_purity=1.0):
 
 
 def clweights_updatefrompath(cl_values, path):
-    logger.debug(f"Path to CL: {path}")
+    # logger.debug(f"Path to CL: {path}")
     used_features = set()
     for feature, threshold, leq in path:
         index = feature // 2
         dneg = ((feature % 2) == 0)
         if leq:  # f <= t
-            logger.debug(f"Ignore: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
+            # logger.debug(f"Ignore: CL with f{index} <= {threshold} (d is negative={dneg}, feature={feature})")
+            pass
         else:  # f > t
-            logger.debug(f"Accept: CL with f{index} >  {threshold} (d is negative={dneg}, feature={feature})")
+            # logger.debug(f"Accept: CL with f{index} >  {threshold} (d is negative={dneg}, feature={feature})")
             cl_values[index][0 if dneg else 1].append(threshold)
             used_features.add(feature)
     return used_features

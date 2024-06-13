@@ -78,7 +78,7 @@ def smoothing(series, smooth):
         b, a = signal.butter(N=2, Wn=Wn, btype='low', analog=False, output='ba')
     except ValueError as exc:
         raise ValueError("Cannot construct filter, change the smoothing factor. "
-                         f"Requires 0<smooth<0.5 (now {smooth=}, {Wn=})") from exc
+                         "Requires 0<smooth<0.5 (now Smooth={}, Wn={})".format(smooth, Wn)) from exc
     try:
         series = signal.filtfilt(b, a, series, axis=axis, method="gust")
     except ValueError as exc:
