@@ -251,7 +251,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-benchmark pytest-env build cython
-        python -m pip install python-tk
         python -m pip install numpy scipy matplotlib>=3.0.0
     - name: Compile and install
       run: |
@@ -265,7 +264,7 @@ jobs:
     - name: Test with pytest
       run: |
         mv dtaidistance dtaidistance_pkg
-        pytest --ignore=venv --benchmark-skip
+        pytest --ignore=venv --benchmark-skip -c pytest-noviz.ini
         mv dtaidistance_pkg dtaidistance
     - name: Build
       run: |
