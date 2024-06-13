@@ -301,7 +301,7 @@ jobs:
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    needs: [build_unix,build_macos,build_windows,build_sdist]
+    needs: [build_unix,build_macos,build_windows,build_macos_arm,build_sdist]
 
     steps:
       - uses: actions/download-artifact@v2
