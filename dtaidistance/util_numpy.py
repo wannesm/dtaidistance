@@ -1,23 +1,12 @@
 from contextlib import ContextDecorator
 import os
 import logging
+import importlib
 
 from .exceptions import NumpyException, ScipyException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
-
-
-try:
-    import numpy as np
-except ImportError:
-    np = None
-
-
-try:
-    import scipy
-except ImportError:
-    scipy = None
 
 
 def test_without_numpy():
@@ -35,6 +24,10 @@ def test_without_scipy():
 
 
 def verify_np_array(seq):
+    try:
+        np = importlib.import_module("numpy")
+    except ImportError as e:
+        raise NumpyException("Expects numpy to be installed") from e
     if np is not None:
         if isinstance(seq, (np.ndarray, np.generic)):
             if not seq.data.c_contiguous:
@@ -42,32 +35,6 @@ def verify_np_array(seq):
                              "The sequence will be copied.")
                 seq = seq.copy(order='C')
     return seq
-
-
-class NumpyStub:
-    def __init__(self, testwithoutnp):
-        self.testwithoutnp = testwithoutnp
-
-    def __getattr__(self, name):
-        if self.testwithoutnp or np is None:
-            raise NumpyException("Numpy excepted to be available for test. "
-                                 "Set DTAIDISTANCE_TESTWITHOUTNUMPY=1 to test without Numpy.")
-        return getattr(np, name)
-
-
-class ScipyStub:
-    def __init__(self, testwithoutscipy):
-        self.testwithoutscipy = testwithoutscipy
-
-    def __getattr__(self, name):
-        if self.testwithoutscipy or scipy is None:
-            raise ScipyException("Scipy excepted to be available for test. "
-                                 "Set DTAIDISTANCE_TESTWITHOUTSCIPY=1 to test without Scipy.")
-        return getattr(scipy, name)
-
-    def import_signal(self):
-        from scipy import signal
-        return signal
 
 
 class test_uses_numpy(ContextDecorator):
@@ -79,9 +46,16 @@ class test_uses_numpy(ContextDecorator):
         """
         self.strict = strict
         self.testwithoutnp = test_without_numpy()
+        try:
+            self.np = importlib.import_module("numpy")
+        except ImportError as _e:
+            self.np = None
 
     def __enter__(self):
-        return NumpyStub(self.testwithoutnp)
+        if self.testwithoutnp or self.np is None:
+            raise NumpyException("Numpy excepted to be available for test. "
+                                 "Set DTAIDISTANCE_TESTWITHOUTNUMPY=1 to test without Numpy.")
+        return self.np
 
     def __exit__(self, *exc):
         if self.testwithoutnp:
@@ -105,9 +79,16 @@ class test_uses_scipy(ContextDecorator):
         """
         self.strict = strict
         self.testwithoutscipy = test_without_scipy()
+        try:
+            self.scipy = importlib.import_module("scipy")
+        except ImportError as _e:
+            self.scipy = None
 
     def __enter__(self):
-        return ScipyStub(self.testwithoutscipy)
+        if self.testwithoutscipy or self.scipy is None:
+            raise ScipyException("Scipy excepted to be available for test. "
+                                 "Set DTAIDISTANCE_TESTWITHOUTSCIPY=1 to test without Scipy.")
+        return self.scipy
 
     def __exit__(self, *exc):
         if self.testwithoutscipy:
