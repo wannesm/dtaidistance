@@ -179,7 +179,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-13-arm64, macos-14-arm64]
+        os: [macos-13-arm64, macos-14-arm64]  # these runners are not yet being picked up by github actions (yet?)
         python-version: ["3.11", "3.12"]
     steps:
     - uses: actions/checkout@v2
@@ -301,7 +301,7 @@ jobs:
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    needs: [build_unix,build_macos,build_windows,build_macos_arm,build_sdist]
+    needs: [build_unix,build_macos,build_windows,build_sdist]
 
     steps:
       - uses: actions/download-artifact@v2
