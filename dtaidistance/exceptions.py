@@ -28,3 +28,8 @@ class CythonException(PackageMissingException):
 class PyClusteringException(PackageMissingException):
     def __init__(self, message):
         super().__init__(message)
+
+
+class PandasException(PackageMissingException):
+    def __init__(self, message):
+        super().__init__(message)

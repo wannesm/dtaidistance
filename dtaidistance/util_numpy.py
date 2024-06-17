@@ -3,7 +3,7 @@ import os
 import logging
 import importlib
 
-from .exceptions import NumpyException, ScipyException
+from .exceptions import NumpyException, ScipyException, PandasException
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -19,6 +19,14 @@ def test_without_scipy():
     if test_without_numpy():
         return True
     if "DTAIDISTANCE_TESTWITHOUTSCIPY" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTSCIPY"] == "1":
+        return True
+    return False
+
+
+def test_without_pandas():
+    if test_without_numpy():
+        return True
+    if "DTAIDISTANCE_TESTWITHOUTPANDAS" in os.environ and os.environ["DTAIDISTANCE_TESTWITHOUTPANDAS"] == "1":
         return True
     return False
 
@@ -46,15 +54,17 @@ class test_uses_numpy(ContextDecorator):
         """
         self.strict = strict
         self.testwithoutnp = test_without_numpy()
+        self.e = None
         try:
             self.np = importlib.import_module("numpy")
-        except ImportError as _e:
+        except (ImportError, ValueError) as e:
             self.np = None
+            self.e = e
 
     def __enter__(self):
         if self.testwithoutnp or self.np is None:
             raise NumpyException("Numpy excepted to be available for test. "
-                                 "Set DTAIDISTANCE_TESTWITHOUTNUMPY=1 to test without Numpy.")
+                                 "Set DTAIDISTANCE_TESTWITHOUTNUMPY=1 to test without Numpy.") from self.e
         return self.np
 
     def __exit__(self, *exc):
@@ -100,4 +110,39 @@ class test_uses_scipy(ContextDecorator):
                 else:
                     return
             if issubclass(exc[0], ScipyException):
+                return True
+
+
+class test_uses_pandas(ContextDecorator):
+    def __init__(self, strict=True):
+        """Context to construct tests that use the optional dependency Pandas.
+
+        :param strict: Throw error if Pandas is not used (to remove context where not necessary)
+        :return: Numpy stub
+        """
+        self.strict = strict
+        self.testwithoutpandas = test_without_pandas()
+        self.e = None
+        try:
+            self.pandas = importlib.import_module("pandas")
+        except (ImportError, ValueError) as e:
+            self.pandas = None
+            self.e = e
+
+    def __enter__(self):
+        if self.testwithoutpandas or self.pandas is None:
+            raise PandasException("Pandas excepted to be available for test. "
+                                  "Set DTAIDISTANCE_TESTWITHOUTPANDAS=1 to test without Pandas.") from self.e
+        return self.pandas
+
+    def __exit__(self, *exc):
+        if self.testwithoutpandas:
+            if exc[0] is None:
+                if self.strict and self.testwithoutpandas:
+                    # If no PandasException is thrown, this test did not use Pandas because no error was thrown
+                    # and should not use this decorator
+                    raise Exception("Test does not use Pandas, remove decorator!")
+                else:
+                    return
+            if issubclass(exc[0], PandasException):
                 return True
