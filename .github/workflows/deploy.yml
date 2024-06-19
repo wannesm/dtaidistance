@@ -82,9 +82,8 @@ jobs:
         python -m pip install cibuildwheel==2.19.1
     - name: Build wheel
       run: |
-        pwd
-        ls
         python -m cibuildwheel --output-dir dist/
+        ls dist/
       env:
         CIBW_BUILD_VERBOSITY: 2
         # cp36-* and cp37-* do not support f-strings
@@ -94,7 +93,7 @@ jobs:
     - name: Store wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: dist-${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
 
 
@@ -151,10 +150,11 @@ jobs:
     - name: Build
       run: |
         python -m build
+        ls dist/
     - name: Store wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: dist-${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
 
   # Runners are not yet picked up?
@@ -254,10 +254,11 @@ jobs:
     - name: Build
       run: |
         python -m build
+        ls dist/
     - name: Store wheels
       uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: dist-${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
 
 
@@ -278,7 +279,7 @@ jobs:
       - name: Store artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: dist-source
           path: dist/*.tar.gz
 
 
@@ -292,7 +293,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          pattern: dist-*
+          merge-multiple: true
           path: dist
 
       - name: Publish package to PyPI
