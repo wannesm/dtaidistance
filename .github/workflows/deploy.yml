@@ -1,33 +1,17 @@
 # Python: "3.8", "3.9", "3.10"
 # Older version do not support f-strings
-# OS: ubuntu-20.04, ubuntu-latest
-# OS: macOS-10.15, macos-11 (, macos-latest)
-# OS: windows-2019
 
 
 name: Python package
 
 on:
+  workflow_dispatch:
   push:
     branches: [ deploy ]
   # pull_request:
   #   branches: [ deploy ]
 
 jobs:
-  # Explore-GitHub-Actions:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-  #     - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-  #     - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-  #     - name: Check out repository code
-  #       uses: actions/checkout@v2
-  #     - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-  #     - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-  #     - name: List files in the repository
-  #       run: |
-  #         ls ${{ github.workspace }}
-  #     - run: echo "🍏 This job's status is ${{ job.status }}."
 
   # # Does not produce manylinux that is required for twine
   # build_unix:
@@ -41,9 +25,9 @@ jobs:
   #       os: [ubuntu-18.04]
   #       python-version: ["3.9"]
   #   steps:
-  #   - uses: actions/checkout@v2
+  #   - uses: actions/checkout@v4
   #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v2
+  #     uses: actions/setup-python@v5
   #     with:
   #       python-version: ${{ matrix.python-version }}
   #   - name: Install dependencies
@@ -70,7 +54,7 @@ jobs:
   #     run: |
   #       python -m build
   #   - name: Store wheels
-  #     uses: actions/upload-artifact@v2
+  #     uses: actions/upload-artifact@v4
   #     with:
   #       name: wheels
   #       path: dist/*.whl
@@ -87,9 +71,9 @@ jobs:
         # cibuildwheel will automatically provide all Python versions
         python-version: ["3.9"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -108,7 +92,7 @@ jobs:
         CIBW_TEST_EXTRAS: "dev"
         CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip {project}/tests
     - name: Store wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: dist/*.whl
@@ -123,7 +107,7 @@ jobs:
         os: [macos-11, macos-12, macos-13, macos-14]
         python-version: ["3.8","3.9","3.10", "3.11", "3.12"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install OpenMP
       run: |
         # OpenMP libraries are not installed by default on macos
@@ -137,7 +121,7 @@ jobs:
         ls /usr/local/lib
         ls /usr/local/include
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -168,69 +152,70 @@ jobs:
       run: |
         python -m build
     - name: Store wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: dist/*.whl
 
-  build_macos_arm:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [macos-13-arm64, macos-14-arm64]  # these runners are not yet being picked up by github actions (yet?)
-        python-version: ["3.11", "3.12"]
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install OpenMP
-      run: |
-        # OpenMP libraries are not installed by default on macos
-        clang --version
-        clang --version | grep "\(13\.\|14\.\|15\.\)"
-        # hardcoded, not ideal
-        # https://mac.r-project.org/openmp/
-        # This includes only the dynamic library
-        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
-        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
-        ls /usr/local/lib
-        ls /usr/local/include
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-benchmark build
-        python -m pip install numpy scipy matplotlib>=3.0.0
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Compile and install
-      run: |
-        export LDFLAGS="-L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/include"
-        python -m pip install . -v
-        ls ${{ github.workspace }}/build || true
-    - name: Test installation
-      run : |
-        mv dtaidistance dtaidistance_pkg
-        python ./util/check_installation.py
-        mv dtaidistance_pkg dtaidistance
-    - name: Test with pytest
-      run: |
-        export LDFLAGS="-L/usr/local/lib"
-        export CPPFLAGS="-I/usr/local/include"
-        mv dtaidistance dtaidistance_pkg
-        pytest --ignore=venv --benchmark-skip
-        mv dtaidistance_pkg dtaidistance
-    - name: Build
-      run: |
-        python -m build
-    - name: Store wheels
-      uses: actions/upload-artifact@v2
-      with:
-        name: wheels
-        path: dist/*.whl
+  # Runners are not yet picked up?
+  # build_macos_arm:
+  #   name: Build wheels on ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       os: [macos-13-arm64, macos-14-arm64]  # these runners are not yet being picked up by github actions (yet?)
+  #       python-version: ["3.11", "3.12"]
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   - name: Install OpenMP
+  #     run: |
+  #       # OpenMP libraries are not installed by default on macos
+  #       clang --version
+  #       clang --version | grep "\(13\.\|14\.\|15\.\)"
+  #       # hardcoded, not ideal
+  #       # https://mac.r-project.org/openmp/
+  #       # This includes only the dynamic library
+  #       curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
+  #       sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+  #       ls /usr/local/lib
+  #       ls /usr/local/include
+  #   - name: Set up Python ${{ matrix.python-version }}
+  #     uses: actions/setup-python@v5
+  #     with:
+  #       python-version: ${{ matrix.python-version }}
+  #   - name: Install dependencies
+  #     run: |
+  #       python -m pip install --upgrade pip
+  #       python -m pip install pytest pytest-benchmark build
+  #       python -m pip install numpy scipy matplotlib>=3.0.0
+  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  #   - name: Compile and install
+  #     run: |
+  #       export LDFLAGS="-L/usr/local/lib"
+  #       export CPPFLAGS="-I/usr/local/include"
+  #       python -m pip install . -v
+  #       ls ${{ github.workspace }}/build || true
+  #   - name: Test installation
+  #     run : |
+  #       mv dtaidistance dtaidistance_pkg
+  #       python ./util/check_installation.py
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Test with pytest
+  #     run: |
+  #       export LDFLAGS="-L/usr/local/lib"
+  #       export CPPFLAGS="-I/usr/local/include"
+  #       mv dtaidistance dtaidistance_pkg
+  #       pytest --ignore=venv --benchmark-skip
+  #       mv dtaidistance_pkg dtaidistance
+  #   - name: Build
+  #     run: |
+  #       python -m build
+  #   - name: Store wheels
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: wheels
+  #       path: dist/*.whl
 
 
   build_windows:
@@ -242,9 +227,9 @@ jobs:
         os: [windows-2019, windows-2022]
         python-version: ["3.8","3.9","3.10", "3.11", "3.12"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -270,19 +255,20 @@ jobs:
       run: |
         python -m build
     - name: Store wheels
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: wheels
         path: dist/*.whl
+
 
   build_sdist:
     name: Prepare source distribution
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Build
@@ -290,7 +276,7 @@ jobs:
           python -m pip install build
           python -m build --sdist
       - name: Store artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist/*.tar.gz
@@ -300,11 +286,11 @@ jobs:
     name: Upload wheels to PyPi
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
-    # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     needs: [build_unix,build_macos,build_windows,build_sdist]
 
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
           path: dist
@@ -324,7 +310,7 @@ jobs:
   #   needs: [build_unix,build_macos,build_windows,build_sdist]
   #   # needs: [build_unix]
   #   steps:
-  #     - uses: actions/download-artifact@v2
+  #     - uses: actions/download-artifact@v4
   #       with:
   #         name: wheels
   #         path: dist
