@@ -448,7 +448,6 @@ if cythonize is not None:
         print("WARNING: Numpy was not found, preparing a version without Numpy support.")
 
     ext_modules = cythonize(extensions, language_level=2)
-    #ext_modules = cythonize(extensions)
 
 else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
