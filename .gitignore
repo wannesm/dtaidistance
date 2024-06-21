@@ -45,3 +45,4 @@ dtaidistance/jinja/dtw_cc_omp.pyx
 dtaidistance/jinja/dtw_cc.pxd
 dtaidistance/jinja/dtaidistancec_globals.pxd
 dtaidistance/jinja/ed_cc.pyx
+.DS_STORE
