@@ -283,10 +283,12 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     }
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     // Deal with psi-relaxation in the last row
-    if (settings->psi_2e != 0) {
-        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
-            if (dtw[i1*length + i] < psi_shortest) {
-                psi_shortest = dtw[i1*length + i];
+    if (settings->psi_1e != 0 || settings->psi_2e != 0) {
+        if (settings->psi_2e != 0) {
+            for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
+                if (dtw[i1*length + i] < psi_shortest) {
+                    psi_shortest = dtw[i1*length + i];
+                }
             }
         }
         result = sqrt(psi_shortest);
@@ -524,10 +526,12 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
     }
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     // Deal with psi-relaxation in the last row
-    if (settings->psi_2e != 0) {
-        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
-            if (dtw[i1*length + i] < psi_shortest) {
-                psi_shortest = dtw[i1*length + i];
+    if (settings->psi_1e != 0 || settings->psi_2e != 0) {
+        if (settings->psi_2e != 0) {
+            for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
+                if (dtw[i1*length + i] < psi_shortest) {
+                    psi_shortest = dtw[i1*length + i];
+                }
             }
         }
         result = sqrt(psi_shortest);
@@ -753,10 +757,12 @@ seq_t dtw_distance_euclidean(seq_t *s1, idx_t l1,
     }
     seq_t result = dtw[length * i1 + l2 - skip];
     // Deal with psi-relaxation in the last row
-    if (settings->psi_2e != 0) {
-        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
-            if (dtw[i1*length + i] < psi_shortest) {
-                psi_shortest = dtw[i1*length + i];
+    if (settings->psi_1e != 0 || settings->psi_2e != 0) {
+        if (settings->psi_2e != 0) {
+            for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
+                if (dtw[i1*length + i] < psi_shortest) {
+                    psi_shortest = dtw[i1*length + i];
+                }
             }
         }
         result = psi_shortest;
@@ -991,10 +997,12 @@ seq_t dtw_distance_ndim_euclidean(seq_t *s1, idx_t l1,
     }
     seq_t result = dtw[length * i1 + l2 - skip];
     // Deal with psi-relaxation in the last row
-    if (settings->psi_2e != 0) {
-        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
-            if (dtw[i1*length + i] < psi_shortest) {
-                psi_shortest = dtw[i1*length + i];
+    if (settings->psi_1e != 0 || settings->psi_2e != 0) {
+        if (settings->psi_2e != 0) {
+            for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
+                if (dtw[i1*length + i] < psi_shortest) {
+                    psi_shortest = dtw[i1*length + i];
+                }
             }
         }
         result = psi_shortest;
@@ -3251,6 +3259,121 @@ idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
         min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
+    while (rip > p.ri3 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if (wps[ri_widthp + wpsi - 1] <= wps[ri_width  + wpsi - 1] &&
+            wps[ri_widthp + wpsi - 1] <= wps[ri_widthp + wpsi]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi = wpsi - 1;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if (wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi]) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+
+    // C. ri2 <= ri < ri3
+    while (rip > p.ri2 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if (wps[ri_widthp + wpsi] <= wps[ri_width  + wpsi - 1] &&
+            wps[ri_widthp + wpsi] <= wps[ri_widthp + wpsi + 1]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else if (wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi + 1]) {
+            // Go left
+            cip--;
+            wpsi--;
+        } else {
+            // Go up
+            rip--;
+            wpsi++;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        }
+    }
+
+    // A-B. 0 <= ri < ri2
+    while (rip > 0 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            i1[i] = rip - 1;
+            i2[i] = cip - 1;
+            i++;
+        }
+        if (wps[ri_widthp + wpsi - 1] <= wps[ri_width  + wpsi - 1] &&
+            wps[ri_widthp + wpsi - 1] <= wps[ri_widthp + wpsi]) {
+            // Go diagonal
+            cip--;
+            rip--;
+            wpsi--;
+            ri_width = ri_widthp;
+            ri_widthp -= p.width;
+        } else {
+            if (wps[ri_width + wpsi - 1] <= wps[ri_widthp + wpsi]) {
+                // Go left
+                cip--;
+                wpsi--;
+            } else {
+                // Go up
+                rip--;
+                ri_width = ri_widthp;
+                ri_widthp -= p.width;
+            }
+        }
+    }
+    return i;
+}
+
+
+/*!
+Compute best path between two series.
+ 
+ @param wps Array of length `(l1+1)*min(l2+1, abs(l1-l2) + 2*window-1)` with the warping paths.
+ @param i1 Array of length l1+l2 to store the indices for the first sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param i2 Array of length l1+l2 to store the indices for the second sequence.
+    Reverse ordered, last one is if i1 or i2 is zero.
+ @param l1 Length of first array.
+ @param l2 Length of second array.
+ @param rs Start position row.
+ @param cs Start position column.
+ @param settings for Dynamic Time Warping.
+ @return length of path
+ */
+
+idx_t dtw_best_path_customstart(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
+                    idx_t rs, idx_t cs,
+                    DTWSettings *settings) {
+    DTWWps p = dtw_wps_parts(l1, l2, settings);
+
+    idx_t i = 0;
+    idx_t rip = rs;
+    idx_t cip = cs;
+    idx_t wpsi;
+    idx_t ri_widthp = p.width * (rip - 1);
+    idx_t ri_width = p.width * rip;
+
+    // D. ri3 <= ri < l1
+    wpsi = dtw_wps_loc(&p, rs, cs, l1, l2) - ri_width;
     while (rip > p.ri3 && cip > 0) {
         if (wps[ri_width + wpsi] != -1) {
             i1[i] = rip - 1;

@@ -616,6 +616,10 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
 {% set use_isclose = 0 %}
 {%- include 'dtw_bestpath.jinja.c' %}
 
+{% set suffix = '_customstart' %}
+{% set use_isclose = 0 %}
+{%- include 'dtw_bestpath.jinja.c' %}
+
 {% set suffix = '' %}
 {% set use_isclose = 1 %}
 {%- include 'dtw_bestpath.jinja.c' %}

@@ -219,6 +219,14 @@ class DTWSettings:
             'inner_dist': inner_dist
         }
 
+    def split_psi(self):
+        psi_1b = psi_1e = psi_2b = psi_2e = 0
+        if type(self.psi) is int:
+            psi_1b = psi_1e = psi_2b = psi_2e = self.psi
+        elif type(self.psi) in [tuple, list]:
+            psi_1b, psi_1e, psi_2b, psi_2e = self.psi
+        return psi_1b, psi_1e, psi_2b, psi_2e
+
     def __str__(self):
         r = ''
         a = self.c_kwargs()
@@ -294,7 +302,7 @@ def distance(s1, s2, only_ub=False, **kwargs):
     if only_ub:
         return ival_fn(ub_euclidean(s1, s2, inner_dist=s.inner_dist))
 
-    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(s.psi)
+    psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
     length = min(c + 1, abs(r - c) + 2 * (s.window - 1) + 1 + 1 + 1)
     dtw = array.array('d', [inf] * (2 * length))
     sc = 0
@@ -403,21 +411,6 @@ def _distance_c_with_params_ndim(t):
     return dtw_cc.distance_ndim(t[0], t[1], **t[2])
 
 
-def _process_psi_arg(psi):
-    psi_1b = 0
-    psi_1e = 0
-    psi_2b = 0
-    psi_2e = 0
-    if type(psi) is int:
-        psi_1b = psi
-        psi_1e = psi
-        psi_2b = psi
-        psi_2e = psi
-    elif type(psi) in [tuple, list]:
-        psi_1b, psi_1e, psi_2b, psi_2e = psi
-    return psi_1b, psi_1e, psi_2b, psi_2e
-
-
 def warping_paths(s1, s2, psi_neg=True, **kwargs):
     """
     Dynamic Time Warping.
@@ -439,7 +432,7 @@ def warping_paths(s1, s2, psi_neg=True, **kwargs):
     r, c = len(s1), len(s2)
     if s.adj_max_length_diff is not None and abs(r - c) > s.adj_max_length_diff:
         return inf
-    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(s.psi)
+    psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
     dtw = np.full((r + 1, c + 1), inf)
     # dtw[0, 0] = 0
     for i in range(psi_2b + 1):
@@ -582,14 +575,9 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
                                            penalty=penalty, tau=tau, delta=delta, delta_factor=delta_factor)
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
+    s = DTWSettings.for_dtw(s1, s2, window=window, psi=psi, penalty=penalty, use_c=use_c)
     r, c = len(s1), len(s2)
-    if window is None:
-        window = max(r, c)
-    if penalty is None:
-        penalty = 0
-    else:
-        penalty *= penalty
-    psi_1b, psi_1e, psi_2b, psi_2e = _process_psi_arg(psi)
+    psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
     dtw = np.full((r + 1, c + 1), -inf)
     # dtw[0, 0] = 0
     for i in range(psi_2b + 1):
@@ -600,16 +588,16 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     for i in range(r):
         i0 = i
         i1 = i + 1
-        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_start = max(0, i - max(0, r - c) - s.window + 1)
         if only_triu:
             j_start = max(i, j_start)
-        j_end = min(c, i + max(0, c - r) + window)
+        j_end = min(c, i + max(0, c - r) + s.window)
         for j in range(j_start, j_end):
             d = np.exp(-gamma*(s1[i] - s2[j])**2)
             # print(f"{s1[i] - s2[j]=} -> {d=}")
             dtw_prev = max(dtw[i0, j],
-                           dtw[i0, j + 1] - penalty,
-                           dtw[i1, j] - penalty)
+                           dtw[i0, j + 1] - s.penalty,
+                           dtw[i1, j] - s.penalty)
             if d < tau:
                 dtw[i1, j + 1] = max(0, delta + delta_factor * dtw_prev)
             else:
@@ -617,10 +605,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
 
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
-        d = dtw[i1, min(c, c + window - 1)]
+        d = dtw[i1, min(c, c + s.window - 1)]
     else:
         ir = i1
-        ic = min(c, c + window - 1)
+        ic = min(c, c + s.window - 1)
         if psi_1e != 0:
             vr = dtw[ir:max(0, ir-psi_1e-1):-1, ic]
             mir = argmax(vr)

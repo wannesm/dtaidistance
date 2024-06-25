@@ -345,6 +345,29 @@ def test_bug5_path():
         #     dtwvis.plot_matrix(wps, shownumbers=True, filename=directory / 'bug5_matrix.png')
 
 
+@numpyonly
+def test_bug6():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0.0, 1.0])
+        s2 = np.array([0.0, 0.0])
+
+        psi = [0, 1, 0, 0]
+        d, paths = dtw.warping_paths(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(0.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(0.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=False)
+        assert d == pytest.approx(0.0)
+
+        psi = [0, 0, 0, 1]
+        d, paths = dtw.warping_paths(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(1.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(1.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=False)
+        assert d == pytest.approx(1.0)
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     # with util_numpy.test_uses_numpy() as np:

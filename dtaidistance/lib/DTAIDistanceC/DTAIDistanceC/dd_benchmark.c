@@ -164,6 +164,14 @@ void benchmark5() {
     }
     printf("]\n");
     
+    for (idx_t i=0; i<(l1+l2); i++) {i1[i]=0; i2[i]=0;}
+    dtw_best_path_customstart(wps, i1, i2, l1, l2, /*rs=*/3, /*cs=*/2, &settings);
+    printf("[");
+    for (idx_t i=0; i<(l1+l2); i++) {
+        printf("(%zu,%zu)", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
     seq_t full[(l1+1)*(l2+1)];
     dtw_expand_wps(wps, full, l1, l2, &settings);
     for (idx_t i=0; i<(l1+1); i++) {
@@ -406,6 +414,16 @@ void benchmark13() {
     free(wps);
 }
 
+void benchmark14() {
+    double s1[] = {0.0, 1.0};
+    double s2[] = {0.0, 0.0};
+    DTWSettings settings = dtw_settings_default();
+    settings.psi_1e = 1;
+//    settings.psi_2e = 1;
+    double d = dtw_distance(s1, 2, s2, 2, &settings);
+    printf("d = %f\n", d);
+}
+
 void benchmark_affinity() {
     dtw_printprecision_set(3);
     double s[] = {0, -1, -1, 0, 1, 2, 1};
@@ -610,7 +628,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark1();
 //    benchmark2();
 //    benchmark3();
-    benchmark4();
+//    benchmark4();
 //    benchmark5();
 //    benchmark6();
 //    benchmark7();
@@ -620,6 +638,7 @@ int main(int argc, const char * argv[]) {
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
+    benchmark14();
 //    benchmark_affinity();
 //    wps_test();
     

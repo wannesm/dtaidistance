@@ -132,6 +132,27 @@ def test_dtw_subseq_bug1():
 
 
 @numpyonly
+def test_dtw_subseq_bug2():
+    with util_numpy.test_uses_numpy() as np:
+        query = np.array([1, 2, 3])
+        series = np.array([1, 1, 1, 2, 3, 1])
+
+        sa = subsequence_alignment(query, series, penalty=0)
+
+        matching = sa.matching_function()
+        print("Matching Array:", matching)
+
+        # Find and print all matches
+        print("\nAll Matches:")
+        for match in sa.kbest_matches(k=None, minlength=None, maxlength=None,
+                                      overlap=0):  # Use None for no limit on the number of matches
+            print(f"Match Index: {match.idx}")
+            print(f"Match Distance: {match.distance}")
+            print(f"Match Segment: {match.segment}")
+            print(f"Match Path: {match.path}")
+            print(f"Match Value (Normalized Distance): {match.value}")
+
+@numpyonly
 def test_dtw_subseq_ndim():
     use_c = False
     with util_numpy.test_uses_numpy() as np:

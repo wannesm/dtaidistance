@@ -273,10 +273,12 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
     seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
     {%- endif %}
     // Deal with psi-relaxation in the last row
-    if (settings->psi_2e != 0) {
-        for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
-            if (dtw[i1*length + i] < psi_shortest) {
-                psi_shortest = dtw[i1*length + i];
+    if (settings->psi_1e != 0 || settings->psi_2e != 0) {
+        if (settings->psi_2e != 0) {
+            for (i=l2 - skip - settings->psi_2e; i<l2 - skip + 1; i++) { // iterate over vci
+                if (dtw[i1*length + i] < psi_shortest) {
+                    psi_shortest = dtw[i1*length + i];
+                }
             }
         }
         {%- if "euclidean" == inner_dist %}

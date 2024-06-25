@@ -158,6 +158,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2);
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2);
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
+idx_t dtw_best_path_customstart(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t rs, idx_t cs, DTWSettings *settings);
 idx_t dtw_best_path_isclose(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t rtol, seq_t atol, DTWSettings *settings);
 idx_t dtw_best_path_affinity(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t s1, idx_t s2, DTWSettings *settings);
 idx_t dtw_best_path_prob(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t avg, DTWSettings *settings);
