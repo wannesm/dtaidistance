@@ -672,6 +672,16 @@ def test_lb1(use_c):
         lb = lb_keogh(a, b, window=2, use_c=use_c)
         assert lb == pytest.approx(2.23606797749979)
 
+@numpyonly
+@pytest.mark.parametrize("use_c", [False, True])
+def test_lb2(use_c):
+    with util_numpy.test_uses_numpy() as np:
+        a = np.array([-1., -2, -1, -3])
+        b = np.array([-3., -4, -3, 0])
+        lb = lb_keogh(a, b, window=2, use_c=use_c)
+        assert lb == pytest.approx(2.23606797749979)
+
+
 
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
