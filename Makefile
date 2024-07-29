@@ -94,6 +94,10 @@ use-venv:
 build: use-venv
 	python3 setup.py build_ext --inplace
 
+.PHONY: install
+install: use-venv
+	python3 setup.py install
+
 .PHONY: pypy-build
 pypy-build:
 	pypy3 setup.py build_ext --inplace
