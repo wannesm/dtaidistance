@@ -28,15 +28,16 @@ def differencing(series, smooth=None, diff_args=None):
         import numpy as np
     except ImportError:
         raise NumpyException("Differencing requires Numpy")
-    axis = 0
-    if isinstance(series, np.ndarray):
-        if len(series.shape) == 1:
-            axis = 0
-        else:
-            axis = 1
+    
     if diff_args is None:
-        diff_args = {}
-    series = np.diff(series, n=1, axis=axis, **diff_args)
+        diff_args = {"axis": 0}
+        if isinstance(series, np.ndarray):
+            if len(series.shape) == 1:
+                diff_args["axis"] = 0
+            else:
+                diff_args["axis"] = 1
+        
+    series = np.diff(series, **diff_args)
     if smooth is not None:
         series = smoothing(series, smooth)
     return series
