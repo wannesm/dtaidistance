@@ -266,8 +266,8 @@ documentation for a visual example).
     series = dtaidistance.preprocessing.differencing(series, smooth=0.1)
 
 
-Multi-dimensionsal DTW
-^^^^^^^^^^^^^^^^^^^^^^
+Multi-dimensional DTW
+^^^^^^^^^^^^^^^^^^^^^
 
 To compare two multivariate sequences, a multivariate time series with n_timesteps and
 at each timestep a vector with n_values is stored in a two dimensional array of size

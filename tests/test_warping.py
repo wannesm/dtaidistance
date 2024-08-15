@@ -1,6 +1,9 @@
 import pytest
 import os
 import random
+import itertools
+import multiprocessing as mp
+import functools
 from pathlib import Path
 
 from dtaidistance import dtw, util_numpy
@@ -89,6 +92,7 @@ def test_warping_path1():
         assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path1, path3))
         assert all(ai1 == bi1 and ai2 == bi2 for ((ai1, ai2), (bi1, bi2)) in zip(path2, path3))
 
+
 @numpyonly
 def test_warping_path2():
     with util_numpy.test_uses_numpy() as np:
@@ -107,6 +111,59 @@ def test_warping_path2():
         assert dist == pytest.approx(dist_a)
         assert dist == pytest.approx(dist_fast_a)
         assert str(path) == str(path_fast)
+
+
+def compute_path(s, dtw_settings, idx):
+    ri, ci = idx
+    if ci <= ri:
+        return None
+    return dtw.warping_path(s[ci], s[ri], **dtw_settings)
+
+
+def compute_path_len(s, dtw_settings, idx):
+    ri, ci = idx
+    if ci <= ri:
+        return 0, 0
+    path = dtw.warping_path(s[ci], s[ri], **dtw_settings)
+    return len(path), 1
+
+
+@numpyonly
+def test_warping_path_matrix():
+    with util_numpy.test_uses_numpy() as np:
+        s = np.array(
+            [[0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1],
+             [0., 0, 1, 2, 1, 0, 1, 0, 0],
+             [0., 1, 2, 0, 0, 0, 0, 0, 0],
+             [1., 2, 0, 0, 0, 0, 0, 1, 1]])
+
+        # compute and store all paths first
+        with mp.Pool() as pool:
+            dtw_settings = {}
+            paths = pool.map(functools.partial(compute_path, s, dtw_settings),
+                             itertools.product(range(len(s)), repeat=2))
+
+        # compute paths one by one and immediately reduce to some target
+        avg_len, avg_len_cnt = 0, 0
+        for ri, ci in itertools.product(range(len(s)), repeat=2):
+            if ci <= ri:
+                continue
+            path = dtw.warping_path(s[ci], s[ri], **dtw_settings)
+            avg_len += len(path)
+            avg_len_cnt += 1
+        avg_len /= avg_len_cnt
+
+        # reduce operation in parallel (in this case simple because the operator is commutative and associative)
+        with mp.Pool() as pool:
+            dtw_settings = {}
+            len_cnt = pool.map(functools.partial(compute_path_len, s, dtw_settings),
+                               itertools.product(range(len(s)), repeat=2))
+            lens, cnts = zip(*len_cnt)
+            avg_len2 = sum(lens) / sum(cnts)
+
+        assert avg_len == pytest.approx(avg_len2)
 
 
 @numpyonly
