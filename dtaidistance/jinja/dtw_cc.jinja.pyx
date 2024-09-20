@@ -396,11 +396,11 @@ def wps_negativize_value(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2
 def wps_positivize_value(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c):
     dtaidistancec_dtw.dtw_wps_positivize_value(&p._wps, &wps[0,0], l1, l2, r, c)
 
-def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
-    dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
+def wps_negativize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection):
+    dtaidistancec_dtw.dtw_wps_negativize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce, intersection)
 
-def wps_positivize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce):
-    dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce)
+def wps_positivize(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection):
+    dtaidistancec_dtw.dtw_wps_positivize(&p._wps, &wps[0,0], l1, l2, rb, re, cb, ce, intersection)
 
 def wps_max(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2):
     cdef Py_ssize_t r, c

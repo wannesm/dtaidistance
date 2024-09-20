@@ -495,7 +495,7 @@ void benchmark_affinity() {
 //    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
     
     printf("Negativize\n");
-    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 4, 5);
+    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 4, 5, false);
     dtw_print_wps(wps, l1, l2, &settings);
     dtw_print_wps_compact(wps, l1, l2, &settings);
 //    maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
@@ -579,7 +579,7 @@ void wps_test(void) {
     DTWWps p = dtw_wps_parts(l1, l2, &settings);
     
     printf("Negativize\n");
-    dtw_wps_negativize(&p, wps, l1, l2, 1, 7930, 1, 7943);
+    dtw_wps_negativize(&p, wps, l1, l2, 1, 7930, 1, 7943, false);
     
     printf("Slice:\n");
     idx_t rb = 7928; //7900;

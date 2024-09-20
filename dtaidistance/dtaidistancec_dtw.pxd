@@ -69,8 +69,8 @@ cdef extern from "dd_dtw.h":
                                        Py_ssize_t ce, DTWSettings *settings)
     void dtw_wps_negativize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
     void dtw_wps_positivize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
-    void dtw_wps_positivize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce)
-    void dtw_wps_negativize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce)
+    void dtw_wps_positivize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection)
+    void dtw_wps_negativize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection)
     Py_ssize_t dtw_wps_loc(DTWWps *p, Py_ssize_t r, Py_ssize_t c, Py_ssize_t l1, Py_ssize_t l2)
     Py_ssize_t dtw_wps_max(DTWWps * p, seq_t *wps, Py_ssize_t *r, Py_ssize_t *c, Py_ssize_t l1, Py_ssize_t l2)
     Py_ssize_t dtw_best_path(seq_t *wps, Py_ssize_t *i1, Py_ssize_t *i2, Py_ssize_t l1, Py_ssize_t l2,
