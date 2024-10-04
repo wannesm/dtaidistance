@@ -52,14 +52,14 @@ cdef extern from "dd_dtw.h":
                                DTWSettings *settings)
 
     seq_t dtw_warping_paths(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, int l2,
-                               bint return_dtw, bint do_sqrt, bint psi_neg, DTWSettings *settings)
+                               bint return_dtw, bint keep_int_repr, bint psi_neg, DTWSettings *settings)
     seq_t dtw_warping_paths_ndim(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, int l2,
-                                 bint return_dtw, bint do_sqrt, bint psi_neg, int ndim, DTWSettings *settings)
+                                 bint return_dtw, bint keep_int_repr, bint psi_neg, int ndim, DTWSettings *settings)
     seq_t dtw_warping_paths_affinity(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, bint return_dtw,
-                                     bint do_sqrt, bint psi_neg, bint only_triu, seq_t gamma, seq_t tau, seq_t delta,
+                                     bint keep_int_repr, bint psi_neg, bint only_triu, seq_t gamma, seq_t tau, seq_t delta,
                                      seq_t delta_factor, DTWSettings *settings)
     seq_t dtw_warping_paths_affinity_ndim(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, bint return_dtw,
-                                          bint do_sqrt, bint psi_neg, bint only_triu, int ndim, seq_t gamma, seq_t tau, seq_t delta,
+                                          bint keep_int_repr, bint psi_neg, bint only_triu, int ndim, seq_t gamma, seq_t tau, seq_t delta,
                                           seq_t delta_factor, DTWSettings *settings)
     void dtw_expand_wps(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
     void dtw_expand_wps_slice(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce,

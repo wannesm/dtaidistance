@@ -38,7 +38,7 @@ try:
 except ImportError:
     np = None
 
-from ..dtw import distance, distance_matrix_fast, distance_matrix
+from ..dtw import distance, distance_matrix_fast, distance_matrix, DTWSettings
 from  .medoids import KMedoids
 from ..util import SeriesContainer
 from ..exceptions import NumpyException
@@ -182,7 +182,7 @@ class KMeans(Medoids):
             raise NumpyException("Numpy is required for the KMeans.kmeansplusplus_centers method.")
         logger.debug('Start K-means++ initialization ... ')
         ndim = self.series.detected_ndim
-        if self.dists_options.use_c:
+        if self.dists_options.get('use_c', False):
             if ndim == 1:
                 fn = distance_matrix_fast
             else:
@@ -235,7 +235,7 @@ class KMeans(Medoids):
         use_c = self.dists_options.use_c
         self.dists_options.use_c = True
         result = self.fit(series, use_parallel=True, monitor_distances=monitor_distances)
-        self.dists_options.use_c = False
+        self.dists_options.use_c = use_c
         return result
 
     def fit(self, series, use_parallel=True, monitor_distances=None):
@@ -270,7 +270,7 @@ class KMeans(Medoids):
         else:
             drop_stddev = None
 
-        if self.dists_options.use_c:
+        if self.dists_options.get('use_c', False):
             if ndim == 1:
                 fn = _distance_c_with_params
             else:
@@ -373,12 +373,14 @@ class KMeans(Medoids):
                 with mp.Pool() as p:
                     means = p.map(_dba_loop_with_params,
                                   [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                                    self.max_dba_it, self.thr, self.dists_options.use_c, self.nb_prob_samples)
+                                    self.max_dba_it, self.thr, self.dists_options.get('use_c', False),
+                                    self.nb_prob_samples)
                                    for ki in range(self.k)])
             else:
                 means = list(map(_dba_loop_with_params,
                              [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                               self.max_dba_it, self.thr, self.dists_options.use_c, self.nb_prob_samples)
+                               self.max_dba_it, self.thr, self.dists_options.get('use_c', False),
+                               self.nb_prob_samples)
                               for ki in range(self.k)]))
             # for ki in range(self.k):
             #     means[ki] = dba_loop(self.series, c=None, mask=mask[:, ki], use_c=True)

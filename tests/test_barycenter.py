@@ -164,11 +164,11 @@ def test_trace_kmeans():
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=1,
                        nb_prob_samples=0,
-                       dists_options={"window": window},
+                       dists_options={"window": window, "use_c": True},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=True)
         try:
-            cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+            cluster_idx, performed_it = model.fit(series, use_parallel=False)
         except PyClusteringException:
             return
         toc = time.perf_counter()
@@ -243,11 +243,11 @@ def test_trace_kmeans_differencing():
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=1,
                        nb_prob_samples=nb_prob_samples,
-                       dists_options={"window": window},
+                       dists_options={"window": window, "use_c": use_c},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=True)
         try:
-            cluster_idx, performed_it = model.fit(series, use_c=use_c, use_parallel=False)
+            cluster_idx, performed_it = model.fit(series, use_parallel=False)
         except PyClusteringException:
             return
         toc = time.perf_counter()
@@ -319,10 +319,10 @@ def test_nparray_kmeans():
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it,
-                       dists_options={"window": window},
+                       dists_options={"window": window, "use_c": True},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=True)
-        cluster_idx, performed_it = model.fit(series, use_c=True, use_parallel=False)
+        cluster_idx, performed_it = model.fit(series, use_parallel=False)
         toc = time.perf_counter()
         print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
 
@@ -443,10 +443,10 @@ def test_ndim_kmeans(use_c, use_parallel, kmeanspp):
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
-                       dists_options={"window": window},
+                       dists_options={"window": window, "use_c": use_c},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=kmeanspp)
-        cluster_idx, performed_it = model.fit(series, use_c=use_c, use_parallel=use_parallel)
+        cluster_idx, performed_it = model.fit(series, use_parallel=use_parallel)
         toc = time.perf_counter()
         # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
         # for ki in range(k):
@@ -478,10 +478,10 @@ def test_ndim_kmeans2():
         # Perform k-means
         tic = time.perf_counter()
         model = KMeans(k=k, max_it=max_it, max_dba_it=max_dba_it, drop_stddev=2,
-                       dists_options={"window": window},
+                       dists_options={"window": window, "use_c": False},
                        initialize_with_kmedoids=False,
                        initialize_with_kmeanspp=False)
-        cluster_idx, performed_it = model.fit(series, use_c=False, use_parallel=False)
+        cluster_idx, performed_it = model.fit(series, use_parallel=False)
         toc = time.perf_counter()
         # print(f'DBA ({performed_it} iterations: {toc - tic:0.4f} sec')
         assert set(model.cluster_idx[0]) == {1, 2, 4, 5}, f'{model.cluster_idx[0]} != {{1, 2, 4, 5}}'

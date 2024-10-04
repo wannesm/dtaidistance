@@ -93,8 +93,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;
@@ -131,8 +131,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;
@@ -169,8 +169,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;

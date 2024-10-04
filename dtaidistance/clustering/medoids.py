@@ -22,6 +22,7 @@ except ImportError:
 from ..util import SeriesContainer
 from ..exceptions import NumpyException, PyClusteringException, MatplotlibException
 from .visualization import prepare_plot_options
+from ..dtw import DTWSettings
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")

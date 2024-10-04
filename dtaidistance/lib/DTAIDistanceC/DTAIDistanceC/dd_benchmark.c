@@ -13,6 +13,7 @@
 
 #include "dd_dtw.h"
 #include "dd_dtw_openmp.h"
+#include "dd_loco.h"
 
 
 void benchmark1(void);
@@ -424,6 +425,25 @@ void benchmark14() {
     printf("d = %f\n", d);
 }
 
+void benchmark_loco() {
+    dtw_printprecision_set(3);
+    double series1[] = {0., -1, -1, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 0, -1, 0};
+    double series2[] = {0.4, -0.9, -1.3, 1, 0.1, 2, 1, 0, 0, 10, 8, 3, 2, 1, 0, 0, 0, -1, 0};
+    idx_t l1 = 19;
+    idx_t l2 = 19;
+    DTWSettings settings = dtw_settings_default();
+    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * ((l1+2)*(l2+2)));  // 21x21
+    seq_t tau = 0.36787944117144233;
+    seq_t delta = -0.7357588823428847;
+    seq_t delta_factor = 0.1;
+    seq_t gamma = 1;
+    loco_warping_paths_typeIII(wps, series1, l1, series2, l2,
+                               /*only_triu=*/false,
+                               gamma, tau, delta, delta_factor, &settings);
+    dtw_print_wps_type(wps, l1, l2, 2, 2, &settings);
+    free(wps);
+}
+
 void benchmark_affinity() {
     dtw_printprecision_set(3);
     double s[] = {0, -1, -1, 0, 1, 2, 1};
@@ -494,8 +514,8 @@ void benchmark_affinity() {
 //    idx_t maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
 //    printf("Max = %.3f @ [%zu]=[%zu,%zu]\n", wps[maxidx], maxidx, maxr, maxc);
     
-    printf("Negativize\n");
-    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 4, 5, false);
+    printf("Negativize r=[4:6], c=[4:5]\n");
+    dtw_wps_negativize(&p, wps, l1, l2, 4, 6, 3, 5, true);
     dtw_print_wps(wps, l1, l2, &settings);
     dtw_print_wps_compact(wps, l1, l2, &settings);
 //    maxidx = dtw_wps_max(&p, wps, &maxr, &maxc, l1, l2);
@@ -638,7 +658,8 @@ int main(int argc, const char * argv[]) {
 //    benchmark11();
 //    benchmark12_subsequence();
 //    benchmark13();
-    benchmark14();
+//    benchmark14();
+    benchmark_loco();
 //    benchmark_affinity();
 //    wps_test();
     

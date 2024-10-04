@@ -51,9 +51,9 @@ def test_dtw_subseq1_maxrangefactor():
         series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         sa = subsequence_alignment(query, series)
         best_k = list(sa.best_matches(max_rangefactor=1.2))
-        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1], [4, 5]]
         best_k = list(sa.best_matches_fast(max_rangefactor=1.2))
-        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1], [4, 5]]
 
 
 def test_dtw_subseq1_knee():
@@ -62,9 +62,9 @@ def test_dtw_subseq1_knee():
         series = np.array([1., 0, 1, 2, 1, 0, 2, 0, 3, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
         sa = subsequence_alignment(query, series)
         best_k = list(sa.best_matches_knee(alpha=0.3))
-        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1], [4, 5]]
         best_k = list(sa.best_matches_knee_fast(alpha=0.3))
-        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1]]
+        assert [m.segment for m in best_k] == [[2, 4], [5, 7], [0, 1], [4, 5]]
 
 
 @numpyonly
@@ -78,8 +78,8 @@ def test_dtw_subseq_eeg():
         sa = subsequence_alignment(query, series)
         match = sa.best_match()
         kmatches = list(sa.kbest_matches(k=15, overlap=0))
-        segments = [m.segment for m in kmatches]
-        segments_sol = [[38, 56], [19, 37], [167, 185], [124, 143], [84, 100], [59, 77], [150, 162], [101, 121], [0, 15]]
+        segments = [[int(m.segment[0]), int(m.segment[1])] for m in kmatches]
+        segments_sol = [[38, 56], [19, 37], [167, 185], [125, 143], [84, 100], [59, 77], [150, 162], [101, 121], [0, 15]]
 
         assert segments == segments_sol
 
@@ -116,7 +116,6 @@ def test_dtw_subseq_eeg():
 
 @numpyonly
 def test_dtw_subseq_bug1():
-    use_c = True
     with util_numpy.test_uses_numpy() as np:
         query = np.array([-0.86271501, -1.32160597, -1.2307838, -0.97743775, -0.88183547,
                           -0.71453147, -0.70975136, -0.65238999, -0.48508599, -0.40860416,
@@ -125,9 +124,13 @@ def test_dtw_subseq_bug1():
                           1.88585065, 1.565583, 1.40305912, 1.64206483, 1.8667302])
         s1 = np.array([-0.87446789, 0.50009064, -1.43396157, 0.52081263, 1.28752619])
         s2 = np.array([1.19125347, 0.78778189, -0.95770272, -1.02133264])
-        sa = subsequence_alignment(query, s1, use_c=use_c)
+        sa = subsequence_alignment(query, s1, use_c=False)
         assert sa.best_match().value == pytest.approx(0.08735692337954708)
-        sa = subsequence_alignment(query, s2, use_c=use_c)
+        sa = subsequence_alignment(query, s1, use_c=True)
+        assert sa.best_match().value == pytest.approx(0.08735692337954708)
+        sa = subsequence_alignment(query, s2, use_c=False)
+        assert sa.best_match().value == pytest.approx(0.25535859535443606)
+        sa = subsequence_alignment(query, s2, use_c=True)
         assert sa.best_match().value == pytest.approx(0.25535859535443606)
 
 

@@ -180,7 +180,7 @@ def distance_matrix(s, ndim=None, max_dist=None, use_pruning=False, max_length_d
 def distance_matrix_fast(s, ndim=None, max_dist=None, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, only_triu=False,
-                         inner_dist=innerdistance.default):
+                         inner_dist=innerdistance.default, use_c=True):
     """Fast C version of :meth:`distance_matrix`."""
     return distance_matrix(s, ndim=ndim, max_dist=max_dist, max_length_diff=max_length_diff,
                            window=window, max_step=max_step, penalty=penalty, psi=psi,

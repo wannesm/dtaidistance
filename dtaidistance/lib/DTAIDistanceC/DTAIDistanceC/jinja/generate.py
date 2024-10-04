@@ -42,8 +42,12 @@ targets = {
         ["dd_ed.jinja.c",
             {},
             ["ed_distance.jinja.c"]],
+    "dd_loco.c":
+        ["dd_loco.jinja.c",
+            {},
+            ["loco_warpingpaths.jinja.c"]],
 }
-essential_targets = ['dd_dtw.c', 'dd_dtw_openmp.c', 'dd_ed.c']
+essential_targets = ['dd_dtw.c', 'dd_dtw_openmp.c', 'dd_ed.c', 'dd_loco.c']
 
 
 def generate(target):

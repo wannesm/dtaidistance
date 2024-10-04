@@ -93,8 +93,8 @@ def test_kmeans_ndim():
         np.random.seed(seed=3980)
         arr = np.random.random((10, 10, 3))
 
-        model = clustering.kmeans.KMeans(k=2)
-        cl, p = model.fit(arr, use_c=True)
+        model = clustering.kmeans.KMeans(k=2, dists_options={"use_c": True})
+        cl, p = model.fit(arr)
         assert str(cl) == "{0: {1, 2, 4, 6}, 1: {0, 3, 5, 7, 8, 9}}"
 
 
@@ -104,8 +104,8 @@ def test_kmeans_ndim2():
         np.random.seed(seed=3980)
         arr = np.random.random((10, 10, 3))
 
-        model = clustering.kmeans.KMeans(k=2)
-        cl, p = model.fit(arr, use_parallel=False, use_c=True)
+        model = clustering.kmeans.KMeans(k=2, dists_options={"use_c": False})
+        cl, p = model.fit(arr, use_parallel=False)
         assert str(cl) == "{0: {1, 2, 4, 6}, 1: {0, 3, 5, 7, 8, 9}}"
 
 

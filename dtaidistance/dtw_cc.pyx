@@ -376,7 +376,7 @@ def wps_width(Py_ssize_t l1, Py_ssize_t l2, **kwargs):
     return dtaidistancec_dtw.dtw_settings_wps_width(l1, l2, &settings._settings)
 
 def warping_paths(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2, 
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     dtw_length = dtw.shape[0] * dtw.shape[1]
@@ -397,24 +397,24 @@ def warping_paths(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2,
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                            True, True, psi_neg, &settings._settings)
+                                            True, keep_int_repr, psi_neg, &settings._settings)
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
         dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
     return d
 
 
 def warping_paths_compact(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2, 
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                            True, True, psi_neg, &settings._settings)
+                                            True, keep_int_repr, psi_neg, &settings._settings)
     return d
 
 def warping_paths_ndim(seq_t[:, :] dtw, seq_t[:, :] s1, seq_t[:, :] s2, 
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     ndim = s1.shape[1]
     if s1.shape[1] != s2.shape[1]:
         raise Exception("Dimension of sequence entries needs to be the same: {} != {}".format(s1.shape[1], s2.shape[1]))
@@ -438,14 +438,14 @@ def warping_paths_ndim(seq_t[:, :] dtw, seq_t[:, :] s1, seq_t[:, :] s2,
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths_ndim(&wps_view[0,0], &s1[0,0], len(s1), &s2[0,0], len(s2),
-                                                 True, True, psi_neg, ndim, &settings._settings)
+                                                 True, keep_int_repr, psi_neg, ndim, &settings._settings)
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
         dtaidistancec_dtw.dtw_expand_wps(&wps_view[0,0], &dtw[0, 0], len(s1), len(s2), &settings._settings)
     return d
 
 
 def warping_paths_compact_ndim(seq_t[:, :] dtw, seq_t[:, :] s1, seq_t[:, :] s2, 
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     if s1.shape[1] != s2.shape[1]:
         raise Exception("Dimension of sequence entries needs to be the same: {} != {}".format(s1.shape[1], s2.shape[1]))
     ndim = s1.shape[1]
@@ -454,12 +454,12 @@ def warping_paths_compact_ndim(seq_t[:, :] dtw, seq_t[:, :] s1, seq_t[:, :] s2,
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths_ndim(&dtw[0,0], &s1[0,0], len(s1), &s2[0,0], len(s2),
-                                                 True, True, psi_neg, ndim, &settings._settings)
+                                                 True, keep_int_repr, psi_neg, ndim, &settings._settings)
     return d
 
 def warping_paths_affinity(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2, 
         bint only_triu, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor,
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     dtw_length = dtw.shape[0] * dtw.shape[1]
@@ -480,7 +480,7 @@ def warping_paths_affinity(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2,
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths_affinity(&wps_view[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                                     True, False, psi_neg, only_triu,
+                                                     True, True, psi_neg, only_triu,
                                                      gamma, tau, delta, delta_factor,
                                                      &settings._settings)
     if not (req_length == dtw_length and req_width == dtw.shape[1]):
@@ -490,13 +490,13 @@ def warping_paths_affinity(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2,
 
 def warping_paths_compact_affinity(seq_t[:, :] dtw, seq_t[:] s1, seq_t[:] s2, 
         bint only_triu, seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor,
-        bint psi_neg=False, **kwargs):
+        bint psi_neg=False, bint keep_int_repr=False, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
     cdef seq_t d
     
     d = dtaidistancec_dtw.dtw_warping_paths_affinity(&dtw[0,0], &s1[0], len(s1), &s2[0], len(s2),
-                                                     True, False, psi_neg, only_triu,
+                                                     True, True, psi_neg, only_triu,
                                                      gamma, tau, delta, delta_factor,
                                                      &settings._settings)
     return d

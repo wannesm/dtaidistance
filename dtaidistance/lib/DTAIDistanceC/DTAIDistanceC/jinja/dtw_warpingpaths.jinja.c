@@ -28,7 +28,7 @@
 seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
                         seq_t *s1, idx_t l1,
                         seq_t *s2, idx_t l2,
-                        bool return_dtw, bool do_sqrt, bool psi_neg,
+                        bool return_dtw, bool keep_int_repr, bool psi_neg,
                         {% if "affinity" in suffix -%}
                         bool only_triu,
                         {% endif -%}
@@ -43,7 +43,7 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
     {%- if inner_dist != "euclidean" %}
     if (settings->inner_dist == 1) {
         return dtw_warping_paths{{ suffix }}_euclidean(wps, s1, l1, s2, l2,
-                return_dtw, do_sqrt, psi_neg, {% if "affinity" in suffix %}only_triu,{% endif %}{% if "ndim" in suffix %}ndim, {% endif %}{% if "affinity" in suffix -%}gamma, tau, delta, delta_factor, {% endif %}settings);
+                return_dtw, keep_int_repr, psi_neg, {% if "affinity" in suffix %}only_triu,{% endif %}{% if "ndim" in suffix %}ndim, {% endif %}{% if "affinity" in suffix -%}gamma, tau, delta, delta_factor, {% endif %}settings);
     }
     {%- endif %}
     {%- if "affinity" in suffix %}
@@ -70,10 +70,10 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
         p.max_dist = pow(p.max_dist, 2);
         {%- endif %}
         if (settings->only_ub) {
-            if (do_sqrt) {
-                return sqrt(p.max_dist);
-            } else {
+            if (keep_int_repr) {
                 return p.max_dist;
+            } else {
+                return sqrt(p.max_dist);
             }
         }
     }
@@ -483,7 +483,7 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
 
     {%- if "euclidean" == inner_dist %}
     {%- else %}
-    if (do_sqrt) {
+    if (!keep_int_repr) {
         for (idx_t i=0; i<p.length ; i++) {
             if (wps[i] > 0) {
                 wps[i] = sqrt(wps[i]);

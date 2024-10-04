@@ -18,6 +18,8 @@ from .. import dtw  # import warping_paths, warping_paths_fast, best_path, warpi
 from .. import dtw_ndim
 from .. import util_numpy
 from .. import util
+from .. import innerdistance
+
 
 
 try:
@@ -67,6 +69,8 @@ class SAMatch:
         """SubsequenceAlignment match"""
         self.idx = idx
         self.alignment = alignment
+        self._path = None
+        self._segment = None
 
     @property
     def value(self):
@@ -88,14 +92,18 @@ class SAMatch:
     @property
     def segment(self):
         """Matched segment in series."""
-        start = self.alignment.matching_function_startpoint(self.idx)
-        end = self.alignment.matching_function_endpoint(self.idx)
-        return [start, end]
+        if self._segment is None:
+            start = self.alignment.matching_function_startpoint(self.idx, path=self.path)
+            end = self.alignment.matching_function_endpoint(self.idx)
+            self._segment = [start, end]
+        return self._segment
 
     @property
     def path(self):
         """Matched path in series"""
-        return self.alignment.matching_function_bestpath(self.idx)
+        if self._path is None:
+            self._path = self.alignment.matching_function_bestpath(self.idx)
+        return self._path
 
     def __str__(self):
         return f'SAMatch({self.idx})'
@@ -105,7 +113,7 @@ class SAMatch:
 
 
 class SubsequenceAlignment:
-    def __init__(self, query, series, penalty=0.1, use_c=False):
+    def __init__(self, query, series, penalty=0.1, use_c=False, **kwargs):
         """Subsequence alignment using DTW.
         Find where the query occurs in the series.
 
@@ -127,10 +135,12 @@ class SubsequenceAlignment:
         """
         self.query = query
         self.series = series
-        self.penalty = penalty
         self.paths = None
         self.matching = None
         self.use_c = use_c
+        self.settings = dtw.DTWSettings(penalty=penalty,
+                                        psi=[0, 0, len(self.series), len(self.series)],
+                                        **kwargs)
 
     def reset(self):
         self.matching = None
@@ -138,21 +148,24 @@ class SubsequenceAlignment:
     def align(self):
         if self.matching is not None:
             return
-        psi = [0, 0, len(self.series), len(self.series)]
         if np is not None and isinstance(self.series, np.ndarray) and len(self.series.shape) > 1:
             if not self.use_c:
-                _, self.paths = dtw_ndim.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                       psi_neg=False)
+                _, self.paths = dtw_ndim.warping_paths(self.query, self.series,
+                                                       penalty=self.settings.penalty, psi=self.settings.psi,
+                                                       psi_neg=False, keep_int_repr=True)
             else:
-                _, self.paths = dtw_ndim.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                            compact=False, psi_neg=False)
+                _, self.paths = dtw_ndim.warping_paths_fast(self.query, self.series,
+                                                            penalty=self.settings.penalty, psi=self.settings.psi,
+                                                            compact=False, psi_neg=False, keep_int_repr=True)
         else:
             if not self.use_c:
-                _, self.paths = dtw.warping_paths(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                  psi_neg=False)
+                _, self.paths = dtw.warping_paths(self.query, self.series,
+                                                  penalty=self.settings.penalty, psi=self.settings.psi,
+                                                  psi_neg=False, keep_int_repr=True)
             else:
-                _, self.paths = dtw.warping_paths_fast(self.query, self.series, penalty=self.penalty, psi=psi,
-                                                       compact=False, psi_neg=False)
+                _, self.paths = dtw.warping_paths_fast(self.query, self.series,
+                                                       penalty=self.settings.penalty, psi=self.settings.psi,
+                                                       compact=False, psi_neg=False, keep_int_repr=True)
         self._compute_matching()
 
     def align_fast(self):
@@ -163,9 +176,11 @@ class SubsequenceAlignment:
         return result
 
     def _compute_matching(self):
+        idist_fn, result_fn, _ = innerdistance.inner_dist_fns(self.settings.inner_dist,
+                                                              use_ndim=self.settings.use_ndim)
         matching = self.paths[-1, :]
         if len(matching) > len(self.series):
-            matching = matching[-len(self.series):]
+            matching = result_fn(matching[-len(self.series):])
         self.matching = np.array(matching) / len(self.query)
 
     def warping_paths(self):
@@ -327,14 +342,14 @@ class SubsequenceAlignment:
         diff = len(self.series) - len(self.matching)
         return idx + diff
 
-    def matching_function_startpoint(self, idx):
+    def matching_function_startpoint(self, idx, path=None):
         """Index in series for start of match in matching function at idx.
 
         :param idx: Index in matching function
         :return: Index in series
         """
-        real_idx = idx + 1
-        path = dtw.best_path(self.paths, col=real_idx)
+        if path is None:
+            path = self.matching_function_bestpath(idx)
         start_idx = path[0][1]
         return start_idx
 
@@ -345,5 +360,5 @@ class SubsequenceAlignment:
         :return: List of (row, col)
         """
         real_idx = idx + 1
-        path = dtw.best_path(self.paths, col=real_idx)
+        path = dtw.best_path(self.paths, col=real_idx, penalty=self.settings.adj_penalty)
         return path
