@@ -4150,7 +4150,7 @@ seq_t lb_keogh(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *settings) 
         if (imax > l2) {
             imax = l2;
         }
-        ui = 0;
+        ui = -INFINITY;
         for (idx_t j=imin; j<imax; j++) {
             if (s2[j] > ui) {
                 ui = s2[j];
@@ -4205,7 +4205,7 @@ seq_t lb_keogh_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, DTWSettings *
         if (imax > l2) {
             imax = l2;
         }
-        ui = 0;
+        ui = -INFINITY;
         for (idx_t j=imin; j<imax; j++) {
             if (s2[j] > ui) {
                 ui = s2[j];
