@@ -47,7 +47,7 @@ def distance(s1, s2, window=None, max_dist=None,
     """(Dependent) Dynamic Time Warping using multidimensional sequences.
 
     Assumes the first dimension to be the sequence item index, and the second
-    dimension to be the series index (thus timestep).
+    dimension is the index of the value in the vector.
 
     Example:
 
@@ -75,7 +75,7 @@ def distance(s1, s2, window=None, max_dist=None,
 
         dtw_i = 0
         for dim in range(ndim):
-            dtw_i += dtw.distance(s1[:,dim], dtw.distance(s2[:,dim])
+            dtw_i += dtw.distance(s1[:,dim], s2[:,dim])
 
     Note:
     If you are using the C-optimized code, the above snippet will trigger a
