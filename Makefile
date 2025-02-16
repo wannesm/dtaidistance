@@ -113,6 +113,14 @@ prepare_dist:
 	rm -rf dist/*
 	python3 setup.py sdist bdist_wheel
 
+.PHONY: add_to_dist
+add_to_dist: build test
+	$(eval $@_TMP := $(shell python3 -c 'import sys; print(sys.prefix)'))
+	@echo "==============================================================="
+	@echo "Using virtual env: $(@_TMP)"
+	@echo "==============================================================="
+	python3 setup.py sdist bdist_wheel
+
 .PHONY: prepare_tag
 prepare_tag:
 	@echo "Check whether repo is clean"
@@ -130,6 +138,16 @@ deploy: prepare_dist prepare_tag
 	@echo "Manual action: Push to deploy Github branch to deploy"
 	#@echo "Start uploading"
 	#twine upload --repository dtaidistance dist/*
+
+.PHONY: upload_from_local_machine
+upload_from_local_machine:
+	@echo "Did you run 'make add_to_dist' first?"
+	@echo "Uploading the following distributions:"
+	@ls dist/
+	@echo "Are you sure? [y/n] " && read ans && ( [ $${ans:-N} = y ] || ( echo "Aborted" && exit 1 ) )
+	@echo "Start uploading"
+	twine upload --repository dtaidistance dist/*
+
 
 .PHONY: docs
 docs:

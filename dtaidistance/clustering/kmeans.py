@@ -38,11 +38,10 @@ try:
 except ImportError:
     np = None
 
-from ..dtw import distance, distance_matrix_fast, distance_matrix
+from ..dtw import distance, distance_matrix_fast, distance_matrix, DTWSettings
 from  .medoids import KMedoids
 from ..util import SeriesContainer
-from ..exceptions import NumpyException, PyClusteringException, MatplotlibException
-from .visualization import prepare_plot_options
+from ..exceptions import NumpyException
 from .medoids import Medoids
 from ..dtw_barycenter import dba_loop
 from .. import dtw, dtw_ndim
@@ -107,7 +106,7 @@ class KMeans(Medoids):
         :param max_it: Maximal interations for K-means
         :param max_dba_it: Maximal iterations for the Dynamic Barycenter Averaging.
         :param thr: Convergence is achieved if the averaging iterations differ less
-            then this threshold
+            than this threshold
         :param drop_stddev: When computing the average series per cluster, ignore
             the instances that are further away than stddev*drop_stddev from the
             prototype (this is a gradual effect, the algorithm starts with drop_stddev
@@ -136,7 +135,7 @@ class KMeans(Medoids):
         self.nb_prob_samples = nb_prob_samples
         super().__init__(None, dists_options, k, show_progress)
 
-    def kmedoids_centers(self, series, use_c=False):
+    def kmedoids_centers(self, series):
         logger.debug('Start K-medoid initialization ... ')
         if self.initialize_sample_size is None:
             sample_size = min(self.k * 20, len(self.series))
@@ -144,7 +143,7 @@ class KMeans(Medoids):
             sample_size = min(self.initialize_sample_size, len(self.series))
         indices = np.random.choice(range(0, len(self.series)), sample_size, replace=False)
         sample = self.series[indices, :].copy()
-        if use_c:
+        if self.dists_options.use_c:
             fn_dm = distance_matrix_fast
         else:
             fn_dm = distance_matrix
@@ -154,11 +153,11 @@ class KMeans(Medoids):
         logger.debug('... Done')
         return means
 
-    def kmeansplusplus_centers(self, series, use_c=False):
+    def kmeansplusplus_centers(self, series):
         """Better initialization for K-Means.
 
             Arthur, D., and S. Vassilvitskii. "k-means++: the, advantages of careful seeding.
-            In, SODA’07: Proceedings of the." eighteenth annual ACM-SIAM symposium on Discrete, algorithms.
+            In, SODA'07: Proceedings of the." eighteenth annual ACM-SIAM symposium on Discrete, algorithms.
 
         Procedure (in paper):
 
@@ -177,14 +176,13 @@ class KMeans(Medoids):
         - numLocalTries==2+log(k)
 
         :param series:
-        :param use_c:
         :return:
         """
         if np is None:
             raise NumpyException("Numpy is required for the KMeans.kmeansplusplus_centers method.")
         logger.debug('Start K-means++ initialization ... ')
         ndim = self.series.detected_ndim
-        if use_c:
+        if self.dists_options.get('use_c', False):
             if ndim == 1:
                 fn = distance_matrix_fast
             else:
@@ -234,13 +232,16 @@ class KMeans(Medoids):
         return means
 
     def fit_fast(self, series, monitor_distances=None):
-        return self.fit(series, use_c=True, use_parallel=True, monitor_distances=monitor_distances)
+        use_c = self.dists_options.use_c
+        self.dists_options.use_c = True
+        result = self.fit(series, use_parallel=True, monitor_distances=monitor_distances)
+        self.dists_options.use_c = use_c
+        return result
 
-    def fit(self, series, use_c=False, use_parallel=True, monitor_distances=None):
+    def fit(self, series, use_parallel=True, monitor_distances=None):
         """Perform K-means clustering.
 
         :param series: Container with series
-        :param use_c: Use the C-library (only available if package is compiled)
         :param use_parallel: Use multipool for parallelization
         :param monitor_distances: This function is called with two arguments:
             (1) a list of (cluster, distance) for each instance;
@@ -269,7 +270,7 @@ class KMeans(Medoids):
         else:
             drop_stddev = None
 
-        if use_c:
+        if self.dists_options.get('use_c', False):
             if ndim == 1:
                 fn = _distance_c_with_params
             else:
@@ -282,9 +283,9 @@ class KMeans(Medoids):
 
         # Initialisations
         if self.initialize_with_kmeanspp:
-            self.means = self.kmeansplusplus_centers(self.series, use_c=use_c)
+            self.means = self.kmeansplusplus_centers(self.series)
         elif self.initialize_with_kmedoids:
-            self.means = self.kmedoids_centers(self.series, use_c=use_c)
+            self.means = self.kmedoids_centers(self.series)
         else:
             indices = np.random.choice(range(0, len(self.series)), self.k, replace=False)
             self.means = [self.series[random.randint(0, len(self.series) - 1)] for _ki in indices]
@@ -372,11 +373,15 @@ class KMeans(Medoids):
                 with mp.Pool() as p:
                     means = p.map(_dba_loop_with_params,
                                   [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                                    self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)])
+                                    self.max_dba_it, self.thr, self.dists_options.get('use_c', False),
+                                    self.nb_prob_samples)
+                                   for ki in range(self.k)])
             else:
                 means = list(map(_dba_loop_with_params,
                              [(self.series, self.series[best_medoid[ki]], mask[ki, :],
-                               self.max_dba_it, self.thr, use_c, self.nb_prob_samples) for ki in range(self.k)]))
+                               self.max_dba_it, self.thr, self.dists_options.get('use_c', False),
+                               self.nb_prob_samples)
+                              for ki in range(self.k)]))
             # for ki in range(self.k):
             #     means[ki] = dba_loop(self.series, c=None, mask=mask[:, ki], use_c=True)
             for ki in range(self.k):

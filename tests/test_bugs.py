@@ -8,11 +8,11 @@ import pytest
 
 from dtaidistance import dtw, util_numpy
 from dtaidistance import dtw_visualisation as dtwvis
-from dtaidistance.exceptions import MatplotlibException
 
 directory = None
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
+pandasonly = pytest.mark.skipif("util_numpy.test_without_pandas()")
 
 
 @numpyonly
@@ -118,13 +118,9 @@ def test_distance3_a():
 
 
 @numpyonly
+@pandasonly
 def test_distance4():
-    with util_numpy.test_uses_numpy(strict=False) as np:
-        try:
-            import pandas as pd
-        except ImportError:
-            # If no pandas, ignore test (not a required dependency)
-            return
+    with util_numpy.test_uses_numpy(strict=False) as np, util_numpy.test_uses_pandas() as pd:
         s = [[0.,    0.,   0.,    0.,   0.,   0., 0., 0., 0., 0., 0., 0., 0.],
              [0.005, 0.01, 0.015, 0.02, 0.01, 0., 0., 0., 0., 0., 0., 0., 0.],
              [0.,    0.,   0.,    0.,   0.,   0., 0., 0., 0., 0., 0., 0., 0.]]
@@ -349,6 +345,29 @@ def test_bug5_path():
         #     dtwvis.plot_matrix(wps, shownumbers=True, filename=directory / 'bug5_matrix.png')
 
 
+@numpyonly
+def test_bug6():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0.0, 1.0])
+        s2 = np.array([0.0, 0.0])
+
+        psi = [0, 1, 0, 0]
+        d, paths = dtw.warping_paths(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(0.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(0.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=False)
+        assert d == pytest.approx(0.0)
+
+        psi = [0, 0, 0, 1]
+        d, paths = dtw.warping_paths(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(1.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=True)
+        assert d == pytest.approx(1.0)
+        d = dtw.distance(s1, s2, psi=psi, use_c=False)
+        assert d == pytest.approx(1.0)
+
+
 if __name__ == "__main__":
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     # with util_numpy.test_uses_numpy() as np:
@@ -356,7 +375,7 @@ if __name__ == "__main__":
     logger.setLevel(logging.WARNING)
     sh = logging.StreamHandler(sys.stdout)
     logger.addHandler(sh)
-    # test_bug1()
+    test_bug1()
     # test_distance1_a()
     # test_distance1_b()
     # test_distance2_a()
@@ -368,5 +387,5 @@ if __name__ == "__main__":
     # test_bug1_psi()
     # test_bug2()
     # test_bug3()
-    test_bug5_path()
+    # test_bug5_path()
     # test_bug_size()

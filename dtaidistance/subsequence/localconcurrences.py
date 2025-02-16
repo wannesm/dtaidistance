@@ -635,7 +635,8 @@ class LocalConcurrences:
                     dtw_cc.wps_negativize(self._c_parts, wp,
                                           len(self.series1), len(self.series2),
                                           path[0][0]+1, path[-1][0]+2,
-                                          path[0][1]+1, path[-1][1]+2)
+                                          path[0][1]+1, path[-1][1]+2,
+                                          True)  # intersection
                 else:
                     miny, maxy = 0, wp.shape[1]
                     minx, maxx = 0, wp.shape[0]

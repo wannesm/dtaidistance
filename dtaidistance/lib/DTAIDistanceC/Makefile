@@ -44,6 +44,8 @@ dd_benchmark: $(OBJ) DTAIDistanceC/dd_benchmark.o
 dd_test: $(OBJ) DTAIDistanceC/dd_tests_dtw.o  DTAIDistanceC/dd_tests_matrix.o
 	$(CC) -g -o $@ $^ $(LDFLAGS) -lcriterion
 
+jinja:
+	cd DTAIDistanceC/jinja/ && make
 
 
 clean:

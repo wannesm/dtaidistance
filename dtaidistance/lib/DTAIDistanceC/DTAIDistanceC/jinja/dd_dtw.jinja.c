@@ -27,7 +27,7 @@ DTWSettings dtw_settings_default(void) {
         .psi_2e = 0,
         .use_pruning = false,
         .only_ub = false,
-        .inner_dist = 0,
+        .inner_dist = 0,  // 0: squared euclidean, 1: euclidean
         .window_type = 0
     };
     return s;
@@ -97,7 +97,8 @@ Compute all warping paths between two series.
 @param l2 Length of second sequence
 @param return_dtw If only the matrix is required, finding the dtw value can be skipped
     to save operations.
-@param do_sqrt Apply the sqrt operations on all items in the wps array. If not required,
+@param keep_int_repr Keep the internal rerpresentation.
+    Does not apply the sqrt operations on all items in the wps array. If not required,
     this can be skipped to save operations.
 @param psi_neg For psi-relaxation, replace non-optimal values with -1
 @param settings A DTWSettings struct with options for the DTW algorithm.
@@ -107,10 +108,10 @@ Compute all warping paths between two series.
 seq_t dtw_warping_paths(seq_t *wps,
                         seq_t *s1, idx_t l1,
                         seq_t *s2, idx_t l2,
-                        bool return_dtw, bool do_sqrt, bool psi_neg,
+                        bool return_dtw, bool keep_int_repr, bool psi_neg,
                         DTWSettings *settings) {
     return dtw_warping_paths_ndim(wps, s1, l1, s2, l2,
-                             return_dtw, do_sqrt, psi_neg, 1,
+                             return_dtw, keep_int_repr, psi_neg, 1,
                              settings);
 }
 
@@ -122,11 +123,11 @@ seq_t dtw_warping_paths_euclidean(
         seq_t *wps,
         seq_t *s1, idx_t l1,
         seq_t *s2, idx_t l2,
-        bool return_dtw, bool do_sqrt, bool psi_neg,
+        bool return_dtw, bool keep_int_repr, bool psi_neg,
         DTWSettings *settings) {
     return dtw_warping_paths_ndim_euclidean(
             wps, s1, l1, s2, l2,
-            return_dtw, do_sqrt, psi_neg, 1,
+            return_dtw, keep_int_repr, psi_neg, 1,
             settings);
 }
 
@@ -142,11 +143,11 @@ seq_t dtw_warping_paths_euclidean(
 seq_t dtw_warping_paths_affinity(seq_t *wps,
                         seq_t *s1, idx_t l1,
                         seq_t *s2, idx_t l2,
-                        bool return_dtw, bool do_sqrt, bool psi_neg, bool only_triu,
+                        bool return_dtw, bool keep_int_repr, bool psi_neg, bool only_triu,
                         seq_t gamma, seq_t tau, seq_t delta, seq_t delta_factor,
                         DTWSettings *settings) {
     return dtw_warping_paths_affinity_ndim(wps, s1, l1, s2, l2,
-                             return_dtw, do_sqrt, psi_neg, only_triu, 1,
+                             return_dtw, keep_int_repr, psi_neg, only_triu, 1,
                              gamma, tau, delta, delta_factor,
                              settings);
 }
@@ -165,138 +166,189 @@ seq_t dtw_warping_paths_affinity(seq_t *wps,
 {%- include 'dtw_expandwps.jinja.c' %}
 
 
-void dtw_wps_negativize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c) {
+bool dtw_wps_negativize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c) {
     idx_t idx = dtw_wps_loc(p, r, c, l1, l2);
     if (idx == 0) {
-        return;
+        return false;
     }
     if (wps[idx] > 0 && wps[idx] != INFINITY) {
         wps[idx] = -wps[idx];
+        return true;
     }
+    return false;
 }
 
-void dtw_wps_positivize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c) {
+bool dtw_wps_positivize_value(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c) {
     idx_t idx = dtw_wps_loc(p, r, c, l1, l2);
     if (idx == 0) {
-        return;
+        return false;
     }
     if (wps[idx] < 0 && wps[idx] != -INFINITY) {
         wps[idx] = -wps[idx];
+        return true;
     }
+    return false;
 }
-
 
 
 /*!
- Negate the values in the warping paths matrix for the rows [rb:re].
+ Negate the values in the warping paths matrix for the rows [rb:re] and
+ columns [cb:ce].
  
- This can be used to cancel out values for an affinity matrix without losing these values.
+ This can be used to cancel out values for an affinity matrix without losing
+ these values.
  
  @param wps Warping paths matrix
  @param rb Row begin
- @param re Row end
+ @param re Row end (excluding)
+ @param cb Column begin
+ @param ce Column end (excluding)
+ @param intersection Exclude only values in both the row and column ranges.
+        If false, exclude all values in either the row or the column range.
  */
-void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce) {
+void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, bool intersection) {
     idx_t i, j, wpsi, cbp, cep, cbs, ces;
-    idx_t idx = rb*p->width;;
-    for (i=rb; i<re; i++) {
-        for (j=0; j<p->width; j++) {
-            if (wps[idx] > 0 && wps[idx] != INFINITY) {
-                wps[idx] = -wps[idx];
+    idx_t idx;
+
+    if (intersection) {
+        for (i=rb; i<re; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            for (j=MAX(cb,cbs); j<MIN(ce,ces); j++) {
+                if (wps[wpsi] > 0 && wps[wpsi] != INFINITY) {
+                    wps[wpsi] = -wps[wpsi];
+                }
+                wpsi++;
             }
-            idx++;
         }
-    }
-    // above
-    for (i=1; i<rb; i++) {
-        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
-        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
-        cbp = MAX(cb, cbs);
-        cep = MIN(ce, ces);
-        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi;
-        if (cb > cbs) {
-            idx += cb - cbs;
-        }
-        for (j=cbp; j<cep; j++) {
-            if (wps[idx] > 0 && wps[idx] != INFINITY) {
-                wps[idx] = -wps[idx];
+    } else {
+        idx = rb*p->width;
+        for (i=rb; i<re; i++) {
+            for (j=0; j<p->width; j++) {
+                if (wps[idx] > 0 && wps[idx] != INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
             }
-            idx++;
         }
-    }
-    // below
-    for (i=re; i<l1+1; i++) {
-        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
-        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
-        cbp = MAX(cb, cbs);
-        cep = MIN(ce, ces);
-        if (cep - cbp == 0) {
-            /* printf("break\n"); */
-            break;
-        }
-        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi;
-        if (cb > cbs) {
-            idx += cb - cbs;
-        }
-        for (j=cbp; j<cep; j++) {
-            if (wps[idx] > 0 && wps[idx] != INFINITY) {
-                wps[idx] = -wps[idx];
+        // above
+        for (i=1; i<rb; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+            cbp = MAX(cb, cbs);
+            cep = MIN(ce, ces);
+            /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+            idx = wpsi;
+            if (cb > cbs) {
+                idx += cb - cbs;
             }
-            idx++;
+            for (j=cbp; j<cep; j++) {
+                if (wps[idx] > 0 && wps[idx] != INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
+            }
+        }
+        // below
+        for (i=re; i<l1+1; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+            cbp = MAX(cb, cbs);
+            cep = MIN(ce, ces);
+            if (cep - cbp == 0) {
+                /* printf("break\n"); */
+                break;
+            }
+            /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+            idx = wpsi;
+            if (cb > cbs) {
+                idx += cb - cbs;
+            }
+            for (j=cbp; j<cep; j++) {
+                if (wps[idx] > 0 && wps[idx] != INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
+            }
         }
     }
 }
 
 
-void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce) {
+/*!
+ Make the values in the warping paths matrix positive for the rows [rb:re] and
+ columns [cb:ce].
+ 
+ This can be used to cancel out values for an affinity matrix without losing
+ these values.
+ 
+ @param wps Warping paths matrix
+ @param rb Row begin
+ @param re Row end (excluding)
+ @param cb Column begin
+ @param ce Column end (excluding)
+ @param intersection Exclude only values in both the row and column ranges. 
+        If false, exclude all values in either the row or the column range.
+ */
+void dtw_wps_positivize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx_t re, idx_t cb, idx_t ce, bool intersection) {
     idx_t i, j, wpsi, cbp, cep, cbs, ces;
-    idx_t idx = rb*p->width;;
-    for (i=rb; i<re; i++) {
-        for (j=0; j<p->width; j++) {
-            if (wps[idx] < 0 && wps[idx] != -INFINITY) {
-                wps[idx] = -wps[idx];
+    idx_t idx;
+
+    if (intersection) {
+        for (i=rb; i<re; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            for (j=MAX(cb,cbs); j<MIN(ce,ces); j++) {
+                if (wps[wpsi] > 0 && wps[wpsi] != INFINITY) {
+                    wps[wpsi] = -wps[wpsi];
+                }
+                wpsi++;
             }
-            idx++;
         }
-    }
-    // above
-    for (i=1; i<rb; i++) {
-        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
-        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
-        cbp = MAX(cb, cbs);
-        cep = MIN(ce, ces);
-        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
-        for (j=cbp; j<cep; j++) {
-            if (wps[idx] < 0 && wps[idx] != INFINITY) {
-                wps[idx] = -wps[idx];
+    } else {
+        idx = rb*p->width;
+        for (i=rb; i<re; i++) {
+            for (j=0; j<p->width; j++) {
+                if (wps[idx] < 0 && wps[idx] != -INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
             }
-            idx++;
         }
-    }
-    // below
-    for (i=re; i<l1+1; i++) {
-        wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
-        /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
-        cbp = MAX(cb, cbs);
-        cep = MIN(ce, ces);
-        if (cep - cbp == 0) {
-            /* printf("break\n"); */
-            break;
-        }
-        /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
-        idx = wpsi + (cb - cbs);
-        for (j=cbp; j<cep; j++) {
-            if (wps[idx] < 0 && wps[idx] != INFINITY) {
-                wps[idx] = -wps[idx];
+        // above
+        for (i=1; i<rb; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+            cbp = MAX(cb, cbs);
+            cep = MIN(ce, ces);
+            /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+            idx = wpsi + (cb - cbs);
+            for (j=cbp; j<cep; j++) {
+                if (wps[idx] < 0 && wps[idx] != INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
             }
-            idx++;
+        }
+        // below
+        for (i=re; i<l1+1; i++) {
+            wpsi = dtw_wps_loc_columns(p, i, &cbs, &ces, l1, l2);
+            /* printf("r=%zu -- [%zu,%zu]", i, cbs, ces); */
+            cbp = MAX(cb, cbs);
+            cep = MIN(ce, ces);
+            if (cep - cbp == 0) {
+                /* printf("break\n"); */
+                break;
+            }
+            /* printf("--> [%zu,%zu] -- %zu + %zu\n", cbp, cep, wpsi, cb-cbs); */
+            idx = wpsi + (cb - cbs);
+            for (j=cbp; j<cep; j++) {
+                if (wps[idx] < 0 && wps[idx] != INFINITY) {
+                    wps[idx] = -wps[idx];
+                }
+                idx++;
+            }
         }
     }
 }
-
 
 /*!
 Compute the location in the compact matrix from the row and column in
@@ -427,6 +479,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
 
 
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
+    // TODO: the loops can be skipped and replaced by an addition per section
     idx_t ri, wpsi, wpsi_start;
     idx_t ri_width = p->width;
     idx_t min_ci, max_ci;
@@ -613,6 +666,10 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
 
 
 {% set suffix = '' %}
+{% set use_isclose = 0 %}
+{%- include 'dtw_bestpath.jinja.c' %}
+
+{% set suffix = '_customstart' %}
 {% set use_isclose = 0 %}
 {%- include 'dtw_bestpath.jinja.c' %}
 
@@ -833,9 +890,9 @@ seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
     seq_t d;
     if (settings->inner_dist == 1) {
-        d = dtw_warping_paths_ndim_euclidean(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
+        d = dtw_warping_paths_ndim_euclidean(wps, from_s, from_l, to_s, to_l, true, true, true,                        ndim, settings);
     } else {
-        d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, true, false, true,                        ndim, settings);
+        d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, true, true, true,                        ndim, settings);
         d = sqrt(d);
     }
     *length_i = dtw_best_path(wps, from_i, to_i, from_l, to_l, settings);
@@ -851,7 +908,7 @@ seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l
 seq_t dtw_warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t *length_i, seq_t avg, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
-    seq_t d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, false, true, ndim, settings);
+    seq_t d = dtw_warping_paths_ndim(wps, from_s, from_l, to_s, to_l, false, true, true, ndim, settings);
     *length_i = dtw_best_path_prob(wps, from_i, to_i, from_l, to_l, avg, settings);
     free(wps);
     return d;
@@ -863,17 +920,24 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
     
     parts.window = settings->window;
     parts.max_step = settings->max_step;
-    parts.penalty = pow(settings->penalty, 2);
+    parts.penalty = settings->penalty;
+    if (settings->inner_dist == 0) {
+        parts.penalty = pow(settings->penalty, 2);
+    }
     if (parts.max_step == 0) {
         parts.max_step = INFINITY;
     } else {
-        parts.max_step = pow(parts.max_step, 2);
+        if (settings->inner_dist == 0) {
+            parts.max_step = pow(parts.max_step, 2);
+        }
     }
     parts.max_dist = settings->max_dist; // upper bound
     if (parts.max_dist == 0) {
         parts.max_dist = INFINITY;
     } else {
-        parts.max_dist = pow(parts.max_dist, 2);
+        if (settings->inner_dist == 0) {
+            parts.max_dist = pow(parts.max_dist, 2);
+        }
     }
     
     if (l1 > l2) {
@@ -1171,6 +1235,54 @@ void dtw_printprecision_set(int precision) {
 void dtw_printprecision_reset(void) {
     printPrecision = 3;
 }
+
+
+void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t inf_cols, DTWSettings* settings) {
+    idx_t width = l2 + inf_cols;
+    idx_t height = l1 + inf_rows;
+    idx_t ri, ci, wpsi;
+    
+    wpsi = 0;
+    printf(" [[ ");
+    for (ci=0; ci<inf_cols; ci++) {
+        dtw_print_nb(wps[wpsi]);
+        printf("_ ");
+        wpsi++;
+    }
+    for (; ci<width; ci++) {
+        dtw_print_nb(wps[wpsi]);
+        printf("  ");
+        wpsi++;
+    }
+    printf("]\n");
+    for (ri=1; ri<height-1; ri++) {
+        printf("  [ ");
+        for (ci=0; ci<inf_cols; ci++) {
+            dtw_print_nb(wps[wpsi]);
+            printf("_ ");
+            wpsi++;
+        }
+        for (; ci<width; ci++) {
+            dtw_print_nb(wps[wpsi]);
+            printf("  ");
+            wpsi++;
+        }
+        printf("]\n");
+    }
+    printf("  [ ");
+    for (ci=0; ci<inf_cols; ci++) {
+        dtw_print_nb(wps[wpsi]);
+        printf("_ ");
+        wpsi++;
+    }
+    for (; ci<width; ci++) {
+        dtw_print_nb(wps[wpsi]);
+        printf("  ");
+        wpsi++;
+    }
+    printf("]]\n");
+}
+
 
 /* Helper function for debugging. */
 void dtw_print_wps_compact(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {

@@ -77,7 +77,7 @@ void dtw_dba_{{ suffix }}(
             {%- endif %}
             if (bit_test(mask, r)) {
                 // warping_path(c, t, sequence, lengths[r], ci, mi, settings);
-                dtw_warping_paths_ndim(wps, c, t, sequence, {{cur_length}}, false, false, true, ndim, settings);
+                dtw_warping_paths_ndim(wps, c, t, sequence, {{cur_length}}, false, true, true, ndim, settings);
                 path_length = dtw_best_path(wps, ci, mi, t, {{cur_length}}, settings);
                 // printf("best_path(%zu/%zu) = [", r+1, nb_rows);
                 // for (idx_t i=0; i<path_length; i++) {
@@ -104,7 +104,7 @@ void dtw_dba_{{ suffix }}(
             sequence = &matrix[r_idx];
             {%- endif %}
             if (bit_test(mask, r)) {
-                avg_step = dtw_warping_paths_ndim(wps, c, t, sequence, {{cur_length}}, true, false, true, ndim, settings);
+                avg_step = dtw_warping_paths_ndim(wps, c, t, sequence, {{cur_length}}, true, true, true, ndim, settings);
                 avg_step /= t;
                 for (idx_t i_sample=0; i_sample<prob_samples; i_sample++) {
                     path_length = dtw_best_path_prob(wps, ci, mi, t, {{cur_length}}, avg_step, settings);

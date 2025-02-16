@@ -12,7 +12,7 @@ Compute best path between two series.
     Reverse ordered, last one is if i1 or i2 is zero.
  @param l1 Length of first array.
  @param l2 Length of second array.
- {%- if "affinity" in suffix %}
+ {%- if ("affinity" in suffix) or ("customstart" in suffix) %}
  @param rs Start position row.
  @param cs Start position column.
  {%- endif %}
@@ -40,7 +40,7 @@ Compute best path between two series.
 {%- set suffix2 = "" %}
 {%- endif %}
 idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2,
-                    {% if "affinity" in suffix -%}
+                    {% if ("affinity" in suffix) or ("customstart" in suffix) -%}
                     idx_t rs, idx_t cs,
                     {%- endif -%}
                     {%- if use_isclose == 1 -%}
@@ -50,7 +50,7 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
     DTWWps p = dtw_wps_parts(l1, l2, settings);
 
     idx_t i = 0;
-    {%- if "affinity" in suffix %}
+    {%- if ("affinity" in suffix) or ("customstart" in suffix) %}
     idx_t rip = rs;
     idx_t cip = cs;
     idx_t wpsi;
@@ -64,7 +64,7 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
     idx_t ri_width = p.width * rip;
 
     // D. ri3 <= ri < l1
-    {%- if "affinity" in suffix %}
+    {%- if ("affinity" in suffix) or ("customstart" in suffix) %}
     wpsi = dtw_wps_loc(&p, rs, cs, l1, l2) - ri_width;
     {%- else %}
     min_ci = p.ri3 + 1 - p.window - p.ldiff;
@@ -93,8 +93,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;
@@ -131,8 +131,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;
@@ -169,8 +169,8 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- endif %}
-        if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1]")}} &&
-            {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi]")}}) {
+        if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
+            {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi] + p.penalty")}}) {
             // Go diagonal
             cip--;
             rip--;

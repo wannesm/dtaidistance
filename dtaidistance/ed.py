@@ -57,7 +57,7 @@ def distance(s1, s2, inner_dist=innerdistance.default, use_ndim=False):
     :param use_ndim: Use n-dimensional methods
     :return: Euclidean distance
     """
-    idist_fn, result_fn = innerdistance.inner_dist_fns(inner_dist=inner_dist, use_ndim=use_ndim)
+    idist_fn, result_fn, _inner_val = innerdistance.inner_dist_fns(inner_dist=inner_dist, use_ndim=use_ndim)
     n = min(len(s1), len(s2))
     ub = 0
     for v1, v2 in zip(s1, s2):
