@@ -117,6 +117,7 @@ def test_distance3_a():
         assert d1 == pytest.approx(d2)
 
 
+@pytest.mark.skip("Pandas is not a mandatory requirement")
 @numpyonly
 @pandasonly
 def test_distance4():
