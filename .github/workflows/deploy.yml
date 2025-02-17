@@ -298,6 +298,12 @@ jobs:
           merge-multiple: true
           path: dist
 
+      - name: Install twine
+        run: python -m pip install --upgrade twine
+
+      - name: Check distribution with twine
+        run: twine check dist/*
+
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
