@@ -288,7 +288,8 @@ jobs:
     name: Upload wheels to PyPi
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    if: startsWith(github.event.ref, 'refs/tags/v')
     needs: [build_unix,build_macos,build_windows,build_sdist]
 
     steps:
