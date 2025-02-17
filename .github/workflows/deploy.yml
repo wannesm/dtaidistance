@@ -1,5 +1,6 @@
-# Python: "3.8", "3.9", "3.10"
-# Older version do not support f-strings
+# Python: "3.10" "3.11" "3.12"
+# Older versions than 3.8 do not support f-strings
+# Older versions than 3.10 do not support Numpy 2
 
 
 name: Python package
@@ -69,7 +70,7 @@ jobs:
         # python-version: ["3.8","3.9","3.10"]
         os: [ubuntu-22.04]
         # cibuildwheel will automatically provide all Python versions
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -87,7 +88,7 @@ jobs:
       env:
         CIBW_BUILD_VERBOSITY: 2
         # cp36-* and cp37-* do not support f-strings
-        CIBW_SKIP: cp36-* pp* *-manylinux_i686 *-musllinux_i686 *-musllinux_x86_64
+        CIBW_SKIP: cp36-* cp37-* cp38-* cp39-* pp* *-manylinux_i686 *-musllinux_i686 *-musllinux_x86_64
         CIBW_TEST_EXTRAS: "dev"
         CIBW_TEST_COMMAND: pytest --ignore=venv --benchmark-skip {project}/tests
     - name: Store wheels
@@ -104,7 +105,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-12, macos-13, macos-14]
-        python-version: ["3.8","3.9","3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Install OpenMP
@@ -225,7 +226,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ windows-2022 ]  # windows-2019 (produces same filenames as 2022)
-        python-version: ["3.8","3.9","3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
