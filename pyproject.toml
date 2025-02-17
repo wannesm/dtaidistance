@@ -5,3 +5,59 @@
 # though it is optional. Otherwise the --no-build-isolation flag would be required.
 # If you want to ignore numpy, remove it here and in setup.py (setup_requires)
 requires = ["setuptools", "wheel", "Cython", "numpy"]  # PEP 508 specifications.
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dtaidistance"
+dynamic = ["version"]
+description = "Distance measures for time series (Dynamic Time Warping, fast C implementation)"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [
+    {name = "Wannes Meert", email = "wannes.meert@cs.kuleuven.be"},
+]
+requires-python = ">=3.8"
+keywords = [ "dtw", "time series", "dynamic time warping", "distance"]
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+    "numpy",
+]
+
+[project.urls]
+homepage = "https://github.com/wannesm/dtaidistance"
+repository = "https://github.com/wannesm/dtaidistance"
+documentation = "https://http://dtaidistance.readthedocs.io"
+
+[project.optional-dependencies]
+tests = ["pytest", "pytest-benchmark"]
+viz = ["matplotlib>=3.0.0"]
+dev = [
+	"pytest", "pytest-benchmark",
+	"matplotlib>=3.0.0", "numpy", "scipy",
+	"sphinx", "sphinx_rtd_theme"
+]
+numpy = ["numpy", "scipy", "pandas"]
+all = ["numpy", "scipy", "pandas"]
+
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+packages = [
+	"dtaidistance",
+	"dtaidistance.clustering",
+	"dtaidistance.subsequence",
+	"dtaidistance.connectors",
+	"dtaidistance.symbolization"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "dtaidistance.__version__"}
+
+
+[tool.setuptools.package-data]
+dtaidistance = ["*.pyx", "*.pxd", "*.c", "*.h"]
+

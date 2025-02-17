@@ -104,7 +104,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [macos-13, macos-14]
+        os: [macos-14, macos-14-arm64, macos-15, macos-15-arm64]
         python-version: ["3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
@@ -138,16 +138,12 @@ jobs:
         ls ${{ github.workspace }}/build || true
     - name: Test installation
       run : |
-        mv dtaidistance dtaidistance_pkg
         python ./util/check_installation.py
-        mv dtaidistance_pkg dtaidistance
     - name: Test with pytest
       run: |
         export LDFLAGS="-L/usr/local/lib"
         export CPPFLAGS="-I/usr/local/include"
-        mv dtaidistance dtaidistance_pkg
         pytest --ignore=venv --benchmark-skip
-        mv dtaidistance_pkg dtaidistance
     - name: Build
       run: |
         python -m build
@@ -157,66 +153,6 @@ jobs:
       with:
         name: dist-${{ matrix.os }}-${{ matrix.python-version }}
         path: dist/*.whl
-
-  # Runners are not yet picked up?
-  # build_macos_arm:
-  #   name: Build wheels on ${{ matrix.os }}
-  #   runs-on: ${{ matrix.os }}
-  #   strategy:
-  #     fail-fast: true
-  #     matrix:
-  #       os: [macos-13-arm64, macos-14-arm64]  # these runners are not yet being picked up by github actions (yet?)
-  #       python-version: ["3.11", "3.12"]
-  #   steps:
-  #   - uses: actions/checkout@v4
-  #   - name: Install OpenMP
-  #     run: |
-  #       # OpenMP libraries are not installed by default on macos
-  #       clang --version
-  #       clang --version | grep "\(13\.\|14\.\|15\.\)"
-  #       # hardcoded, not ideal
-  #       # https://mac.r-project.org/openmp/
-  #       # This includes only the dynamic library
-  #       curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
-  #       sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
-  #       ls /usr/local/lib
-  #       ls /usr/local/include
-  #   - name: Set up Python ${{ matrix.python-version }}
-  #     uses: actions/setup-python@v5
-  #     with:
-  #       python-version: ${{ matrix.python-version }}
-  #   - name: Install dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip
-  #       python -m pip install pytest pytest-benchmark build
-  #       python -m pip install numpy scipy matplotlib>=3.0.0
-  #       if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-  #   - name: Compile and install
-  #     run: |
-  #       export LDFLAGS="-L/usr/local/lib"
-  #       export CPPFLAGS="-I/usr/local/include"
-  #       python -m pip install . -v
-  #       ls ${{ github.workspace }}/build || true
-  #   - name: Test installation
-  #     run : |
-  #       mv dtaidistance dtaidistance_pkg
-  #       python ./util/check_installation.py
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Test with pytest
-  #     run: |
-  #       export LDFLAGS="-L/usr/local/lib"
-  #       export CPPFLAGS="-I/usr/local/include"
-  #       mv dtaidistance dtaidistance_pkg
-  #       pytest --ignore=venv --benchmark-skip
-  #       mv dtaidistance_pkg dtaidistance
-  #   - name: Build
-  #     run: |
-  #       python -m build
-  #   - name: Store wheels
-  #     uses: actions/upload-artifact@v4
-  #     with:
-  #       name: wheels
-  #       path: dist/*.whl
 
 
   build_windows:
@@ -244,14 +180,10 @@ jobs:
         ls ${{ github.workspace }}/build || true
     - name: Test installation
       run : |
-        mv dtaidistance dtaidistance_pkg
         python ./util/check_installation.py
-        mv dtaidistance_pkg dtaidistance
     - name: Test with pytest
       run: |
-        mv dtaidistance dtaidistance_pkg
         pytest --ignore=venv --benchmark-skip -c pytest-noviz.ini
-        mv dtaidistance_pkg dtaidistance
     - name: Build
       run: |
         python -m build
@@ -310,24 +242,4 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: dist/
-
-  # test_upload_wheels:
-  #   name: Upload wheels to TestPyPi
-  #   runs-on: ubuntu-latest
-  #   # upload to PyPI on every tag starting with 'v'
-  #   # if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-  #   needs: [build_unix,build_macos,build_windows,build_sdist]
-  #   # needs: [build_unix]
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         name: wheels
-  #         path: dist
-
-  #     - name: Publish package to TestPyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         user: __token__
-  #         password: ${{ secrets.TEST_PYPI_API_TOKEN_TEST }}
-  #         repository_url: https://test.pypi.org/legacy/
 

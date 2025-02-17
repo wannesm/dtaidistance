@@ -3,12 +3,9 @@
 """
  python3 setup.py build_ext --inplace
 """
-from setuptools import setup, Command, find_packages
+from setuptools import setup
 from setuptools.extension import Extension
-from setuptools.command.test import test as TestCommand
-from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.build_ext import build_ext as BuildExtCommand
-from setuptools.command.install import install
 from setuptools import Distribution
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 import platform
@@ -31,7 +28,7 @@ except ImportError:
     cythonize = None
 
 here = Path(__file__).parent
-dtaidistancec_path = Path('dtaidistance') / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'
+dtaidistancec_path = Path('src') / 'dtaidistance' / 'lib' / 'DTAIDistanceC' / 'DTAIDistanceC'
 
 c_args = {
     # Xpreprocessor is required for the built-in CLANG on macos, but other
@@ -58,31 +55,6 @@ l_args = {
 }
 
 
-class PyTest(TestCommand):
-    description = "Run tests"
-    user_options = [('pytest-args=', 'a', "Arguments to pass into py.test")]
-    pytest_args = []
-    test_args = []
-
-    def initialize_options(self):
-        self.pytest_args = ['--ignore=venv']
-        try:
-            import pytest_benchmark
-            self.pytest_args += ['--benchmark-skip']
-        except ImportError:
-            print("No benchmark library, ignore benchmarks")
-            self.pytest_args += ['--ignore', str(Path('tests') / 'test_benchmark.py')]
-
-    def finalize_options(self):
-        pass
-
-    def run_tests(self):
-        import pytest
-        sys.path.append('.')
-        errno = pytest.main(self.pytest_args)
-        sys.exit(errno)
-
-
 class MyDistribution(Distribution):
     global_options = Distribution.global_options + [
         ('noopenmp', None, 'No compiler/linker flags for OpenMP (OpenMP disabled)'),
@@ -103,21 +75,9 @@ class MyDistribution(Distribution):
         super().__init__(attrs)
 
 
-class MyInstallCommand(install):
-    pass
 
-    # def initialize_options(self):
-    #     install.initialize_options(self)
-
-    # def finalize_options(self):
-    #     install.finalize_options(self)
-
-    # def run(self):
-    #     install.run(self)
-
-
-def set_custom_envvars_for_homebrew():
-    """Update environment variables automatically for Homebrew if CC is not set"""
+# def set_custom_envvars_for_homebrew():
+#     """Update environment variables automatically for Homebrew if CC is not set"""
     # DEPRECATED. OpenMP is now supported through -Xpreprocessor
     # if platform.system() == 'Darwin' and "CC" not in os.environ:
     #     print("Set custom environment variables for Homebrew Clang because CC is not set")
@@ -326,7 +286,7 @@ class MyBuildExtCommand(BuildExtCommand):
         BuildExtCommand.build_extensions(self)
 
     def initialize_options(self):
-        set_custom_envvars_for_homebrew()
+        # set_custom_envvars_for_homebrew()
         super().initialize_options()
 
     # def finalize_options(self):
@@ -405,45 +365,46 @@ if cythonize is not None:
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc",
-            ["dtaidistance/dtw_cc.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"
+            ["src/dtaidistance/dtw_cc.pyx",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"
              ],
             depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
                      "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
-            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
-            library_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+            include_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+            library_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.ed_cc",
-            ["dtaidistance/ed_cc.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
-            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
-            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+            ["src/dtaidistance/ed_cc.pyx",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+            depends=["src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+            include_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
     extensions.append(
         Extension(
             "dtaidistance.dtw_cc_omp",
-            ["dtaidistance/dtw_cc_omp.pyx",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw_openmp.c",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
-             "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
-            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
-                     "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h"
-                     "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
-            include_dirs=[str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+            ["src/dtaidistance/dtw_cc_omp.pyx",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw_openmp.c",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
+             "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+            depends=["src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
+                     "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h"
+                     "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
+            include_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
 
     if numpy is not None:
         extensions.append(
             Extension(
-                "dtaidistance.dtw_cc_numpy", ["dtaidistance/util_numpy_cc.pyx"],
-                depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
-                include_dirs=[numpy.get_include(), str(dtaidistancec_path), "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
+                "dtaidistance.dtw_cc_numpy",
+                ["src/dtaidistance/util_numpy_cc.pyx"],
+                depends=["src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+                include_dirs=[numpy.get_include(), str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
                 extra_compile_args=[],
                 extra_link_args=[]))
     else:
@@ -455,31 +416,6 @@ else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
 
-# It is easier to include numpy because of the build isolation (PEP517), even
-# though it is optional. Otherwise the --no-build-isolation flag would be required.
-# If you want to ignore numpy, remove it here and in pyproject.toml.
-install_requires = ['numpy']  # 'cython>=0.29.6',
-setup_requires = ['numpy']  # 'setuptools>=18.0', 'cython>=0.29.6',
-tests_require = ['pytest', 'pytest-benchmark']
-dev_require = tests_require + ['matplotlib>=3.0.0', 'numpy', 'scipy',
-                               'sphinx', 'sphinx_rtd_theme']
-
-# Check version number
-init_fn = here / 'dtaidistance' / '__init__.py'
-with init_fn.open('r', encoding='utf-8') as fd:
-    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                        fd.read(), re.MULTILINE).group(1)
-if not version:
-    raise RuntimeError('Cannot find version information')
-
-# Set up readme file
-readme_path = here / 'README.md'
-if os.path.exists(readme_path):
-    with readme_path.open('r', encoding='utf-8') as f:
-        long_description = f.read()
-else:
-    long_description = ""
-long_description_content_type = "text/markdown"
 
 # Create setup
 setup_kwargs = {}
@@ -488,48 +424,11 @@ def set_setup_kwargs(**kwargs):
     setup_kwargs = kwargs
 
 set_setup_kwargs(
-    name='dtaidistance',
-    version=version,
-    description='Distance measures for time series (Dynamic Time Warping, fast C implementation)',
-    long_description=long_description,
-    long_description_content_type=long_description_content_type,
-    author='Wannes Meert',
-    author_email='wannes.meert@cs.kuleuven.be',
-    url='https://github.com/wannesm/dtaidistance',
-    project_urls={
-        'DTAIDistance documentation': 'http://dtaidistance.readthedocs.io/en/latest/',
-        'DTAIDistance source': 'https://github.com/wannesm/dtaidistance'
-    },
-    packages=['dtaidistance', 'dtaidistance.clustering', 'dtaidistance.subsequence',
-              'dtaidistance.connectors', 'dtaidistance.symbolization'],
-    python_requires='>=3.5',
-    install_requires=install_requires,
-    setup_requires=setup_requires,
-    tests_require=tests_require,
-    extras_require={
-        'vis': ['matplotlib>=3.0.0'],
-        'numpy': ['numpy', 'scipy'],
-        'all': ['matplotlib>=3.0.0', 'numpy', 'scipy'],
-        'dev': dev_require
-    },
-    include_package_data=True,
-    package_data={
-        'dtaidistance': ['*.pyx', '*.pxd', '*.c', '*.h'],
-    },
     distclass=MyDistribution,
     cmdclass={
-        'test': PyTest,
         'buildinplace': MyBuildExtInPlaceCommand,
         'build_ext': MyBuildExtCommand,
-        'install': MyInstallCommand
     },
-    license='Apache 2.0',
-    classifiers=[
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3'
-    ],
-    keywords='dtw, time series, dynamic time warping, distance',
-    zip_safe=False
 )
 
 try:
@@ -544,3 +443,4 @@ except (CCompilerError, DistutilsExecError, DistutilsPlatformError, IOError, Sys
     setup(**setup_kwargs)
     print("Installed the plain Python version of the package.")
     print("If you need the C extension, try reinstalling.")
+
