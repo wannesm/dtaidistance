@@ -53,6 +53,7 @@ packages = [
 	"dtaidistance.connectors",
 	"dtaidistance.symbolization"
 ]
+license-files = []
 
 [tool.setuptools.dynamic]
 version = {attr = "dtaidistance.__version__"}
