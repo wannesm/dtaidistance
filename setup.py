@@ -369,8 +369,8 @@ if cythonize is not None:
              "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
              "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"
              ],
-            depends=["dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
-                     "dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
+            depends=["src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
+                     "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
             include_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             library_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
@@ -392,7 +392,7 @@ if cythonize is not None:
              "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
              "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
             depends=["src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
-                     "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h"
+                     "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_dtw.h",
                      "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
             include_dirs=[str(dtaidistancec_path), "src/dtaidistance/lib/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
