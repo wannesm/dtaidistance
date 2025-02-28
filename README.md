@@ -214,7 +214,7 @@ The output in this case will be:
      [ inf   inf  inf     inf     inf  inf]]   # 5
 
 
-## Clustering
+### Clustering
 
 A distance matrix can be used for time series clustering. You can use existing methods such as
 `scipy.cluster.hierarchy.linkage` or one of two included clustering methods (the latter is a
@@ -238,6 +238,23 @@ tree can be visualised:
     model.plot("myplot.png")
 
 ![Dynamic Time Warping (DTW) hierarchical clusteringt](https://people.cs.kuleuven.be/wannes.meert/dtw/hierarchy.png?v=2)
+
+
+### Subsequence search
+
+DTAIDistance supports various subsequence search algorithms like
+Subsequence Alignment, Subsequence KNN Search and Local Concurrences.
+See the [documentation](https://dtaidistance.readthedocs.io/en/latest/usage/subsequence.html)
+for more information.
+
+### Motif Discovery
+
+While methods such as `dtw.distance_matrix` and `subsequence.subsequencesearch`
+can be used for motif discovery in time series (after windowing), a more
+efficient and effective algorithm
+based on time warping is available in the
+[LoCoMotif package](https://github.com/ML-KULeuven/locomotif).
+
 
 
 ## Dependencies
