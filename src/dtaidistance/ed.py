@@ -51,6 +51,10 @@ def distance(s1, s2, inner_dist=innerdistance.default, use_ndim=False):
     to the remaining elements in the longer series. This is compatible with Euclidean
     distance being used as an upper bound for DTW.
 
+    See also:
+        Silva D., Batista, G., "Speeding Up All-Pairwise Dynamic Time Warping Matrix
+        Calculation", SDM 2016.
+
     :param s1: Sequence of numbers
     :param s2: Sequence of numbers
     :param inner_dist: Inner distance function between two values

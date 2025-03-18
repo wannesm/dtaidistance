@@ -374,9 +374,9 @@ def distance(s1, s2, only_ub=False, **kwargs):
     return d
 
 
-def distance_fast(s1, s2, only_ub=False, **kwargs):
+def distance_fast(s1, s2, only_ub=False, use_pruning=True, **kwargs):
     """Same as :meth:`distance` but with different defaults to choose the fast C-based version of
-    the implementation (use_c = True).
+    the implementation (use_c = True) and use pruning (use_pruning = True).
 
     Note: the series are expected to be arrays of the type ``double``.
     Thus ``numpy.array([1,2,3], dtype=numpy.double)`` or
@@ -386,7 +386,7 @@ def distance_fast(s1, s2, only_ub=False, **kwargs):
     # Check that Numpy arrays for C contiguous
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
-    s = DTWSettings(**kwargs)
+    s = DTWSettings(use_pruning=use_pruning, **kwargs)
     # Move data to C library
     if s.use_ndim is False:
         d = dtw_cc.distance(s1, s2, only_ub=only_ub, **s.c_kwargs())
@@ -510,6 +510,9 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
 
 def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False, compact=False, **kwargs):
     """Fast C version of :meth:`warping_paths`.
+
+    The `use_pruning` argument is still False by default in case one needs the
+    full matrix. If this is not the case, then `use_pruning` can be set to True.
 
     :param s1: See :meth:`warping_paths`
     :param s2: See :meth:`warping_paths`
@@ -910,12 +913,12 @@ def _distance_matrix_length(block, nb_series):
     return length
 
 
-def distance_matrix_fast(s, max_dist=None, use_pruning=False, max_length_diff=None,
+def distance_matrix_fast(s, max_dist=None, use_pruning=True, max_length_diff=None,
                          window=None, max_step=None, penalty=None, psi=None,
                          block=None, compact=False, parallel=True, use_mp=False,
                          only_triu=False, inner_dist=innerdistance.default, use_c=True):
     """Same as :meth:`distance_matrix` but with different defaults to choose the
-    fast parallized C version (use_c = True and parallel = True).
+    fast parallized C version (use_c = True, parallel = True, use_pruning = True).
 
     This method uses the C-compiled version of the DTW algorithm and uses parallelization.
     By default, this is the OMP C parallelization. If the OMP functionality is not available
