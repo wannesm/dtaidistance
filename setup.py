@@ -367,7 +367,8 @@ if cythonize is not None:
             "dtaidistance.dtw_cc",
             ["src/dtaidistance/dtw_cc.pyx",
              "src/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
-             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c"
+             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c",
+             "src/DTAIDistanceC/DTAIDistanceC/dd_globals.c"
              ],
             depends=["src/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
                      "src/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
@@ -381,7 +382,8 @@ if cythonize is not None:
         Extension(
             "dtaidistance.ed_cc",
             ["src/dtaidistance/ed_cc.pyx",
-             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c",
+             "src/DTAIDistanceC/DTAIDistanceC/dd_globals.c"],
             depends=["src/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
             include_dirs=[str(dtaidistancec_path),
                           "src/DTAIDistanceC/DTAIDistanceC"],
@@ -393,7 +395,8 @@ if cythonize is not None:
             ["src/dtaidistance/dtw_cc_omp.pyx",
              "src/DTAIDistanceC/DTAIDistanceC/dd_dtw_openmp.c",
              "src/DTAIDistanceC/DTAIDistanceC/dd_dtw.c",
-             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c"],
+             "src/DTAIDistanceC/DTAIDistanceC/dd_ed.c",
+             "src/DTAIDistanceC/DTAIDistanceC/dd_globals.c"],
             depends=["src/DTAIDistanceC/DTAIDistanceC/dd_globals.h",
                      "src/DTAIDistanceC/DTAIDistanceC/dd_dtw.h",
                      "src/DTAIDistanceC/DTAIDistanceC/dd_ed.h"],
@@ -406,7 +409,8 @@ if cythonize is not None:
         extensions.append(
             Extension(
                 "dtaidistance.dtw_cc_numpy",
-                ["src/dtaidistance/util_numpy_cc.pyx"],
+                ["src/dtaidistance/util_numpy_cc.pyx",
+                 "src/DTAIDistanceC/DTAIDistanceC/dd_globals.c"],
                 depends=["src/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
                 include_dirs=[numpy.get_include(),
                               str(dtaidistancec_path),

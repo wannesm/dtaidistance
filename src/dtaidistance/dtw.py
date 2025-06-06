@@ -13,6 +13,7 @@ Dynamic Time Warping (DTW)
 import logging
 import array
 import math
+from argparse import ArgumentError
 
 from . import ed
 from . import util
@@ -172,6 +173,14 @@ class DTWSettings:
             self.adj_max_length_diff = self.max_length_diff
 
     @staticmethod
+    def wrap(settings):
+        if isinstance(settings, DTWSettings):
+            return settings
+        if settings is None:
+            return DTWSettings()
+        return DTWSettings(**settings)
+
+    @staticmethod
     def for_dtw(s1, s2, **kwargs):
         settings = DTWSettings(**kwargs)
         if settings.window is None:
@@ -226,6 +235,19 @@ class DTWSettings:
         elif type(self.psi) in [tuple, list]:
             psi_1b, psi_1e, psi_2b, psi_2e = self.psi
         return psi_1b, psi_1e, psi_2b, psi_2e
+
+    def to_h5_group(self, group):
+        for key, value in self.c_kwargs().items():
+            group.attrs[key] = value
+
+    @staticmethod
+    def from_h5_group(group):
+        kwargs = {}
+        for attr in ["window", "use_pruning", "max_dist", "max_step", "max_step_clip",
+                     "max_length_diff", "penalty", "psi", "inner_dist", "use_ndim", "use_c"]:
+            if attr in group.attrs:
+                kwargs[attr] = group.attrs[attr]
+        return DTWSettings(**kwargs)
 
     def __str__(self):
         r = ''

@@ -91,6 +91,8 @@ def smoothing(series, smooth):
 def derivative(series, smooth=None):
     """Derivative series.
 
+    dq = ((q_i - q_{i-1}) + (q_{i+1} - q_{i-1})/2)/2
+
     Based on Keogh, E. and Pazzani, M. "Derivative Dynamic Time Warping".
     SIAM International Conference on Data Mining, 2002.
 
