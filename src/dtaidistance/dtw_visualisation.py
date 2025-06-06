@@ -365,6 +365,7 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
         dist_between_y = ax1pos[1] - (ax2pos[1] + ax2pos[3])
         dist_between_x = ax2pos[0] - (ax1pos[0])
         # set_position([left, bottom, width, height])
+        ax0.set_position((left + dist_between_x, bottom+height+dist_between_y, ax2pos[2], ax1pos[3]))
         ax1.set_position((left, bottom+height+dist_between_y, width, ax1pos[3]))
         ax2.set_position((left + dist_between_x, bottom, ax2pos[2], height))
 
