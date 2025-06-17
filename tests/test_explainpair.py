@@ -3,8 +3,6 @@ import os
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 
 import dtaidistance.dtw_visualisation as dtwvis
@@ -46,9 +44,7 @@ def test_diffbaseline():
         ya = ya * 2.0
         yb = yb + 5.0
         d, paths = warping_paths(ya, yb)
-        print(paths)
         path = best_path(paths)
-        print(path)
         if directory and not dtwvis.test_without_visualization():
             try:
                 import matplotlib.pyplot as plt
@@ -102,8 +98,9 @@ def test_explain1():
 
 
 def prepare_sin_wave_ts(length_of_ts, starting_index_of_wave, length_of_wave):
-    return np.concatenate((np.zeros(starting_index_of_wave), np.sin(np.linspace(0, 2 * np.pi, length_of_wave)),
-                           np.zeros(length_of_ts - starting_index_of_wave - length_of_wave)))
+    with util_numpy.test_uses_numpy() as np:
+        return np.concatenate((np.zeros(starting_index_of_wave), np.sin(np.linspace(0, 2 * np.pi, length_of_wave)),
+                               np.zeros(length_of_ts - starting_index_of_wave - length_of_wave)))
 
 
 @numpyonly
@@ -155,7 +152,6 @@ def test_ssm():
             except ImportError:
                 raise MatplotlibException("No matplotlib available")
 
-            print(str(directory / "test_ccm_path_pair.png"))
             ep.plot_warping(str(directory / "test_ccm_path_pair.png"))
 
             fig, axs = dtwvis.plot_warpingpaths(ya, yb, paths, path=path)
@@ -170,11 +166,10 @@ def test_ssm():
                 axs[0].text(segment.s_idx_y + 4, segment.s_idx,
                             f"{segment.s_idx_p} - {srdist:.4f}/{sadist:.4f} - "
                             f"({segment.s_idx},{segment.s_idx_y})", color="red")
-            print('')
-            print(rdists)
-            print(f"{rdist=} ?= inner_res({sum(rdists)}) = {inner_res(sum(rdists))}")
-            print(adists)
-            print(f"{adist=} ?= inner_res({sum(adists)}) = {inner_res(sum(adists))}")
+            # print(rdists)
+            # print(f"{rdist=} ?= inner_res({sum(rdists)}) = {inner_res(sum(rdists))}")
+            # print(adists)
+            # print(f"{adist=} ?= inner_res({sum(adists)}) = {inner_res(sum(adists))}")
             fn = directory / "test_ccm_paths_1.png"
             fig.savefig(str(fn))
             plt.close(fig)
@@ -294,16 +289,24 @@ def test_explain_pair():
 
 
 def test_plot_rdp():
-    line = np.array([[24, 173], [26, 170], [24, 166], [27, 162], [37, 161], [45, 157], [48, 152],
-                     [46, 143], [40, 140], [34, 137], [26, 134], [24, 130], [24, 125], [28, 121],
-                     [36, 118], [46, 117], [63, 121], [76, 125], [82, 120], [86, 111], [88, 103],
-                     [90, 91], [95, 87], [107, 89], [107, 104], [106, 117], [109, 129], [119, 131],
-                     [131, 131], [139, 134], [138, 143], [131, 152], [119, 154], [111, 149],
-                     [105, 143], [91, 139], [80, 142], [81, 152], [76, 163], [67, 161], [59, 149], [63, 138]])
-    plt.plot(line[:, 0], line[:, 1], '-o');
-    line2, _ = rdp_vectorized(line, 8.8)
-    plt.plot(line2[:, 0], line2[:, 1], '-o');
-    plt.show()
+    with util_numpy.test_uses_numpy() as np:
+        line = np.array([[24, 173], [26, 170], [24, 166], [27, 162], [37, 161], [45, 157], [48, 152],
+                         [46, 143], [40, 140], [34, 137], [26, 134], [24, 130], [24, 125], [28, 121],
+                         [36, 118], [46, 117], [63, 121], [76, 125], [82, 120], [86, 111], [88, 103],
+                         [90, 91], [95, 87], [107, 89], [107, 104], [106, 117], [109, 129], [119, 131],
+                         [131, 131], [139, 134], [138, 143], [131, 152], [119, 154], [111, 149],
+                         [105, 143], [91, 139], [80, 142], [81, 152], [76, 163], [67, 161], [59, 149], [63, 138]])
+
+        line2, _ = rdp_vectorized(line, 8.8)
+        if directory and not dtwvis.test_without_visualization():
+            try:
+                import matplotlib.pyplot as plt
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
+            plt.plot(line[:, 0], line[:, 1], '-o')
+            plt.plot(line2[:, 0], line2[:, 1], '-o')
+            plt.savefig(directory / "test_plot_rdp.png")
+            plt.close()
 
 
 def test_sine_pathdiff():

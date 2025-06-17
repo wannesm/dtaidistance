@@ -1,3 +1,25 @@
+# -*- coding: UTF-8 -*-
+"""
+dtaidistance.explain.dws.explainpair
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+(requires version 2.4.0 or higher)
+
+Explain the warping path.
+
+Usage
+
+::
+
+    ep = ExplainPair(ya, yb, delta_rel=2, delta_ab=0, approx_prune=True)
+    print(ep.distance_approx())
+    ep.plot_warping("/path/to/figure.png")
+
+
+:copyright: Copyright 2025 KU Leuven, DTAI Research Group.
+:license: Apache License, Version 2.0, see LICENSE for details.
+
+"""
 import functools
 import heapq
 import sys
@@ -180,11 +202,13 @@ class ExplainPair:
         """Compute segments and variations that explain the warping path
         between two series.
         Ensures that the new DTW distance d' satisfies the bound: d' <= d * (1 + delta_rel) + delta_ab,
-            where d is the DTW distance of the original path, and
-            delta_rel and delta_ab are user-defined relative and absolute tolerance parameters, respectively.
+        where d is the DTW distance of the original path, and
+        delta_rel and delta_ab are user-defined relative and absolute tolerance parameters, respectively.
+
         Special cases:
-            -If delta_rel = 0, the bound becomes purely absolute: d' <= d + delta_ab.
-            -If delta_ab = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
+
+            - If delta_rel = 0, the bound becomes purely absolute: d' <= d + delta_ab.
+            - If delta_ab = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
 
         :param series_from: Series from
         :param series_to: Series to
@@ -199,7 +223,7 @@ class ExplainPair:
         :param path: Use given warping path
         :param dtw_settings: Object of type :class:`DTWSettings`.
             This parameter contains settings for the DTW algorithm, such as the inner cost function between two time points, etc.
-        :@param save_intermediates: Save intermediate results
+        :param save_intermediates: Save intermediate results
         """
         self.series_from = series_from
         self.series_to = series_to
