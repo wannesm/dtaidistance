@@ -1,5 +1,6 @@
 import functools
 import heapq
+import sys
 from bisect import bisect_left, bisect_right
 from collections import deque, defaultdict
 from dataclasses import dataclass
@@ -168,7 +169,7 @@ class ExplainPair:
             series_from,
             series_to,
             delta_rel=2,
-            delta_abs=0,
+            delta_ab=0,
             approx_prune=False,
             split_strategy=SplitStrategy.SPATIAL_DIST,
             onlychanges=None,
@@ -178,28 +179,32 @@ class ExplainPair:
     ):
         """Compute segments and variations that explain the warping path
         between two series.
+        Ensures that the new DTW distance d' satisfies the bound: d' <= d * (1 + delta_rel) + delta_ab,
+            where d is the DTW distance of the original path, and
+            delta_rel and delta_ab are user-defined relative and absolute tolerance parameters, respectively.
+        Special cases:
+            -If delta_rel = 0, the bound becomes purely absolute: d' <= d + delta_ab.
+            -If delta_ab = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
 
-        Allow to deviate such that the dtw distance of the new path is at
-        most (2+epsilon)*(original dtw distance) but allow both a max_factor
-        simplification with (1+epsilon)*(original dtw distance) and a max_diff
-        simplification with (1+epsilon)+(original dtw distance).
-
-        The above relaxations are applied (relatively) to each segment.
         :param series_from: Series from
         :param series_to: Series to
-        :param delta_rel, delta_abs: Let c' be the accummulated cost along the simplified subpath, and c be the accumulated cost along the original subpath.
-            The simplification is accepted if c' <= max(c + delta_rel * c, c + delta_abs * len(original subpath) / len(the whole path)).
-        :param approx_prune: Add a last round that merges segments bottom-up.
+        :param delta_rel: relative tolerance parameter.
+            This parameter controls how much deviation is allowed based on the original DTW distance.
+            It allows flexibility proportional to the distance of the original path.
+        :param delta_ab: absolute tolerance parameter.
+            This parameter sets a fixed allowance for deviation.
+            It allows flexibility regardless of the distance of the original path.
+        :param approx_prune: Boolean. Add a last round that merges segments bottom-up.
         :param onlychanges: Only return segments with changes above this threshold
         :param path: Use given warping path
-        :param dtw_settings: Object of type :class:`DTWSettings`
-            This variable is ignored if `path` is given.
+        :param dtw_settings: Object of type :class:`DTWSettings`.
+            This parameter contains settings for the DTW algorithm, such as the inner cost function between two time points, etc.
         :@param save_intermediates: Save intermediate results
         """
         self.series_from = series_from
         self.series_to = series_to
         self.delta_rel = delta_rel
-        self.delta_abs = delta_abs
+        self.delta_ab = delta_ab
         self.comb_op = max  # max or min
         self.approx_prune = approx_prune
         self.split_strategy = split_strategy
@@ -303,7 +308,7 @@ class ExplainPair:
             ccostv_o[idx] = ccost_o
         lenr_o = len(points)  # Length of original path remaining
 
-        ub_m, ub_a = self.compute_bounds(ccost_o, 0, 0, lenr_o, inner_res, inner_val)
+        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, lenr_o, inner_res, inner_val)
 
         # Split selection
         if self.split_strategy == SplitStrategy.SPATIAL_DIST:
@@ -339,14 +344,14 @@ class ExplainPair:
             # irrespective of their length, and offers some guarantees
             # on the total deviation.
             # It exists out of two bounds, of which the largest is taken.
-            # ccost_o*ub_m: Is the new path only a bit worse than the original path.
+            #  ccostp_o * (1 + tolerance_factor_rel): Is the new path only a bit worse than the original path.
             #     This part is useful when a part of the path has a large distance. In
             #     that part of the path it is ok to allow for a larger deviation.
-            # lenp_o*margin_ub: Is the new path still better than the expected cost
+            # ccostp_o + lenp_o * tolerance_factor_ab,: Is the new path still better than the expected cost
             #     averaged over the entire series. This part is useful when a part of
             #     the path is a near perfect match and multiplying a very small number
-            #     with the ub_m is still a very small number.
-            if ccostp_a <= self.comb_op(ccostp_o + ub_a * lenp_o, (1 + ub_m) * ccostp_o):
+            #     with the 'tolerance_factor_rel' is still a very small number.
+            if ccostp_a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab, ccostp_o * (1 + tolerance_factor_rel)):
                 result.add(i0)
                 result.add(i1)
                 if self.save_intermediates:
@@ -375,7 +380,7 @@ class ExplainPair:
         return new_points, result
 
     def remove_segments(self, points, idxs, ccostv_o):
-        """Remove segments as longs as the cost is still lower than the upperbound.
+        """Remove segments as longs as the cost still satisfies the tolerance criterion.
 
         Compared to rdp_ssm, which is top-down, this method is bottom-up. But therefore
         also slower. Therefore, first rdp_ssm is used.
@@ -389,8 +394,7 @@ class ExplainPair:
         queue = []
         new_idxs = SortedList(idxs)
         cnt = np.zeros(1)
-        ub_m, ub_a = self.compute_bounds(ccost_o, 0, 0, len(points),
-                                         cost2dist, dist2cost)
+        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, len(points), cost2dist, dist2cost)
 
         @functools.cache
         def line_cost(p0, p1):
@@ -427,7 +431,7 @@ class ExplainPair:
             lenp_o = i2 - i0
             # print(f'{c_02a=:.4f} < max({lenp_o=} * {ub_a=:.4f}, {ccostp_o=:.4f} * {ub_m=:.4f}) = '
             #       f'max({lenp_o * ub_a:.4f}, {ccostp_o * ub_m:.4f})')
-            do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * ub_a, ccostp_o * (ub_m + 1)))
+            do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab, ccostp_o * (1 + tolerance_factor_rel)))
 
             if do_simplify:
                 # print(f'Remove {i1}')
@@ -449,36 +453,30 @@ class ExplainPair:
             else:
                 pass
 
-        print(f'remove_segments: {len(idxs)} -> {cnt[0]=}')
+        # print(f'remove_segments: {len(idxs)} -> {cnt[0]=}')
         return new_idxs
 
-    def compute_bounds(self, ccost, ccostp, ccostpa, lengthr, cost2dist, dist2cost):
-        """Compute the bounds that are allowed for the approximation of the
+    def compute_tolerance_criterion_factors(self, ccost, length, cost2dist, dist2cost):
+        """Compute the tolerance criterion factors that are allowed for the approximation of the
         current segment.
 
-        If ccost and ccostc are not the same, the upper bound is increased to
-        allow for more approximation to get closer to the global upper bound
-        of the dtw distance.
+        Note: unlike the paper, where the absolute tolerance criterion doesn't consider the total path length (L),
+        our implementation incorporates L from the start, since it's known in advance. This avoids repeated divisions.
 
         :param ccost: Cumulative cost of total path
-        :param ccostp: Cumulative cost of partial path
-        :param ccostpa: Cumulative cost of approximation of partial path
-        :param lengthr: length of partial path remaining
-        :param cost2dist: Transform cost to distance
-        :param dist2cost: Transform distance to cost
-        :returns: (multiplicative upperbound, additive upperbound)
+        :param length: length of total path
+        :param cost2dist: Transform cost to distance, corresponding to \phi^{-1} in the paper.
+        :param dist2cost: Transform distance to cost, corresponding to \phi in the paper.
+        :returns: (relative tolerance criterion factor, absolute tolerance criterion factor)
         """
-        # ccost = cost2dist(ccost)
 
-        rel, abs = self.delta_rel, self.delta_abs
-        ccost_ub = cost2dist(ccost) * (rel)
         try:
-            ub_m = ((dist2cost(ccost_ub) - ccostpa) /
-                    (ccost - ccostp))
+            tolerance_factor_rel = dist2cost(cost2dist(ccost) * self.delta_rel) / ccost
         except (ValueError, ZeroDivisionError):
-            ub_m = 0
-        ub_a = (dist2cost(cost2dist(ccost) + abs) - ccost - ccostpa) / lengthr
-        return ub_m, ub_a
+            tolerance_factor_rel = 0
+        tolerance_factor_ab = (dist2cost(cost2dist(ccost) + self.delta_ab) - ccost) / length
+        return tolerance_factor_rel, tolerance_factor_ab
+
 
     def _max_deviation_from_line_filtered(self, points, i0, i1, idx_filter,
                                           use_spatial=True, inner_dist=None):
@@ -816,7 +814,6 @@ class ExplainPair:
             self.series_from,
             self.segments,
             self.variations,
-            self.epsilon,
             filename=filename,
             fig=fig,
         )
@@ -876,7 +873,7 @@ class ExplainPair:
 
         fig = plt.figure()
         fig, gs = plot_explain(
-            self.series_from, self.segments, self.variations, self.epsilon, fig=fig
+            self.series_from, self.segments, self.variations, fig=fig
         )
         gs.update(top=0.95, bottom=relsize + 0.05)
         new_gs = fig.add_gridspec(2, 1, top=relsize - 0.05, bottom=0.05)
@@ -1001,7 +998,7 @@ class SortedList:
         return self._l.__getitem__(item)
 
     def remove(self, x):
-        'Remove the value equal to x'
+        """Remove the value equal to x."""
         try:
             i = self.index(x)
             del self._l[i]
@@ -1009,35 +1006,35 @@ class SortedList:
             pass
 
     def index(self, x):
-        'Locate the leftmost value exactly equal to x'
+        """Locate the leftmost value exactly equal to x."""
         i = bisect_left(self._l, x)
         if i != len(self._l) and self._l[i] == x:
             return i
         raise ValueError
 
     def find_lt(self, x):
-        'Find rightmost value less than x'
+        """Find rightmost value less than x."""
         i = bisect_left(self._l, x)
         if i:
             return self._l[i - 1]
         raise ValueError
 
     def find_le(self, x):
-        'Find rightmost value less than or equal to x'
+        """Find rightmost value less than or equal to x."""
         i = bisect_right(self._l, x)
         if i:
             return self._l[i - 1]
         raise ValueError
 
     def find_gt(self, x):
-        'Find leftmost value greater than x'
+        """Find leftmost value greater than x."""
         i = bisect_right(self._l, x)
         if i != len(self._l):
             return self._l[i]
         raise ValueError
 
     def find_ge(self, x):
-        'Find leftmost item greater than or equal to x'
+        """Find leftmost item greater than or equal to x."""
         i = bisect_left(self._l, x)
         if i != len(self._l):
             return self._l[i]
@@ -1620,7 +1617,7 @@ def plot_warping2(
     return fig, axs
 
 
-def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fig=None):
+def plot_explain(series, segments, variations=None, filename=None, fig=None):
     import matplotlib.pyplot as plt
 
     process = list(enumerate(segments))
@@ -1679,6 +1676,18 @@ def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fi
     seriesp = seriesp / (4 * max(np.max(series), -np.min(series))) + 0.07
     for r in range(cur_row):
         ax.plot(seriesp + r, color=color_series, alpha=0.3)
+    max_shift_or_expansion = sys.float_info.min
+    min_shift_or_expansion = sys.float_info.max
+    for idx in range(len(segments)):
+        if isinstance(segments[idx], PathSegment):
+            segment = segments[idx].segment
+        else:
+            segment = segments[idx]
+        current_max = max(segment.shift_l, segment.shift_r,round(segment.length() * np.tan(segment.a_compression) / 2), round(segment.length() * np.tan(segment.a_expansion) / 2))
+        current_min = min(segment.shift_l, segment.shift_r,round(segment.length() * np.tan(segment.a_compression) / 2), round(segment.length() * np.tan(segment.a_expansion) / 2))
+        max_shift_or_expansion = max(max_shift_or_expansion, current_max)
+        min_shift_or_expansion = min(min_shift_or_expansion, current_min)
+
     for idx in range(len(segments)):
         if isinstance(segments[idx], PathSegment):
             segment = segments[idx].segment
@@ -1704,11 +1713,11 @@ def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fi
         # y2 = [r, r]
         # axs[1].fill_between(x, y1, y2, color=color_shade, alpha=0.5, linewidth=0)
         y = [r - 0.15, r - 0.15]
-        _plot_arrow(x, y, "<-<", segment.shift_l, epsilon, ax)
+        _plot_arrow(x, y, "<-<", segment.shift_l, min_shift_or_expansion, max_shift_or_expansion, ax)
         x = [bi + segment.shift_r, ei + segment.shift_r]
         # axs[1].fill_between(x, y1, y2, color=color_shade, alpha=0.5, linewidth=0)
         y = [r - 0.3, r - 0.3]
-        _plot_arrow(x, y, ">->", segment.shift_r, epsilon, ax)
+        _plot_arrow(x, y, ">->", segment.shift_r, min_shift_or_expansion, max_shift_or_expansion, ax)
 
         # Compression
         delta = round(segment.length() * np.tan(segment.a_compression) / 2)
@@ -1718,7 +1727,7 @@ def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fi
         # axs[1].fill_between(x, y1, y2, color=color_shade, alpha=0.5, linewidth=0)
         x = [bi + delta, ei - delta]
         y = [r + 0.4, r + 0.4]
-        _plot_arrow(x, y, ">-<", delta, epsilon, ax)
+        _plot_arrow(x, y, ">-<", delta, min_shift_or_expansion, max_shift_or_expansion, ax)
 
         # Expansion
         delta = round(segment.length() * np.tan(segment.a_expansion) / 2)
@@ -1728,7 +1737,7 @@ def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fi
         # axs[1].fill_between(x, y1, y2, color=color_shade, alpha=0.5, linewidth=0)
         x = [bi - delta, ei + delta]
         y = [r + 0.55, r + 0.55]
-        _plot_arrow(x, y, "<->", delta, epsilon, ax)
+        _plot_arrow(x, y, "<->", delta, min_shift_or_expansion, max_shift_or_expansion, ax)
 
     if variations is not None:
         ax = plt.subplot(gs[cur_row + 1, 0])
@@ -1760,14 +1769,15 @@ def plot_explain(series, segments, variations=None, epsilon=2, filename=None, fi
     return fig, gs
 
 
-def _plot_arrow(x, y, arrowstyle, delta, epsilon, ax):
+def _plot_arrow(x, y, arrowstyle, delta, delta_min, delta_max, ax):
     """Custom arrow plotting. Allows for inwards pointing arrows.
 
     :param x: A pair of x coordinates
     :param y: A pair of y coordinates
     :param arrowstyle: One of '<->', '<-<', '>->', '>-<'
     :param delta: Amount of change. Used to determine the color transparency.
-    :param epsilon: Amount of ignored change. Used to determine the color transparency.
+    :param delta_min: Minimum amount of change. Used to determine the color transparency.
+    :param delta_max: Maximum amount of change. Used to determine the color transparency.
     :param ax: Matplotlib Axes
     :return:
     """
@@ -1812,10 +1822,7 @@ def _plot_arrow(x, y, arrowstyle, delta, epsilon, ax):
     else:
         raise ValueError(f'Unknown mr: {mr}')
 
-    if epsilon == 0:
-        alpha = 0.5
-    else:
-        alpha = 0.5 * min(1, delta / epsilon) + 0.2
+    alpha =  0.5 * (delta - delta_min) / (delta_max - delta_min) + 0.2
     # ax.plot(x, y, color=color_shade, alpha=alpha)
     # ax.plot(x[0], y[0], color=color_shade, marker=ml, alpha=alpha, markersize=marker_size)
     # ax.plot(x[1], y[1], color=color_shade, marker=mr, alpha=alpha, markersize=marker_size)
