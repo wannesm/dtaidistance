@@ -192,6 +192,7 @@ class ExplainPair:
             series_to,
             delta_rel=2,
             delta_ab=0,
+            approx_local=True,
             approx_prune=False,
             split_strategy=SplitStrategy.SPATIAL_DIST,
             onlychanges=None,
@@ -218,6 +219,9 @@ class ExplainPair:
         :param delta_ab: absolute tolerance parameter.
             This parameter sets a fixed allowance for deviation.
             It allows flexibility regardless of the distance of the original path.
+        :param approx_local: If True, apply the local tolerance criterion to check the cost of each segment;
+            if False, apply the global tolerance criterion to check the cost of the full sequence matching.
+            This setting is only used during the pruning phase.
         :param approx_prune: Boolean. Add a last round that merges segments bottom-up.
         :param onlychanges: Only return segments with changes above this threshold
         :param path: Use given warping path
@@ -230,6 +234,7 @@ class ExplainPair:
         self.delta_rel = delta_rel
         self.delta_ab = delta_ab
         self.comb_op = max  # max or min
+        self.approx_local = approx_local
         self.approx_prune = approx_prune
         self.split_strategy = split_strategy
         self.onlychanges = onlychanges
@@ -415,6 +420,7 @@ class ExplainPair:
         """
         inner_dist, cost2dist, dist2cost = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
         ccost_o = ccostv_o[-1]
+        global_upperbound = dist2cost((1 + self.delta_rel) * cost2dist(ccost_o) + self.delta_ab)
         queue = []
         new_idxs = SortedList(idxs)
         cnt = np.zeros(1)
@@ -451,11 +457,19 @@ class ExplainPair:
 
             c_02a = line_cost((p0[0], p0[1]), (p2[0], p2[1]))
 
-            ccostp_o = ccostv_o[i2] - ccostv_o[i0]  # Cost of partial original path
-            lenp_o = i2 - i0
-            # print(f'{c_02a=:.4f} < max({lenp_o=} * {ub_a=:.4f}, {ccostp_o=:.4f} * {ub_m=:.4f}) = '
-            #       f'max({lenp_o * ub_a:.4f}, {ccostp_o * ub_m:.4f})')
-            do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab, ccostp_o * (1 + tolerance_factor_rel)))
+            if self.approx_local:
+                ccostp_o = ccostv_o[i2] - ccostv_o[i0]  # Cost of partial original path
+                lenp_o = i2 - i0
+                do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab, ccostp_o * (tolerance_factor_rel + 1)))
+            else:
+                c_01 = line_cost((p0[0], p0[1]), (p1[0], p1[1]))
+                c_12 = line_cost((p1[0], p1[1]), (p2[0], p2[1]))
+                c_02 = c_01 + c_12
+                if ccost_a - c_02 + c_02a < global_upperbound:
+                    do_simplify = True
+                    ccost_a = ccost_a - c_02 + c_02a
+                else:
+                    do_simplify = False
 
             if do_simplify:
                 # print(f'Remove {i1}')

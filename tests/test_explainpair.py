@@ -325,6 +325,20 @@ def test_sine_pathdiff():
         ep.plot_warping(filename=str(directory / "test_sine_pathdiff.png"))
         ep.plot_segments(filename=str(directory / "test_sine_pathdiff_segments.png"))
 
+def test_approx_global_at_pruning():
+    ya = prepare_sin_wave_ts(120, 10, 100)
+    yb = prepare_sin_wave_ts(120, 30, 60)
+
+    ep = ExplainPair(ya, yb,
+                     delta_rel=1,
+                     delta_ab=0.1,
+                     approx_local=False,
+                     approx_prune=False,
+                     split_strategy=SplitStrategy.SPATIAL_DIST,
+                     )
+    if directory is not None:
+        ep.plot_warping(filename=str(directory / "test_sine_global_bound.png"))
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
