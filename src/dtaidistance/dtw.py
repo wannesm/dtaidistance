@@ -718,7 +718,7 @@ def distance_matrix(s, block=None, compact=False, parallel=False,
 
     :param s: Iterable of series
     :param block: Only compute block in matrix. Expects tuple with begin and end, e.g. ((0,10),(20,25)) will
-        only compare rows 0:10 with rows 20:25.
+        only compare rows 0:10 with cols 20:25.
     :param compact: Return the distance matrix as an array representing the upper triangular matrix.
     :param parallel: Use parallel operations
     :param use_mp: Force use Multiprocessing for parallel operations (not OpenMP)
