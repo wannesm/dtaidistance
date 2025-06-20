@@ -191,7 +191,7 @@ class ExplainPair:
             series_from,
             series_to,
             delta_rel=2,
-            delta_ab=0,
+            delta_abs=0,
             approx_local=True,
             approx_prune=False,
             split_strategy=SplitStrategy.SPATIAL_DIST,
@@ -204,19 +204,19 @@ class ExplainPair:
         between two series.
         Ensures that the new DTW distance d' satisfies the bound: d' <= d * (1 + delta_rel) + delta_ab,
         where d is the DTW distance of the original path, and
-        delta_rel and delta_ab are user-defined relative and absolute tolerance parameters, respectively.
+        delta_rel and delta_abs are user-defined relative and absolute tolerance parameters, respectively.
 
         Special cases:
 
             - If delta_rel = 0, the bound becomes purely absolute: d' <= d + delta_ab.
-            - If delta_ab = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
+            - If delta_abs = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
 
         :param series_from: Series from
         :param series_to: Series to
         :param delta_rel: relative tolerance parameter.
             This parameter controls how much deviation is allowed based on the original DTW distance.
             It allows flexibility proportional to the distance of the original path.
-        :param delta_ab: absolute tolerance parameter.
+        :param delta_abs: absolute tolerance parameter.
             This parameter sets a fixed allowance for deviation.
             It allows flexibility regardless of the distance of the original path.
         :param approx_local: If True, apply the local tolerance criterion to check the cost of each segment;
@@ -232,7 +232,7 @@ class ExplainPair:
         self.series_from = series_from
         self.series_to = series_to
         self.delta_rel = delta_rel
-        self.delta_ab = delta_ab
+        self.delta_abs = delta_abs
         self.comb_op = max  # max or min
         self.approx_local = approx_local
         self.approx_prune = approx_prune
@@ -420,7 +420,7 @@ class ExplainPair:
         """
         inner_dist, cost2dist, dist2cost = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
         ccost_o = ccostv_o[-1]
-        global_upperbound = dist2cost((1 + self.delta_rel) * cost2dist(ccost_o) + self.delta_ab)
+        global_upperbound = dist2cost((1 + self.delta_rel) * cost2dist(ccost_o) + self.delta_abs)
         queue = []
         new_idxs = SortedList(idxs)
         cnt = np.zeros(1)
@@ -512,7 +512,7 @@ class ExplainPair:
             tolerance_factor_rel = dist2cost(cost2dist(ccost) * self.delta_rel) / ccost
         except (ValueError, ZeroDivisionError):
             tolerance_factor_rel = 0
-        tolerance_factor_ab = (dist2cost(cost2dist(ccost) + self.delta_ab) - ccost) / length
+        tolerance_factor_ab = (dist2cost(cost2dist(ccost) + self.delta_abs) - ccost) / length
         return tolerance_factor_rel, tolerance_factor_ab
 
 

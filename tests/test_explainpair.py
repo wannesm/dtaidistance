@@ -114,7 +114,7 @@ def test_ssm():
         r = 0.05  # 0.0 # 0.05  # 0.1
 
         delta_rel = 1
-        delta_ab = 0.3518
+        delta_abs = 0.3518
 
         approx_prune = True
 
@@ -135,7 +135,7 @@ def test_ssm():
 
         path = best_path(paths)
 
-        ep = ExplainPair(ya, yb, delta_rel=delta_rel, delta_ab=delta_ab,
+        ep = ExplainPair(ya, yb, delta_rel=delta_rel, delta_abs=delta_abs,
                          approx_prune=approx_prune)
         inner_dist, inner_res, inner_val = innerdistance.inner_dist_fns(ep.dtw_settings.inner_dist)
 
@@ -143,8 +143,8 @@ def test_ssm():
         dist_approx3 = ep.distance_approx()
 
         Delta_rel = inner_res(inner_val(dist) * delta_rel) / dist
-        delta_ab = inner_res(inner_val(dist) + delta_ab) - dist
-        dist_approx3_max = dist * (1 + Delta_rel) + delta_ab
+        delta_abs = inner_res(inner_val(dist) + delta_abs) - dist
+        dist_approx3_max = dist * (1 + Delta_rel) + delta_abs
         assert dist_approx3 <= dist_approx3_max
         if directory and not dtwvis.test_without_visualization():
             try:
@@ -192,11 +192,11 @@ def test_ssm2():
         dist, paths = warping_paths(ya, yb)
         path = best_path(paths)
 
-        ep2 = ExplainPair(ya, yb, delta_rel=2, delta_ab=1, approx_prune=True)
+        ep2 = ExplainPair(ya, yb, delta_rel=2, delta_abs=1, approx_prune=True)
         path2 = ep2.line2
         dist_approx2 = ep2.distance_approx()
 
-        ep3 = ExplainPair(ya, yb, delta_rel=7, delta_ab=1, approx_prune=True)
+        ep3 = ExplainPair(ya, yb, delta_rel=7, delta_abs=1, approx_prune=True)
         path3 = ep3.line2
         dist_approx3 = ep3.distance_approx()
 
@@ -231,15 +231,15 @@ def test_ssm3():
 
     # configuration for ExplainPair
     delta_rel = 2
-    delta_ab = 0.1
-    ep = ExplainPair(ya, yb, delta_rel=delta_rel, delta_ab=delta_ab,
+    delta_abs = 0.1
+    ep = ExplainPair(ya, yb, delta_rel=delta_rel, delta_abs=delta_abs,
                      approx_prune=True)
 
     dist, paths = warping_paths(ya, yb)
     inner_dist, inner_res, inner_val = innerdistance.inner_dist_fns(ep.dtw_settings.inner_dist)
     Delta_rel = inner_res(inner_val(dist) * delta_rel) / dist
-    delta_ab = inner_res(inner_val(dist) + delta_ab) - dist
-    dist_approx3_max = dist * (1 + Delta_rel) + delta_ab
+    delta_abs = inner_res(inner_val(dist) + delta_abs) - dist
+    dist_approx3_max = dist * (1 + Delta_rel) + delta_abs
     dist_approx3 = ep.distance_approx()
     assert dist_approx3 <= dist_approx3_max
 
@@ -268,7 +268,7 @@ def test_explain_pair():
         ya = ys[0]
         yb = ys[3]
 
-        ep = ExplainPair(ya, yb, delta_rel=2, delta_ab=0.1, approx_prune=True, onlychanges=2)
+        ep = ExplainPair(ya, yb, delta_rel=2, delta_abs=0.1, approx_prune=True, onlychanges=2)
 
         if directory and not dtwvis.test_without_visualization():
             try:
@@ -315,7 +315,7 @@ def test_sine_pathdiff():
 
     ep = ExplainPair(ya, yb,
                      delta_rel=1,
-                     delta_ab=0.1,
+                     delta_abs=0.1,
                      approx_prune=False,
                      # split_strategy="spatialdist",
                      split_strategy=SplitStrategy.PATH_DIFF,
@@ -331,9 +331,9 @@ def test_approx_global_at_pruning():
 
     ep = ExplainPair(ya, yb,
                      delta_rel=1,
-                     delta_ab=0.1,
+                     delta_abs=0.1,
                      approx_local=False,
-                     approx_prune=False,
+                     approx_prune=True,
                      split_strategy=SplitStrategy.SPATIAL_DIST,
                      )
     if directory is not None:
