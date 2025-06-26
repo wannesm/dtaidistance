@@ -41,9 +41,33 @@ color_shade = "#F57A00"
 color_shade_dark = "#5F3E1C"
 
 
+class ApproxType(str, Enum):
+    MAX_INDEX = "max_index"
+    MEAN_INDEX = "mean_index"  # Not implemented yet
+    MAX_FACTOR = "max_factor"
+    MAX_DIFF = "max_diff"
+    MAX_FACTOR_AND_DIFF = "max_factor_and_diff"
+    MAX_DIST = "max_dist"
+    MAX_FACTOR_LOOSE = "max_factor_loose"
+
+    def to_int(self):
+        return list(ApproxType).index(self)
+
+    @staticmethod
+    def from_int(value):
+        return list(ApproxType)[value]
+
+
 class SplitStrategy(str, Enum):
     SPATIAL_DIST = "spatialdist"
     PATH_DIFF = "pathdiff"
+
+    def to_int(self):
+        return list(ApproxType).index(self)
+
+    @staticmethod
+    def from_int(value):
+        return list(ApproxType)[value]
 
 
 @dataclass
@@ -190,6 +214,7 @@ class ExplainPair:
             self,
             series_from,
             series_to,
+            approx_type=ApproxType.MAX_FACTOR_LOOSE,
             delta_rel=2,
             delta_abs=0,
             approx_local=True,
@@ -206,13 +231,25 @@ class ExplainPair:
         where d is the DTW distance of the original path, and
         delta_rel and delta_abs are user-defined relative and absolute tolerance parameters, respectively.
 
-        Special cases:
-
-            - If delta_rel = 0, the bound becomes purely absolute: d' <= d + delta_ab.
-            - If delta_abs = 0, the bound becomes purely relative: d' <= d * (1 + delta_rel).
-
         :param series_from: Series from
         :param series_to: Series to
+        :param approx_type: Type of approximation to use:
+
+            * Absolute position based (max_index).
+              Allow to deviate from the original path by at most delta_abs positions.
+              Not related to the d' and d.
+              It is the maximum allowed spatial distance between each new subpath and the corresponding original subpath.
+            * Relative distance based (max_factor).
+              d' <= d * (1 + delta_rel)
+            * Relative distance based but looser to also allow simplifying already good matching subsequences (max_factor_loose)
+              d' <= d * (1 + 2*delta_rel)
+            * Absolute distance based (max_diff)
+              d' <= d + delta_abs
+            * Combined distance based (max_factor_and_diff)
+                d' <= d * (1 + delta_rel) + delta_abs
+            * Absolute distance based (max_dist)
+              d' <= delta_abs
+
         :param delta_rel: relative tolerance parameter.
             This parameter controls how much deviation is allowed based on the original DTW distance.
             It allows flexibility proportional to the distance of the original path.
@@ -231,6 +268,7 @@ class ExplainPair:
         """
         self.series_from = series_from
         self.series_to = series_to
+        self.approx_type = approx_type
         self.delta_rel = delta_rel
         self.delta_abs = delta_abs
         self.comb_op = max  # max or min
@@ -274,7 +312,10 @@ class ExplainPair:
         line = np.array(path)
         # line2, lidxs = rdp(line, epsilon=epsilon)
 
-        line2, lidxs = self.rdp_ssm(line)
+        if self.approx_type == "max_index":
+            line2, lidxs = rdp_vectorized(line, epsilon=self.delta_abs)
+        else:
+            line2, lidxs = self.rdp_ssm(line)
         # 0 is maximal compression
         # acomp = np.pi / 5  # Compression
         # adiag = np.pi / 4  # Shift, angle diagonal
@@ -494,6 +535,29 @@ class ExplainPair:
         # print(f'remove_segments: {len(idxs)} -> {cnt[0]=}')
         return new_idxs
 
+    def compute_bounds_global(self, ccostc, cost2dist, dist2cost):
+        """Compute the bound on the cost of the global approximated path.
+
+        :param ccostc: Accumulated cost
+        :param cost2dist: Transform cost to distance
+        :param dist2cost: Transform distance to cost
+        """
+        ccost = cost2dist(ccostc)
+        if self.approx_type == ApproxType.MAX_FACTOR:
+            ub = (self.delta_rel + 1) * ccost
+        elif self.approx_type == ApproxType.MAX_FACTOR_LOOSE:
+            ub = (2 * self.delta_rel + 1) * ccost
+        elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
+            ub = (1 + self.delta_rel) * ccost + self.delta_abs
+        elif self.approx_type == ApproxType.MAX_DIFF:
+            ub = self.delta_abs + ccost
+        elif self.approx_type == ApproxType.MAX_DIST or self.approx_type == ApproxType.MAX_INDEX:
+            ub = self.delta_abs  # todo check
+        else:
+            raise ValueError(f'Unknown approximation type: {self.approx_type}')
+        ub = dist2cost(ub)
+        return ub
+
     def compute_tolerance_criterion_factors(self, ccost, length, cost2dist, dist2cost):
         """Compute the tolerance criterion factors that are allowed for the approximation of the
         current segment.
@@ -507,13 +571,60 @@ class ExplainPair:
         :param dist2cost: Transform distance to cost, corresponding to \phi in the paper.
         :returns: (relative tolerance criterion factor, absolute tolerance criterion factor)
         """
+        if self.approx_type == ApproxType.MAX_FACTOR:
+            ccost_ub = cost2dist(ccost) * (self.delta_rel)
+            try:
+                ub_m = ((dist2cost(ccost_ub)) /
+                        (ccost))
+            except (ValueError, ZeroDivisionError):
+                ub_m = 0
+            ub_a = 0
+        elif self.approx_type == ApproxType.MAX_FACTOR_LOOSE:
+            ccost_ub = cost2dist(ccost) * (self.delta_rel)
+            try:
+                ub_m = ((dist2cost(ccost_ub)) /
+                        (ccost))
+            except (ValueError, ZeroDivisionError):
+                ub_m = 0
+            ub_a = (dist2cost(cost2dist(ccost)*(1 + self.delta_rel)) - ccost) / length
+        elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
+            ccost_ub = cost2dist(ccost) * (self.delta_rel)
+            try:
+                ub_m = ((dist2cost(ccost_ub)) /
+                        (ccost))
+            except (ValueError, ZeroDivisionError):
+                ub_m = 0
+            ub_a = (dist2cost(cost2dist(ccost) + self.delta_abs) - ccost) / length
+            # retain history for reference
+            # ccost_ub = cost2dist(ccost) * (1 + self.epsilon)
+            # try:
+            #     ub_m = ((dist2cost(ccost_ub) - ccostpa) /
+            #             (ccost - ccostp))
+            # except (ValueError, ZeroDivisionError):
+            #     ub_m = 0
+            # # ub_a = max((min(self.epsilon, 1) * (ccost - ccostp)) / lengthr,
+            # #            np.finfo(self.series_from.dtype).eps)
+            # ub_a = max((min(self.epsilon, 1) * (ccost - ccostp) - ccost) / lengthr,
+            #            np.finfo(self.series_from.dtype).eps)
 
-        try:
-            tolerance_factor_rel = dist2cost(cost2dist(ccost) * self.delta_rel) / ccost
-        except (ValueError, ZeroDivisionError):
-            tolerance_factor_rel = 0
-        tolerance_factor_ab = (dist2cost(cost2dist(ccost) + self.delta_abs) - ccost) / length
-        return tolerance_factor_rel, tolerance_factor_ab
+        elif self.approx_type == ApproxType.MAX_DIFF:
+            # ub_m = self.epsilon / ccost + 1
+            # ccost_ub = self.epsilon + ccost
+            ub_m = 0
+            # ub_a = (dist2cost(cost2dist(ccost)  + self.epsilon) - ccostpa) / lengthr
+            ub_a = (dist2cost(cost2dist(ccost) + self.delta_abs) - ccost) / length
+        elif self.approx_type == ApproxType.MAX_DIST or self.approx_type == ApproxType.MAX_INDEX:
+            # ub_m = self.epsilon / ccost
+            # ccost_ub = self.epsilon
+            ub_m = 0
+            # ub_a = (dist2cost(self.epsilon) - ccostpa) / lengthr
+            ub_a = (dist2cost(self.delta_abs) - ccost) / length
+        else:
+            raise ValueError(f'Unknown approximation type: {self.approx_type}')
+
+        # print(f'{ub_m=:.4f}, {ub_a=:.4f}, {ccosti=:.4f}, {ccostie=:.4f}~{inner_res(ccostie):.4f}, {ccostia=:.4f}~{inner_res(ccostia):.4f}, {length=}')
+        return ub_m, ub_a
+
 
 
     def _max_deviation_from_line_filtered(self, points, i0, i1, idx_filter,
