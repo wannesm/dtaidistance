@@ -236,19 +236,24 @@ class ExplainPair:
         :param approx_type: Type of approximation to use:
 
             * Absolute position based (max_index).
-              Allow to deviate from the original path by at most delta_abs positions.
-              Not related to the d' and d.
-              It is the maximum allowed spatial distance between each new subpath and the corresponding original subpath.
+                Allow to deviate from the original path by at most delta_abs positions.
+                Not related to the d' and d.
+                It is the maximum allowed spatial distance between each new subpath and the corresponding original subpath.
             * Relative distance based (max_factor).
-              d' <= d * (1 + delta_rel)
-            * Relative distance based but looser to also allow simplifying already good matching subsequences (max_factor_loose)
-              d' <= d * (1 + 2*delta_rel)
+                d' <= d * (1 + delta_rel)
+            * Relative distance based but looser (max_factor_loose)
+                This allows also simplifying subsequences with a very
+                low distance. Thus a good match with a distance close to zero
+                and where the simplification would lead to a distance a bit
+                higher than zero.
+
+                d' <= d * (1 + 2*delta_rel)
             * Absolute distance based (max_diff)
-              d' <= d + delta_abs
+                d' <= d + delta_abs
             * Combined distance based (max_factor_and_diff)
                 d' <= d * (1 + delta_rel) + delta_abs
             * Absolute distance based (max_dist)
-              d' <= delta_abs
+                d' <= delta_abs
 
         :param delta_rel: relative tolerance parameter.
             This parameter controls how much deviation is allowed based on the original DTW distance.
