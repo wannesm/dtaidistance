@@ -11,7 +11,7 @@ Usage
 
 ::
 
-    ep = ExplainPair(ya, yb, delta_rel=2, delta_ab=0, approx_prune=True)
+    ep = ExplainPair(ya, yb, delta_rel=2, delta_abs =0, approx_prune=True)
     print(ep.distance_approx())
     ep.plot_warping("/path/to/figure.png")
 
@@ -60,7 +60,9 @@ class ApproxType(str, Enum):
 
 class SplitStrategy(str, Enum):
     SPATIAL_DIST = "spatialdist"
-    PATH_DIFF = "pathdiff"
+    PATH_DIFF = "pathdiff"  # TODO: depricate
+    DERIV = "deriv"
+    DERIV_DIST = "derivdist"
 
     def to_int(self):
         return list(ApproxType).index(self)
@@ -209,16 +211,99 @@ class PathSegment:
         )
 
 
+class ApproxSettings:
+    def __init__(self, approx_type=ApproxType.MAX_FACTOR_AND_DIFF,
+                 delta_rel=1, delta_abs=0.1,
+                 approx_prune=True, approx_local=True,
+                 split_strategy=SplitStrategy.SPATIAL_DIST):
+        """
+        Approximation settings for ExplainPair. See more information in the ExplainPair class.
+        """
+        if not isinstance(approx_type, ApproxType):
+            if type(approx_type) is int:
+                approx_type = ApproxType.from_int(approx_type)
+            elif type(approx_type) is str:
+                approx_type = ApproxType(approx_type)
+            else:
+                raise ValueError(f'Unknown type for approx_type')
+        self.approx_type = approx_type
+        if delta_abs is None:
+            raise ValueError("delta_abs must be provided")
+        if self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF and delta_rel is None:
+            raise ValueError("delta_rel must be provided for MAX_FACTOR_AND_DIFF")
+        self.delta_rel = delta_rel
+        self.delta_abs = delta_abs
+        self.approx_prune = approx_prune
+        self.approx_local = approx_local
+        if not isinstance(split_strategy, SplitStrategy):
+            if type(split_strategy) is int:
+                split_strategy = SplitStrategy.from_int(split_strategy)
+            elif type(split_strategy) is str:
+                split_strategy = SplitStrategy(split_strategy)
+            else:
+                raise ValueError(f'Unknown type for split_strategy')
+        self.split_strategy = split_strategy
+
+    @staticmethod
+    def wrap(s=None, **kwargs):
+        if s is None:
+            return ApproxSettings(**kwargs)
+        if isinstance(s, ApproxSettings):
+            return s
+        raise ValueError(f'Unknown argument type for ApproxSettings: {s}')
+
+    def __repr__(self):
+        return (
+            f"ApproxSettings(approx_type={self.approx_type}, "
+            f"delta_rel={self.delta_rel}, delta_abs={self.delta_abs}, "
+            f"approx_prune={self.approx_prune}, approx_local={self.approx_local}, "
+            f"split_strategy={self.split_strategy})"
+        )
+
+    def kwargs(self):
+        return {
+            "approx_type": self.approx_type,
+            "delta_rel": self.delta_rel,
+            "delta_abs": self.delta_abs,
+            "approx_prune": self.approx_prune,
+            "approx_local": self.approx_local,
+            "split_strategy": self.split_strategy
+        }
+
+    def c_kwargs(self):
+        return {
+            "approx_type": self.approx_type.to_int(),
+            "delta_rel": self.delta_rel,
+            "delta_abs": self.delta_abs,
+            "approx_prune": self.approx_prune,
+            "approx_local": self.approx_local,
+            "split_strategy": self.split_strategy.to_int()
+        }
+
+    def to_h5_group(self, group):
+        for key, value in self.c_kwargs().items():
+            group.attrs[key] = value
+
+    @staticmethod
+    def from_h5_group(group):
+        kwargs = {}
+        for attr in ["approx_type", "delta_rel", "delta_abs", "approx_prune",
+                     "approx_local", "split_strategy"]:
+            if attr in group.attrs:
+                kwargs[attr] = group.attrs[attr]
+        return ApproxSettings(**kwargs)
+
+
 class ExplainPair:
     def __init__(
             self,
             series_from,
             series_to,
-            approx_type=ApproxType.MAX_FACTOR_LOOSE,
-            delta_rel=2,
-            delta_abs=0,
+            approx_type=ApproxType.MAX_FACTOR_AND_DIFF,
+            delta_rel=1,
+            delta_abs=None,
+            approx_prune=True,
             approx_local=True,
-            approx_prune=False,
             split_strategy=SplitStrategy.SPATIAL_DIST,
             onlychanges=None,
             path=None,
@@ -227,48 +312,62 @@ class ExplainPair:
     ):
         """Compute segments and variations that explain the warping path
         between two series.
-        Ensures that the new DTW distance d' satisfies the bound: d' <= d * (1 + delta_rel) + delta_ab,
-        where d is the DTW distance of the original path, and
-        delta_rel and delta_abs are user-defined relative and absolute tolerance parameters, respectively.
 
         :param series_from: Series from
         :param series_to: Series to
-        :param approx_type: Type of approximation to use:
+        :param approx_type: Type of approximation to use.
 
-            * Absolute position based (max_index).
+            Ensures that the new DTW distance after the approximation is within
+            a bound. Let d' be the DTW distance of the new path, and d be the
+            DTW distance of the original path. The possible choices are:
+
+            * ``max_index``: Absolute position based.
                 Allow to deviate from the original path by at most delta_abs positions.
                 Not related to the d' and d.
                 It is the maximum allowed spatial distance between each new subpath and the corresponding original subpath.
-            * Relative distance based (max_factor).
-                d' <= d * (1 + delta_rel)
-            * Relative distance based but looser (max_factor_loose)
+            * ``max_factor``: Relative distance based.
+                :math:`d' \\leq d * (1 + \\delta_{rel})`
+            * ``max_factor_loose``: Relative distance based but looser.
                 This allows also simplifying subsequences with a very
                 low distance. Thus a good match with a distance close to zero
                 and where the simplification would lead to a distance a bit
                 higher than zero.
 
-                d' <= d * (1 + 2*delta_rel)
-            * Absolute distance based (max_diff)
-                d' <= d + delta_abs
-            * Combined distance based (max_factor_and_diff)
-                d' <= d * (1 + delta_rel) + delta_abs
-            * Absolute distance based (max_dist)
-                d' <= delta_abs
+                :math:`d' \\leq d * (1 + 1.1*\\delta_{rel})`
+            * ``max_diff``: Absolute distance based:
+                :math:`d' \\leq d + \\delta_{abs}`
+            * ``max_factor_and_diff``: Combined distance based.
+                :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs}`
+            * ``max_dist``: Absolute distance based
+                :math:`d' <= \\delta_{abs}`
 
-        :param delta_rel: relative tolerance parameter.
-            This parameter controls how much deviation is allowed based on the original DTW distance.
+        :param delta_rel: User-defined relative tolerance parameter.
+            It controls how much deviation is allowed based on the original DTW distance.
             It allows flexibility proportional to the distance of the original path.
-        :param delta_abs: absolute tolerance parameter.
-            This parameter sets a fixed allowance for deviation.
+        :param delta_abs: User-defined absolute tolerance parameter.
+            It sets a fixed allowance for deviation.
             It allows flexibility regardless of the distance of the original path.
-        :param approx_local: If True, apply the local tolerance criterion to check the cost of each segment;
+            It has different meanings depending on the approx_type.
+        :param approx_prune: Whether to add a last round that merges segments bottom-up.
+        :param approx_local: Whether to apply tolerance criterion check locally or globally during the pruning phase.
+            If True, apply the local tolerance criterion to check the cost of each segment;
             if False, apply the global tolerance criterion to check the cost of the full sequence matching.
-            This setting is only used during the pruning phase.
-        :param approx_prune: Boolean. Add a last round that merges segments bottom-up.
+        :param split_strategy: The strategy to use for deciding the splitting points:
+
+            * ``spatialdist``: Split on the point on the path the furthest
+                away from the straight path.
+            * ``deriv``: Split on the point on the path that has the highest
+                local second derivative.
+            * ``derivdist``: Split on the point on the path that has the largest
+                difference in cost between the point on the path and the
+                closest point on the straight path. Approximated with the
+                locally computed first and second derivative around the point
+                on the path.
+
         :param onlychanges: Only return segments with changes above this threshold
         :param path: Use given warping path
-        :param dtw_settings: Object of type :class:`DTWSettings`.
-            This parameter contains settings for the DTW algorithm, such as the inner cost function between two time points, etc.
+        :param dtw_settings: Object of type :class:`DTWSettings`
+            This variable is ignored if `path` is given.
         :param save_intermediates: Save intermediate results
         """
         self.series_from = series_from
@@ -276,10 +375,15 @@ class ExplainPair:
         self.approx_type = approx_type
         self.delta_rel = delta_rel
         self.delta_abs = delta_abs
-        self.comb_op = max  # max or min
-        self.approx_local = approx_local
+        if self.delta_abs is None:
+            if self.approx_type == ApproxType.MAX_FACTOR_LOOSE:
+                self.delta_abs = 0.1  # will be used to set delta_abs to delta_abs*delta_rel*d
+            else:
+                self.delta_abs = 0.1
         self.approx_prune = approx_prune
+        self.approx_local = approx_local
         self.split_strategy = split_strategy
+        self.comb_op = max  # max or min
         self.onlychanges = onlychanges
         self.save_intermediates = save_intermediates
         self.segments = None
@@ -316,7 +420,6 @@ class ExplainPair:
         # Shift and elasticity
         line = np.array(path)
         # line2, lidxs = rdp(line, epsilon=epsilon)
-
         if self.approx_type == "max_index":
             line2, lidxs = rdp_vectorized(line, epsilon=self.delta_abs)
         else:
@@ -337,6 +440,10 @@ class ExplainPair:
                 a = np.pi / 2
             else:
                 a = np.arctan(dy / dx)
+            # print(f"{bp}-{ep} : {a:.3f}")
+            # Shift based on middle point of segment
+            # shift = round((bp[1] + ep[1]) / 2 - (bp[0] + ep[0]) / 2)
+            # Shift based on point closest to diagonal
             denom = bp[1] - ep[1] - bp[0] + ep[0]
             if np.isclose(denom, 0.0):
                 t = 0  # parallel, all points are equal
@@ -344,6 +451,15 @@ class ExplainPair:
                 t = max(0.0, min(1.0, (bp[1] - bp[0]) / denom))
             shift = round(bp[1] + t * (ep[1] - bp[1]) - bp[0] - t * (ep[0] - bp[0]))
             expansion = dy - dx
+            # if a < acomp:
+            #     # Compression
+            #     compression = dx - dy
+            # elif a < aexpa:
+            #     # Shift
+            #     shift = round((bp[1] + ep[1])/2 - (bp[0] + ep[0])/2)
+            # else:
+            #     # Expansion
+            #     expansion = dy - dx
             if (
                     onlychanges is None
                     or abs(shift) >= onlychanges
@@ -383,13 +499,22 @@ class ExplainPair:
             ccostv_o[idx] = ccost_o
         lenr_o = len(points)  # Length of original path remaining
 
-        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, lenr_o, inner_res, inner_val)
+        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, lenr_o, inner_res,
+                                                                                             inner_val)
 
         # Split selection
         if self.split_strategy == SplitStrategy.SPATIAL_DIST:
             split_selection = self.max_deviation_from_line
         elif self.split_strategy == SplitStrategy.PATH_DIFF:
             split_selection = functools.partial(self.max_change_in_path, inner_dist)
+        elif self.split_strategy == SplitStrategy.DERIV:
+            # 2nd derivative is computed upfront
+            split_selection = functools.partial(self.max_2ndderiv_in_path,
+                                                self.get_2ndderiv_in_path(inner_dist, points))
+        elif self.split_strategy == SplitStrategy.DERIV_DIST:
+            split_selection = functools.partial(self.max_2ndderiv_deviation,
+                                                self.get_1stderiv_in_path(inner_dist, points),
+                                                self.get_2ndderiv_in_path(inner_dist, points))
         else:
             raise AttributeError(f"Unknown split strategy: {self.split_strategy}")
 
@@ -466,11 +591,12 @@ class ExplainPair:
         """
         inner_dist, cost2dist, dist2cost = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
         ccost_o = ccostv_o[-1]
-        global_upperbound = dist2cost((1 + self.delta_rel) * cost2dist(ccost_o) + self.delta_abs)
+        global_upperbound = self.compute_bounds_global(ccost_o, cost2dist, dist2cost)
         queue = []
         new_idxs = SortedList(idxs)
         cnt = np.zeros(1)
-        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, len(points), cost2dist, dist2cost)
+        tolerance_factor_rel, tolerance_factor_ab = self.compute_tolerance_criterion_factors(ccost_o, len(points),
+                                                                                             cost2dist, dist2cost)
 
         @functools.cache
         def line_cost(p0, p1):
@@ -506,11 +632,13 @@ class ExplainPair:
             if self.approx_local:
                 ccostp_o = ccostv_o[i2] - ccostv_o[i0]  # Cost of partial original path
                 lenp_o = i2 - i0
-                do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab, ccostp_o * (tolerance_factor_rel + 1)))
+                do_simplify = (c_02a <= self.comb_op(ccostp_o + lenp_o * tolerance_factor_ab,
+                                                     ccostp_o * (tolerance_factor_rel + 1)))
             else:
                 c_01 = line_cost((p0[0], p0[1]), (p1[0], p1[1]))
                 c_12 = line_cost((p1[0], p1[1]), (p2[0], p2[1]))
                 c_02 = c_01 + c_12
+                # print(f'{ccost_a=:.4f} - {c_02=:.4f} + {c_02a=:.4f} < {upperbound=:.4f}')
                 if ccost_a - c_02 + c_02a < global_upperbound:
                     do_simplify = True
                     ccost_a = ccost_a - c_02 + c_02a
@@ -551,13 +679,13 @@ class ExplainPair:
         if self.approx_type == ApproxType.MAX_FACTOR:
             ub = (self.delta_rel + 1) * ccost
         elif self.approx_type == ApproxType.MAX_FACTOR_LOOSE:
-            ub = (2 * self.delta_rel + 1) * ccost
+            ub = ((1+self.delta_abs)*self.delta_rel + 1) * ccost
         elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
-            ub = (1 + self.delta_rel) * ccost + self.delta_abs
+            ub = (1 + self.delta_rel) * ccost +  self.delta_abs
         elif self.approx_type == ApproxType.MAX_DIFF:
             ub = self.delta_abs + ccost
         elif self.approx_type == ApproxType.MAX_DIST or self.approx_type == ApproxType.MAX_INDEX:
-            ub = self.delta_abs  # todo check
+            ub = self.delta_abs #todo check
         else:
             raise ValueError(f'Unknown approximation type: {self.approx_type}')
         ub = dist2cost(ub)
@@ -572,10 +700,11 @@ class ExplainPair:
 
         :param ccost: Cumulative cost of total path
         :param length: length of total path
-        :param cost2dist: Transform cost to distance, corresponding to \phi^{-1} in the paper.
-        :param dist2cost: Transform distance to cost, corresponding to \phi in the paper.
+        :param cost2dist: Transform cost to distance, corresponding to phi^{-1} in the paper.
+        :param dist2cost: Transform distance to cost, corresponding to phi in the paper.
         :returns: (relative tolerance criterion factor, absolute tolerance criterion factor)
         """
+        # ccost = cost2dist(ccost)
         if self.approx_type == ApproxType.MAX_FACTOR:
             ccost_ub = cost2dist(ccost) * (self.delta_rel)
             try:
@@ -591,7 +720,7 @@ class ExplainPair:
                         (ccost))
             except (ValueError, ZeroDivisionError):
                 ub_m = 0
-            ub_a = (dist2cost(cost2dist(ccost)*(1 + self.delta_rel)) - ccost) / length
+            ub_a = (dist2cost(cost2dist(ccost)*(1 + self.delta_rel*self.delta_abs)) - ccost) / length
         elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
             ccost_ub = cost2dist(ccost) * (self.delta_rel)
             try:
@@ -629,8 +758,6 @@ class ExplainPair:
 
         # print(f'{ub_m=:.4f}, {ub_a=:.4f}, {ccosti=:.4f}, {ccostie=:.4f}~{inner_res(ccostie):.4f}, {ccostia=:.4f}~{inner_res(ccostia):.4f}, {length=}')
         return ub_m, ub_a
-
-
 
     def _max_deviation_from_line_filtered(self, points, i0, i1, idx_filter,
                                           use_spatial=True, inner_dist=None):
@@ -683,6 +810,11 @@ class ExplainPair:
         return distmax, idxmax, i_i0
 
     def max_change_in_path(self, inner_dist, points, i0, i1, only_from=False):
+        # TODO: we probably can save on inner_cost calculations by storing the costs over the path
+        # Project vert and hor. The idea is that this is to the points that represent
+        # the situation when there is no warping (at the start, this is the diagonal).
+        # Both vert and hor is to be symmetric if s1 and s2 switch.
+
         p0, p1 = points[i0], points[i1]
         # The warping path is always concacve wrt the linear interpolated path.
         # Thus, the vertical and horizontal projections always end up on the linear path.
@@ -711,6 +843,145 @@ class ExplainPair:
                 diff_max = diff
                 idx_max = idx
         return diff_max, idx_max
+
+    def get_1stderiv_in_path(self, inner_dist, points, h=1):
+        """Compute the first derivative of each point in the cost
+        matrix (or self-similarity matrix)."""
+        ders = np.zeros(len(points))
+        i_of_m = len(self.series_from) - h - 1
+        i_ot_m = len(self.series_to) - h - 1
+        for idx in range(0, len(points)):
+            i_of, i_ot = points[idx]
+            if i_of < h or i_of > i_of_m or i_ot < h or i_ot > i_ot_m:
+                # Compute derivatives close to the border
+                der = (abs((inner_dist(self.series_from[max(0, i_of - h)], self.series_to[max(0, i_ot - h)]) -
+                            inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[min(i_ot_m, i_ot + h)]))
+                           / (2*h)) +
+                       abs((inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[max(0, i_ot - h)]) -
+                           inner_dist(self.series_from[max(0, i_of - h)], self.series_to[min(i_ot_m, i_ot + h)]))
+                           / (2*h))
+                       ) / 2
+            else:
+                # Centered difference (1st order approx) in two (diagonal)
+                # directions and averaged
+                der = (abs((inner_dist(self.series_from[i_of-h], self.series_to[i_ot-h]) -
+                            inner_dist(self.series_from[i_of+h], self.series_to[i_ot+h])
+                            ) / (2*h)) +
+                       abs((inner_dist(self.series_from[i_of+h], self.series_to[i_ot-h]) -
+                            inner_dist(self.series_from[i_of-h], self.series_to[i_ot+h])
+                            ) / (2*h))
+                       ) / 2
+            ders[idx] = abs(der)
+        # If the first derivative is zero, then distance has little impact
+        # in the max_2ndderiv_deviation approach
+        min_ders = np.max(ders) * 0.01
+        ders[ders < min_ders] = min_ders
+        return ders
+
+    def get_2ndderiv_in_path(self, inner_dist, points, h=1):
+        """Compute the second derivative of each point in the cost
+        matrix (or self-similarity matrix).
+
+        This method ignores the direction and computes the average
+        absolute value of the derivative in the diagonal directions.
+        The goal is to select points that have a rapidly changing point
+        in the cost matrix.
+
+        The centered difference approximations (along the diagonals)
+        method is used.
+        """
+        ders = np.zeros(len(points))
+        i_of_m = len(self.series_from) - h - 1
+        i_ot_m = len(self.series_to) - h - 1
+        for idx in range(0, len(points)):
+            i_of, i_ot = points[idx]
+            if i_of < h or i_of > i_of_m or i_ot < h or i_ot > i_ot_m:
+                # Compute derivatives close to the border
+                der = (abs(inner_dist(self.series_from[max(0, i_of - h)], self.series_to[max(0, i_ot - h)])+
+                           inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[min(i_ot_m, i_ot + h)])-
+                           2 * inner_dist(self.series_from[i_of], self.series_to[i_ot])
+                           ) / (h**2) +
+                       abs(inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[max(0, i_ot - h)])+
+                           inner_dist(self.series_from[max(0, i_of - h)], self.series_to[min(i_ot_m, i_ot + h)])-
+                           2*inner_dist(self.series_from[i_of], self.series_to[i_ot])
+                           ) / (h**2)
+                       ) / 2
+            else:
+                # Centered difference approximations (along the diagonals)
+                # Could also have been five-point stencil 2nd derivative?
+                der = (abs(inner_dist(self.series_from[i_of-h], self.series_to[i_ot-h])+
+                           inner_dist(self.series_from[i_of+h], self.series_to[i_ot+h])-
+                           2 * inner_dist(self.series_from[i_of], self.series_to[i_ot])
+                           ) / (h**2) +
+                       abs(inner_dist(self.series_from[i_of+h], self.series_to[i_ot-h])+
+                           inner_dist(self.series_from[i_of-h], self.series_to[i_ot+h])-
+                           2*inner_dist(self.series_from[i_of], self.series_to[i_ot])
+                           ) / (h**2)
+                       ) / 2
+            ders[idx] = abs(der)
+        return ders
+
+    def max_2ndderiv_in_path(self, ders, points, i0, i1, only_from=False):
+        """Find the point in the path that has the highest second
+        derivative."""
+        der_max = 0
+        idx_max = i0
+        for idx in range(i0 + 1, i1):
+            der = ders[idx]
+            if der > der_max:
+                der_max = der
+                idx_max = idx
+        return der_max, idx_max
+
+    def max_2ndderiv_deviation(self, ders1, ders2, points, i0, i1):
+        """Find the point in the path that is a balance between the
+        highest 2nd derivative and the furthest away from the line
+        between the two indices. This is computed using the second-order
+        Taylor expansion to approximate the difference in the cost matrix
+
+        :param ders1: First derivative of each point
+        :param ders2: Second derivative of each point
+        :param points: List of all points
+        :param i0: Start index in points
+        :param i1: End index in points
+        :return: Value, Index
+        """
+        p0, p1 = points[i0], points[i1]
+        p0p1norm = np.linalg.norm(p1 - p0)
+        p0p1normsqr = p0p1norm ** 2
+        distmax = 0
+        idxmax = i0
+        for idx in range(i0, i1):
+            der1 = ders1[idx]
+            der2 = ders2[idx]
+            p = points[idx]
+            if np.allclose(p0, p1):
+                dist = np.linalg.norm(p - p0)
+            else:
+                # Perpendicular distance
+                # a = np.linalg.norm(np.cross(p - p0, p0p1diff))
+                # assert a >= 0
+                # dist = np.divide(a, p0p1norm)
+                # Closest distance (point might be beyond line segment
+                t = ((p[0] - p0[0]) * (p1[0] - p0[0]) +
+                     (p[1] - p0[1]) * (p1[1] - p0[1])) / p0p1normsqr
+                if t < 0:
+                    dist = np.linalg.norm(p - p0)
+                elif t > 1:
+                    dist = np.linalg.norm(p - p1)
+                else:
+                    pt = np.array([p0[0] + t * (p1[0] - p0[0]),
+                                   p0[1] + t * (p1[1] - p0[1])])
+                    dist = np.linalg.norm(p - pt)
+            # Second-order Taylor expansion to approximate the difference
+            # in the cost matrix based on the local derivatives
+            dist2 = der1*dist + 1/2*der2*dist**2
+            dist = dist2
+
+            if dist > distmax:
+                distmax = dist
+                idxmax = idx
+        return distmax, idxmax
 
     def max_deviation_from_line(self, points, i0, i1):
         """Find the point in the path that is the furthest away from the line between the two indices."""
@@ -808,6 +1079,10 @@ class ExplainPair:
         if per_segment:
             return dist, dists
         return dist
+
+    def dsw_path(self):
+        """The piece-wise linearized path."""
+        return self.segments_to_path()
 
     def segments_to_path(self):
         """DTW Distance for approximated path."""
@@ -1046,7 +1321,7 @@ class ExplainPair:
         return fig
 
     def plot_segments(self, filename=None, show_values=False, path_kwargs=None, matshow_kwargs=None, showdist=True,
-                      tick_kwargs=None):
+                      tick_kwargs=None, dsw_path_kwargs=None):
         import matplotlib.pyplot as plt
         ya, yb = self.series_from, self.series_to
         path = self.line2
@@ -1054,17 +1329,57 @@ class ExplainPair:
         dist_approx = self.distance_approx()
         fig, axs = dtwvis.plot_warpingpaths(ya, yb, paths, path=self.path, path_kwargs=path_kwargs,
                                             matshow_kwargs=matshow_kwargs, tick_kwargs=tick_kwargs)
-        axs[0].plot(path[:, 1], path[:, 0], '-o', alpha=0.5, color='darkgreen', linewidth=3)
+        if dsw_path_kwargs is None:
+            dsw_path_kwargs = {
+                'linestyle': '-', 'marker': 'o', 'alpha': 0.5,
+                'color': 'darkgreen', 'linewidth': 3
+            }
+        axs[0].plot(path[:, 1], path[:, 0], **dsw_path_kwargs)
+
         if showdist:
             axs[3].text(0, 0.2, f"Dist_a = {dist_approx:.4f}")
 
         if show_values:
+            # Print segment statistics
             rdist, rdists = self.distance(per_segment=True)
             adist, adists = self.distance_approx(per_segment=True)
             for segment, srdist, sadist in zip(self.segments, rdists, adists):
-                axs[0].text(segment.s_idx_y + 4, segment.s_idx,
+                axs[0].text((segment.s_idx_y + segment.e_idx_y)/2 + 4,
+                            (segment.s_idx + segment.e_idx) / 2 + 4,
                             f"{srdist:.4f} / {sadist:.4f} - "
-                            f"({segment.s_idx},{segment.s_idx_y})", color="red")
+                            f"({segment.s_idx},{segment.s_idx_y})",
+                            color=dsw_path_kwargs.get("color", "darkgreen"))
+            # Show split metric using a circles
+            if self.split_strategy == SplitStrategy.DERIV:
+                path_val = np.array(self.path)
+                inner_dist, _, _ = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
+                path_ders = self.get_2ndderiv_in_path(inner_dist, self.path)
+                path_ders = 200 * (path_ders / np.max(path_ders))
+                axs[0].scatter(path_val[:, 1], path_val[:, 0], s=path_ders, c='red', alpha=0.2)
+            elif self.split_strategy == SplitStrategy.DERIV_DIST:
+                path_val = np.array(self.path)
+                inner_dist, _, _ = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
+                path_ders1 = self.get_1stderiv_in_path(inner_dist, self.path)
+                path_ders2 = self.get_2ndderiv_in_path(inner_dist, self.path)
+                mean = np.mean(path_val, axis=1)
+                dists = np.linalg.norm(path_val - mean[:, np.newaxis], axis=1)
+                path_ders = dists*path_ders1 + dists**2*path_ders2
+                # path_ders = 200 * (path_ders / np.max(path_ders))
+                path_ders12_max = max(np.max(path_ders1), np.max(path_ders2))
+                path_ders1 = 200 * (path_ders1 / path_ders12_max)
+                path_ders2 = 200 * (path_ders2 / path_ders12_max)
+                # axs[0].scatter(path_val[:, 1], path_val[:, 0], s=path_ders, c='red', alpha=0.2)
+                axs[0].scatter(path_val[:, 1], path_val[:, 0], s=path_ders2,
+                               facecolors='none', edgecolors='yellow', alpha=0.3)
+                axs[0].scatter(path_val[:, 1], path_val[:, 0], s=path_ders1,
+                               facecolors='none', edgecolors='orange', alpha=0.3)
+                from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+                ax_inset = inset_axes(axs[0], width="60%", height="15%", loc='upper right')
+                ax_inset.plot(path_ders1, color='blue', alpha=0.5, label='1st')
+                ax_inset.plot(path_ders2, color='red', alpha=0.5, label='2nd')
+                ax_inset.set_title('1st and 2nd derivative of path', fontsize=8)
+                ax_inset.legend(loc='upper right')
+                ax_inset.set_xlim((0, len(path_ders1)))
 
         if filename is not None:
             fig.savefig(filename)
@@ -1221,6 +1536,28 @@ def plot_warping(
         show_elasticity=True,
         color_elasticity=False,
 ):
+    """
+
+    :param s1:
+    :param s2:
+    :param segments:
+    :param path:
+    :param filename:
+    :param fig:
+    :param axs:
+    :param series_line_options:
+    :param warping_line_options:
+    :param elasticity_line_options:
+    :param start_on_curve:
+    :param continue_lines:
+    :param show_xticks:
+    :param show_yticks:
+    :param tick_kwargs:
+    :param variations:
+    :param show_elasticity:
+    :param color_elasticity:
+    :return: fig, axs
+    """
     import matplotlib as mpl
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
@@ -1246,15 +1583,15 @@ def plot_warping(
         series_line_options = {}
     s1_min = np.min(s1)
     s2_max = np.max(s2)
+    s_xlim = max(len(s1) - 1, len(s2) - 1)
     axs[0].plot(s1, **series_line_options)
     axs[0].spines['right'].set_visible(False)
     axs[0].spines['left'].set_position(('outward', 10))
-    axs[0].set_xlim(0, len(s1) - 1)
+    axs[0].set_xlim(0, s_xlim)
     axs[1].plot(s2, **series_line_options)
     axs[1].spines['right'].set_visible(False)
     axs[1].spines['left'].set_position(('outward', 10))
-    axs[1].set_xlim(0)
-    axs[1].set_xlim(0, len(s2) - 1)
+    axs[1].set_xlim(0, s_xlim)
     if not show_xticks:
         axs[0].set_xticks([])
     if not show_yticks:
@@ -1771,7 +2108,7 @@ def plot_warping2(
     return fig, axs
 
 
-def plot_explain(series, segments, variations=None, filename=None, fig=None):
+def plot_explain(series_from, segments, variations=None, filename=None, fig=None):
     import matplotlib.pyplot as plt
 
     process = list(enumerate(segments))
@@ -1802,12 +2139,12 @@ def plot_explain(series, segments, variations=None, filename=None, fig=None):
     ax = plt.subplot(gs[0, 0])
     ax.set_title("Series (prototype)")
     ax.set_xticks([])
-    ax.set_xlim(-5, len(series) + 5)
-    ax.plot(series, color=color_series)
+    ax.set_xlim(-5, len(series_from) + 5)
+    ax.plot(series_from, color=color_series)
     ax.vlines(
         [segment.s_idx for segment in segments] + [segments[-1].e_idx],
-        ymin=np.min(series),
-        ymax=np.max(series),
+        ymin=np.min(series_from),
+        ymax=np.max(series_from),
         linestyles="dotted",
         color=color_shade,
         alpha=0.2,
@@ -1817,7 +2154,7 @@ def plot_explain(series, segments, variations=None, filename=None, fig=None):
     ax.set_title("Shift + Elasticity")
     ax.set_yticks([])
     ax.set_xticks([])
-    ax.set_xlim(-5, len(series) + 5)
+    ax.set_xlim(-5, len(series_from) + 5)
     ax.vlines(
         [segment.s_idx for segment in segments] + [segments[-1].e_idx],
         ymin=-0.5,
@@ -1826,8 +2163,8 @@ def plot_explain(series, segments, variations=None, filename=None, fig=None):
         color=color_shade,
         alpha=0.2,
     )
-    seriesp = series - np.mean(series)
-    seriesp = seriesp / (4 * max(np.max(series), -np.min(series))) + 0.07
+    seriesp = series_from - np.mean(series_from)
+    seriesp = seriesp / (4 * max(np.max(series_from), -np.min(series_from))) + 0.07
     for r in range(cur_row):
         ax.plot(seriesp + r, color=color_series, alpha=0.3)
     max_shift_or_expansion = sys.float_info.min
@@ -1837,8 +2174,10 @@ def plot_explain(series, segments, variations=None, filename=None, fig=None):
             segment = segments[idx].segment
         else:
             segment = segments[idx]
-        current_max = max(segment.shift_l, segment.shift_r,round(segment.length() * np.tan(segment.a_compression) / 2), round(segment.length() * np.tan(segment.a_expansion) / 2))
-        current_min = min(segment.shift_l, segment.shift_r,round(segment.length() * np.tan(segment.a_compression) / 2), round(segment.length() * np.tan(segment.a_expansion) / 2))
+        current_max = max(segment.shift_l, segment.shift_r, round(segment.length() * np.tan(segment.a_compression) / 2),
+                          round(segment.length() * np.tan(segment.a_expansion) / 2))
+        current_min = min(segment.shift_l, segment.shift_r, round(segment.length() * np.tan(segment.a_compression) / 2),
+                          round(segment.length() * np.tan(segment.a_expansion) / 2))
         max_shift_or_expansion = max(max_shift_or_expansion, current_max)
         min_shift_or_expansion = min(min_shift_or_expansion, current_min)
 
@@ -1895,21 +2234,21 @@ def plot_explain(series, segments, variations=None, filename=None, fig=None):
 
     if variations is not None:
         ax = plt.subplot(gs[cur_row + 1, 0])
-        ax.set_xlim(-5, len(series) + 5)
+        ax.set_xlim(-5, len(series_from) + 5)
         ax.vlines(
             [segment.s_idx for segment in segments] + [segments[-1].e_idx],
-            ymin=np.min(series),
-            ymax=np.max(series),
+            ymin=np.min(series_from),
+            ymax=np.max(series_from),
             linestyles="dotted",
             color=color_shade,
             alpha=0.2,
         )
         ax.set_title("Amplitude variation")
-        ax.plot(series, color=color_series)
+        ax.plot(series_from, color=color_series)
         ax.fill_between(
             range(len(variations)),
-            series + variations[:, 1],
-            series + variations[:, 0],
+            series_from + variations[:, 1],
+            series_from - variations[:, 0],
             color=color_shade,
             alpha=0.3,
             linewidth=0,
@@ -1976,7 +2315,7 @@ def _plot_arrow(x, y, arrowstyle, delta, delta_min, delta_max, ax):
     else:
         raise ValueError(f'Unknown mr: {mr}')
 
-    alpha =  0.5 * (delta - delta_min) / (delta_max - delta_min) + 0.2
+    alpha = 0.5 * (delta - delta_min) / (delta_max - delta_min) + 0.2
     # ax.plot(x, y, color=color_shade, alpha=alpha)
     # ax.plot(x[0], y[0], color=color_shade, marker=ml, alpha=alpha, markersize=marker_size)
     # ax.plot(x[1], y[1], color=color_shade, marker=mr, alpha=alpha, markersize=marker_size)

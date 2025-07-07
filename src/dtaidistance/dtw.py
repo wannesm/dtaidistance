@@ -174,15 +174,21 @@ class DTWSettings:
 
     @staticmethod
     def wrap(settings):
-        if isinstance(settings, DTWSettings):
+        if (isinstance(settings, DTWSettings) or
+                'DTWSettings' in str(type(settings))):
             return settings
         if settings is None:
             return DTWSettings()
+        if type(settings) is dict and 'dtw_settings' in settings:
+            if len(settings) > 1:
+                raise ValueError('If dtw_settings is passed, no other arguments'
+                                 'can be given.')
+            return settings['dtw_settings']
         return DTWSettings(**settings)
 
     @staticmethod
     def for_dtw(s1, s2, **kwargs):
-        settings = DTWSettings(**kwargs)
+        settings = DTWSettings.wrap(kwargs)
         if settings.window is None:
             settings.window = max(len(s1), len(s2))
         settings.set_max_dist(s1, s2)
@@ -243,7 +249,7 @@ class DTWSettings:
     @staticmethod
     def from_h5_group(group):
         kwargs = {}
-        for attr in ["window", "use_pruning", "max_dist", "max_step", "max_step_clip",
+        for attr in ["window", "use_pruning", "max_dist", "max_step",
                      "max_length_diff", "penalty", "psi", "inner_dist", "use_ndim", "use_c"]:
             if attr in group.attrs:
                 kwargs[attr] = group.attrs[attr]
@@ -961,7 +967,16 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=True, max_length_diff=Non
 
 
 def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs):
-    """Compute warping path between two sequences."""
+    """Compute the warping path between two sequences.
+
+    :param from_s: First time series
+    :param to_s: Second time series
+    :param include_distance: Change the return values to a tuple with
+        (list of coordinates, distance value)
+    :param use_ndim: The data is multi-dimensional (or multi-variate)
+    :param \**kwargs: Additional options that are passed to :class:`DTWSettings`
+    :return: List of 2d path coordinates
+    """
     dist, paths = warping_paths(from_s, to_s, use_ndim=use_ndim, **kwargs)
     path = best_path(paths)
     if include_distance:
@@ -1066,7 +1081,7 @@ def best_path(paths, row=None, col=None, use_max=False, penalty=0):
     :param use_max: Find maximal path instead of minimal path
     :param penalty: The penalty used.
         If this is used, then paths should be expressed as the internal representation.
-    :return: Array of (row, col) representing the best path
+    :return: Array of (row, col) or (ts_1_idx, ts_2_idx) representing the best path
     """
     if use_max:
         argm = argmax
