@@ -1,3 +1,5 @@
+SubsequenceAlignment
+--------------------
 
 .. automodule:: dtaidistance.subsequence.subsequencealignment
    :members:

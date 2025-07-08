@@ -1,3 +1,5 @@
+SubsequenceSearch
+-----------------
 
 .. automodule:: dtaidistance.subsequence.subsequencesearch
    :members:

@@ -208,6 +208,10 @@ class SubsequenceAlignment:
         return result
 
     def best_match(self):
+        """Get the best match from the alignment.
+
+        :return: :class:`SAMatch`
+        """
         best_idx = np.argmin(self.matching)
         return self.get_match(best_idx)
 

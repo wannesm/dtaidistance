@@ -974,7 +974,7 @@ def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs)
     :param include_distance: Change the return values to a tuple with
         (list of coordinates, distance value)
     :param use_ndim: The data is multi-dimensional (or multi-variate)
-    :param \**kwargs: Additional options that are passed to :class:`DTWSettings`
+    :param \\**kwargs: Additional options that are passed to :class:`DTWSettings`
     :return: List of 2d path coordinates
     """
     dist, paths = warping_paths(from_s, to_s, use_ndim=use_ndim, **kwargs)

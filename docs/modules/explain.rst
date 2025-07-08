@@ -1,8 +1,6 @@
-
-explain
+Explain
 ~~~~~~~
 
 .. toctree::
-   :caption: Explain
 
    explain/explainpair
