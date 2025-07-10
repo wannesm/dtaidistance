@@ -65,11 +65,11 @@ class SplitStrategy(str, Enum):
     DERIV_DIST = "derivdist"
 
     def to_int(self):
-        return list(ApproxType).index(self)
+        return list(SplitStrategy).index(self)
 
     @staticmethod
     def from_int(value):
-        return list(ApproxType)[value]
+        return list(SplitStrategy)[value]
 
 
 @dataclass

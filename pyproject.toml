@@ -51,7 +51,8 @@ packages = [
 	"dtaidistance.clustering",
 	"dtaidistance.subsequence",
 	"dtaidistance.connectors",
-	"dtaidistance.symbolization"
+	"dtaidistance.symbolization",
+	"dtaidistance.explain",
 ]
 license-files = []
 
