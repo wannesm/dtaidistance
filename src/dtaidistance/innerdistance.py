@@ -215,5 +215,5 @@ def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
 def to_c(inner_dist):
     if hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
         raise AttributeError('Custom inner distance functions are not supported for the fast C implementation')
-    InnerDistType.wrap(inner_dist)
+    inner_dist = InnerDistType.wrap(inner_dist)
     return inner_dist.to_int()
