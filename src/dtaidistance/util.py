@@ -17,6 +17,7 @@ import logging
 from array import array
 from pathlib import Path
 import tempfile
+from bisect import bisect_left, bisect_right
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -402,3 +403,66 @@ class DetectKnee:
         self.arr = self.alpha * value + (1.0 - self.alpha) * self.arr
         self.cnt += 1
         return rvalue
+
+
+class SortedList:
+    def __init__(self, values):
+        self._l = sorted(values)
+
+    def __len__(self):
+        return self._l.__len__()
+
+    def __iter__(self):
+        return self._l.__iter__()
+
+    def __getitem__(self, item):
+        return self._l.__getitem__(item)
+
+    def remove(self, x):
+        """Remove the value equal to x."""
+        try:
+            i = self.index(x)
+            del self._l[i]
+        except ValueError:
+            pass
+
+    def index(self, x):
+        """Locate the leftmost value exactly equal to x."""
+        i = bisect_left(self._l, x)
+        if i != len(self._l) and self._l[i] == x:
+            return i
+        raise ValueError
+
+    def find_lt(self, x):
+        """Find rightmost value less than x."""
+        i = bisect_left(self._l, x)
+        if i:
+            return self._l[i - 1]
+        raise ValueError
+
+    def find_le(self, x):
+        """Find rightmost value less than or equal to x."""
+        i = bisect_right(self._l, x)
+        if i:
+            return self._l[i - 1]
+        raise ValueError
+
+    def find_gt(self, x):
+        """Find leftmost value greater than x."""
+        i = bisect_right(self._l, x)
+        if i != len(self._l):
+            return self._l[i]
+        raise ValueError
+
+    def find_ge(self, x):
+        """Find leftmost item greater than or equal to x."""
+        i = bisect_left(self._l, x)
+        if i != len(self._l):
+            return self._l[i]
+        raise ValueError
+
+    def __str__(self):
+        return str(self._l)
+
+    def __repr__(self):
+        return str(self._l)

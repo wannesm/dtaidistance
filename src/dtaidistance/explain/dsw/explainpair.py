@@ -23,20 +23,23 @@ Usage
 import functools
 import heapq
 import sys
-from bisect import bisect_left, bisect_right
 from collections import deque, defaultdict
 from dataclasses import dataclass
 from enum import Enum
+import math
 
 import numpy as np
 
 from ... import dtw_visualisation as dtwvis
 from ... import innerdistance
 from ...dtw import warping_path, DTWSettings, warping_path_fast, warping_paths
+from ...util import SortedList
+
 
 diag_angle = np.pi / 4
 
 color_series = "#2E81B9"
+color_series_to = "#B92E95"
 color_shade = "#F57A00"
 color_shade_dark = "#5F3E1C"
 
@@ -124,6 +127,10 @@ class Segment:
             return 0
         return -a
 
+    @property
+    def m_idx(self):
+        return round((self.s_idx + self.e_idx) / 2)
+
 
 @dataclass
 class PathSegment:
@@ -189,6 +196,10 @@ class PathSegment:
     def compression(self):
         return self.segment.compression
 
+    @property
+    def m_idx(self):
+        return self.segment.m_idx
+
     def __iter__(self):
         return iter(
             [
@@ -220,12 +231,13 @@ class ApproxSettings:
         Approximation settings for ExplainPair. See more information in the ExplainPair class.
         """
         if not isinstance(approx_type, ApproxType):
-            if type(approx_type) is int:
+            if (type(approx_type) is int or
+                    np.issubdtype(type(approx_type), np.integer)):
                 approx_type = ApproxType.from_int(approx_type)
             elif type(approx_type) is str:
                 approx_type = ApproxType(approx_type)
             else:
-                raise ValueError(f'Unknown type for approx_type')
+                raise ValueError(f'Unknown type for approx_type: {approx_type} ({type(approx_type)})')
         self.approx_type = approx_type
         if delta_abs is None:
             raise ValueError("delta_abs must be provided")
@@ -236,12 +248,13 @@ class ApproxSettings:
         self.approx_prune = approx_prune
         self.approx_local = approx_local
         if not isinstance(split_strategy, SplitStrategy):
-            if type(split_strategy) is int:
+            if (type(split_strategy) is int or
+                    np.issubdtype(type(split_strategy), np.integer)):
                 split_strategy = SplitStrategy.from_int(split_strategy)
             elif type(split_strategy) is str:
                 split_strategy = SplitStrategy(split_strategy)
             else:
-                raise ValueError(f'Unknown type for split_strategy')
+                raise ValueError(f'Unknown type for split_strategy: {split_strategy} ({type(split_strategy)})')
         self.split_strategy = split_strategy
 
     @staticmethod
@@ -307,6 +320,7 @@ class ExplainPair:
             split_strategy=SplitStrategy.SPATIAL_DIST,
             onlychanges=None,
             path=None,
+            init_split_points=None,
             dtw_settings=None,
             save_intermediates=False
     ):
@@ -329,7 +343,7 @@ class ExplainPair:
                 :math:`d' \\leq d * (1 + \\delta_{rel})`
             * ``max_factor_loose``: Relative distance based but looser.
                 This allows also simplifying subsequences with a very
-                low distance. Thus a good match with a distance close to zero
+                low distance. Thus, a good match with a distance close to zero
                 and where the simplification would lead to a distance a bit
                 higher than zero.
 
@@ -369,6 +383,8 @@ class ExplainPair:
         :param dtw_settings: Object of type :class:`DTWSettings`
             This variable is ignored if `path` is given.
         :param save_intermediates: Save intermediate results
+        :param init_split_points: Start with these split points and then split
+            further. They might be removed by the pruning step.
         """
         self.series_from = series_from
         self.series_to = series_to
@@ -389,22 +405,15 @@ class ExplainPair:
         self.segments = None
         self._variations = None
         self.intermediates = None
+        self.init_split_points = init_split_points
 
         self.dtw_settings = DTWSettings.wrap(dtw_settings)
-        if self.dtw_settings.use_c is False:
-            self.path = (
-                warping_path(self.series_from, self.series_to, **self.dtw_settings.kwargs())
-                if path is None
-                else path
-            )
+        if path is not None:
+            self.path = path
+        elif self.dtw_settings.use_c is False:
+            self.path = warping_path(self.series_from, self.series_to, **self.dtw_settings.kwargs())
         else:
-            self.path = (
-                warping_path_fast(
-                    self.series_from, self.series_to, **self.dtw_settings.kwargs()
-                )
-                if path is None
-                else path
-            )
+            self.path = warping_path_fast(self.series_from, self.series_to, **self.dtw_settings.kwargs())
         self.segments, self.line2 = self.path_to_segments(self.path, onlychanges=onlychanges)
 
         # Amplitude variations (computed lazily)
@@ -442,24 +451,15 @@ class ExplainPair:
                 a = np.arctan(dy / dx)
             # print(f"{bp}-{ep} : {a:.3f}")
             # Shift based on middle point of segment
-            # shift = round((bp[1] + ep[1]) / 2 - (bp[0] + ep[0]) / 2)
+            shift = round((bp[1] + ep[1]) / 2 - (bp[0] + ep[0]) / 2)
             # Shift based on point closest to diagonal
-            denom = bp[1] - ep[1] - bp[0] + ep[0]
-            if np.isclose(denom, 0.0):
-                t = 0  # parallel, all points are equal
-            else:
-                t = max(0.0, min(1.0, (bp[1] - bp[0]) / denom))
-            shift = round(bp[1] + t * (ep[1] - bp[1]) - bp[0] - t * (ep[0] - bp[0]))
-            expansion = dy - dx
-            # if a < acomp:
-            #     # Compression
-            #     compression = dx - dy
-            # elif a < aexpa:
-            #     # Shift
-            #     shift = round((bp[1] + ep[1])/2 - (bp[0] + ep[0])/2)
+            # denom = bp[1] - ep[1] - bp[0] + ep[0]
+            # if np.isclose(denom, 0.0):
+            #     t = 0  # parallel, all points are equal
             # else:
-            #     # Expansion
-            #     expansion = dy - dx
+            #     t = max(0.0, min(1.0, (bp[1] - bp[0]) / denom))
+            # shift = round(bp[1] + t * (ep[1] - bp[1]) - bp[0] - t * (ep[0] - bp[0]))
+            expansion = dy - dx
             if (
                     onlychanges is None
                     or abs(shift) >= onlychanges
@@ -488,6 +488,7 @@ class ExplainPair:
 
         queue = deque([(0, len(points) - 1)])
         result = set()
+        handled_segments = []
 
         # Compute cumulative cost over path
         inner_dist, inner_res, inner_val = innerdistance.inner_dist_fns(self.dtw_settings.inner_dist)
@@ -518,7 +519,30 @@ class ExplainPair:
         else:
             raise AttributeError(f"Unknown split strategy: {self.split_strategy}")
 
-        handled_segments = []
+        if self.init_split_points is not None and \
+            len(self.init_split_points) > 0:
+            # Force these split points and continue splitting from this
+            # set of splitting points. They can be pruned afterwards.
+            self.init_split_points = sorted(self.init_split_points)
+            next_split_point_idx = 0
+            next_split_point_f = self.init_split_points[next_split_point_idx]
+            add_to_result = []
+            for idx in range(len(points)):
+                i_f, _ = points[idx]
+                if i_f == next_split_point_f:
+                    add_to_result.append(idx)
+                    next_split_point_idx += 1
+                    if next_split_point_idx >= len(self.init_split_points):
+                        break
+                    next_split_point_f = self.init_split_points[next_split_point_idx]
+            queue = deque([(0, add_to_result[0])])
+            for i0, i1 in zip(add_to_result[:-1], add_to_result[1:]):
+                queue.append((i0, i1))
+            for i0 in add_to_result:
+                result.add(i0)
+            queue.append((add_to_result[-1], len(points)-1))
+            # print(f'Start with queue: {queue} and result: {result}')
+
         # Each time for a given segemnt, either it is accepted, or a new splitting point within the segment is created if the segment is not accepted.
         while len(queue) > 0:
             i0, i1 = queue.popleft()
@@ -679,7 +703,10 @@ class ExplainPair:
         if self.approx_type == ApproxType.MAX_FACTOR:
             ub = (self.delta_rel + 1) * ccost
         elif self.approx_type == ApproxType.MAX_FACTOR_LOOSE:
-            ub = ((1+self.delta_abs)*self.delta_rel + 1) * ccost
+            # The bould would be '+2' but that is a too loose bound, we simply
+            # cannot prove the bound is probably lower.
+            ub = ((1 + self.delta_abs) * self.delta_rel + 1) * ccost
+            # ub = ((1+self.delta_abs)*self.delta_rel + 2) * ccost
         elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
             ub = (1 + self.delta_rel) * ccost +  self.delta_abs
         elif self.approx_type == ApproxType.MAX_DIFF:
@@ -723,11 +750,14 @@ class ExplainPair:
             ub_a = (dist2cost(cost2dist(ccost)*(1 + self.delta_rel*self.delta_abs)) - ccost) / length
         elif self.approx_type == ApproxType.MAX_FACTOR_AND_DIFF:
             ccost_ub = cost2dist(ccost) * (self.delta_rel)
-            try:
-                ub_m = ((dist2cost(ccost_ub)) /
-                        (ccost))
-            except (ValueError, ZeroDivisionError):
+            if ccost == 0.0:
                 ub_m = 0
+            else:
+                try:
+                    ub_m = ((dist2cost(ccost_ub)) /
+                            (ccost))
+                except (ValueError, ZeroDivisionError):
+                    ub_m = 0
             ub_a = (dist2cost(cost2dist(ccost) + self.delta_abs) - ccost) / length
             # retain history for reference
             # ccost_ub = cost2dist(ccost) * (1 + self.epsilon)
@@ -852,29 +882,39 @@ class ExplainPair:
         i_ot_m = len(self.series_to) - h - 1
         for idx in range(0, len(points)):
             i_of, i_ot = points[idx]
+            cost_ft = abs(self.series_from[i_of] - self.series_to[i_ot])
             if i_of < h or i_of > i_of_m or i_ot < h or i_ot > i_ot_m:
                 # Compute derivatives close to the border
-                der = (abs((inner_dist(self.series_from[max(0, i_of - h)], self.series_to[max(0, i_ot - h)]) -
-                            inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[min(i_ot_m, i_ot + h)]))
-                           / (2*h)) +
-                       abs((inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[max(0, i_ot - h)]) -
-                           inner_dist(self.series_from[max(0, i_of - h)], self.series_to[min(i_ot_m, i_ot + h)]))
-                           / (2*h))
-                       ) / 2
+                der = max(abs(cost_ft
+                              - abs(self.series_from[i_of]
+                                    - self.series_to[max(0,i_ot - h)])
+                              ) / h,
+                          abs(cost_ft
+                              - abs(self.series_from[i_of]
+                                    - self.series_to[min(i_ot_m, i_ot + h)])
+                              ) / h,
+                          abs(cost_ft
+                              - abs(self.series_from[max(0,i_of-h)]
+                                    - self.series_to[i_ot])
+                              ) / h,
+                          abs(cost_ft
+                              - abs(self.series_from[min(i_of_m,i_of+h)]
+                                    - self.series_to[i_ot])
+                              ) / h)
             else:
                 # Centered difference (1st order approx) in two (diagonal)
-                # directions and averaged
-                der = (abs((inner_dist(self.series_from[i_of-h], self.series_to[i_ot-h]) -
-                            inner_dist(self.series_from[i_of+h], self.series_to[i_ot+h])
-                            ) / (2*h)) +
-                       abs((inner_dist(self.series_from[i_of+h], self.series_to[i_ot-h]) -
-                            inner_dist(self.series_from[i_of-h], self.series_to[i_ot+h])
-                            ) / (2*h))
-                       ) / 2
+                # directions and maxed.
+                # Use absolute inner distance (thus not the derivative in the
+                # self-similarity or cost matrix). This makes it independent of
+                # the amplitude of the time series.
+                der = max(abs(cost_ft - abs(self.series_from[i_of]   - self.series_to[i_ot-h])) / h,
+                          abs(cost_ft - abs(self.series_from[i_of]   - self.series_to[i_ot+h])) / h,
+                          abs(cost_ft - abs(self.series_from[i_of-h] - self.series_to[i_ot]))   / h,
+                          abs(cost_ft - abs(self.series_from[i_of+h] - self.series_to[i_ot]))   / h)
             ders[idx] = abs(der)
         # If the first derivative is zero, then distance has little impact
-        # in the max_2ndderiv_deviation approach
-        min_ders = np.max(ders) * 0.01
+        # in the max_2ndderiv_deviation approach. Force a minimal value.
+        min_ders = np.max(ders) * 0.1
         ders[ders < min_ders] = min_ders
         return ders
 
@@ -882,8 +922,8 @@ class ExplainPair:
         """Compute the second derivative of each point in the cost
         matrix (or self-similarity matrix).
 
-        This method ignores the direction and computes the average
-        absolute value of the derivative in the diagonal directions.
+        This method ignores the direction and computes the max
+        absolute value of the derivative in the vertical and horizontal direction.
         The goal is to select points that have a rapidly changing point
         in the cost matrix.
 
@@ -895,29 +935,30 @@ class ExplainPair:
         i_ot_m = len(self.series_to) - h - 1
         for idx in range(0, len(points)):
             i_of, i_ot = points[idx]
+            cost_ft = abs(self.series_from[i_of] - self.series_to[i_ot])
             if i_of < h or i_of > i_of_m or i_ot < h or i_ot > i_ot_m:
                 # Compute derivatives close to the border
-                der = (abs(inner_dist(self.series_from[max(0, i_of - h)], self.series_to[max(0, i_ot - h)])+
-                           inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[min(i_ot_m, i_ot + h)])-
-                           2 * inner_dist(self.series_from[i_of], self.series_to[i_ot])
-                           ) / (h**2) +
-                       abs(inner_dist(self.series_from[min(i_of_m, i_of + h)], self.series_to[max(0, i_ot - h)])+
-                           inner_dist(self.series_from[max(0, i_of - h)], self.series_to[min(i_ot_m, i_ot + h)])-
-                           2*inner_dist(self.series_from[i_of], self.series_to[i_ot])
-                           ) / (h**2)
-                       ) / 2
+                der = max(abs(abs(self.series_from[i_of] - self.series_to[max(0, i_ot - h)]) +
+                              abs(self.series_from[i_of] - self.series_to[min(i_ot_m, i_ot + h)]) -
+                              2 * cost_ft
+                              ) / (h ** 2),
+                          abs(abs(self.series_from[min(i_of_m, i_of + h)] - self.series_to[i_ot]) +
+                              abs(self.series_from[max(0, i_of - h)] - self.series_to[i_ot]) -
+                              2 * cost_ft
+                              ) / (h ** 2)
+                          )
             else:
                 # Centered difference approximations (along the diagonals)
                 # Could also have been five-point stencil 2nd derivative?
-                der = (abs(inner_dist(self.series_from[i_of-h], self.series_to[i_ot-h])+
-                           inner_dist(self.series_from[i_of+h], self.series_to[i_ot+h])-
-                           2 * inner_dist(self.series_from[i_of], self.series_to[i_ot])
-                           ) / (h**2) +
-                       abs(inner_dist(self.series_from[i_of+h], self.series_to[i_ot-h])+
-                           inner_dist(self.series_from[i_of-h], self.series_to[i_ot+h])-
-                           2*inner_dist(self.series_from[i_of], self.series_to[i_ot])
-                           ) / (h**2)
-                       ) / 2
+                der = max(abs(abs(self.series_from[i_of] - self.series_to[i_ot-h])+
+                              abs(self.series_from[i_of] - self.series_to[i_ot+h])-
+                              2 * cost_ft
+                              ) / (h**2),
+                          abs(abs(self.series_from[i_of+h] - self.series_to[i_ot])+
+                              abs(self.series_from[i_of-h] - self.series_to[i_ot])-
+                              2 * cost_ft
+                              ) / (h**2)
+                          )
             ders[idx] = abs(der)
         return ders
 
@@ -974,7 +1015,8 @@ class ExplainPair:
                                    p0[1] + t * (p1[1] - p0[1])])
                     dist = np.linalg.norm(p - pt)
             # Second-order Taylor expansion to approximate the difference
-            # in the cost matrix based on the local derivatives
+            # in the self-similarity matrix (with abs cost function) based
+            # on the local derivatives
             dist2 = der1*dist + 1/2*der2*dist**2
             dist = dist2
 
@@ -1079,6 +1121,11 @@ class ExplainPair:
         if per_segment:
             return dist, dists
         return dist
+
+    def from_indices(self):
+        idxs = [s.s_idx for s in self.segments]
+        idxs.append(self.segments[-1].e_idx)
+        return idxs
 
     def dsw_path(self):
         """The piece-wise linearized path."""
@@ -1193,7 +1240,7 @@ class ExplainPair:
         else:
             path = self.path
         variations = np.zeros((len(self.series_from), 2))
-        tvalues = defaultdict(lambda: ([], []))
+        tvalues = defaultdict(lambda: ([], []))  # todo: no need to keep all values
         for fi, ti in path:
             v = self.series_to[ti] - self.series_from[fi]
             if v <= 0:
@@ -1263,6 +1310,7 @@ class ExplainPair:
             show_elasticity=True,
             color_elasticity=False,
             alt_vis=False,
+            nice_layout=True,
     ):
         if show_amplitude:
             if alt_vis:
@@ -1292,6 +1340,7 @@ class ExplainPair:
             variations=variations,
             show_elasticity=show_elasticity,
             color_elasticity=color_elasticity,
+            nice_layout=nice_layout,
         )
 
     def plot_explanation_and_warping(self, filename=None, relsize=0.4):
@@ -1321,14 +1370,15 @@ class ExplainPair:
         return fig
 
     def plot_segments(self, filename=None, show_values=False, path_kwargs=None, matshow_kwargs=None, showdist=True,
-                      tick_kwargs=None, dsw_path_kwargs=None):
+                      tick_kwargs=None, dsw_path_kwargs=None, figure=None, show_diagonal=False):
         import matplotlib.pyplot as plt
         ya, yb = self.series_from, self.series_to
         path = self.line2
         dist, paths = warping_paths(ya, yb)
         dist_approx = self.distance_approx()
         fig, axs = dtwvis.plot_warpingpaths(ya, yb, paths, path=self.path, path_kwargs=path_kwargs,
-                                            matshow_kwargs=matshow_kwargs, tick_kwargs=tick_kwargs)
+                                            matshow_kwargs=matshow_kwargs, tick_kwargs=tick_kwargs,
+                                            figure=figure, show_diagonal=show_diagonal)
         if dsw_path_kwargs is None:
             dsw_path_kwargs = {
                 'linestyle': '-', 'marker': 'o', 'alpha': 0.5,
@@ -1345,7 +1395,7 @@ class ExplainPair:
             adist, adists = self.distance_approx(per_segment=True)
             for segment, srdist, sadist in zip(self.segments, rdists, adists):
                 axs[0].text((segment.s_idx_y + segment.e_idx_y)/2 + 4,
-                            (segment.s_idx + segment.e_idx) / 2 + 4,
+                            (segment.s_idx + segment.e_idx) / 2,
                             f"{srdist:.4f} / {sadist:.4f} - "
                             f"({segment.s_idx},{segment.s_idx_y})",
                             color=dsw_path_kwargs.get("color", "darkgreen"))
@@ -1365,6 +1415,16 @@ class ExplainPair:
                 dists = np.linalg.norm(path_val - mean[:, np.newaxis], axis=1)
                 path_ders = dists*path_ders1 + dists**2*path_ders2
                 # path_ders = 200 * (path_ders / np.max(path_ders))
+                # Inset plot
+                from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+                ax_inset = inset_axes(axs[0], width="60%", height="15%", loc='upper right')
+                ax_inset.plot(path_ders1, color='blue', alpha=0.5, label='1st')
+                ax_inset.plot(path_ders2, color='red', alpha=0.5, label='2nd')
+                ax_inset.set_title('1st and 2nd derivative of path', fontsize=8)
+                ax_inset.legend(loc='upper right')
+                ax_inset.set_xlim((0, len(path_ders1)))
+
+                # Scatter plot
                 path_ders12_max = max(np.max(path_ders1), np.max(path_ders2))
                 path_ders1 = 200 * (path_ders1 / path_ders12_max)
                 path_ders2 = 200 * (path_ders2 / path_ders12_max)
@@ -1373,13 +1433,6 @@ class ExplainPair:
                                facecolors='none', edgecolors='yellow', alpha=0.3)
                 axs[0].scatter(path_val[:, 1], path_val[:, 0], s=path_ders1,
                                facecolors='none', edgecolors='orange', alpha=0.3)
-                from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-                ax_inset = inset_axes(axs[0], width="60%", height="15%", loc='upper right')
-                ax_inset.plot(path_ders1, color='blue', alpha=0.5, label='1st')
-                ax_inset.plot(path_ders2, color='red', alpha=0.5, label='2nd')
-                ax_inset.set_title('1st and 2nd derivative of path', fontsize=8)
-                ax_inset.legend(loc='upper right')
-                ax_inset.set_xlim((0, len(path_ders1)))
 
         if filename is not None:
             fig.savefig(filename)
@@ -1453,69 +1506,6 @@ class ExplainPair:
         return fig
 
 
-class SortedList:
-    def __init__(self, values):
-        self._l = sorted(values)
-
-    def __len__(self):
-        return self._l.__len__()
-
-    def __iter__(self):
-        return self._l.__iter__()
-
-    def __getitem__(self, item):
-        return self._l.__getitem__(item)
-
-    def remove(self, x):
-        """Remove the value equal to x."""
-        try:
-            i = self.index(x)
-            del self._l[i]
-        except ValueError:
-            pass
-
-    def index(self, x):
-        """Locate the leftmost value exactly equal to x."""
-        i = bisect_left(self._l, x)
-        if i != len(self._l) and self._l[i] == x:
-            return i
-        raise ValueError
-
-    def find_lt(self, x):
-        """Find rightmost value less than x."""
-        i = bisect_left(self._l, x)
-        if i:
-            return self._l[i - 1]
-        raise ValueError
-
-    def find_le(self, x):
-        """Find rightmost value less than or equal to x."""
-        i = bisect_right(self._l, x)
-        if i:
-            return self._l[i - 1]
-        raise ValueError
-
-    def find_gt(self, x):
-        """Find leftmost value greater than x."""
-        i = bisect_right(self._l, x)
-        if i != len(self._l):
-            return self._l[i]
-        raise ValueError
-
-    def find_ge(self, x):
-        """Find leftmost item greater than or equal to x."""
-        i = bisect_left(self._l, x)
-        if i != len(self._l):
-            return self._l[i]
-        raise ValueError
-
-    def __str__(self):
-        return str(self._l)
-
-    def __repr__(self):
-        return str(self._l)
-
-
 def plot_warping(
         s1,
         s2,
@@ -1535,6 +1525,7 @@ def plot_warping(
         variations=None,
         show_elasticity=True,
         color_elasticity=False,
+        nice_layout=True,
 ):
     """
 
@@ -1544,7 +1535,7 @@ def plot_warping(
     :param path:
     :param filename:
     :param fig:
-    :param axs:
+    :param axs: An array of length 2
     :param series_line_options:
     :param warping_line_options:
     :param elasticity_line_options:
@@ -1556,6 +1547,7 @@ def plot_warping(
     :param variations:
     :param show_elasticity:
     :param color_elasticity:
+    :param nice_layout:
     :return: fig, axs
     """
     import matplotlib as mpl
@@ -1585,21 +1577,22 @@ def plot_warping(
     s2_max = np.max(s2)
     s_xlim = max(len(s1) - 1, len(s2) - 1)
     axs[0].plot(s1, **series_line_options)
-    axs[0].spines['right'].set_visible(False)
-    axs[0].spines['left'].set_position(('outward', 10))
-    axs[0].set_xlim(0, s_xlim)
     axs[1].plot(s2, **series_line_options)
-    axs[1].spines['right'].set_visible(False)
-    axs[1].spines['left'].set_position(('outward', 10))
-    axs[1].set_xlim(0, s_xlim)
-    if not show_xticks:
-        axs[0].set_xticks([])
-    if not show_yticks:
-        axs[0].set_yticks([])
-        axs[1].set_yticks([])
-    if tick_kwargs is not None:
-        for ax in axs:
-            ax.tick_params(**tick_kwargs)
+    if nice_layout:
+        axs[0].spines['right'].set_visible(False)
+        axs[0].spines['left'].set_position(('outward', 10))
+        axs[0].set_xlim(0, s_xlim)
+        axs[1].spines['right'].set_visible(False)
+        axs[1].spines['left'].set_position(('outward', 10))
+        axs[1].set_xlim(0, s_xlim)
+        if not show_xticks:
+            axs[0].set_xticks([])
+        if not show_yticks:
+            axs[0].set_yticks([])
+            axs[1].set_yticks([])
+        if tick_kwargs is not None:
+            for ax in axs:
+                ax.tick_params(**tick_kwargs)
     plt.tight_layout()
 
     # Plot amplitude differences
@@ -2151,7 +2144,7 @@ def plot_explain(series_from, segments, variations=None, filename=None, fig=None
     )
 
     ax = plt.subplot(gs[1: cur_row + 1, 0])
-    ax.set_title("Shift + Elasticity")
+    ax.set_title("Shift + Compression")
     ax.set_yticks([])
     ax.set_xticks([])
     ax.set_xlim(-5, len(series_from) + 5)
@@ -2253,6 +2246,234 @@ def plot_explain(series_from, segments, variations=None, filename=None, fig=None
             alpha=0.3,
             linewidth=0,
         )
+
+    fig.tight_layout()
+    if filename is not None:
+        fig.savefig(str(filename))
+        plt.close(fig)
+        fig = None
+    return fig, gs
+
+
+def plot_explain2(series_from, segments, variations=None, filename=None,
+                  fig=None, pair=None, rel_thr=1, segment_scores=None,
+                  compact_segments=True, figsize=None):
+    """Plot the explanation of a prototype wrt all time series used to learn the variation."""
+    import matplotlib.pyplot as plt
+
+    color_prob_s = '#b64aae'
+    color_prob_e = '#4a6aae'
+    color_prob_a = '#a99448'
+
+    if segment_scores is not None:
+        if pair is not None:
+            raise ValueError(f'Argument pair should be None if segment_scores is given')
+        pair = segment_scores.pair
+    process = list(enumerate(segments))
+    cur_row = 0
+    # shift, expansion, compression
+    plot_row = np.zeros((len(segments), 3))
+    while len(process) != 0:
+        s_i, e_i, c_i = 0, 0, 0
+        postpone = []
+        for segi, segment in process:
+            if isinstance(segment, PathSegment):
+                segment = segment.segment
+            i0, i1 = segment.s_idx, segment.e_idx
+            im = int((i0 + i1) / 2)
+            delta_e = round(segment.length() * (np.tan(diag_angle + rel_thr*segment.a_expansion) - 1)) / 2
+            bi = max(0, min(im - segment.shift_l, i0 - delta_e))
+            ei = max(im + segment.shift_r, i1 + delta_e)
+            if bi >= s_i:
+                plot_row[segi, 0] = cur_row
+                s_i = ei + 1
+            else:
+                postpone.append((segi, segment))
+        process = postpone
+        cur_row += 1
+
+    if compact_segments:
+        ratio_gs = math.ceil(len(segments)/4)
+    else:
+        ratio_gs = min(5, cur_row-1)
+    extra_gs = 2 if segment_scores is None else 5
+    if fig is None:
+        if figsize is None:
+            figsize = (6, (ratio_gs + 1.5*extra_gs))
+        fig = plt.figure(figsize=figsize)
+    if rel_thr != 1:
+        fig.suptitle(f'Settings: rel_thr={rel_thr}',
+                     x=0.03, y=0.03, ha='left', fontsize=9)
+    gs = fig.add_gridspec(ratio_gs + extra_gs, 1)
+
+    # Prototype
+    ax = plt.subplot(gs[0, 0])
+    ax.set_title("Series (prototype)")
+    ax.set_xticks([])
+    ax.set_xlim(-5, len(series_from) + 5)
+    ax.plot(series_from, color=color_series)
+    if pair is not None:
+        ax.plot(pair.series_to, color=color_series_to,
+                linestyle='dotted')
+    ax.vlines(
+        [segment.s_idx for segment in segments] + [segments[-1].e_idx],
+        ymin=np.min(series_from),
+        ymax=np.max(series_from),
+        linestyles="dotted",
+        color=color_shade,
+        alpha=0.4,
+    )
+
+    # Segments
+    ax = plt.subplot(gs[1: ratio_gs+1, 0])
+    ax.set_title("Shift + Compression")
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_xlim(-5, len(series_from) + 5)
+    if compact_segments:
+        h = 0.35
+        total_height = len(segments)
+        ax.set_ylim(-0.5, total_height - 0.5)
+    else:
+        h = 0.35
+        total_height = cur_row
+    ax.vlines(
+        [segment.s_idx for segment in segments] + [segments[-1].e_idx],
+        ymin=-0.5,
+        ymax=total_height - 0.5,
+        linestyles="dotted",
+        color=color_shade,
+        alpha=0.4,
+    )
+    if not compact_segments:
+        seriesp = series_from - np.mean(series_from)
+        seriesp = seriesp / (3 * max(np.max(series_from), -np.min(series_from))) + 0.07
+        for r in range(cur_row):
+            ax.plot(seriesp + r, color=color_series, alpha=0.2)
+    for idx in range(len(segments)):
+        if isinstance(segments[idx], PathSegment):
+            segment = segments[idx].segment
+        else:
+            segment = segments[idx]
+        bi, ei = segment.s_idx, segment.e_idx
+        if compact_segments:
+            r = total_height - idx - 1
+        else:
+            r = total_height - plot_row[idx, 0] - 1
+        # if r % 2 == 0:
+        #     ax.axhspan(r - 0.40, r + 0.60, facecolor=color_bg, alpha=1)
+
+        # Shift
+        m = (bi + ei) / 2
+        ax.plot([m, m], [r + h, r - h - h / 5], color=color_shade, alpha=0.8, linestyle='solid')
+        x = [m - rel_thr*segment.shift_l, m + rel_thr*segment.shift_r]
+        y = [r - h - h / 5, r - h - h / 5]
+        ax.plot(x, y, color=color_shade, alpha=0.6, linestyle='solid')
+
+        # Time series segment as trapezoid with compression
+        delta_c = (segment.length() * (1 - np.tan(diag_angle - rel_thr*segment.a_compression)) / 2)
+        # print(f'{delta_c*2=} / {segment.compression:.2f} / {segment.length()}')
+        x = [bi, bi + delta_c, ei - delta_c, ei]
+        y1 = [r - h, r + h, r + h, r- h]
+        y2 = [r - h, r -h, r-h, r-h]
+        ax.fill_between(x, y1, y2, color=color_shade, alpha=0.1, linewidth=0)
+        x = [bi, bi + delta_c, ei - delta_c, ei, bi]
+        y = [r-h, r + h, r + h, r-h, r-h]
+        ax.plot(x, y, color=color_shade, alpha=0.6)
+
+        delta_e = (segment.length() * (np.tan(diag_angle + rel_thr*segment.a_expansion) - 1) / 2)
+        # print(f'{delta_e*2=} / {segment.expansion:.2f} / {segment.length()}')
+        x = [bi, bi - delta_e, ei + delta_e, ei]
+        y1 = [r-h, r + h, r + h, r-h]
+        y2 = [r-h, r-h, r-h, r-h]
+        ax.fill_between(x, y1, y2, color=color_shade, alpha=0.1, linewidth=0)
+        x = [bi, bi - delta_e, ei + delta_e, ei, bi]
+        y = [r-h, r + h, r + h, r-h, r-h]
+        ax.plot(x, y, color=color_shade, alpha=0.6)
+
+        if not compact_segments:
+            ax.plot(range(bi, ei+1), seriesp[bi:ei+1] + r, color=color_series, alpha=0.9)
+
+    # Variation
+    if variations is not None:
+        ax = plt.subplot(gs[ratio_gs + 1, 0])
+        ax.set_xlim(-5, len(series_from) + 5)
+        ax.vlines(
+            [segment.s_idx for segment in segments] + [segments[-1].e_idx],
+            ymin=np.min(series_from),
+            ymax=np.max(series_from),
+            linestyles="dotted",
+            color=color_shade,
+            alpha=0.4,
+        )
+        ax.set_title("Amplitude variation")
+        ax.plot(range(len(series_from)), series_from, color=color_series)
+        if pair is not None:
+            on_segments = segment_scores.probs_a_on_segments if segment_scores is not None else False
+            pair_variations = pair.get_variations(on_segments=on_segments)
+            ax.plot(range(len(series_from)),
+                    pair.series_from + pair_variations[:, 1],
+                    color=color_series_to, linestyle='dotted')
+            ax.plot(range(len(series_from)),
+                    pair.series_from - pair_variations[:, 0],
+                    color=color_series_to, linestyle='dotted')
+        ax.fill_between(
+            range(len(variations)),
+            series_from + rel_thr*variations[:, 1],
+            series_from - rel_thr*variations[:, 0],
+            color=color_shade,
+            alpha=0.5,
+            linewidth=0,
+        )
+
+    if segment_scores is not None:
+        # Scores
+        _, sc_segments = zip(*segment_scores.segments)
+        ax = plt.subplot(gs[ratio_gs + 2, 0])
+        ax.set_xlim(-5, len(series_from) + 5)
+        ax.hlines([0], 0, len(series_from),
+                  linestyles='dotted', color='black', alpha=0.4)
+        ax.set_title("Dissimilarity score per segment")
+        midpoints = [s.m_idx for s in sc_segments]
+        scores = np.abs(np.log(segment_scores.probs_s))
+        max_score = np.max(scores)
+        ax.plot(midpoints, scores , 'o',
+                alpha=0.5, color=color_prob_s, label='Shift')
+        scores = np.abs(np.log(segment_scores.probs_e))
+        max_score = max(max_score, np.max(scores))
+        ax.plot(midpoints, scores, 'o',
+                alpha=0.5, color=color_prob_e, label='Compression')
+
+        x, y = [], []
+        if segment_scores.probs_a_on_segments:
+            path = segment_scores.pair.segments_to_path()
+        else:
+            path = segment_scores.pair.path
+        for score, point in zip(segment_scores.probs_a, path):
+            x.append(point[0])
+            y.append(score)
+        scores = np.abs(np.log(y))
+        max_score = max(max_score, np.max(scores))
+        ax.scatter(x, scores, alpha=0.5, color=color_prob_a, s=2, label='Amplitude')
+        ax.legend(fontsize=7, loc='upper right', bbox_to_anchor=(1.1, 0.3))
+        ax.set_ylim(-0.2, max_score + 0.2)
+        ax.set_xticks([])
+        ax.vlines(
+            [segment.s_idx for segment in sc_segments] + [sc_segments[-1].e_idx],
+            ymin=0,
+            ymax=max_score,
+            linestyles="dotted",
+            color=color_shade,
+            alpha=0.4,
+        )
+
+        # Dynamic Subsequence Warping
+        ax0 = plt.subplot(gs[ratio_gs + 3, 0])
+        ax1 = plt.subplot(gs[ratio_gs + 4, 0])
+        ax0.set_xlim(-5, len(series_from) + 5)
+        ax1.set_xlim(-5, len(series_from) + 5)
+        ax0.set_xticks([])
+        pair.plot_warping(axs=[ax0, ax1], fig=fig, nice_layout=False)
 
     fig.tight_layout()
     if filename is not None:
