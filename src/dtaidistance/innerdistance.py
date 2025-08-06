@@ -22,6 +22,7 @@ We make the distinction between three operations:
 """
 import math
 import logging
+from enum import Enum
 
 from . import util
 from . import util_numpy
@@ -49,6 +50,28 @@ except ImportError:
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
 default = 'squared euclidean'
+
+
+class InnerDistType(str, Enum):
+    SQEUCLIDEAN = "squared euclidean"  # 0
+    EUCLIDEAN = "euclidean"  # 1
+
+    def to_int(self):
+        return list(InnerDistType).index(self)
+
+    @staticmethod
+    def from_int(value):
+        return list(InnerDistType)[value]
+
+    @staticmethod
+    def wrap(inner_dist):
+        if isinstance(inner_dist, InnerDistType):
+            return inner_dist
+        elif type(inner_dist) is str:
+            return InnerDistType(inner_dist)
+        elif type(inner_dist) is int:
+            return InnerDistType.from_int(inner_dist)
+        raise ValueError(f'Value not supported for inner distance: {inner_dist}')
 
 
 class SquaredEuclidean:
@@ -158,12 +181,15 @@ class CustomInnerDist:
 
 
 def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
-    if inner_dist == "squared euclidean" or inner_dist == 0:
+    if type(inner_dist) in [str, int]:
+        inner_dist = InnerDistType.wrap(inner_dist)
+
+    if inner_dist == InnerDistType.SQEUCLIDEAN:
         if use_ndim:
             use_cls = SquaredEuclideanNdim
         else:
             use_cls = SquaredEuclidean
-    elif inner_dist == "euclidean" or inner_dist == 1:
+    elif inner_dist == InnerDistType.EUCLIDEAN:
         if use_ndim:
             use_cls = EuclideanNdim
         else:
@@ -187,11 +213,7 @@ def inner_dist_fns(inner_dist="squared euclidean", use_ndim=False):
 
 
 def to_c(inner_dist):
-    if inner_dist == 'squared euclidean' or inner_dist == 0:
-        return 0
-    elif inner_dist == 'euclidean' or inner_dist == 1:
-        return 1
-    elif hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
+    if hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
         raise AttributeError('Custom inner distance functions are not supported for the fast C implementation')
-    else:
-        raise AttributeError('Unknown inner_dist: {}'.format(inner_dist))
+    inner_dist = InnerDistType.wrap(inner_dist)
+    return inner_dist.to_int()
