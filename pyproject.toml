@@ -35,7 +35,7 @@ documentation = "https://http://dtaidistance.readthedocs.io"
 tests = ["pytest", "pytest-benchmark"]
 viz = ["matplotlib>=3.0.0"]
 dev = [
-	"pytest", "pytest-benchmark",
+	"pytest", "pytest-benchmark", "pytest-env",
 	"matplotlib>=3.0.0", "numpy", "scipy",
 	"sphinx", "sphinx_rtd_theme"
 ]
@@ -53,6 +53,8 @@ packages = [
 	"dtaidistance.connectors",
 	"dtaidistance.symbolization",
 	"dtaidistance.explain",
+	"dtaidistance.explain.dsw",
+	"dtaidistance.benchmarks",
 ]
 license-files = []
 
