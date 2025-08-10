@@ -52,26 +52,9 @@ logger = logging.getLogger("be.kuleuven.dtai.distance")
 default = 'squared euclidean'
 
 
-class InnerDistType(str, Enum):
+class InnerDistType(util.DDType):
     SQEUCLIDEAN = "squared euclidean"  # 0
     EUCLIDEAN = "euclidean"  # 1
-
-    def to_int(self):
-        return list(InnerDistType).index(self)
-
-    @staticmethod
-    def from_int(value):
-        return list(InnerDistType)[value]
-
-    @staticmethod
-    def wrap(inner_dist):
-        if isinstance(inner_dist, InnerDistType):
-            return inner_dist
-        elif type(inner_dist) is str:
-            return InnerDistType(inner_dist)
-        elif type(inner_dist) is int:
-            return InnerDistType.from_int(inner_dist)
-        raise ValueError(f'Value not supported for inner distance: {inner_dist}')
 
 
 class SquaredEuclidean:
@@ -217,3 +200,27 @@ def to_c(inner_dist):
         raise AttributeError('Custom inner distance functions are not supported for the fast C implementation')
     inner_dist = InnerDistType.wrap(inner_dist)
     return inner_dist.to_int()
+
+
+class StepsType(util.DDType):
+    # Based on L. Rabiner and B.-H. Juang. Fundamentals of speech recognition.
+    # Prentice-Hall, Inc., 1993.
+    TYPEI = "TypeI"  # 0
+    TYPEIII = "TypeIII"  # 1
+    DIAGONAL = "Diagonal"  # 2
+
+    def steps(self):
+        return stepstype_steps[self]
+
+    def inf_rows_cols(self):
+        steps_rows, steps_cols = zip(*self.steps())
+        inf_rows = max(steps_rows)
+        inf_cols = max(steps_cols)
+        return inf_rows, inf_cols
+
+
+stepstype_steps = {
+    StepsType.TYPEI: ((1, 1), (0, 1), (1, 0)),  # diagonal, go left, go up
+    StepsType.TYPEIII: ((1, 1), (1, 2), (2, 1)),
+    StepsType.DIAGONAL: ((1, 1),)
+}

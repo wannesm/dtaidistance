@@ -18,6 +18,7 @@ from array import array
 from pathlib import Path
 import tempfile
 from bisect import bisect_left, bisect_right
+from enum import Enum
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -466,3 +467,29 @@ class SortedList:
 
     def __repr__(self):
         return str(self._l)
+
+
+class DDType(str, Enum):
+
+    def to_int(self):
+        return list(self.__class__).index(self)
+
+    @classmethod
+    def from_int(cls, value):
+        return list(cls)[value]
+
+    @classmethod
+    def wrap(cls, val):
+        if isinstance(val, cls):
+            return val
+        elif type(val) is str:
+            try:
+                return cls(val)
+            except ValueError as exc:
+                pass
+        elif type(val) is int:
+            try:
+                return cls.from_int(val)
+            except IndexError as exc:
+                pass
+        raise ValueError(f'Value not supported for {cls.__name__}: {val}')
