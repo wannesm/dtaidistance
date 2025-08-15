@@ -41,7 +41,31 @@ typedef ssize_t idx_t;
 //typedef size_t idx_t;
 //#define idx_t_max SIZE_MAX
 
+/**
+ @var printPrecision
+ @abstract Number of decimals to print when printing (partial) distances.
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+static int printPrecision = 3;
+static int printDigits = 7; // 3+4
+static char printBuffer[20];
+static char printFormat[5];
+#pragma GCC diagnostic pop
 
+// Step function
+enum StepType_e {
+  TypeI,
+TypeIII
+};
+typedef enum StepType_e StepType;
+
+// Inner distance / local distance
+enum InnerDist_e {
+    SquaredEuclidean=0,
+    Euclidean=1
+};
+typedef enum InnerDist_e InnerDist;
 
 // Min and max macros
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -59,5 +83,9 @@ typedef unsigned char ba_t;
 #define bit_set(a,i)     ( a[(i/ba_size)] |=  (1 << (i%ba_size)) )
 #define bit_clear(a,i)   ( a[(i/ba_size)] &= ~(1 << (i%ba_size)) )
 #define bit_test(a,i)    ( a[(i/ba_size)] &   (1 << (i%ba_size)) )
+
+// Print numbers
+void print_nb(seq_t value);
+void print_ch(char* string);
 
 #endif /* globals_h */

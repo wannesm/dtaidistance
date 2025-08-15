@@ -45,7 +45,7 @@ targets = {
     "dd_loco.c":
         ["dd_loco.jinja.c",
             {},
-            ["loco_warpingpaths.jinja.c"]],
+            ["loco_warpingpaths.jinja.c", "loco_best_path.jinja.c"]],
 }
 essential_targets = ['dd_dtw.c', 'dd_dtw_openmp.c', 'dd_ed.c', 'dd_loco.c']
 
