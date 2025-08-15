@@ -14,6 +14,7 @@ import os
 import logging
 
 from . import util_numpy
+from . import innerdistance
 
 
 try:
@@ -207,7 +208,9 @@ def path_slice(path, rb=None, re=None, cb=None, ce=None):
 
 def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=None,
                       shownumbers=False, showlegend=False, showtotaldist=True,
-                      figure=None, path_kwargs = None, matshow_kwargs=None, includes_zero=True, tick_kwargs=None):
+                      figure=None, path_kwargs = None, matshow_kwargs=None,
+                      plot_kwargs = None,
+                      includes_zero=True, tick_kwargs=None):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -234,11 +237,14 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
     ratio = max(len(s1), len(s2))
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
+    if plot_kwargs is None:
+        plot_kwargs = {'linestyle': '-'}
 
     if figure is None:
         fig = plt.figure(figsize=(10, 10), frameon=True)
     else:
         fig = figure
+    size = fig.get_size_inches()
     if showlegend:
         grows = 3
         gcols = 3
@@ -247,8 +253,17 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
     else:
         grows = 2
         gcols = 2
-        height_ratios = [1, 6]
-        width_ratios = [1, 6]
+        if len(s1) == len(s2):
+            height_ratios = [1, 6]
+            width_ratios = [1, 6]
+        elif len(s1) < len(s2):
+            height_ts = size[1] / 7
+            height_ratios = [height_ts, size[1] - height_ts]
+            width_ratios = [height_ts, size[0] - height_ts]
+        elif len(s1) > len(s2):
+            width_ts = size[0] / 7
+            height_ratios = [width_ts, size[1] - width_ts]
+            width_ratios = [width_ts, size[0] - width_ts]
     gs = gridspec.GridSpec(grows, gcols, wspace=1, hspace=1,
                            left=0, right=1.0, bottom=0, top=1.0,
                            height_ratios=height_ratios,
@@ -282,7 +297,13 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
         img = ax3.matshow(cost_matrix[1:, 1:], aspect='equal', **matshow_kwargs)
     else:
         if includes_zero:
-            img = ax3.matshow(paths[1:, 1:], aspect='equal', **matshow_kwargs)
+            if isinstance(includes_zero, innerdistance.StepsType):
+                print(f'{paths.shape=}')
+                inf_rows, inf_cols = includes_zero.inf_rows_cols()
+            else:
+                inf_rows, inf_cols = 1, 1
+            img = ax3.matshow(paths[inf_rows:, inf_cols:],
+                              aspect='equal', **matshow_kwargs)
         else:
             img = ax3.matshow(paths, aspect='equal', **matshow_kwargs)
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
@@ -311,9 +332,10 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
     ax1.set_ylim([min_y, max_y])
     ax1.set_axis_off()
     ax1.xaxis.tick_top()
-    # ax1.set_aspect(0.454)
-
-    ax1.plot(range(len(s2)), s2, ".-", color = '#ff7f0e')
+    if 'color' in plot_kwargs:
+        ax1.plot(range(len(s2)), s2, **plot_kwargs)
+    else:
+        ax1.plot(range(len(s2)), s2, color='#ff7f0e', **plot_kwargs)
     ax1.set_xlim([-0.5, len(s2) - 0.5])
     ax1.xaxis.set_major_locator(plt.NullLocator())
     ax1.yaxis.set_major_locator(plt.NullLocator())
@@ -322,13 +344,15 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
     ax2 = fig.add_subplot(gs[1, 0])
     ax2.set_xlim([-max_y, -min_y])
     ax2.set_axis_off()
-    # ax2.set_aspect(0.8)
     # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
     # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
     ax2.xaxis.set_major_locator(plt.NullLocator())
     ax2.yaxis.set_major_locator(plt.NullLocator())
-    ax2.plot(-s1, range(0, max_s1_y + 1), ".-", color = '#1f77b4')
-    ax2.set_ylim([-0.5, max_s1_y + 0.5])
+    if 'color' in plot_kwargs:
+        ax2.plot(-s1, range(len(s1)), **plot_kwargs)
+    else:
+        ax2.plot(-s1, range(len(s1)), color='#1f77b4', **plot_kwargs)
+    ax2.set_ylim([-0.5, len(s1) - 0.5])
     ax2.invert_yaxis()
 
     # for ax in [ax0, ax1, ax2, ax3]:
@@ -362,13 +386,13 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
         bottom = ax3pos[1]
         width = ax3pos[2]
         height = ax3pos[3]
+        tsheight = min(ax1pos[3], ax2pos[2], height / 6)
         dist_between_y = ax1pos[1] - (ax2pos[1] + ax2pos[3])
-        dist_between_x = ax2pos[0] - (ax1pos[0])
+        dist_between_x = ax1pos[0] - ax2pos[0]  # Tts.left - Lts.left
         # set_position([left, bottom, width, height])
-        ax0.set_position((left + dist_between_x, bottom+height+dist_between_y, ax2pos[2], ax1pos[3]))
-        ax1.set_position((left, bottom+height+dist_between_y, width, ax1pos[3]))
-        ax2.set_position((left + dist_between_x, bottom, ax2pos[2], height))
-
+        ax0.set_position((left - 1.1 * tsheight, bottom+height+dist_between_y, tsheight, tsheight))
+        ax1.set_position((left, bottom+height+dist_between_y, width, tsheight))
+        ax2.set_position((left - 1.1 * tsheight, bottom, tsheight, height))
 
     ax = fig.axes
     if tick_kwargs is not None:
@@ -389,7 +413,7 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
 
 def plot_warpingpaths_addpath(ax, path):
     py, px = zip(*path)
-    ax3 = ax[3]
+    ax3 = ax[0]
     ax3.plot(px, py, ".-", color="red", markersize=2)
 
 

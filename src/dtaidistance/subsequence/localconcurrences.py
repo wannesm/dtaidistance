@@ -14,12 +14,13 @@ DTW-based subsequence matching.
 """
 import logging
 import math
-from functools import partial
+import time
 
-from .. import dtw  # import warping_paths, warping_paths_fast, best_path, warping_paths_affinity, distance
-from .. import dtw_ndim
+from .. import dtw
 from .. import util_numpy
 from .. import util
+from ..innerdistance import StepsType
+from ..exceptions import NumpyException
 
 
 try:
@@ -31,6 +32,7 @@ try:
     argmax = np.argmax
     array_min = np.min
     array_max = np.max
+    DTYPE = util_numpy.seq_t_dtype
 except ImportError:
     np = None
     ma = None
@@ -38,20 +40,29 @@ except ImportError:
     argmax = util.argmax
     array_min = min
     array_max = max
+    DTYPE = None
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
+inf = float("inf")
+steps_type_default = "TypeIII"
 
 
 dtw_cc = None
 try:
-    from . import dtw_cc
+    from .. import dtw_cc
 except ImportError:
     dtw_cc = None
 
+loco_cc = None
+try:
+    from .. import loco_cc
+except ImportError:
+    loco_cc = None
+
 
 def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, estimate_settings=None,
-                       only_triu=None, penalty=None, window=None, use_c=False, compact=None):
+                       only_triu=None, penalty=None, window=None, use_c=False, steps_type=None):
     """Local concurrences, see LocalConcurrences.
 
     :param series1:
@@ -69,11 +80,11 @@ def local_concurrences(series1, series2=None, gamma=1, tau=0, delta=0, delta_fac
         when series1 is equal to series2 (or equivalently if series2 is None).
     :param penalty: Penalty that is added when dynamic programming is using moving vertically or horizontally
         through the matrix instead of diagonally. Used to prefer diagonal paths.
-    :param compact: Use the compact representation for the warping paths matrix (only when use_c is true).
     :return:
     """
     lc = LocalConcurrences(series1, series2, gamma, tau, delta, delta_factor,
-                           only_triu=only_triu, penalty=penalty, window=window, use_c=use_c, compact=compact)
+                           only_triu=only_triu, penalty=penalty, window=window, use_c=use_c,
+                           steps_type=steps_type)
     if estimate_settings is not None:
         lc.estimate_settings_from_std(series1, series2, tau_std=estimate_settings)
     lc.align()
@@ -116,13 +127,16 @@ class LCMatch:
 
 class LCMatches:
     def __init__(self, lc,  matches=None):
-        self._lc = lc
-        self._matches = []
+        self._lc = lc  # type: LocalConcurrences
+        self._matches = []  # type: list[LCMatch]
         if matches is not None:
             self._matches.update(matches)
 
     def __iter__(self):
         return self._matches.__iter__()
+
+    def __len__(self):
+        return self._matches.__len__()
 
     def append(self, match):
         self._matches.append(match)
@@ -221,31 +235,49 @@ class LCMatches:
         d = math.sqrt(d)
         return d
 
-    def plot(self, begin=None, end=None, showlegend=False, showpaths=True, showboundaries=True):
+    def plot(self, begin=None, end=None, showlegend=False, showpaths=True, showboundaries=True,
+             makepositive=True, showpathidx=False, figure=None, **kwargs):
+        """
+
+        :param begin: Slice with this start index of time series
+        :param end: Slice with this end index of time series
+        :param showlegend:
+        :param showpaths:
+        :param showboundaries:
+        :param makepositive:
+        :param showpathidx:
+        :param figure:
+        :param kwargs:
+        :return:
+        """
         from .. import dtw_visualisation as dtwvis
         if begin is None and end is None:
             series1 = self._lc.series1
             series2 = self._lc.series2
-            wp = self._lc.wp_slice()
+            wp = self._lc.wp_slice_ts()
             begin = 0
         elif begin is None:
             series1 = self._lc.series1[:end]
             series2 = self._lc.series2[:end]
-            wp = self._lc.wp_slice(re=end, ce=end)
+            wp = self._lc.wp_slice_ts(re=end, ce=end)
             begin = 0
         elif end is None:
             series1 = self._lc.series1[begin:]
             series2 = self._lc.series2[begin:]
-            wp = self._lc.wp_slice(rb=begin, cb=begin)
+            wp = self._lc.wp_slice_ts(rb=begin, cb=begin)
         else:
             series1 = self._lc.series1[begin:end]
             series2 = self._lc.series2[begin:end]
-            wp = self._lc.wp_slice(rb=begin, re=end, cb=begin, ce=end)
-        if begin is not None and begin > 0:
-            includes_zero = False
-        else:
-            includes_zero = True
-        fig, ax = dtwvis.plot_warpingpaths(series1, series2, wp, path=-1, showlegend=showlegend, includes_zero=includes_zero)
+            wp = self._lc.wp_slice_ts(rb=begin, re=end, cb=begin, ce=end)
+        if makepositive:
+            wp = wp.copy()
+            wp_neg = wp < 0
+            wp[wp_neg] = -wp[wp_neg]
+        fig, ax = dtwvis.plot_warpingpaths(series1, series2, wp, path=-1,
+                                           showlegend=showlegend,
+                                           includes_zero=False,
+                                           figure=figure, **kwargs)
+        ax_wps = ax[0]
         if showpaths:
             nb_plotted = 0
             for i, match in enumerate(self._matches):
@@ -259,25 +291,31 @@ class LCMatches:
                 if len(path2) > 0:
                     nb_plotted += 1
                     dtwvis.plot_warpingpaths_addpath(ax, path2)
+                    if showpathidx:
+                        ax_wps.text(path2[0][1], path2[0][0], str(i), color='red',
+                                    horizontalalignment='right', verticalalignment='top')
             print(f"Paths plotted: {nb_plotted}")
         if showboundaries:
-            # s1, s2 = self.covered()
-            ss1, ss2 = self.segments()
-            sbs, ses = zip(*ss1)
-            sbs1 = [v - begin for v in sbs if (begin is None or v >= begin) and (end is None or v <= end)]
-            ses1 = [v - begin for v in ses if (begin is None or v >= begin) and (end is None or v <= end)]
-            ax[3].hlines(sbs1, 0, len(series2) - 1, color='black', alpha=0.5)
-            ax[3].hlines(ses1, 0, len(series2) - 1, color='black', alpha=0.5)
-            sbs, ses = zip(*ss2)
-            sbs2 = [v - begin for v in sbs if (begin is None or v >= begin) and (end is None or v <= end)]
-            ses2 = [v - begin for v in ses if (begin is None or v >= begin) and (end is None or v <= end)]
-            ax[3].vlines(sbs2, 0, len(series1) - 1, color='black', alpha=0.5)
-            ax[3].vlines(ses2, 0, len(series1) - 1, color='black', alpha=0.5)
             ymin = min(np.min(series1), np.min(series2))
-            for idx, (sb, se) in enumerate(zip(sbs1, ses1)):
-                ax[2].plot([-ymin, -ymin], [len(series1)-sb, len(series1)-se], color='blue', linewidth=2, alpha=0.5)
-            for idx, (sb, se) in enumerate(zip(sbs2, ses2)):
-                ax[1].plot([sb, se], [ymin, ymin], color='blue', linewidth=2, alpha=0.5)
+            ss1, ss2 = self.segments()
+            if len(ss1) > 0:
+                # Left time series
+                sbs, ses = zip(*ss1)
+                sbs1 = [v - begin for v in sbs if (begin is None or v >= begin) and (end is None or v <= end)]
+                ses1 = [v - begin for v in ses if (begin is None or v >= begin) and (end is None or v <= end)]
+                ax_wps.hlines(sbs1, 0, len(series2) - 1, color='black', alpha=0.25)
+                ax_wps.hlines(ses1, 0, len(series2) - 1, color='black', alpha=0.25)
+                for idx, (sb, se) in enumerate(zip(sbs1, ses1)):
+                    ax[2].plot([-ymin, -ymin], [len(series1) - sb - 1, len(series1) - se - 1], color='blue', linewidth=2, alpha=0.5)
+            if len(ss2) > 0:
+                # Top time series
+                sbs, ses = zip(*ss2)
+                sbs2 = [v - begin for v in sbs if (begin is None or v >= begin) and (end is None or v <= end)]
+                ses2 = [v - begin for v in ses if (begin is None or v >= begin) and (end is None or v <= end)]
+                ax_wps.vlines(sbs2, 0, len(series1) - 1, color='black', alpha=0.25)
+                ax_wps.vlines(ses2, 0, len(series1) - 1, color='black', alpha=0.25)
+                for idx, (sb, se) in enumerate(zip(sbs2, ses2)):
+                    ax[1].plot([sb, se], [ymin, ymin], color='blue', linewidth=2, alpha=0.5)
         return fig, ax
 
     def str(self, maxlength=10):
@@ -289,7 +327,7 @@ class LCMatches:
 
 class LocalConcurrences:
     def __init__(self, series1, series2=None, gamma=1, tau=0, delta=0, delta_factor=1, only_triu=False,
-                 penalty=None, window=None, use_c=False, compact=None):
+                 penalty=0, window=None, use_c=False, steps_type=None):
         """Version identification based on local concurrences.
 
         Find recurring patterns across two time series. Used to identify whether one time series is
@@ -323,7 +361,6 @@ class LocalConcurrences:
         :param delta: penalty parameter, should be <= 0
         :param delta_factor: penalty factor parameter, should be <= 1
         :param only_triu: Only consider upper triangular matrix in warping paths.
-        :param compact: Use the compact representation for the warping paths matrix (only when use_c is true).
         """
         self.series1 = series1
         if series2 is None:
@@ -340,20 +377,18 @@ class LocalConcurrences:
         self.penalty = penalty
         self.window = window
         self.use_c = use_c
-        if compact is None:
-            self.compact = self.use_c
-        else:
-            self.compact = compact
+        self.steps_type = StepsType.wrap(steps_type, steps_type_default)
+        self.steps_tuples = self.steps_type.steps()
+        self.inf_rows, self.inf_cols = self.steps_type.inf_rows_cols()
         self._wp = None  # warping paths
         if self.use_c:
-            self._c_settings = dtw_cc.DTWSettings(window=self.window, penalty=self.penalty)
-            self._c_parts = dtw_cc.DTWWps(len(self.series1), len(self.series2), self._c_settings)
+            self._c_locosettings = loco_cc.LoCoSettings(penalty=self.penalty)
 
     @staticmethod
     def from_other(lc, series1, series2=None):
         lcn = LocalConcurrences(series1, series2, gamma=lc.gamma, tau=lc.tau, delta=lc.delta,
                                 delta_factor=lc.delta_factor, only_triu=lc.only_triu,
-                                penalty=lc.penalty, window=lc.window, use_c=lc.use_c, compact=lc.compact)
+                                penalty=lc.penalty, window=lc.window, use_c=lc.use_c)
         return lcn
 
     def reset(self):
@@ -381,26 +416,19 @@ class LocalConcurrences:
         if tau_type != 'abs':
             if series is None:
                 diffm = 1
-            elif series2 is None:
-                if tau_type == 'std':
-                    diffm = np.std(series)
-                elif tau_type == 'mean':
-                    diffm = np.mean(series)
-                else:
-                    diffm = 1
+            elif tau_type == 'std':
+                diffm = np.std(series)
+            elif tau_type == 'mean':
+                diffm = np.mean(series)
             else:
-                if tau_type == 'std':
-                    diffm = np.std(np.abs(series - series2))
-                elif tau_type == 'mean':
-                    diffm = np.mean(np.abs(series - series2))
-                else:
-                    diffm = 1
+                diffm = 1
 
             if gamma is None:
                 # Intuition for gamma:
                 # Create an affinity matrix where
                 # differences up to the mean/std are in [e^-1, 1],
                 # larger differences are i [0, e^-1]
+                assert(diffm != 0)
                 self.gamma = 1 / diffm**2
             else:
                 self.gamma = gamma
@@ -417,24 +445,58 @@ class LocalConcurrences:
         self.delta_factor = 0.90
         self.penalty = self.tau / 10
 
-    def align(self):
+    def estimate_settings_from_ssm(self, rho, set_penalty=False,
+                                   set_gamma=False, verbose=False):
+        """Estimate tau from the self similarity matrix.
+        Call before calling the align method.
+        Based on Fundamentals of Music Processing.
         """
+        if np is None:
+            raise AssertionError("The estimate_tau method requires Numpy")
+        # TODO: Sampling could be faster than computing the entire matrix
+        sdm = np.subtract.outer(self.series1, self.series2)
+        if set_gamma:
+            # estimate gamma such that in the ssm differences smaller than
+            # the mean are in [e^-1, 1], larger differences are in [0, e^-1]
+            sdm_mean = np.mean(np.abs(sdm))
+            if sdm_mean == 0:
+                self.gamma = 1
+            else:
+                self.gamma = 1 / sdm_mean ** 2
+        ssm = np.exp(-self.gamma * np.power(sdm, 2))
+        if self.only_triu:
+            self.tau = np.quantile(ssm[np.triu_indices(len(ssm))], rho, axis=None)
+        else:
+            self.tau = np.quantile(ssm, rho, axis=None)
+        self.delta = -2 * self.tau
+        self.delta_factor = 0.5
+        if set_penalty:
+            self.penalty = self.tau
+        if verbose:
+            if self.tau < 1e-5:
+                print(f'WARNING: the value of tau ({self.tau}) is very low. '
+                      f'Check if the value of gamma ({self.gamma}) is good.')
 
-        :return:
+    def set_penalty_in_ts_domain(self, penalty):
+        """Set penalty based on the domain of the time series."""
+        self.penalty = 1.0 - np.exp(-self.gamma * penalty ** 2)
+
+    def get_penalty_in_ts_domain(self):
+        return np.sqrt(np.log(1.0 + self.penalty)/-self.gamma)
+
+    def align(self):
+        """Perform alignment.
+
+        :return: None
         """
         if self._wp is not None:
             return
-        if self.use_c:
-            fn = partial(dtw.warping_paths_affinity_fast, compact=self.compact)
-        else:
-            fn = dtw.warping_paths_affinity
-        _, wp = fn(self.series1, self.series2,
-                   gamma=self.gamma, tau=self.tau, delta=self.delta, delta_factor=self.delta_factor,
-                   only_triu=self.only_triu, penalty=self.penalty, window=self.window)
-        if self.compact:
-            self._wp = wp
-        else:
-            self._wp = ma.masked_array(wp)
+        _, wp = loco_warping_paths(self.series1, self.series2,
+                                   gamma=self.gamma, tau=self.tau, delta=self.delta, delta_factor=self.delta_factor,
+                                   only_triu=self.only_triu, penalty=self.penalty,
+                                   window=self.window, step_type=self.steps_type,
+                                   use_c=self.use_c)
+        self._wp = wp
         self._reset_wp_mask()
         # if self.only_triu:
         #     il = np.tril_indices(self._wp.shape[0])
@@ -448,43 +510,46 @@ class LocalConcurrences:
         return result
 
     def _reset_wp_mask(self):
-        if self.compact:
-            dtw_cc.wps_positivize(self._c_parts, self._wp,
-                                  len(self.series1), len(self.series2),
-                                  0, len(self.series1) + 1,
-                                  0, len(self.series2) + 1)
+        # if self.use_c:
+        #     dtw_cc.wps_positivize(self._c_parts, self._wp,
+        #                           len(self.series1), len(self.series2),
+        #                           0, len(self.series1) + 1,
+        #                           0, len(self.series2) + 1,
+        #                           False)
+        wp = self._wp
+        if self.window is None:
+            np.abs(wp, out=wp)
+            wp[np.isinf(wp)] = -np.inf
         else:
-            wp = self._wp
-            if self.window is None:
-                wp.mask = False
-            else:
-                windowdiff1 = max(0, wp.shape[1] - wp.shape[0])
-                windowdiff2 = max(0, wp.shape[0] - wp.shape[1])
-                il = np.tril_indices(n=wp.shape[0], k=-1 - self.window - windowdiff2, m=wp.shape[1])
-                wp[il] = ma.masked
-                il = np.triu_indices(n=wp.shape[0], k=-self.window - windowdiff2, m=wp.shape[1])
-                wp.mask[il] = False
-                il = np.triu_indices(n=wp.shape[0], k=1 + self.window + windowdiff1, m=wp.shape[1])
-                wp[il] = ma.masked
-            if self.only_triu:
-                il = np.tril_indices(self._wp.shape[0], k=-1)
-                wp[il] = -np.inf
-                wp[il] = ma.masked
+            windowdiff1 = max(0, wp.shape[1] - wp.shape[0])
+            windowdiff2 = max(0, wp.shape[0] - wp.shape[1])
+            il = np.tril_indices(n=wp.shape[0], k=-1 - self.window - windowdiff2, m=wp.shape[1])
+            wp[il] = -np.abs(wp[il])
+            il = np.triu_indices(n=wp.shape[0], k=-self.window - windowdiff2, m=wp.shape[1])
+            wp[il] = np.abs(wp[il])
+            il = np.triu_indices(n=wp.shape[0], k=1 + self.window + windowdiff1, m=wp.shape[1])
+            wp[il] = -np.abs(wp[il])
+            wp[np.isinf(wp)] = -np.inf
+        if self.only_triu:
+            il = np.tril_indices(self._wp.shape[0], k=-1)
+            wp[il] = -np.inf
 
     def similarity_matrix(self):
-        sm = ma.masked_array(np.empty((len(self.series1), len(self.series2))))
+        sm = np.full((len(self.series1) + self.inf_rows,
+                      len(self.series2) + self.inf_cols), -inf)
+        sm[0:self.inf_rows, 0:self.inf_cols] = 0
         for r in range(len(self.series1)):
             if self.window is None:
                 minc, maxc = 0, len(self.series2)
             else:
                 minc, maxc = max(0, r - self.window), min(len(self.series2), r + self.window)
-            for c in range(minc):
-                sm[r, c] = ma.masked
+            # for c in range(minc):
+            #     sm[r + self.inf_rows, c + self.inf_cols] = ma.masked
             for c in range(minc, maxc):
                 d = np.exp(-self.gamma * (self.series1[r] - self.series2[c]) ** 2)
-                sm[r, c] = self.delta if d < self.tau else d
-            for c in range(maxc, len(self.series2)):
-                sm[r, c] = ma.masked
+                sm[r + self.inf_rows, c + self.inf_cols] = self.delta if d < self.tau else d
+            # for c in range(maxc, len(self.series2)):
+            #     sm[r + self.inf_rows, c + self.inf_cols] = ma.masked
         return sm
 
     def similarity_matrix_matshow_kwargs(self, sm):
@@ -516,13 +581,22 @@ class LocalConcurrences:
         return {'cmap': cmap, 'norm': norm}
 
     @property
-    def wp(self):
-        if self.compact:
-            raise NotImplementedError("The full warping paths matrix is not available when using compact=True.\n"
-                                      "Use wp_slice to construct part of the matrix from the compact data structure.")
+    def wp_data(self):
         return self._wp.data
 
-    def wp_slice(self, rb=None, re=None, cb=None, ce=None, positivize=False):
+    def wp_slice_ts(self, rb=None, re=None, cb=None, ce=None,
+                    positivize=False, steps_type=None):
+        """Slice of the warping paths (based on time series, excluding inf rows/cols).
+
+        :param rb: Begin index in first time series (row index)
+        :param re: End index in first time series (row index)
+        :param cb: Begin index in second time series (column index)
+        :param ce: End index in second time series (column index)
+        :param positivize: Make all numbers positive
+        :param steps_type: StepsType value
+        """
+        steps_type = StepsType.wrap(steps_type, steps_type_default)
+        inf_cols, inf_rows = steps_type.inf_rows_cols()
         if rb is None:
             rb = 0
         if re is None:
@@ -537,16 +611,16 @@ class LocalConcurrences:
                 0 <= ce <= len(self.series2) + 1):
             raise ValueError('Slice needs to be in 0<=r<={} and 0<=c<={}'.format(len(self.series1) + 1,
                                                                                  len(self.series2) + 1))
-        if self.compact:
-            slice = np.empty((re-rb, ce-cb), dtype=np.double)
-            dtw_cc.wps_expand_slice(self._wp, slice, len(self.series1), len(self.series2),
-                                    rb, re, cb, ce, self._c_settings)
-        else:
-            slice = self._wp[rb:re, cb:ce]
+        # if self.compact:
+        #     slice = np.empty((re-rb, ce-cb), dtype=DTYPE)
+        #     dtw_cc.wps_expand_slice(self._wp, slice, len(self.series1), len(self.series2),
+        #                             rb, re, cb, ce, self._c_dtwsettings)
+        cur_slice = self._wp[rb+inf_rows:re+inf_rows,
+                             cb+inf_cols:ce+inf_cols]
         if positivize:
-            neg_idx = slice < 0
-            slice[neg_idx] = -slice[neg_idx]
-        return slice
+            neg_idx = cur_slice < 0
+            cur_slice[neg_idx] = -cur_slice[neg_idx]
+        return cur_slice
 
     def best_match(self):
         idx = np.unravel_index(np.argmax(self._wp, axis=None), self._wp.shape)
@@ -558,31 +632,63 @@ class LocalConcurrences:
         return lcm
 
     def kbest_matches_store(self, k=1, minlen=2, buffer=0, restart=True, keep=False, matches=None, tqdm=None):
+        return self.best_matches_store(k=k, minlen=minlen, buffer=buffer, restart=restart, detectknee=None,
+                                       keep=keep, matches=matches, tqdm=tqdm)
+
+    def best_matches_store(self, k=1, minlen=2, buffer=0, restart=True, detectknee=None, keep=False,
+                                matches=None, tqdm=None, bufferedargmax=None) -> LCMatches:
+        """Get the best matches and store in an LCMatches object.
+
+        :param k:
+        :param minlen:
+        :param buffer:
+        :param restart:
+        :param detectknee:
+        :param keep: Keep mask to search incrementally for multiple calls of kbest_matches
+        :param matches:
+        :param tqdm:
+        :return:
+        """
         import time
         if matches is None:
             matches = LCMatches(self)
-        it = self.kbest_matches(k=k, minlen=minlen, buffer=buffer, restart=restart)
+        start = time.process_time()
+        self.align()
+        stop = time.process_time()
+        print(f"Computed cumulative cost matrix in {stop - start} seconds")
+        it = self.best_matches(k=k, minlen=minlen, buffer=buffer, restart=restart,
+                               detectknee=detectknee, bufferedargmax=bufferedargmax)
         if tqdm is not None:
             it = tqdm(it, total=k)
-        tp = time.perf_counter()
+        # tp = time.perf_counter()
         for ki, match in enumerate(it):
             matches.append(match)
-            tn = time.perf_counter()
-            #print(f'time: {tn-tp}')
-            tp = tn
+        #     tn = time.perf_counter()
+        #     #print(f'time: {tn-tp}')
+        #     tp = tn
         if not keep:
             self._reset_wp_mask()
         return matches
 
-    def kbest_matches(self, k=1, minlen=2, buffer=0, restart=True):
+    def best_matches_knee(self, alpha=0.3, thr_value=0, **kwargs):
+        return self.best_matches(k=None,
+                                 detectknee={'alpha': alpha, 'thr_value': thr_value},
+                                 **kwargs)
+
+    def kbest_matches(self, k=1, **kwargs):
+        return self.best_matches(k=k, detectknee=None, **kwargs)
+
+    def best_matches(self, k=1, minlen=2, buffer=0, restart=True,
+                     detectknee=None, bufferedargmax=None):
         """Yields the next best LocalConcurrent match.
-        Stops at k matches (use None for all matches).
+        Stops at k matches (use None for all matches) or when a knee is detected.
 
         :param k: Number of matches to yield, None is all matches
         :param minlen: Consider only matches of length longer than minlen
         :param buffer: Matches cannot be closer than buffer to each other
         :param restart: Start searching from start, ignore previous calls to kbest_matches
-        :param keep: Keep mask to search incrementally for multiple calls of kbest_matches
+        :param detectknee: Arguments for `util.DetectKnee`
+        :param bufferedargmax: Arguments for `util.BufferedArgMax`
         :return: Yield an LCMatch object
         """
         if self._wp is None:
@@ -590,119 +696,197 @@ class LocalConcurrences:
         wp = self._wp
         if restart:
             self._reset_wp_mask()
+        if detectknee is not None:
+            alpha = detectknee.get('alpha', 0.3)
+            alpha_onlyvar = detectknee.get('alpha_onlyvar', alpha/100)
+            thr_value = detectknee.get('thr_value', 0)
+            dk = util.DetectKnee(alpha=alpha, alpha_onlyvar=alpha_onlyvar,
+                                 invert=True, thr_value=thr_value)
+            dk.verbose = detectknee.get('verbose', False)
+        else:
+            dk = None
+        if bufferedargmax is None:
+            bufferedargmax = {}
+        bam = BufferedArgMax(wp, bufferedargmax.get('n', 100))
         l1 = len(self.series1)
         l2 = len(self.series2)
-        lperc = max(100, int(l1/10))
+        lperc = max(200, int(l1/10))
         ki = 0
-        while k is None or ki < k:
+        knee_detected = False
+        while (k is None or ki < k) and not knee_detected:
             idx = None
             lcm = None
+            wp_value = None
             cnt = 0
-            while idx is None:
+            while idx is None and not knee_detected:
                 cnt += 1
                 if cnt % lperc == 0:
-                    print(f'Searching for matches is taking a long time (k={ki+1}/{k}: {cnt} tries)')
-                if self.compact:
-                    idx = dtw_cc.wps_max(self._c_parts, wp, l1, l2)
-                else:
-                    idx = np.unravel_index(np.argmax(wp, axis=None), wp.shape)
+                    print(f'Searching for matches is taking some time (k={ki+1}/{k}: {cnt} tries)')
+                # if self.compact:
+                #     idx = dtw_cc.wps_max(self._c_parts, wp, l1, l2)
+                # idx = np.unravel_index(np.argmax(wp, axis=None), wp.shape)
+                bg = bam.get()
+                if bg is None:
+                    return
+                idx = np.unravel_index(bg, wp.shape)
                 if idx[0] == 0 or idx[1] == 0:
                     # If all are masked, idx=0 is returned
-                    return None
+                    return
                 r, c = idx
                 # print(f'Best value: wp[{r},{c}] = {wp[r,c]}')
+                wp_value = wp[r, c]
+                if wp_value < 0:
+                    continue
                 lcm = LCMatch(self, r, c)
+                if detectknee is not None:
+                    if dk.dostop(wp_value, only_var=True):
+                        knee_detected = True
                 path = lcm.path
                 for (x, y) in path:
-                    x += 1
-                    y += 1
-                    if not self.compact:
-                        if len(wp.mask.shape) > 0 and wp.mask[x, y] is True:  # True means invalid
-                            # print('found path contains masked, restart')
-                            lcm = None
-                            idx = None
-                            break
-                        else:
-                            wp[x, y] = -wp[x, y]  # ma.masked
+                    x += self.inf_rows
+                    y += self.inf_cols
+                    # if self.compact:
+                    #     changed = dtw_cc.wps_negativize_value(self._c_parts, wp, l1, l2, x, y)
+                    #     if not changed:
+                    #         # found path contained masked entry, restart
+                    #         lcm, idx = None, None
+                    #         break
+                    if wp[x, y] < 0:
+                        # print('found path contains masked, restart')
+                        lcm, idx = None, None
+                        break
                     else:
-                        dtw_cc.wps_negativize_value(self._c_parts, wp, l1, l2, x, y)
+                        wp[x, y] = -abs(wp[x, y])
+
                 if len(path) < minlen:
                     # print('found path too short, restart')
-                    lcm = None
-                    idx = None
+                    lcm, idx = None, None
             if buffer < 0 and lcm is not None:
-                if self.compact:
-                    dtw_cc.wps_negativize(self._c_parts, wp,
-                                          len(self.series1), len(self.series2),
-                                          path[0][0]+1, path[-1][0]+2,
-                                          path[0][1]+1, path[-1][1]+2,
-                                          True)  # intersection
-                else:
-                    miny, maxy = 0, wp.shape[1]
-                    minx, maxx = 0, wp.shape[0]
-                    wp[path[0][0]+1:path[-1][0]+2, miny:maxy] = -wp[path[0][0]+1:path[-1][0]+2, miny:maxy]  # ma.masked
-                    wp[minx:maxx, path[0][1]+1:path[-1][1]+2] = -wp[minx:maxx, path[0][1]+1:path[-1][1]+2]  # ma.masked
+                # Mask the containing rectangle for the path
+                # if self.compact:
+                #     dtw_cc.wps_negativize(self._c_parts, wp,
+                #                           len(self.series1), len(self.series2),
+                #                           path[0][0]+self.inf_rows, path[-1][0]+self.inf_rows+1,
+                #                           path[0][1]+self.inf_cols, path[-1][1]+self.inf_cols+1,
+                #                           True)  # intersection
+                miny, maxy = 0, wp.shape[1]
+                minx, maxx = 0, wp.shape[0]
+                wp[path[0][0]+self.inf_rows:path[-1][0]+self.inf_rows+1, miny:maxy] = -np.abs(wp[path[0][0]+self.inf_rows:path[-1][0]+self.inf_rows+1, miny:maxy])
+                wp[minx:maxx, path[0][1]+self.inf_cols:path[-1][1]+self.inf_cols+1] = -np.abs(wp[minx:maxx, path[0][1]+self.inf_cols:path[-1][1]+self.inf_cols+1])
             elif buffer > 0 and lcm is not None:
-                miny, maxy = 0, wp.shape[1] - 1
-                minx, maxx = 0, wp.shape[0] - 1
-                if self.compact:
-                    raise Exception("A positive buffer is not yet supported for compact WP data structure")
-                else:
-                    for (x, y) in path:
-                        xx = x + 1
-                        for yy in range(max(miny, y + 1 - buffer), min(maxy, y + 1 + buffer)):
-                            wp[xx, yy] = -wp[xx, yy]  # ma.masked
-                        yy = y + 1
-                        for xx in range(max(minx, x + 1 - buffer), min(maxx, x + 1 + buffer)):
-                            wp[xx, yy] = -wp[xx, yy]  # ma.masked
+                # Mask a square around each position in the path
+                # if self.compact:
+                #     for p_idx, (x, y) in enumerate(path):
+                #         # include first row and column with infinities
+                #         x += self.inf_rows
+                #         y += self.inf_cols
+                #         if p_idx < buffer:
+                #             cbuffer = p_idx + 1
+                #         elif p_idx > len(path) - buffer:
+                #             cbuffer = len(path) - p_idx
+                #         else:
+                #             cbuffer = buffer
+                #         dtw_cc.wps_negativize(self._c_parts, wp,
+                #                               len(self.series1), len(self.series2),
+                #                               max(0, x - cbuffer), min(x + cbuffer + 1, maxx + 1),
+                #                               max(0, y - cbuffer), min(y + cbuffer + 1, maxy + 1),
+                #                               True)  # intersection
+                for p_idx, (x, y) in enumerate(path):
+                    # include first row and column with infinities
+                    x += self.inf_rows
+                    y += self.inf_cols
+                    # Reduce buffer towards the extreme points
+                    if p_idx < buffer:
+                        cbuffer = p_idx + 1
+                    elif p_idx > len(path) - buffer:
+                        cbuffer = len(path) - p_idx
+                    else:
+                        cbuffer = buffer
+                    # half = int(len(path) / 2)
+                    # if p_idx < half:
+                    #     cbuffer = math.ceil(buffer * (p_idx + 1) / half)
+                    # elif p_idx > len(path) - half:
+                    #     cbuffer = math.ceil(buffer * (len(path) - p_idx) / half)
+                    # else:
+                    #     cbuffer = buffer
+                    x_l = max(self.inf_rows, x - cbuffer)
+                    x_r = min(x + cbuffer + 1, wp.shape[0])
+                    y_l = max(self.inf_cols, y - cbuffer)
+                    y_r = min(y + cbuffer + 1, wp.shape[1])
+                    wp[x_l:x_r, y_l:y_r] = -np.abs(wp[x_l:x_r, y_l:y_r])
             if lcm is not None:
                 ki += 1
+                if detectknee is not None:
+                    if dk.dostop(wp_value):
+                        knee_detected = True
                 yield lcm
 
     def best_path(self, row, col, wp=None):
+        """Find the best path starting from the given row and column.
+
+        :param row: Row index in datastructure
+        :param col: Column index in datastructure
+        :param wp: Warping paths, default is None and taken from the object.
+        :return: List of tuples (index in series1, index in series2)
+        """
         if self._wp is None:
             return None
         if wp is None:
             wp = self._wp
         l1 = len(self.series1)
         l2 = len(self.series2)
-        if self.compact:
-            p = dtw_cc.best_path_compact_affinity(wp, l1, l2, row, col, window=self.window)
+        if self.use_c:
+            # print(f'use_c -- {row=}, {col=}, {self.penalty=}')
+            p = loco_cc.loco_best_path(wp, l1, l2, row, col, int(l1 / 10),
+                                       penalty=self.penalty, step_type=self.steps_type)
             return p
-        argm = argmax
+            # pc = p
+        # if self.compact:
+        #     p = dtw_cc.best_path_compact_affinity(wp, l1, l2, row, col, window=self.window)
+        #     return p
+        penalties = [self.penalty if sr != sc else 0 for sr, sc in self.steps_tuples]
         i = row
         j = col
-        p = [(i - 1, j - 1)]
-        # prev = self._wp[i, j]
+        p = []
         while i > 0 and j > 0:
-            values = [wp[i - 1, j - 1], wp[i - 1, j], wp[i, j - 1]]
-            # print(f'{i=}, {j=}, {argm(values)=}, {ma.argmax(values)=}, {values=}')
-            values = [-1 if v is ma.masked else v for v in values]
+            p.append((i - self.inf_rows, j - self.inf_cols))
+            # values = [wp[i - si, j - sj] + penalty for (si, sj), penalty in zip(self.steps_tuples, penalties)]
+            # values = [wp[i - 1, j - 1], wp[i, j - 1], wp[i - 1, j]]
+            # values = [-1 if v is ma.masked else v for v in values]
+            values = []
+            for (si, sj), penalty in zip(self.steps_tuples, penalties):
+                if wp[i - si, j - sj] >= 0:
+                    values.append(wp[i - si, j - sj] + penalty)
+                else:
+                    values.append(-1)
             c = argmax(values)  # triggers "Warning: converting a masked element to nan"
-            # if values[c] is ma.masked:
-            #     break
-            if values[c] <= 0:  # values[c] > prev:
+            if values[c] <= 0:
                 break
-            # prev = values[c]
-            if c == 0:
-                if wp[i - 1, j - 1] is ma.masked or wp[i - 1, j - 1] < 0:
-                    assert False
-                    break
-                i, j = i - 1, j - 1
-            elif c == 1:
-                if wp[i - 1, j] is ma.masked or wp[i - 1, j] < 0:
-                    assert False
-                    break
-                i = i - 1
-            elif c == 2:
-                if wp[i, j - 1] is ma.masked or wp[i, j - 1] < 0:
-                    assert False
-                    break
-                j = j - 1
-            p.append((i - 1, j - 1))
+            best_wp = wp[i - self.steps_tuples[c][0], j - self.steps_tuples[c][1]]
+            # if best_wp is ma.masked or best_wp < 0:
+            if best_wp < 0:
+                assert False
+            i -= self.steps_tuples[c][0]
+            j -= self.steps_tuples[c][1]
         if p[-1][0] < 0 or p[-1][1] < 0:
-            p.pop()
+            assert False
         p.reverse()
+        # print(f"{len(p)=}, {len(pc)=}")
+        # print(f"p={p[len(p)-1][0]},{p[len(p)-1][1]} / pc={pc[len(pc)-1, 0]},{pc[len(pc)-1, 1]}")
+        # print(f"p={p[0][0]},{p[0][1]} / pc={pc[0, 0]},{pc[0, 1]}")
+        # if len(p) != len(pc):
+        #     print(f"{wp.shape=}")
+        #     loco_cc.save_wp(wp, "/Users/wannes/Desktop/debug/wps.binarray")
+        #     print("===p===")
+        #     for curr, curc in p:
+        #         print(f"[{curr},{curc}]")
+        #     print("===pc===")
+        #     for curr, curc in pc:
+        #         print(f"[{curr},{curc}]")
+        #     print(f"Different lengths for {row=} {col=}")
+        # for i in range(len(p)):
+        #     assert p[i][0] == pc[i, 0]
+        #     assert p[i][1] == pc[i, 1]
         return p
 
     def settings_from(self, lc):
@@ -726,8 +910,172 @@ class LocalConcurrences:
             return "\n".join(f"{k:<13}: {v}" for k, v in d.items())
         return d
 
-    def wp_c_print(self):
-        dtw_cc.wps_print(self._wp, len(self.series1), len(self.series2), window=self.window)
+    # def wp_c_print(self):
+    #     dtw_cc.wps_print(self._wp, len(self.series1), len(self.series2), window=self.window)
 
-    def wp_c_print_compact(self):
-        dtw_cc.wps_print_compact(self._wp, len(self.series1), len(self.series2), window=self.window)
+    # def wp_c_print_compact(self):
+    #     dtw_cc.wps_print_compact(self._wp, len(self.series1), len(self.series2), window=self.window)
+
+
+# Based on L. Rabiner and B.-H. Juang. Fundamentals of speech recognition.
+# Prentice-Hall, Inc., 1993.
+steps_types = {
+    "TypeI": ((1, 1), (0, 1), (1, 0)),  # diagonal, go left, go up
+    "TypeIII": ((1, 1), (1, 2), (2, 1)),
+    "Diagonal": ((1, 1),)
+}
+
+
+class LoCoSettings:
+    def __init__(self, only_triu=False,
+                       penalty=None, psi=None, window=None,
+                       gamma=1, tau=0, delta=0, delta_factor=1,
+                       use_c=False, step_type=None):
+        self.only_triu = only_triu
+        self.penalty = penalty
+        self.psi = psi
+        self.window = window
+        self.gamma = gamma
+        self.tau = tau
+        self.delta = delta
+        self.delta_factor = delta_factor
+        self.use_c = use_c
+        self.step_type = step_type
+
+    @staticmethod
+    def wrap(settings):
+        if isinstance(settings, LoCoSettings):
+            return settings
+        if settings is None:
+            return LoCoSettings()
+        return LoCoSettings(**settings)
+
+    def kwargs(self):
+        return {
+            'only_triu': self.only_triu,
+            'penalty': self.penalty,
+            'psi': self.psi,
+            'window': self.window,
+            'gamma': self.gamma,
+            'tau': self.tau,
+            'delta': self.delta,
+            'delta_factor': self.delta_factor,
+            'use_c': self.use_c,
+            'step_type': self.step_type,
+        }
+
+    def inf_rows_cols(self):
+        if self.step_type == "TypeI":
+            inf_rows, inf_cols = 1, 1
+        elif self.step_type == "TypeIII":
+            inf_rows, inf_cols = 2, 2
+        else:
+            raise ValueError("Unknown steps type for C version of warping_paths_loco: {}".format(self.step_type))
+        return inf_rows, inf_cols
+
+    def steps(self):
+        if self.step_type is None:
+            return steps_types["TypeI"]
+        if self.step_type in steps_types:
+            return steps_types[self.step_type]
+        raise ValueError("Unknown step_ttype")
+
+    def split_psi(self):
+        psi_1b = psi_2b = 0
+        if type(self.psi) is int:
+            psi_1b = psi_2b = self.psi
+        elif type(self.psi) in [tuple, list]:
+            psi_1b, psi_2b = self.psi
+        return psi_1b, psi_2b
+
+    @property
+    def window_value(self):
+        if self.window is None:
+            return 0
+        return self.window
+
+
+def loco_warping_paths(s1, s2, **kwargs):
+    """
+
+    :param step_type: Steps that are agregrated. Tuples with (step in series 1, step in series 2).
+        Default is TypeI: (1,1),(1,0),(0,1). A good alternative is TypeIII: (1,2),(2,1),(1,1).
+    """
+    if np is None:
+        raise NumpyException("Numpy is required for the warping_paths method")
+
+    s = LoCoSettings(**kwargs)
+    r, c = len(s1), len(s2)
+
+    if s.use_c:
+        s1 = util_numpy.verify_np_array(s1)
+        s2 = util_numpy.verify_np_array(s2)
+        dtw._check_library(raise_exception=True)
+        inf_rows, inf_cols = s.inf_rows_cols()
+        wps = np.full((r + inf_rows, c + inf_cols), -inf, dtype=DTYPE)
+        print(s.kwargs())
+        print(f"{wps.shape=} = {wps.shape[0]*wps.shape[1]}")
+        loco_cc.loco_warping_paths(wps, s1, s2, ndim=1, **s.kwargs())
+        return 0, wps
+
+    steps = s.steps()
+    window = s.window_value
+    if window == 0:
+        window = max(r, c)
+    psi_1b, psi_2b = s.split_psi()
+    penalties = [s.penalty if sr != sc else 0 for sr, sc in steps]
+    steps_rows, steps_cols = zip(*steps)
+    inf_rows = max(steps_rows)
+    inf_cols = max(steps_cols)
+    wps = np.full((r + inf_rows, c + inf_cols), -inf)
+    wps[0:inf_rows, 0:psi_2b + inf_cols] = 0
+    wps[0:psi_1b + inf_rows, 0:inf_cols] = 0
+    for i in range(r):
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        if s.only_triu:
+            j_start = max(i, j_start)
+        j_end = min(c, i + max(0, c - r) + window)
+        for j in range(j_start, j_end):
+            d = np.exp(-s.gamma*(s1[i] - s2[j])**2)
+            # print(f"{s1[i] - s2[j]=} -> {d=}")
+            wps_prev = max(wps[i + inf_rows - sr, j + inf_cols - sc] - penalty
+                           for (sr, sc), penalty in zip(steps, penalties))
+            if d < s.tau:
+                wps[i + inf_rows, j + inf_rows] = max(0, s.delta + s.delta_factor * wps_prev)
+            else:
+                wps[i + inf_rows, j + inf_rows] = max(0, d + wps_prev)
+    return 0, wps
+
+
+class BufferedArgMax:
+    def __init__(self, a, n=100):
+        self.a = a
+        self.n = n
+        self._idxs = None
+        self._yield_idx = None
+        self.max_idx = self.a.shape[0] * self.a.shape[1]
+
+    def get(self):
+        if self._idxs is None:
+            self._populate_idxs()
+        rval = self._idxs[self._yield_idx]
+        self._yield_idx += 1
+        if self._yield_idx == len(self._idxs):
+            self._idxs = None
+        if rval > self.max_idx:
+            return None
+        return rval
+
+    def _populate_idxs(self):
+        start = time.process_time()
+        # ap = self.a.flatten()
+        # self._idxs = heapq.nlargest(self.n, range(len(ap)), ap.take)
+        # idxs = self.a.flatten().argsort()[-self.n:]
+        idxs = np.empty(self.n, dtype=np.int64)
+        loco_cc.loco_wps_argmax(self.a, idxs, self.n)
+        # idxs = self.a.flatten().argsort(fill_value=0)
+        # self._idxs = np.flip(idxs)
+        self._idxs = idxs
+        self._yield_idx = 0
+        stop = time.process_time()
+        # print(f"populate idxs: {stop - start} sec")
