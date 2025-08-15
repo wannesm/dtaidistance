@@ -19,7 +19,7 @@ try:
     if test_without_numpy():
         raise ImportError()
     import numpy as np
-    seq_t_dtype = np.double
+    seq_t_dtype = {{ seq_tnp }}
 except ImportError:
     np = None
     seq_t_dtype = None
@@ -156,4 +156,3 @@ class test_uses_pandas(ContextDecorator):
                     return
             if issubclass(exc[0], PandasException):
                 return True
-

@@ -156,9 +156,10 @@ cdef class DTWSettings:
             else:
                 self._settings.only_ub = kwargs["only_ub"]
         if "inner_dist" in kwargs:
-            if kwargs["inner_dist"] == "squared euclidean" or kwargs["inner_dist"] == 0:
+            inner_dist = kwargs["inner_dist"]
+            if inner_dist == "squared euclidean" or inner_dist == 0:
                 self._settings.inner_dist = 0
-            elif kwargs["inner_dist"] == "euclidean" or kwargs["inner_dist"] == 1:
+            elif inner_dist == "euclidean" or inner_dist == 1:
                 self._settings.inner_dist = 1
             else:
                 raise AttributeError("Unknown inner_dist: {}".format(kwargs["inner_dist"]))

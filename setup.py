@@ -404,6 +404,16 @@ if cythonize is not None:
                           "src/DTAIDistanceC/DTAIDistanceC"],
             extra_compile_args=[],
             extra_link_args=[]))
+    extensions.append(
+        Extension(
+            "dtaidistance.loco_cc",
+            ["src/dtaidistance/loco_cc.pyx",
+             "src/DTAIDistanceC/DTAIDistanceC/dd_loco.c",
+             "src/DTAIDistanceC/DTAIDistanceC/dd_globals.c"],
+            depends=["src/DTAIDistanceC/DTAIDistanceC/dd_globals.h"],
+            include_dirs=[str(dtaidistancec_path), "src/DTAIDistanceC/DTAIDistanceC"],
+            extra_compile_args=[],
+            extra_link_args=[]))
 
     if numpy is not None:
         extensions.append(

@@ -141,6 +141,37 @@ class SAMatch:
         return self.__str__()
 
 
+class SAMatches:
+    def __init__(self, sa,  matches=None):
+        self._sa = sa  # type: SubsequenceAlignment
+        self._matches = []  # type: list[SAMatch]
+        if matches is not None:
+            self._matches.update(matches)
+
+    def __iter__(self):
+        return self._matches.__iter__()
+
+    def __len__(self):
+        return self._matches.__len__()
+
+    def __getitem__(self, item):
+        return self._matches.__getitem__(item)
+
+    def append(self, match):
+        self._matches.append(match)
+
+    def plot(self, figure=None, **kwargs):
+        from .. import dtw_visualisation as dtwvis
+        query = self._sa.query
+        series = self._sa.series
+        wps = self._sa.warping_paths()
+        fig, ax = dtwvis.plot_warpingpaths(query, series, wps, path=-1,
+                                           figure=figure, **kwargs)
+        for match in self._matches:
+            dtwvis.plot_warpingpaths_addpath(ax, match.path)
+        return fig, ax
+
+
 class SubsequenceAlignment:
     def __init__(self, query, series, penalty=0.1, use_c=False, **kwargs):
         """Subsequence alignment using DTW.
@@ -211,6 +242,7 @@ class SubsequenceAlignment:
         if len(matching) > len(self.series):
             matching = result_fn(matching[-len(self.series):])
         self.matching = np.array(matching) / len(self.query)
+        return self.matching
 
     def warping_paths(self):
         """Get matrix with all warping paths.
@@ -267,10 +299,10 @@ class SubsequenceAlignment:
         :param maxlength: Maximal length of the matched sequence.
         :return: Yield an SAMatch object
         """
-        return self._best_matches(k=k, overlap=overlap,
-                                  minlength=minlength, maxlength=maxlength)
+        return self.best_matches(k=k, overlap=overlap,
+                                 minlength=minlength, maxlength=maxlength)
 
-    def best_matches_fast(self, *args, **kwargs):
+    def best_matches_rangefactor_fast(self, *args, **kwargs):
         """See :meth:`best_matches`."""
         use_c = self.use_c
         self.use_c = True
@@ -278,7 +310,7 @@ class SubsequenceAlignment:
         self.use_c = use_c
         return result
 
-    def best_matches(self, max_rangefactor=2, overlap=0, minlength=2, maxlength=None):
+    def best_matches_rangefactor(self, max_rangefactor=2, overlap=0, minlength=2, maxlength=None):
         """Yields the next best match. Stops when the current match is larger than
         maxrangefactor times the first match.
 
@@ -290,10 +322,10 @@ class SubsequenceAlignment:
         :param maxlength: Maximal length of the matched sequence.
         :return:
         """
-        return self._best_matches(k=None, max_rangefactor=max_rangefactor,
-                                  detectknee_alpha=None,
-                                  overlap=overlap,
-                                  minlength=minlength, maxlength=maxlength)
+        return self.best_matches(k=None, max_rangefactor=max_rangefactor,
+                                 detectknee_alpha=None,
+                                 overlap=overlap,
+                                 minlength=minlength, maxlength=maxlength)
 
     def best_matches_knee_fast(self, *args, **kwargs):
         """See :meth:`best_matches_knee`."""
@@ -315,13 +347,13 @@ class SubsequenceAlignment:
         :param maxlength: Maximal length of the matched sequence.
         :return:
         """
-        return self._best_matches(k=None, max_rangefactor=None,
-                                  detectknee_alpha=alpha,
-                                  overlap=overlap,
-                                  minlength=minlength, maxlength=maxlength)
+        return self.best_matches(k=None, max_rangefactor=None,
+                                 detectknee_alpha=alpha,
+                                 overlap=overlap,
+                                 minlength=minlength, maxlength=maxlength)
 
-    def _best_matches(self, k=None, overlap=0, minlength=2, maxlength=None,
-                      max_rangefactor=None, detectknee_alpha=None):
+    def best_matches(self, k=None, overlap=0, minlength=2, maxlength=None,
+                     max_rangefactor=None, detectknee_alpha=None):
         self.align()
         # Copy the matching to change values when masking them without
         # altering the original array
@@ -364,6 +396,22 @@ class SubsequenceAlignment:
             matching[mb:me] = np.inf
             ki += 1
             yield match
+
+    def best_matches_store(self, k=None, overlap=0, minlength=2, maxlength=None,
+                           max_rangefactor=None, detectknee_alpha=None,
+                           matches=None, tqdm=None):
+        if matches is None:
+            matches = SAMatches(self)
+        self.align()
+        it = self.best_matches(k=k, overlap=overlap, minlength=minlength,
+                               maxlength=maxlength,
+                               max_rangefactor=max_rangefactor,
+                               detectknee_alpha=detectknee_alpha)
+        if tqdm is not None:
+            it = tqdm(it, total=k)
+        for match in it:
+            matches.append(match)
+        return matches
 
     def matching_function_segment(self, idx):
         """Matched segment in series."""

@@ -61,7 +61,7 @@ try:
     if util_numpy.test_without_numpy():
         raise ImportError()
     import numpy as np
-    DTYPE = np.double
+    DTYPE = util_numpy.seq_t_dtype
     argmin = np.argmin
     argmax = np.argmax
     array_min = np.min

@@ -25,6 +25,7 @@ thisdir = Path(__file__).parent
 seq_t = "double"
 seq_tpy = "double"
 seq_format = "d"  # https://docs.python.org/3/library/array.html
+seq_tnp = "np.double"  # Numpy type
 
 def change_dd_globals_h():
     # Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
@@ -37,7 +38,10 @@ def change_dd_globals_h():
 
 
 def set_vars():
-    return {"seq_tpy": seq_tpy, "seq_t": seq_t, "seq_format": seq_format}
+    return {"seq_tpy": seq_tpy,
+            "seq_t": seq_t,
+            "seq_format": seq_format,
+            "seq_tnp": seq_tnp}
 
 
 def targets():
@@ -65,12 +69,16 @@ def targets():
             ["ed_cc.jinja.pyx",
                 set_vars(),
                 []],
+        "util_numpy.py":
+            ["util_numpy.jinja.py",
+             set_vars(),
+             []],
         "dd_globals.h":
             [change_dd_globals_h,
                 {}, []],
     }
 essential_targets = ['dtw_cc.pyx', 'dtw_cc.pxd', 'dtaidistancec_globals.pxd',
-                     'dtw_cc_omp.pyx', 'ed_cc.pyx', 'dd_globals.h']
+                     'dtw_cc_omp.pyx', 'ed_cc.pyx', 'dd_globals.h', 'util_numpy.py']
 
 
 def generate(target):
@@ -96,6 +104,7 @@ def main(argv=None):
     global seq_t
     global seq_tpy
     global seq_format
+    global seq_tnp
     global set_vars
 
     parser = argparse.ArgumentParser(description='Generate source code files from templates')
@@ -125,10 +134,12 @@ def main(argv=None):
             seq_t = "float"
             seq_tpy = "float"
             seq_format = "f"
+            seq_tnp = "np.float32"
         elif args.seqt == "int":
             seq_t = "int"
             seq_tpy = "int"
             seq_format = "i"
+            seq_tnp = "np.int"
         else:
             raise TypeError("seqt should be one of double/float/int")
 

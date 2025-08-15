@@ -3,6 +3,7 @@ DEPS_dtw_cc_omp = $(shell python3 generate.py -dq dtw_cc_omp.pyx)
 DEPS_globals = $(shell python3 generate.py -dq dtaidistancec_globals.pxd)
 DEPS_dtw_cc_pxd = $(shell python3 generate.py -dq dtw_cc.pxd)
 DEPS_ed_cc = $(shell python3 generate.py -dq ed_cc.pyx)
+DEPS_util_numpy = $(shell python3 generate.py -dq util_numpy.py)
 ARGS := 
 
 # ifeq ($(OS),Windows_NT) 
@@ -37,7 +38,7 @@ generate: jinja replace
 	@# $(SED) '' 's/^typedef .* seq_t;$$/typedef double seq_t;/g' ../lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
 
 .PHONY: jinja
-jinja: dtw_cc.pyx dtw_cc_omp.pyx dtaidistancec_globals.pxd dtw_cc.pxd
+jinja: dtw_cc.pyx dtw_cc_omp.pyx dtaidistancec_globals.pxd dtw_cc.pxd util_numpy.py
 	python3 generate.py $(ARGS) dd_globals.h
 
 dtw_cc.pyx: $(DEPS_dtw_cc)
@@ -75,8 +76,15 @@ ed_cc.pyx: $(DEPS_ed_cc)
 ../ed_cc.pyx: ed_cc.pyx
 	cp ed_cc.pyx ../
 
+util_numpy.py: $(DEPS_util_numpy)
+	@echo "Changed:" $?
+	python3 generate.py $(ARGS) $@
+
+../util_numpy.py: util_numpy.py
+	cp util_numpy.py ../
+
 .PHONY: replace
-replace: ../dtw_cc.pyx ../dtw_cc_omp.pyx ../dtaidistancec_globals.pxd  ../dtw_cc.pxd ../ed_cc.pyx
+replace: ../dtw_cc.pyx ../dtw_cc_omp.pyx ../dtaidistancec_globals.pxd  ../dtw_cc.pxd ../ed_cc.pyx ../util_numpy.py
 
 .PHONY: debug
 debug:
@@ -91,4 +99,5 @@ clean:
 	rm -f dtw_cc.pxd
 	rm -f ed_cc.pyx
 	rm -f dtaidistancec_globals.pxd
+	rm -f util_numpy.py
 
