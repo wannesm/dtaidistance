@@ -275,8 +275,8 @@ class SubsequenceAlignment:
         """
         # best_idx = np.argmin(self.matching)
         # return self.get_match(best_idx)
-        m = list(self._best_matches(k=1,
-                                    minlength=minlength, maxlength=maxlength))
+        m = list(self.best_matches(k=1, minlength=minlength,
+                                   maxlength=maxlength))
         if len(m) < 1:
             raise Exception(f'No match found')
         return m[0]
@@ -351,6 +351,13 @@ class SubsequenceAlignment:
                                  detectknee_alpha=alpha,
                                  overlap=overlap,
                                  minlength=minlength, maxlength=maxlength)
+
+    def best_matches_fast(self, *args, **kwargs):
+        use_c = self.use_c
+        self.use_c = True
+        result = self.best_matches(*args, **kwargs)
+        self.use_c = use_c
+        return result
 
     def best_matches(self, k=None, overlap=0, minlength=2, maxlength=None,
                      max_rangefactor=None, detectknee_alpha=None):
