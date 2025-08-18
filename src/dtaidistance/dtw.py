@@ -13,7 +13,6 @@ Dynamic Time Warping (DTW)
 import logging
 import array
 import math
-from argparse import ArgumentError
 
 from . import ed
 from . import util
@@ -173,7 +172,7 @@ class DTWSettings:
             self.adj_max_length_diff = self.max_length_diff
 
     @staticmethod
-    def wrap(settings):
+    def wrap(settings) -> 'DTWSettings':
         if (isinstance(settings, DTWSettings) or
                 'DTWSettings' in str(type(settings))):
             return settings
@@ -187,7 +186,7 @@ class DTWSettings:
         return DTWSettings(**settings)
 
     @staticmethod
-    def for_dtw(s1, s2, **kwargs):
+    def for_dtw(s1, s2, **kwargs) -> 'DTWSettings':
         settings = DTWSettings.wrap(kwargs)
         if settings.window is None:
             settings.window = max(len(s1), len(s2))
@@ -296,7 +295,7 @@ def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
     return ed.distance(s1, s2, inner_dist=inner_dist)
 
 
-def distance(s1, s2, only_ub=False, **kwargs):
+def distance(s1, s2, only_ub=False, **kwargs) -> float:
     """
     Dynamic Time Warping.
 
@@ -329,9 +328,10 @@ def distance(s1, s2, only_ub=False, **kwargs):
         return inf
     if only_ub:
         return ival_fn(ub_euclidean(s1, s2, inner_dist=s.inner_dist))
+    window = max(len(s1), len(s2)) if s.window is None else s.window
 
     psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
-    length = min(c + 1, abs(r - c) + 2 * (s.window - 1) + 1 + 1 + 1)
+    length = min(c + 1, abs(r - c) + 2 * (window - 1) + 1 + 1 + 1)
     dtw = array.array('d', [inf] * (2 * length))
     sc = 0
     ec = 0
@@ -345,13 +345,13 @@ def distance(s1, s2, only_ub=False, **kwargs):
         # print("i={}".format(i))
         # print(dtw)
         skipp = skip
-        skip = max(0, i - max(0, r - c) - s.window + 1)
+        skip = max(0, i - max(0, r - c) - window + 1)
         i0 = 1 - i0
         i1 = 1 - i1
         for ii in range(i1*length, i1*length+length):
             dtw[ii] = inf
-        j_start = max(0, i - max(0, r - c) - s.window + 1)
-        j_end = min(c, i + max(0, c - r) + s.window)
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
         if sc > j_start:
             j_start = sc
         smaller_found = False
@@ -388,14 +388,14 @@ def distance(s1, s2, only_ub=False, **kwargs):
         if psi_1e != 0 and j_end == len(s2) and len(s1) - 1 - i <= psi_1e:
             psi_shortest = min(psi_shortest, dtw[i1 * length + j_end - skip])
     if psi_1e == 0 and psi_2e == 0:
-        d = dtw[i1 * length + min(c, c + s.window - 1) - skip]
+        d = dtw[i1 * length + min(c, c + window - 1) - skip]
     else:
-        ic = min(c, c + s.window - 1) - skip
+        ic = min(c, c + window - 1) - skip
         if psi_2e != 0:
             vc = dtw[i1 * length + ic - psi_2e:i1 * length + ic + 1]
             d = min(array_min(vc), psi_shortest)
         else:
-            d = min(dtw[i1 * length + min(c, c + s.window - 1) - skip], psi_shortest)
+            d = min(dtw[i1 * length + min(c, c + window - 1) - skip], psi_shortest)
     if s.adj_max_dist and d > s.adj_max_dist:
         d = inf
     d = result_fn(d)
@@ -458,10 +458,11 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
         return warping_paths_fast(s1, s2, psi_neg=psi_neg, **s.kwargs())
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
-    cost, result_fn, ival_fn = innerdistance.inner_dist_fns(s.inner_dist, use_ndim=s.use_ndim)
+    cost, result_fn, _ = innerdistance.inner_dist_fns(s.inner_dist, use_ndim=s.use_ndim)
     r, c = len(s1), len(s2)
     if s.adj_max_length_diff is not None and abs(r - c) > s.adj_max_length_diff:
-        return inf
+        return inf, None
+    window = max(len(s1), len(s2)) if s.window is None else s.window
     psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
     dtw = np.full((r + 1, c + 1), inf)
     # dtw[0, 0] = 0
@@ -475,8 +476,8 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
     for i in range(r):
         i0 = i
         i1 = i + 1
-        j_start = max(0, i - max(0, r - c) - s.window + 1)
-        j_end = min(c, i + max(0, c - r) + s.window)
+        j_start = max(0, i - max(0, r - c) - window + 1)
+        j_end = min(c, i + max(0, c - r) + window)
         if sc > j_start:
             j_start = sc
         smaller_found = False
@@ -501,10 +502,10 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
     if not keep_int_repr:
         dtw = result_fn(dtw)
     if psi_1e == 0 and psi_2e == 0:
-        d = dtw[i1, min(c, c + s.window - 1)]
+        d = dtw[i1, min(c, c + window - 1)]
     else:
         ir = i1
-        ic = min(c, c + s.window - 1)
+        ic = min(c, c + window - 1)
         if psi_1e != 0:
             vr = dtw[ir:max(0, ir-psi_1e-1):-1, ic]
             mir = argmin(vr)
@@ -550,6 +551,8 @@ def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False, compact=False,
         This option is meant for internal use. For more details, see the C code.
     :param kwargs: See :meth:`warping_paths`
     """
+    if np is None:
+        raise util_numpy.NumpyException("Numpy needed for warping_paths_fast")
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     r = len(s1)
@@ -605,6 +608,7 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     s = DTWSettings.for_dtw(s1, s2, window=window, psi=psi, penalty=penalty, use_c=use_c)
     r, c = len(s1), len(s2)
     psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
+    window = max(len(s1), len(s2)) if s.window is None else s.window
     dtw = np.full((r + 1, c + 1), -inf)
     # dtw[0, 0] = 0
     for i in range(psi_2b + 1):
@@ -615,10 +619,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
     for i in range(r):
         i0 = i
         i1 = i + 1
-        j_start = max(0, i - max(0, r - c) - s.window + 1)
+        j_start = max(0, i - max(0, r - c) - window + 1)
         if only_triu:
             j_start = max(i, j_start)
-        j_end = min(c, i + max(0, c - r) + s.window)
+        j_end = min(c, i + max(0, c - r) + window)
         for j in range(j_start, j_end):
             d = np.exp(-gamma*(s1[i] - s2[j])**2)
             # print(f"{s1[i] - s2[j]=} -> {d=}")
@@ -632,10 +636,10 @@ def warping_paths_affinity(s1, s2, window=None, only_triu=False,
 
     # Decide which d to return
     if psi_1e == 0 and psi_2e == 0:
-        d = dtw[i1, min(c, c + s.window - 1)]
+        d = dtw[i1, min(c, c + window - 1)]
     else:
         ir = i1
-        ic = min(c, c + s.window - 1)
+        ic = min(c, c + window - 1)
         if psi_1e != 0:
             vr = dtw[ir:max(0, ir-psi_1e-1):-1, ic]
             mir = argmax(vr)
@@ -683,6 +687,8 @@ def warping_paths_affinity_fast(s1, s2, window=None, only_triu=False,
         This option is meant for internal use. For more details, see the C code.
     :param use_ndim:
     """
+    if np is None:
+        raise util_numpy.NumpyException("Numpy needed for warping_paths_affinity_fast")
     s1 = util_numpy.verify_np_array(s1)
     s2 = util_numpy.verify_np_array(s2)
     r = len(s1)
@@ -865,6 +871,8 @@ def distance_matrix_python(s, block=None, show_progress=False, settings=None):
     block, triu = _complete_block(block, len(s))
     it_r = range(block[0][0], block[0][1])
     if show_progress:
+        if tqdm is None:
+            raise ValueError('show_progress cannot be true is tqdm is not available')
         it_r = tqdm(it_r)
     idx = 0
     for r in it_r:
@@ -1117,6 +1125,8 @@ def best_path(paths, row=None, col=None, use_max=False, penalty=0):
 
 def best_path2(paths):
     """Compute the optimal path from the nxm warping paths matrix."""
+    if np is None:
+        raise util_numpy.NumpyException("Numpy needed for best_path2")
     m = paths
     path = []
     r, c = m.shape
@@ -1127,7 +1137,7 @@ def best_path2(paths):
         path.append((r - 1, c - 1))
     while r > 0 and c > 0:
         if v == -1:
-            v = np.Inf
+            v = np.inf
         r_c, c_c = r, c
         if r >= 1 and c >= 1 and m[r - 1, c - 1] <= v:
             r_c, c_c, v = r - 1, c - 1, m[r - 1, c - 1]
@@ -1156,3 +1166,4 @@ def warping_path_args_to_c(s1, s2, **kwargs):
     settings_kwargs = {key: get(key) for key in
                        ['window', 'max_dist', 'max_step', 'max_length_diff', 'penalty', 'psi']}
     return s1, s2, settings_kwargs
+

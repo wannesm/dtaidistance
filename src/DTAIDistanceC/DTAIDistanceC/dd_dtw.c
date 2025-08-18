@@ -44,6 +44,7 @@ idx_t dtw_settings_wps_width(idx_t l1, idx_t l2, DTWSettings *settings) {
 }
 
 void dtw_settings_set_psi(idx_t psi, DTWSettings *settings) {
+    // TODO: check settings for max_dist / use_pruning, this is not always compatible with relaxation
     settings->psi_1b = psi;
     settings->psi_1e = psi;
     settings->psi_2b = psi;
@@ -4222,6 +4223,7 @@ seq_t dtw_warping_paths_full_ndim_twice(seq_t *wps,
     }
     return rvalue;
 }
+
 
 // MARK: Bounds
 

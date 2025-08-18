@@ -1,17 +1,17 @@
 # -*- coding: UTF-8 -*-
 """
-dtaidistance.explain.dws.explainpair
+dtaidistance.explain.dsw.explainpair
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 (requires version 2.4.0 or higher)
 
 Explain the warping path.
 
-Usage
+Usage:
 
 ::
 
-    ep = ExplainPair(ya, yb, delta_rel=2, delta_abs =0, approx_prune=True)
+    ep = ExplainPair(ts_a, ts_b, delta_rel=2, delta_abs=0)
     print(ep.distance_approx())
     ep.plot_warping("/path/to/figure.png")
 
@@ -325,7 +325,11 @@ class ExplainPair:
             save_intermediates=False
     ):
         """Compute segments and variations that explain the warping path
-        between two series.
+        between two series by using Dynamic Subsequence Warping.
+
+            Lin, S., Meert, W. Robberechts, P., Blockeel H.,
+            "Warping and Matching Subsequences Between Time Series"
+            arXiv:2506.15452v1 [cs.LG] 2025
 
         :param series_from: Series from
         :param series_to: Series to

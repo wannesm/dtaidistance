@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 
 
-def pattern1(x, x0=4, c=0.5, a=0, x1=22, d=1, r=0.0, rs=3980, w0=1, x2=25, w2=1):
+def pattern1(x, x0=4, c=0.5, a=0, x1=22, d=1, r=0.0, rs=3980, w0=1, x2=25, w2=0):
     """A time series generator that simulates simple patterns in transient
     systems. It is a rising function with an overshoot and a short, one
     cycle of sine-like behavior.
@@ -33,9 +33,10 @@ def pattern1(x, x0=4, c=0.5, a=0, x1=22, d=1, r=0.0, rs=3980, w0=1, x2=25, w2=1)
     d[~idx1 & ~idx2] = 0
     y += np.heaviside(x - x1 + xd, 0) * np.heaviside(x1 - x + xd, 0) * d / 2
     # Dip
-    rv = sp.stats.norm(loc=x2, scale=w2/10)
-    peak = rv.pdf(x2)
-    y -= rv.pdf(x)/peak*c
+    if w2 > 0:
+        rv = sp.stats.norm(loc=x2, scale=w2/10)
+        peak = rv.pdf(x2)
+        y -= rv.pdf(x)/peak*c
     # Random noise
     if r > 0:
         np.random.seed(rs)

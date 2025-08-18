@@ -506,8 +506,8 @@ void benchmark_loco() {
     settings.delta = -0.7357588823428847;
     settings.delta_factor = 0.1;
     settings.gamma = 1;
-    settings.step_type = TypeIII;
-//    settings.step_type = TypeI;
+//    settings.step_type = TypeIII;
+    settings.step_type = TypeI;
     loco_warping_paths(wps, series1, l1, series2, l2, &settings);
     loco_print_wps_type(wps, l1, l2, &settings);
     

@@ -436,6 +436,46 @@ BestPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c
 }
 
 
+void loco_path_negativize(idx_t *path, idx_t length, seq_t *wps, idx_t l1, idx_t l2, int buffer, int inf_rows, int inf_cols) {
+    idx_t pi0=0;
+    idx_t pi1=1;
+    idx_t i, j;
+    idx_t lb = length - buffer;
+    idx_t cbuffer;
+    idx_t x_l, x_r, y_l, y_r;
+    idx_t wps_l1 = l1 + inf_rows;
+    idx_t wps_l2 = l2 + inf_cols;
+    idx_t i_wps;
+    
+    for (idx_t p_idx=0; p_idx<length; p_idx++) {
+        i = path[pi0] + inf_rows;
+        j = path[pi1] + inf_cols;
+        if (p_idx < buffer) {
+            cbuffer = p_idx + 1;
+        } else if (p_idx > lb) {
+            cbuffer = length = p_idx;
+        } else {
+            cbuffer = buffer;
+        }
+        x_l = MAX(inf_rows, i - cbuffer);
+        x_r = MIN(i + cbuffer + 1, wps_l1);
+        y_l = MAX(inf_cols, j - cbuffer);
+        y_r = MIN(j + cbuffer + 1, wps_l2);
+        for (idx_t x=x_l; x<x_r; x++) {
+            i_wps = x_l*wps_l2 + y_l;
+            for (idx_t y=y_l; y<y_r; y++) {
+                if (wps[i_wps] > 0) {
+                    wps[i_wps] = -wps[i_wps];
+                }
+                i_wps++;
+            }
+        }
+        pi0 += 2;
+        pi1 += 2;
+    }
+}
+
+
 // MARK: WPS Operations
 
 int comp(const void * elem1, const void * elem2)

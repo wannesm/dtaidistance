@@ -33,6 +33,8 @@ cdef extern from "dd_loco.h":
     seq_t loco_warping_paths_typeIII(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, LoCoSettings *settings)
     seq_t loco_warping_paths_ndim_typeIII(seq_t *wps, seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, int ndim,
                                           LoCoSettings *settings)
+    void loco_path_negativize(Py_ssize_t *path, Py_ssize_t length, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, int buffer, int inf_rows,
+                              int inf_cols)
 
     void best_path_init(BestPath *a, size_t initialSize)
     void best_path_insert(BestPath *a, Py_ssize_t element)

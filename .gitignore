@@ -50,3 +50,5 @@ src/dtaidistance/jinja/ed_cc.pyx
 src/dtaidistance/jinja/util_numpy.py
 src/DTAIDistanceC/DTAIDistanceC/jinja
 wm_*
+tests/**/*.png
+*.patch

@@ -123,6 +123,9 @@ def loco_best_path(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, 
     dtaidistancec_loco.best_path_free(&bp)
     return idxs
 
+def loco_path_negativize(Py_ssize_t[:, :] path, seq_t[:, :] wps, int buffer, int inf_rows,
+                              int inf_cols):
+    dtaidistancec_loco.loco_path_negativize(&path[0,0], path.shape[0], &wps[0,0], wps.shape[0]-inf_rows, wps.shape[1]-inf_cols, buffer, inf_rows, inf_cols)
 
 def loco_wps_argmax(seq_t[:, :] wps, Py_ssize_t[:] idxs, int n):
     l = wps.shape[0] * wps.shape[1]

@@ -663,9 +663,9 @@ class LocalConcurrences:
         # tp = time.perf_counter()
         for ki, match in enumerate(it):
             matches.append(match)
-        #     tn = time.perf_counter()
-        #     #print(f'time: {tn-tp}')
-        #     tp = tn
+            # tn = time.perf_counter()
+            # print(f'time: {tn-tp}')
+            # tp = tn
         if not keep:
             self._reset_wp_mask()
         return matches
@@ -722,9 +722,6 @@ class LocalConcurrences:
                 cnt += 1
                 if cnt % lperc == 0:
                     print(f'Searching for matches is taking some time (k={ki+1}/{k}: {cnt} tries)')
-                # if self.compact:
-                #     idx = dtw_cc.wps_max(self._c_parts, wp, l1, l2)
-                # idx = np.unravel_index(np.argmax(wp, axis=None), wp.shape)
                 bg = bam.get()
                 if bg is None:
                     return
@@ -763,57 +760,38 @@ class LocalConcurrences:
                     lcm, idx = None, None
             if buffer < 0 and lcm is not None:
                 # Mask the containing rectangle for the path
-                # if self.compact:
-                #     dtw_cc.wps_negativize(self._c_parts, wp,
-                #                           len(self.series1), len(self.series2),
-                #                           path[0][0]+self.inf_rows, path[-1][0]+self.inf_rows+1,
-                #                           path[0][1]+self.inf_cols, path[-1][1]+self.inf_cols+1,
-                #                           True)  # intersection
                 miny, maxy = 0, wp.shape[1]
                 minx, maxx = 0, wp.shape[0]
                 wp[path[0][0]+self.inf_rows:path[-1][0]+self.inf_rows+1, miny:maxy] = -np.abs(wp[path[0][0]+self.inf_rows:path[-1][0]+self.inf_rows+1, miny:maxy])
                 wp[minx:maxx, path[0][1]+self.inf_cols:path[-1][1]+self.inf_cols+1] = -np.abs(wp[minx:maxx, path[0][1]+self.inf_cols:path[-1][1]+self.inf_cols+1])
             elif buffer > 0 and lcm is not None:
                 # Mask a square around each position in the path
-                # if self.compact:
-                #     for p_idx, (x, y) in enumerate(path):
-                #         # include first row and column with infinities
-                #         x += self.inf_rows
-                #         y += self.inf_cols
-                #         if p_idx < buffer:
-                #             cbuffer = p_idx + 1
-                #         elif p_idx > len(path) - buffer:
-                #             cbuffer = len(path) - p_idx
-                #         else:
-                #             cbuffer = buffer
-                #         dtw_cc.wps_negativize(self._c_parts, wp,
-                #                               len(self.series1), len(self.series2),
-                #                               max(0, x - cbuffer), min(x + cbuffer + 1, maxx + 1),
-                #                               max(0, y - cbuffer), min(y + cbuffer + 1, maxy + 1),
-                #                               True)  # intersection
-                for p_idx, (x, y) in enumerate(path):
-                    # include first row and column with infinities
-                    x += self.inf_rows
-                    y += self.inf_cols
-                    # Reduce buffer towards the extreme points
-                    if p_idx < buffer:
-                        cbuffer = p_idx + 1
-                    elif p_idx > len(path) - buffer:
-                        cbuffer = len(path) - p_idx
-                    else:
-                        cbuffer = buffer
-                    # half = int(len(path) / 2)
-                    # if p_idx < half:
-                    #     cbuffer = math.ceil(buffer * (p_idx + 1) / half)
-                    # elif p_idx > len(path) - half:
-                    #     cbuffer = math.ceil(buffer * (len(path) - p_idx) / half)
-                    # else:
-                    #     cbuffer = buffer
-                    x_l = max(self.inf_rows, x - cbuffer)
-                    x_r = min(x + cbuffer + 1, wp.shape[0])
-                    y_l = max(self.inf_cols, y - cbuffer)
-                    y_r = min(y + cbuffer + 1, wp.shape[1])
-                    wp[x_l:x_r, y_l:y_r] = -np.abs(wp[x_l:x_r, y_l:y_r])
+                if self.use_c:
+                    loco_cc.loco_path_negativize(path, wp, buffer, self.inf_rows, self.inf_cols)
+                else:
+                    for p_idx, (x, y) in enumerate(path):
+                        # include first row and column with infinities
+                        x += self.inf_rows
+                        y += self.inf_cols
+                        # Reduce buffer towards the extreme points
+                        if p_idx < buffer:
+                            cbuffer = p_idx + 1
+                        elif p_idx > len(path) - buffer:
+                            cbuffer = len(path) - p_idx
+                        else:
+                            cbuffer = buffer
+                        # half = int(len(path) / 2)
+                        # if p_idx < half:
+                        #     cbuffer = math.ceil(buffer * (p_idx + 1) / half)
+                        # elif p_idx > len(path) - half:
+                        #     cbuffer = math.ceil(buffer * (len(path) - p_idx) / half)
+                        # else:
+                        #     cbuffer = buffer
+                        x_l = max(self.inf_rows, x - cbuffer)
+                        x_r = min(x + cbuffer + 1, wp.shape[0])
+                        y_l = max(self.inf_cols, y - cbuffer)
+                        y_r = min(y + cbuffer + 1, wp.shape[1])
+                        wp[x_l:x_r, y_l:y_r] = -np.abs(wp[x_l:x_r, y_l:y_r])
             if lcm is not None:
                 ki += 1
                 if detectknee is not None:

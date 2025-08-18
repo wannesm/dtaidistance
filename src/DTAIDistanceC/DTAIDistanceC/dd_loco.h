@@ -65,7 +65,7 @@ void best_path_free(BestPath *a);
 BestPath loco_best_path(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int min_size, LoCoSettings *settings);
 BestPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int min_size, LoCoSettings *settings);
 BestPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int min_size, LoCoSettings *settings);
-
+void loco_path_negativize(idx_t *path, idx_t length, seq_t *wps, idx_t l1, idx_t l2, int buffer, int inf_rows, int inf_cols);
 
 void loco_wps_argmax(seq_t *wps, idx_t l, idx_t *idxs, int n);
 

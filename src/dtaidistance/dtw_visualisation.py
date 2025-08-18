@@ -100,7 +100,8 @@ def plot_warp(from_s, to_s, new_s, path, filename=None, fig=None, axs=None):
 
 
 def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
-                 series_line_options=None, warping_line_options=None):
+                 series_line_options=None, warping_line_options=None,
+                 start_on_curve=True, color_misalignment=False, tick_kwargs=None):
     """Plot the optimal warping between two sequences.
 
     :param s1: From sequence.
@@ -114,6 +115,9 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
         None will not pass any options
     :param warping_line_options: Dictionary of options to pass to matplotlib ConnectionPatch
         None will use {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    :param start_on_curve: Start the line on the curve. If false, start on the Y-axis.
+    :param color_misalignment: Color delayed, on-time, or early based on the misalignment
+        function.
     :return: Figure, list[Axes]
     """
     try:
@@ -124,7 +128,10 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
     if fig is None and axs is None:
-        fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
+        if color_misalignment:
+            fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all', gridspec_kw = {'hspace': 1.0})
+        else:
+            fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
     elif fig is None or axs is None:
         raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
     if series_line_options is None:
@@ -132,17 +139,47 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
     axs[0].plot(s1, **series_line_options)
     axs[1].plot(s2, **series_line_options)
     plt.tight_layout()
+    s1_min, _ = axs[0].get_ylim()
+    _, s2_max = axs[1].get_ylim()
     lines = []
     if warping_line_options is None:
         warping_line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    if color_misalignment:
+        warping_line_options['color'] = 'yellow'
+        g_np = 0
+    else:
+        g_np = None
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=axs[0].transData,
-                              xyB=[c_c, s2[c_c]], coordsB=axs[1].transData, **warping_line_options)
+        if start_on_curve:
+            s1_y = s1[r_c]
+            s2_y = s2[c_c]
+        else:
+            s1_y = s1_min
+            s2_y = s2_max
+        if color_misalignment:
+            # Based on:
+            # D. K. Urribarri, M. L. Larrea, S. M. Castro, and E. Puppo.
+            # Overview+ detail visual comparison of karate motion captures.
+            # In Computer Science–CACIC 2019: 25th Argentine Congress of Computer
+            # Science, CACIC 2019, Springer, 2020.
+            g_n = c_c - r_c  # misalignment function
+            if g_np == g_n:  # on-time
+                warping_line_options['color'] = '#E4D576'  # yellow
+            elif g_np < g_n:  # delayed
+                warping_line_options['color'] = '#F27D7D'  # red
+            else:  # ahead
+                warping_line_options['color'] = '#7DBDF2'  # blue
+            g_np = g_n
+        con = ConnectionPatch(xyA=[r_c, s1_y], coordsA=axs[0].transData,
+                              xyB=[c_c, s2_y], coordsB=axs[1].transData, **warping_line_options)
         lines.append(con)
     for line in lines:
         fig.add_artist(line)
+    if tick_kwargs is not None:
+        for ax in axs:
+            ax.tick_params(**tick_kwargs)
     if filename:
         plt.savefig(filename)
         plt.close()
@@ -210,7 +247,7 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
                       shownumbers=False, showlegend=False, showtotaldist=True,
                       figure=None, path_kwargs = None, matshow_kwargs=None,
                       plot_kwargs = None,
-                      includes_zero=True, tick_kwargs=None):
+                      includes_zero=True, tick_kwargs=None, show_diagonal=False):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
@@ -306,6 +343,8 @@ def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=Non
                               aspect='equal', **matshow_kwargs)
         else:
             img = ax3.matshow(paths, aspect='equal', **matshow_kwargs)
+    if show_diagonal:
+        ax3.plot([0, len(s2)], [0, len(s1)], '-', color='white', alpha=0.4)
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
     if p is not None:
