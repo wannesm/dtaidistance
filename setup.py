@@ -10,8 +10,6 @@ from setuptools import Distribution
 from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 import platform
 import os
-import sys
-import re
 import subprocess as sp
 from pathlib import Path
 
@@ -436,20 +434,14 @@ else:
     print("WARNING: Cython was not found, preparing a pure Python version.")
     ext_modules = []
 
-
-# Create setup
-setup_kwargs = {}
-def set_setup_kwargs(**kwargs):
-    global setup_kwargs
-    setup_kwargs = kwargs
-
-set_setup_kwargs(
-    distclass=MyDistribution,
-    cmdclass={
+setup_kwargs = {
+    "package_dir": {"": "src"},
+    "distclass": MyDistribution,
+    "cmdclass": {
         'buildinplace': MyBuildExtInPlaceCommand,
         'build_ext': MyBuildExtCommand,
     },
-)
+}
 
 try:
     setup(ext_modules=ext_modules, **setup_kwargs)
