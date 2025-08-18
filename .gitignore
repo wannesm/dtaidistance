@@ -52,3 +52,4 @@ src/DTAIDistanceC/DTAIDistanceC/jinja
 wm_*
 tests/**/*.png
 *.patch
+docs/figures/_build

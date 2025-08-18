@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to DTAIDistance's documentation!
-========================================
+Welcome to DTAIDistance's documentation
+=======================================
 
 Library for time series distances (e.g. Dynamic Time Warping) used in
 the `DTAI Research Group <https://dtai.cs.kuleuven.be>`__. The library
@@ -26,6 +26,7 @@ Source available on https://github.com/wannesm/dtaidistance.
    usage/installation
    usage/dtw
    usage/ed
+   usage/explain
    usage/clustering
    usage/subsequence
    usage/sequence
