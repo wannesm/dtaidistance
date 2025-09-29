@@ -1001,6 +1001,14 @@ def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
         ndim = 1
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
     if use_lowmem:
+        if "psi" in kwargs:
+            raise ValueError("The argument psi is not supported when use_lowmem=True")
+        if "max_dist" in kwargs:
+            raise ValueError("The argument max_dist is not supported when use_lowmem=True")
+        if "max_step" in kwargs:
+            raise ValueError("The argument max_step is not supported when use_lowmem=True")
+        if "max_length_diff" in kwargs:
+            raise ValueError("The argument max_length_diff is not supported when use_lowmem=True")
         if ndim == 1:
             path, d = dtw_cc.warping_path_lowmem(
                 from_s, to_s, ndim=ndim, **settings_kwargs)
