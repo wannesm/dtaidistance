@@ -33,7 +33,7 @@ targets = {
             ["dtw_distance.jinja.c", "dtw_distances.jinja.c",
              "dtw_warpingpaths.jinja.c", "dtw_dba.jinja.c",
              "dtw_expandwps.jinja.c", "dtw_bestpath.jinja.c",
-             "lb_keogh.jinja.c"]],
+             "lb_keogh.jinja.c", "dtw_dtwh.jinja.c"]],
     "dd_dtw_openmp.c":
         ["dd_dtw_openmp.jinja.c",
             {},

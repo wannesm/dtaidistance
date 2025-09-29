@@ -86,6 +86,34 @@ typedef unsigned char ba_t;
 
 // Print numbers
 void print_nb(seq_t value);
+void print_nbs(seq_t* values, idx_t b, idx_t e);
 void print_ch(char* string);
+
+// Path
+typedef struct {
+    idx_t i;
+    idx_t j;
+} DDPathEntry;
+
+typedef struct {
+    DDPathEntry *array;
+    size_t used;
+    size_t size;
+    seq_t distance;
+} DDPath;
+
+void dd_path_init(DDPath *a, size_t initial_size);
+void dd_path_insert(DDPath *a, idx_t i, idx_t j);
+void dd_path_extend(DDPath *a, DDPath *b);
+void dd_path_extend_woverlap(DDPath *a, DDPath *b, int overlap);
+void dd_path_free(DDPath *a);
+void dd_path_reverse(DDPath *a);
+void dd_path_print(DDPath *path);
+
+// Range
+typedef struct {
+    idx_t b;
+    idx_t e;
+} DDRange;
 
 #endif /* globals_h */

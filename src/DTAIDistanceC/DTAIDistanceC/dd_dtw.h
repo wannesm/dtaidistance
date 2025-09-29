@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <time.h>
+#include <string.h>
 
 #include "dd_globals.h"
 #include "dd_ed.h"
@@ -58,7 +59,7 @@ Settings for DTW operations:
  */
 struct DTWSettings_s {
     idx_t window;
-    seq_t max_dist;
+seq_t max_dist;
     seq_t max_step;
     idx_t max_length_diff;
     seq_t penalty;
@@ -157,6 +158,37 @@ void dtw_srand(unsigned int seed);
 seq_t dtw_warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t *length_i, seq_t avg, int ndim, DTWSettings * settings);
 DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings);
 
+// WP Hirschberg
+struct DTWHSettings_s {
+    int ndim;
+    idx_t window;
+    seq_t penalty;
+};
+typedef struct DTWHSettings_s DTWHSettings;
+
+DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
+                           seq_t* t_s, idx_t t_l,
+                           int ndim, DTWSettings * settings);
+DDPath dtw_wph_rec_sqeuc_typei(seq_t** lines, seq_t* lastline_u, seq_t* lastline_b,
+                               idx_t f_i0, idx_t f_il,
+                               idx_t t_i0, idx_t t_il,
+                               seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                               const DTWHSettings * settings);
+void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
+                             idx_t f_i0, idx_t f_il,
+                             idx_t t_i0, idx_t t_il,
+                             seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                             const DTWHSettings * settings);
+void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
+                             idx_t f_i0, idx_t f_il,
+                             idx_t t_i0, idx_t t_il,
+                             seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                             const DTWHSettings * settings);
+DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
+                              idx_t t_i0, idx_t t_il,
+                              seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                              const DTWHSettings * settings);
+
 // WPSF
 seq_t dtw_warping_paths_full_ndim_twice(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2,
                                         seq_t *wpsb, seq_t *s1b, seq_t *s2b,
@@ -211,5 +243,8 @@ void dtw_print_wps_compact(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* setting
 void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t inf_cols, DTWSettings* settings);
 void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings);
 void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int i1, idx_t skip, idx_t skipp, idx_t maxj, idx_t minj);
+
+DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
+                                 idx_t f_l, idx_t t_l, idx_t window);
 
 #endif /* dtw_h */

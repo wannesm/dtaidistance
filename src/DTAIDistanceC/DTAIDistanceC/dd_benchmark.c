@@ -746,6 +746,39 @@ void wps_test(void) {
 }
 
 
+void benchmark_hirschberg() {
+    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
+    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0};
+    idx_t l1 = 11;
+    idx_t l2 = 11;
+
+    DTWSettings settings = dtw_settings_default();
+    idx_t i1[l1+l2];
+    idx_t i2[l1+l2];
+    idx_t length_i;
+    for (idx_t i=0; i<l1+l2; i++) {
+        i1[i] = 0;
+        i2[i] = 0;
+    }
+    dtw_warping_path(s1, l1, s2, l2, i1, i2, &length_i, &settings);
+    printf("Version 1:\n[");
+    for (int i=0; i<length_i; i++) {
+        printf("(%zu,%zu), ", i1[i], i2[i]);
+    }
+    printf("]\n");
+    
+    DDPath path;
+    DDPathEntry entry;
+    path = dtw_wph_sqeuc_typei(s1, l1, s2, l2, 1, &settings);
+    printf("Version 2:\n[");
+    for (int i=0; i<path.used; i++) {
+        entry = path.array[i];
+        printf("(%zu,%zu), ", entry.i, entry.j);
+    }
+    printf("]\n");
+}
+
+
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -770,9 +803,10 @@ int main(int argc, const char * argv[]) {
 //    benchmark14();
 //    benchmark15_subsequence();
 //    benchmark15_subsequence2();
-    benchmark_loco();
+//    benchmark_loco();
 //    benchmark_affinity();
 //    wps_test();
+    benchmark_hirschberg();
     
     time(&end_t);
     clock_gettime(CLOCK_REALTIME, &end);

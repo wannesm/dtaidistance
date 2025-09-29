@@ -453,7 +453,7 @@ void loco_path_negativize(idx_t *path, idx_t length, seq_t *wps, idx_t l1, idx_t
         if (p_idx < buffer) {
             cbuffer = p_idx + 1;
         } else if (p_idx > lb) {
-            cbuffer = length = p_idx;
+            cbuffer = length - p_idx;
         } else {
             cbuffer = buffer;
         }
@@ -462,7 +462,7 @@ void loco_path_negativize(idx_t *path, idx_t length, seq_t *wps, idx_t l1, idx_t
         y_l = MAX(inf_cols, j - cbuffer);
         y_r = MIN(j + cbuffer + 1, wps_l2);
         for (idx_t x=x_l; x<x_r; x++) {
-            i_wps = x_l*wps_l2 + y_l;
+            i_wps = x*wps_l2 + y_l;
             for (idx_t y=y_l; y<y_r; y++) {
                 if (wps[i_wps] > 0) {
                     wps[i_wps] = -wps[i_wps];
