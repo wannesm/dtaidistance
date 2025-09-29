@@ -3966,6 +3966,10 @@ seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx
 seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
+    if (wps == NULL) {
+        printf("ERROR: Cannot allocate memory for storing the cumulative cost matrix (wps)");
+        exit(1);
+    }
     seq_t d;
     if (settings->inner_dist == 1) {
         d = dtw_warping_paths_ndim_euclidean(wps, from_s, from_l, to_s, to_l, true, true, true,                        ndim, settings);
