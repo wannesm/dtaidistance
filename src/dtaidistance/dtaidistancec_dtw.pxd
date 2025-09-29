@@ -1,5 +1,5 @@
 
-from dtaidistancec_globals cimport seq_t
+from dtaidistancec_globals cimport seq_t, DDPath
 
 
 cdef extern from "dd_dtw.h":
@@ -88,6 +88,10 @@ cdef extern from "dd_dtw.h":
     seq_t dtw_warping_path_prob_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
                                      Py_ssize_t *from_i, Py_ssize_t *to_i, Py_ssize_t *length_i, seq_t avg, int ndim, DTWSettings * settings)
     DTWWps dtw_wps_parts(Py_ssize_t l1, Py_ssize_t l2, DTWSettings * settings)
+
+    DDPath dtw_wph_sqeuc_typei(seq_t *f_s, Py_ssize_t f_l,
+                               seq_t* t_s, Py_ssize_t t_l,
+                               int ndim, DTWSettings * settings)
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)
     seq_t ub_euclidean_ndim(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, int ndim)

@@ -97,12 +97,12 @@ typedef struct {
 
 typedef struct {
     DDPathEntry *array;
-    size_t used;
-    size_t size;
+    idx_t used;
+    idx_t size;
     seq_t distance;
 } DDPath;
 
-void dd_path_init(DDPath *a, size_t initial_size);
+void dd_path_init(DDPath *a, idx_t initial_size);
 void dd_path_insert(DDPath *a, idx_t i, idx_t j);
 void dd_path_extend(DDPath *a, DDPath *b);
 void dd_path_extend_woverlap(DDPath *a, DDPath *b, int overlap);

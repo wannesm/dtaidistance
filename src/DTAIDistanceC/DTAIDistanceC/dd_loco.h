@@ -54,12 +54,12 @@ seq_t loco_warping_paths_typeIII(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx
 seq_t loco_warping_paths_ndim_typeIII(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim, LoCoSettings *settings);
 
 typedef struct {
-  idx_t *array;
-  size_t used;
-  size_t size;
+    idx_t *array;
+    idx_t used;
+    idx_t size;
 } BestPath;
 
-void best_path_init(BestPath *a, size_t initialSize);
+void best_path_init(BestPath *a, idx_t initialSize);
 void best_path_insert(BestPath *a, idx_t element);
 void best_path_free(BestPath *a);
 BestPath loco_best_path(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int min_size, LoCoSettings *settings);

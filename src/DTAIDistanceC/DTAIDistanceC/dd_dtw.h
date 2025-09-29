@@ -163,6 +163,7 @@ struct DTWHSettings_s {
     int ndim;
     idx_t window;
     seq_t penalty;
+    seq_t switch_to_wps;
 };
 typedef struct DTWHSettings_s DTWHSettings;
 

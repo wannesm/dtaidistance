@@ -4268,7 +4268,8 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     const DTWHSettings hsettings = {
         .ndim = ndim,
         .window =settings->window == 0 ? MAX(f_l, t_l): settings->window,
-        .penalty = settings->penalty*settings->penalty
+        .penalty = settings->penalty*settings->penalty,
+        .switch_to_wps = 1000 // 7.6MiB for 64bit
     };
     
     DDPath path;
@@ -4340,11 +4341,11 @@ DDPath dtw_wph_rec_sqeuc_typei(seq_t** lines, seq_t* lastline_u, seq_t* lastline
         }
         return path;
     }
-    if (t_len == 2 || f_len == 2) {
+    if (t_len <= settings->switch_to_wps && f_len <= settings->switch_to_wps) {
         path = dtw_wph_wp_sqeuc_typei(f_i0, f_il, t_i0, t_il,
                                       f_s, f_l, t_s, t_l, settings);
         #ifdef DTWHDEBUG
-        printf("t_len == 2 || f_len == 2\n");
+        printf("t_len == %zu || f_len == %zu\n", t_len, f_len);
         dd_path_print(&path);
         #endif
         return path;

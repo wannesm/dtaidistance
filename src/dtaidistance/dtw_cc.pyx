@@ -552,6 +552,26 @@ def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, include_distan
         return path, dist
     return path
 
+def warping_path_lowmem(seq_t[:] s1, seq_t[:] s2, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0], len(s1), &s2[0], len(s2), 1, &settings._settings)
+    python_path = []
+    for i in range(path.used):
+        python_path.append((path.array[i].i, path.array[i].j))
+    dtaidistancec_globals.dd_path_free(&path)
+    return python_path, path.distance
+
+def warping_path_lowmem_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, **kwargs):
+    # Assumes C contiguous
+    settings = DTWSettings(**kwargs)
+    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim, &settings._settings)
+    python_path = []
+    for i in range(path.used):
+        python_path.append((path.array[i].i, path.array[i].j))
+    dtaidistancec_globals.dd_path_free(&path)
+    return python_path, path.distance
+
 def wps_negativize_value(DTWWps p, seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c):
     dtaidistancec_dtw.dtw_wps_negativize_value(&p._wps, &wps[0,0], l1, l2, r, c)
 

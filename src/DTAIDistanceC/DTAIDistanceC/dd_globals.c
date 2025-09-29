@@ -39,7 +39,7 @@ void print_ch(char* string) {
 
 // MARK: Path
 
-void dd_path_init(DDPath *a, size_t initial_size) {
+void dd_path_init(DDPath *a, idx_t initial_size) {
     if (initial_size > 0) {
         a->array = malloc(initial_size * sizeof(DDPathEntry));
         if (a->array == NULL) {

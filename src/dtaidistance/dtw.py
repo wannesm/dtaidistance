@@ -992,11 +992,32 @@ def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs)
     return path
 
 
-def warping_path_fast(from_s, to_s, include_distance=False, **kwargs):
+def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
+                      **kwargs):
     """Compute warping path between two sequences."""
+    if len(from_s.shape) > 1:
+        ndim = from_s.shape[1]
+    else:
+        ndim = 1
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
-    result = dtw_cc.warping_path(from_s, to_s, include_distance=include_distance,
-                                 **settings_kwargs)
+    if use_lowmem:
+        if ndim == 1:
+            path, d = dtw_cc.warping_path_lowmem(
+                from_s, to_s, ndim=ndim, **settings_kwargs)
+        else:
+            path, d = dtw_cc.warping_path_lowmem_ndim(
+                from_s, to_s, ndim=ndim, **settings_kwargs)
+        if include_distance:
+            result = path, d
+        result = path
+    elif ndim > 1:
+        result = dtw_cc.warping_path_ndim(
+            from_s, to_s, ndim=ndim, include_distance=include_distance,
+            **settings_kwargs)
+    else:
+        result = dtw_cc.warping_path(
+            from_s, to_s, include_distance=include_distance,
+            **settings_kwargs)
     return result
 
 
