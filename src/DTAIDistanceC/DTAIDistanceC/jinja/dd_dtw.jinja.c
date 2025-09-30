@@ -1690,3 +1690,4 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
     
     return (DDRange){.b=j_b, .e=j_e};
 }
+

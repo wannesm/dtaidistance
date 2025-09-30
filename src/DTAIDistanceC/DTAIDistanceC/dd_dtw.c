@@ -11,6 +11,7 @@
 //#define DTWDEBUG
 //#define DTWHDEBUG
 
+
 // MARK: Settings
 
 /* Create settings struct with default values (all extras deactivated). */
@@ -4385,13 +4386,13 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         }
         assert(t_dm < INFINITY);
         path.distance = t_dm;
-        
+
         // Recurse based on the best split in the to series
         stack[stack_i++] = t_il;
         stack[stack_i++] = t_im;
         stack[stack_i++] = f_il;
         stack[stack_i++] = f_im;
-        
+
         stack[stack_i++] = t_im+1;
         stack[stack_i++] = t_i0;
         stack[stack_i++] = f_im+1;
@@ -4401,7 +4402,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
             printf("ERROR: Stack out of memory");
             exit(1);
         }
-        
+
         #ifdef DTWHDEBUG
         dd_path_print(&path);
         #endif
@@ -4470,8 +4471,8 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
                 d += SEDIST(f_s[i_c*settings->ndim+d_i],
                             t_s[j_c*settings->ndim+d_i]);
             }
-//            printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
-//                   f_i0+i, t_i0+j, f_s[f_i0+i], t_s[t_i0+j], d);
+            //printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
+            //       f_i0+i, t_i0+j, f_s[f_i0+i], t_s[t_i0+j], d);
             minv = lines[0][j-1+inf_cols];
             tempv = lines[0][j+inf_cols] + settings->penalty;
             if (tempv < minv) {minv = tempv;}
