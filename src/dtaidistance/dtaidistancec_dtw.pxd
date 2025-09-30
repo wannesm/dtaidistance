@@ -91,6 +91,7 @@ cdef extern from "dd_dtw.h":
 
     DDPath dtw_wph_sqeuc_typei(seq_t *f_s, Py_ssize_t f_l,
                                seq_t* t_s, Py_ssize_t t_l,
+                               Py_ssize_t switch_to_full,
                                int ndim, DTWSettings * settings)
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)

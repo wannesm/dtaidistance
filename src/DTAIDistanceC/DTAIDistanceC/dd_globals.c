@@ -67,6 +67,13 @@ void dd_path_insert(DDPath *a, idx_t i, idx_t j) {
     a->array[a->used++] = (DDPathEntry){.i=i, .j=j};
 }
 
+void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j) {
+    if (a->used > 0 && a->array[a->used-1].i == i && a->array[a->used-1].j) {
+        return;
+    }
+    dd_path_insert(a, i, j);
+}
+
 void dd_path_extend(DDPath *a, DDPath *b) {
     DDPathEntry entry;
     for (int i=0; i<b->used; i++) {
@@ -75,7 +82,19 @@ void dd_path_extend(DDPath *a, DDPath *b) {
     }
 }
 
-void dd_path_extend_woverlap(DDPath *a, DDPath *b, int overlap) {
+void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, int overlap) {
+    DDPathEntry entry;
+    for (int i=0; i<overlap; i++) {
+        entry = b->array[i];
+        dd_path_insert_wo_doubles(a, entry.i, entry.j);
+    }
+    for (int i=overlap; i<b->used; i++) {
+        entry = b->array[i];
+        dd_path_insert(a, entry.i, entry.j);
+    }
+}
+
+void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, int overlap) {
     DDPathEntry entry;
     for (int i=overlap; i<b->used; i++) {
         entry = b->array[i];

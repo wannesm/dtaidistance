@@ -163,18 +163,14 @@ struct DTWHSettings_s {
     int ndim;
     idx_t window;
     seq_t penalty;
-    seq_t switch_to_wps;
+    seq_t switch_to_full;
 };
 typedef struct DTWHSettings_s DTWHSettings;
 
 DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
                            seq_t* t_s, idx_t t_l,
+                           idx_t switch_to_full,
                            int ndim, DTWSettings * settings);
-DDPath dtw_wph_rec_sqeuc_typei(seq_t** lines, seq_t* lastline_u, seq_t* lastline_b,
-                               idx_t f_i0, idx_t f_il,
-                               idx_t t_i0, idx_t t_il,
-                               seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
-                               const DTWHSettings * settings);
 void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
                              idx_t f_i0, idx_t f_il,
                              idx_t t_i0, idx_t t_il,

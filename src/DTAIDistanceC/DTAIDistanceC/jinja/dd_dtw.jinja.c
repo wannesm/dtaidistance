@@ -9,6 +9,7 @@
 
 
 //#define DTWDEBUG
+//#define DTWHDEBUG
 
 
 // MARK: Settings

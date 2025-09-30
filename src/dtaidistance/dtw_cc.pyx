@@ -552,20 +552,20 @@ def warping_path_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, include_distan
         return path, dist
     return path
 
-def warping_path_lowmem(seq_t[:] s1, seq_t[:] s2, **kwargs):
+def warping_path_lowmem(seq_t[:] s1, seq_t[:] s2, int switch_to_full=1000, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0], len(s1), &s2[0], len(s2), 1, &settings._settings)
+    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0], len(s1), &s2[0], len(s2), switch_to_full, 1, &settings._settings)
     python_path = []
     for i in range(path.used):
         python_path.append((path.array[i].i, path.array[i].j))
     dtaidistancec_globals.dd_path_free(&path)
     return python_path, path.distance
 
-def warping_path_lowmem_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int ndim=1, **kwargs):
+def warping_path_lowmem_ndim(seq_t[:, :] s1, seq_t[:, :] s2, int switch_to_full=1000, int ndim=1, **kwargs):
     # Assumes C contiguous
     settings = DTWSettings(**kwargs)
-    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0,0], len(s1), &s2[0,0], len(s2), ndim, &settings._settings)
+    path = dtaidistancec_dtw.dtw_wph_sqeuc_typei(&s1[0,0], len(s1), &s2[0,0], len(s2), switch_to_full, ndim, &settings._settings)
     python_path = []
     for i in range(path.used):
         python_path.append((path.array[i].i, path.array[i].j))

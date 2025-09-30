@@ -104,8 +104,10 @@ typedef struct {
 
 void dd_path_init(DDPath *a, idx_t initial_size);
 void dd_path_insert(DDPath *a, idx_t i, idx_t j);
+void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j);
 void dd_path_extend(DDPath *a, DDPath *b);
-void dd_path_extend_woverlap(DDPath *a, DDPath *b, int overlap);
+void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, int overlap);
+void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, int overlap);
 void dd_path_free(DDPath *a);
 void dd_path_reverse(DDPath *a);
 void dd_path_print(DDPath *path);

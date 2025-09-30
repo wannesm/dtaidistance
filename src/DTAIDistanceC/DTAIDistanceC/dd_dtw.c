@@ -9,7 +9,7 @@
 
 
 //#define DTWDEBUG
-
+//#define DTWHDEBUG
 
 // MARK: Settings
 
@@ -4245,12 +4245,17 @@ seq_t dtw_warping_paths_full_ndim_twice(seq_t *wps,
  @param f_l Length of from array
  @param t_s To array
  @param t_l Length of to array
+ @param switch_to_full When to use the full reprensentation for warping paths
+    Memory will by O(switch_to_full*switch_to_full) for these calls. This needs to be
+    minimally 2 and can be as large as there is memory available (e.g. 1000 woud be
+    around 7.6MiB for 64 bit representations).
  @param ndim Number of dimensions
  @param settings for Dynamic Time Warping.
  @return DDPath structure
 */
 DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
                            seq_t* t_s, idx_t t_l,
+                           idx_t switch_to_full,
                            int ndim, DTWSettings * settings) {
     // No support for psi relaxation
     assert(settings->psi_1b == 0 && settings->psi_1e == 0);
@@ -4265,11 +4270,14 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     const idx_t inf_rows = 1;
     const idx_t width = t_l + inf_cols;
     
+    if (switch_to_full < 2) {
+        switch_to_full = 2;
+    }
     const DTWHSettings hsettings = {
         .ndim = ndim,
         .window =settings->window == 0 ? MAX(f_l, t_l): settings->window,
         .penalty = settings->penalty*settings->penalty,
-        .switch_to_wps = 1000 // 7.6MiB for 64bit
+        .switch_to_full = switch_to_full // 1000 would be 7.6MiB for 64bit
     };
     
     DDPath path;
@@ -4288,9 +4296,116 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         exit(1);
     }
     
-    path = dtw_wph_rec_sqeuc_typei(lines, lastline_u, lastline_b,
-                                   0, f_l, 0, t_l,
-                                   f_s, f_l, t_s, t_l, &hsettings);
+    idx_t f_i0, f_il, t_i0, t_il;
+    idx_t f_im, t_im;
+    seq_t dist, t_dm;
+    idx_t f_ll;
+    idx_t t_ll;
+    DDPath temppath;
+    int stack_i = 0;
+    int stack_size = round(log2(MAX(f_l,t_l))*2*4);
+    idx_t stack[stack_size];
+    dd_path_init(&path, round(f_l*1.2));
+    
+    stack[stack_i++] = t_l;
+    stack[stack_i++] = 0;
+    stack[stack_i++] = f_l;
+    stack[stack_i++] = 0;
+    while (stack_i > 0) {
+        f_i0 = stack[--stack_i];
+        f_il = stack[--stack_i];
+        t_i0 = stack[--stack_i];
+        t_il = stack[--stack_i];
+        #ifdef DTWHDEBUG
+        printf("== rec call ([%zu,%zu],[%zu,%zu])\n", f_i0, f_il, t_i0, t_il);
+        #endif
+        assert(f_il >= f_i0);
+        assert(t_il >= t_i0);
+        f_ll = f_il - f_i0;
+        t_ll = t_il - t_i0;
+
+        if (f_ll == 0) {
+            dd_path_insert_wo_doubles(&path, f_i0, t_i0);
+            continue;
+        }
+        if (t_ll == 0) {
+            dd_path_insert_wo_doubles(&path, f_i0, t_i0);
+            continue;
+        }
+        if (f_ll == 1) {
+            dd_path_insert_wo_doubles(&path, f_i0, t_i0);
+            for (idx_t t_i=t_i0+1; t_i<t_il; t_i++) {
+                dd_path_insert(&path, f_i0, t_i);
+            }
+            continue;
+        }
+        if (t_ll == 1) {
+            dd_path_insert_wo_doubles(&path, f_i0, f_i0);
+            for (idx_t f_i=f_i0+1; f_i<f_il; f_i++) {
+                dd_path_insert(&path, f_i, t_i0);
+            }
+            continue;
+        }
+        if (t_ll <= hsettings.switch_to_full || f_ll <= hsettings.switch_to_full) {
+            temppath = dtw_wph_wp_sqeuc_typei(f_i0, f_il, t_i0, t_il,
+                                          f_s, f_l, t_s, t_l, &hsettings);
+            #ifdef DTWHDEBUG
+            printf("t_len == %zu || f_len == %zu\n", t_ll, f_ll);
+            dd_path_print(&temppath);
+            #endif
+            dd_path_extend_wo_doubles(&path, &temppath, 1);
+            dd_path_free(&temppath);
+            continue;
+        }
+
+        f_im = (f_i0 + f_il - 1) / 2;
+        dtw_wph_llf_sqeuc_typei(lines, lastline_u,
+                               f_i0, f_im+1, t_i0, t_il,
+                               f_s, f_l, t_s, t_l,
+                               &hsettings);
+        dtw_wph_llr_sqeuc_typei(lines, lastline_b,
+                               f_im+1, f_il, t_i0, t_il,
+                               f_s, f_l, t_s, t_l,
+                               &hsettings);
+        // Select smallest distance after adding the prefix and postfix lastlines
+        // as best split in the to series
+        t_dm = INFINITY;
+        t_im = 0;
+        for (idx_t i=0; i<t_ll; i++) {
+            dist = lastline_u[i] + lastline_b[i];
+            #ifdef DTWHDEBUG
+            printf("dist[%zu,%zu] = u[%zu] + b[%zu] = %f\n",
+                   f_im, t_i0 + i, i, i, dist);
+            #endif
+            // Smallest value or if equal closest to diagonal
+            if (dist < t_dm || (dist == t_dm && (labs(t_i0+i-f_im) < labs(t_im-f_im)))) {
+                t_dm = dist;
+                t_im = t_i0 + i;
+            }
+        }
+        assert(t_dm < INFINITY);
+        path.distance = t_dm;
+        
+        // Recurse based on the best split in the to series
+        stack[stack_i++] = t_il;
+        stack[stack_i++] = t_im;
+        stack[stack_i++] = f_il;
+        stack[stack_i++] = f_im;
+        
+        stack[stack_i++] = t_im+1;
+        stack[stack_i++] = t_i0;
+        stack[stack_i++] = f_im+1;
+        stack[stack_i++] = f_i0;
+
+        if (stack_i > stack_size) {
+            printf("ERROR: Stack out of memory");
+            exit(1);
+        }
+        
+        #ifdef DTWHDEBUG
+        dd_path_print(&path);
+        #endif
+    }
 
     // Clean up
     for (int i=0; i<(inf_rows + 1); i++) {
@@ -4298,105 +4413,6 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     }
     free(lastline_u);
     free(lastline_b);
-    return path;
-}
-
-DDPath dtw_wph_rec_sqeuc_typei(seq_t** lines, seq_t* lastline_u, seq_t* lastline_b,
-                             idx_t f_i0, idx_t f_il,
-                             idx_t t_i0, idx_t t_il,
-                             seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
-                             const DTWHSettings * settings) {
-    #ifdef DTWHDEBUG
-    printf("== rec call ([%zu,%zu],[%zu,%zu])\n", f_i0, f_il, t_i0, t_il);
-    #endif
-    assert(f_il >= f_i0);
-    assert(t_il >= t_i0);
-    idx_t f_im, t_im;
-    seq_t dist, t_dm;
-    DDPath path, path2;
-    idx_t f_len = f_il - f_i0;
-    idx_t t_len = t_il - t_i0;
-
-    if (f_len == 0) {
-        dd_path_init(&path, 1);
-        dd_path_insert(&path, f_i0, t_i0);
-        return path;
-    }
-    if (t_len == 0) {
-        dd_path_init(&path, 1);
-        dd_path_insert(&path, f_i0, t_i0);
-        return path;
-    }
-    if (f_len == 1) {
-        dd_path_init(&path, t_len);
-        for (idx_t t_i=t_i0; t_i<t_il; t_i++) {
-            dd_path_insert(&path, f_i0, t_i);
-        }
-        return path;
-    }
-    if (t_len == 1) {
-        dd_path_init(&path, f_len);
-        for (idx_t f_i=f_i0; f_i<f_il; f_i++) {
-            dd_path_insert(&path, f_i, t_i0);
-        }
-        return path;
-    }
-    if (t_len <= settings->switch_to_wps && f_len <= settings->switch_to_wps) {
-        path = dtw_wph_wp_sqeuc_typei(f_i0, f_il, t_i0, t_il,
-                                      f_s, f_l, t_s, t_l, settings);
-        #ifdef DTWHDEBUG
-        printf("t_len == %zu || f_len == %zu\n", t_len, f_len);
-        dd_path_print(&path);
-        #endif
-        return path;
-    }
-    
-    f_im = (f_i0 + f_il - 1) / 2;
-    dtw_wph_llf_sqeuc_typei(lines, lastline_u,
-                           f_i0, f_im+1, t_i0, t_il,
-                           f_s, f_l, t_s, t_l,
-                           settings);
-    dtw_wph_llr_sqeuc_typei(lines, lastline_b,
-                           f_im+1, f_il, t_i0, t_il,
-                           f_s, f_l, t_s, t_l,
-                           settings);
-    // Select smallest distance after adding the prefix and postfix lastlines
-    // as best split in the to series
-    t_dm = INFINITY;
-    t_im = 0;
-    for (idx_t i=0; i<t_len; i++) {
-        dist = lastline_u[i] + lastline_b[i];
-        #ifdef DTWHDEBUG
-        printf("dist[%zu,%zu] = u[%zu] + b[%zu] = %f\n",
-               f_im, t_i0 + i, i, i, dist);
-        #endif
-        // Smallest value or if equal closest to diagonal
-        if (dist < t_dm || (dist == t_dm && (labs(t_i0+i-f_im) < labs(t_im-f_im)))) {
-            t_dm = dist;
-            t_im = t_i0 + i;
-        }
-    }
-    assert(t_dm < INFINITY);
-    
-    // Recurse based on the best split in the to series
-    path = dtw_wph_rec_sqeuc_typei(lines, lastline_u, lastline_b,
-                                   f_i0, f_im+1,
-                                   t_i0, t_im+1,
-                                   f_s, f_l, t_s, t_l,
-                                   settings);
-    path2 = dtw_wph_rec_sqeuc_typei(lines, lastline_u, lastline_b,
-                                    f_im, f_il,
-                                    t_im, t_il,
-                                    f_s, f_l, t_s, t_l,
-                                    settings);
-    assert(path.array[path.used-1].i == path2.array[0].i);
-    assert(path.array[path.used-1].j == path2.array[0].j);
-    dd_path_extend_woverlap(&path, &path2, 1);
-    dd_path_free(&path2);
-    path.distance = t_dm;
-    #ifdef DTWHDEBUG
-    dd_path_print(&path);
-    #endif
     return path;
 }
 
@@ -4454,8 +4470,8 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
                 d += SEDIST(f_s[i_c*settings->ndim+d_i],
                             t_s[j_c*settings->ndim+d_i]);
             }
-            //printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
-            //       f_i0+i, t_i0+j, f_s[f_i0+i], t_s[t_i0+j], d);
+//            printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
+//                   f_i0+i, t_i0+j, f_s[f_i0+i], t_s[t_i0+j], d);
             minv = lines[0][j-1+inf_cols];
             tempv = lines[0][j+inf_cols] + settings->penalty;
             if (tempv < minv) {minv = tempv;}

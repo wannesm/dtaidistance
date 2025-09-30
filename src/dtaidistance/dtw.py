@@ -994,11 +994,20 @@ def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs)
 
 def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
                       **kwargs):
-    """Compute warping path between two sequences."""
+    """Compute warping path between two sequences.
+
+    :param use_lowmem: Switch to a low-memory version of the warping path
+        algorithm (at the expense of speed). If, instead of a boolean, an
+        int value is given then this will be used to set the largest block
+        that can be computed at maximal memory usage (i.e, O(value*value)).
+    """
     if len(from_s.shape) > 1:
         ndim = from_s.shape[1]
     else:
         ndim = 1
+    switch_to_full = 1000
+    if type(use_lowmem) is int:
+        switch_to_full = use_lowmem
     from_s, to_s, settings_kwargs = warping_path_args_to_c(from_s, to_s, **kwargs)
     if use_lowmem:
         if "psi" in kwargs:
@@ -1011,10 +1020,12 @@ def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
             raise ValueError("The argument max_length_diff is not supported when use_lowmem=True")
         if ndim == 1:
             path, d = dtw_cc.warping_path_lowmem(
-                from_s, to_s, ndim=ndim, **settings_kwargs)
+                from_s, to_s, switch_to_full=switch_to_full,
+                ndim=ndim, **settings_kwargs)
         else:
             path, d = dtw_cc.warping_path_lowmem_ndim(
-                from_s, to_s, ndim=ndim, **settings_kwargs)
+                from_s, to_s, switch_to_full=switch_to_full,
+                ndim=ndim, **settings_kwargs)
         if include_distance:
             result = path, d
         result = path
