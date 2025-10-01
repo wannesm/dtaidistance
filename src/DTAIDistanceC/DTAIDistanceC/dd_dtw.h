@@ -3,7 +3,7 @@
 @brief DTAIDistance.dtw : Dynamic Time Warping
 
 @author Wannes Meert
-@copyright Copyright © 2020 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
+@copyright Copyright © 2020-2025 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
 */
 
 #ifndef dtw_h
@@ -163,6 +163,7 @@ struct DTWHSettings_s {
     int ndim;
     idx_t window;
     seq_t penalty;
+    seq_t max_cost;
     seq_t switch_to_full;
 };
 typedef struct DTWHSettings_s DTWHSettings;

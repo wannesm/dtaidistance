@@ -4263,7 +4263,6 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     assert(settings->psi_2b == 0 && settings->psi_2e == 0);
     // No support for pruning, max_dist, max_step, max_length_diff
     assert(!settings->use_pruning);
-    assert(settings->max_dist == 0);
     assert(settings->max_step == 0);
     assert(settings->max_length_diff == 0);
     
@@ -4278,6 +4277,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         .ndim = ndim,
         .window =settings->window == 0 ? MAX(f_l, t_l): settings->window,
         .penalty = settings->penalty*settings->penalty,
+        .max_cost = settings->max_dist == 0 ? INFINITY : settings->max_dist*settings->max_dist,
         .switch_to_full = switch_to_full // 1000 would be 7.6MiB for 64bit
     };
     
@@ -4386,6 +4386,10 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         }
         assert(t_dm < INFINITY);
         path.distance = t_dm;
+        if (t_dm > hsettings.max_cost) {
+            path.distance = INFINITY;
+            return path;
+        }
 
         // Recurse based on the best split in the to series
         stack[stack_i++] = t_il;

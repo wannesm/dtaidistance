@@ -1014,8 +1014,6 @@ def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
     if use_lowmem:
         if "psi" in kwargs:
             raise ValueError("The argument psi is not supported when use_lowmem=True")
-        if "max_dist" in kwargs:
-            raise ValueError("The argument max_dist is not supported when use_lowmem=True")
         if "max_step" in kwargs:
             raise ValueError("The argument max_step is not supported when use_lowmem=True")
         if "max_length_diff" in kwargs:
