@@ -68,7 +68,7 @@ void dd_path_insert(DDPath *a, idx_t i, idx_t j) {
 }
 
 void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j) {
-    if (a->used > 0 && a->array[a->used-1].i == i && a->array[a->used-1].j) {
+    if (a->used > 0 && a->array[a->used-1].i == i && a->array[a->used-1].j == j) {
         return;
     }
     dd_path_insert(a, i, j);

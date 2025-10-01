@@ -997,9 +997,11 @@ def warping_path_fast(from_s, to_s, include_distance=False, use_lowmem=False,
     """Compute warping path between two sequences.
 
     :param use_lowmem: Switch to a low-memory version of the warping path
-        algorithm (at the expense of speed). If, instead of a boolean, an
-        int value is given then this will be used to set the largest block
-        that can be computed at maximal memory usage (i.e, O(value*value)).
+        algorithm based on the Hirschberg algorithm (at the expense of speed).
+        If, instead of a boolean, an int value is given then this will be
+        used to set the largest block that can be computed at maximal
+        memory usage (i.e, O(value*value)).
+        This option is not compatible with the Psi-relaxiation.
     """
     if len(from_s.shape) > 1:
         ndim = from_s.shape[1]
