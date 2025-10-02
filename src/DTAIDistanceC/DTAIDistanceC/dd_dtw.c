@@ -4302,6 +4302,8 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     seq_t dist, t_dm;
     idx_t f_ll;
     idx_t t_ll;
+    float rico = ((float)t_l) / f_l;
+    idx_t t_diag;
     DDPath temppath;
     int stack_i = 0;
     int stack_size = round(log2(MAX(f_l,t_l))*2*4);
@@ -4372,6 +4374,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         // as best split in the to series
         t_dm = INFINITY;
         t_im = 0;
+        t_diag = round(f_im*rico);
         for (idx_t i=0; i<t_ll; i++) {
             dist = lastline_u[i] + lastline_b[i];
             #ifdef DTWHDEBUG
@@ -4379,7 +4382,8 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
                    f_im, t_i0 + i, i, i, dist);
             #endif
             // Smallest value or if equal closest to diagonal
-            if (dist < t_dm || (dist == t_dm && (labs(t_i0+i-f_im) < labs(t_im-f_im)))) {
+            //if (dist < t_dm || (dist == t_dm && (labs(t_i0+i-f_im) < labs(t_im-f_im)))) {
+            if (dist < t_dm || (dist == t_dm && (labs(t_i0+i-t_diag) < labs(t_im-t_diag)))) {
                 t_dm = dist;
                 t_im = t_i0 + i;
             }
@@ -4666,7 +4670,7 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
         // printf("]\n");
     }
     
-    dd_path_init(&path, t_ll);
+    dd_path_init(&path, t_ll+f_ll);
     i = inf_rows + f_ll - 1;
     j = inf_cols + t_ll - 1;
     while (i >= inf_rows && j >= inf_cols) {
