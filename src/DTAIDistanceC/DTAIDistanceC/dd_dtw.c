@@ -4276,6 +4276,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     const DTWHSettings hsettings = {
         .ndim = ndim,
         .window =settings->window == 0 ? MAX(f_l, t_l): settings->window,
+        .window_type = settings->window_type,
         .penalty = settings->penalty*settings->penalty,
         .max_cost = settings->max_dist == 0 ? INFINITY : settings->max_dist*settings->max_dist,
         .switch_to_full = switch_to_full // 1000 would be 7.6MiB for 64bit
@@ -4425,6 +4426,21 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     return path;
 }
 
+/*!
+ Compute lastline for block `[f_i0:f_il. t_i0:t_il]` (excluding the last index.
+ 
+ @param lines
+ @param lastline
+ @param f_i0 First index on the from series
+ @param f_il Last index+1 on the from series
+ @param t_i0 First index on the to series
+ @param f_il Last index+1 on the to series
+ @param f_s From series
+ @param f_l From series length
+ @param t_s To series
+ @param t_l To series length
+ @param settings
+*/
 void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
                              idx_t f_i0, idx_t f_il,
                              idx_t t_i0, idx_t t_il,
@@ -4462,7 +4478,7 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
         i_c = f_i0+i;
 
         // Apply window
-        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window);
+        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
         #ifdef DTWHDEBUG
         printf("i=%zu = %zu, j=[%zu,%zu] -> [%zu,%zu]\n", i,i_c,t_i0,t_i0+t_ll,t_i0+j_r.b,t_i0+j_r.e);
         #endif
@@ -4508,6 +4524,21 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
     #endif // DTWHDEBUG
 }
 
+/*!
+ Compute reverse lastline for block `[f_i0:f_il. t_i0:t_il]` (excluding the last index.
+ 
+ @param lines
+ @param lastline
+ @param f_i0 First index on the from series
+ @param f_il Last index+1 on the from series
+ @param t_i0 First index on the to series
+ @param f_il Last index+1 on the to series
+ @param f_s From series
+ @param f_l From series length
+ @param t_s To series
+ @param t_l To series length
+ @param settings
+*/
 void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
                              idx_t f_i0, idx_t f_il,
                              idx_t t_i0, idx_t t_il,
@@ -4546,7 +4577,7 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
         i_c = f_i0+i;
 
         // Apply window
-        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window);
+        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
         #ifdef DTWHDEBUG
         printf("i=%zu -> %zu, j=[0,%zu]=[%zu,%zu] -> [%zu,%zu]=[%zu,%zu]",
                i,i_c, t_ll,t_i0,t_i0+t_ll, j_r.b, j_r.e, t_i0+j_r.b,t_i0+j_r.e);
@@ -4612,6 +4643,20 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
     #endif // DTWHDEBUG
 }
 
+/*!
+ Compute full cumulative cost matrix and path for block
+ `[f_i0:f_il. t_i0:t_il]` (excluding the last index.
+ 
+ @param f_i0 First index on the from series
+ @param f_il Last index+1 on the from series
+ @param t_i0 First index on the to series
+ @param f_il Last index+1 on the to series
+ @param f_s From series
+ @param f_l From series length
+ @param t_s To series
+ @param t_l To series length
+ @param settings
+*/
 DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
                               idx_t t_i0, idx_t t_il,
                               seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
@@ -4624,6 +4669,7 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
     DDPath path;
     idx_t i, j;
     seq_t d, tempv, minv;
+    DDRange j_r;
     
     seq_t *ccm = (seq_t*)malloc(sizeof(seq_t) * (inf_cols + t_ll) * (inf_rows + f_ll));
     seq_t** rows = (seq_t**)malloc(sizeof(seq_t *) * (inf_rows + f_ll));
@@ -4650,8 +4696,12 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
     }
     
     for (i=0; i<f_ll; i++) {
+        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
         // printf("[");
-        for (j=0; j<t_ll; j++) {
+        for (j=0; j<j_r.b; j++) {
+            rows[inf_rows+i][inf_cols+j] = INFINITY;
+        }
+        for (j=j_r.b; j<j_r.e; j++) {
             d = 0;
             for (int d_i=0; d_i<settings->ndim; d_i++) {
                 d += SEDIST(f_s[f_i0*settings->ndim+(i*settings->ndim+d_i)],
@@ -4666,6 +4716,9 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
             rows[inf_rows+i][inf_cols+j] = d + minv;
             // print_nb(rows[inf_rows+i][inf_cols+j]);
             // printf(",");
+        }
+        for (j=j_r.e; j<t_ll; j++) {
+            rows[inf_rows+i][inf_cols+j] = INFINITY;
         }
         // printf("]\n");
     }
@@ -5797,25 +5850,33 @@ void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int 
 }
 
 inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
-                                 idx_t f_l, idx_t t_l, idx_t window) {
+                                 idx_t f_l, idx_t t_l, idx_t window, int window_type) {
+    idx_t lwindow, rwindow;
     idx_t j_b, j_e;
     idx_t i_c = f_i0+i;
     
-    // Difference wrt diagonal starting in top left corner
-    idx_t ldiff = (f_l > t_l)*(f_l - t_l);
-    idx_t rdiff = (f_l <= t_l)*(t_l - f_l);
+    if (window_type == 1) {
+        i_c = round(i_c*(((float)t_l) / f_l));
+        lwindow = window;
+        rwindow = window;
+    } else { // window_type == 0
+        // Difference wrt diagonal starting in top left corner
+        lwindow = window+(f_l > t_l)*(f_l - t_l);
+        rwindow = window+(f_l <= t_l)*(t_l - f_l);
+    }
     
     // Find range in original indices
-    if (i_c > window+ldiff-1) {
-        j_b = i_c - (window+ldiff-1);
+    if (i_c > lwindow-1) {
+        j_b = i_c - (lwindow-1);
     } else {
         j_b = 0;
     }
-    if (t_l-1 < i_c+window+rdiff-1) {
+    if (t_l-1 < i_c+rwindow-1) {
         j_e = t_l-1;
     } else {
-        j_e = i_c + (window+rdiff-1);
+        j_e = i_c + (rwindow-1);
     }
+    j_e = j_e + 1;
 
     // Adapt range to offset indices
     if (j_b < t_i0) {
@@ -5826,8 +5887,6 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
         j_e = t_il;
     }
     j_e -= t_i0;
-    
-    j_e = j_e + 1;
     
     return (DDRange){.b=j_b, .e=j_e};
 }

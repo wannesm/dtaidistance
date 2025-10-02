@@ -1656,25 +1656,33 @@ void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int 
 }
 
 inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
-                                 idx_t f_l, idx_t t_l, idx_t window) {
+                                 idx_t f_l, idx_t t_l, idx_t window, int window_type) {
+    idx_t lwindow, rwindow;
     idx_t j_b, j_e;
     idx_t i_c = f_i0+i;
     
-    // Difference wrt diagonal starting in top left corner
-    idx_t ldiff = (f_l > t_l)*(f_l - t_l);
-    idx_t rdiff = (f_l <= t_l)*(t_l - f_l);
+    if (window_type == 1) {
+        i_c = round(i_c*(((float)t_l) / f_l));
+        lwindow = window;
+        rwindow = window;
+    } else { // window_type == 0
+        // Difference wrt diagonal starting in top left corner
+        lwindow = window+(f_l > t_l)*(f_l - t_l);
+        rwindow = window+(f_l <= t_l)*(t_l - f_l);
+    }
     
     // Find range in original indices
-    if (i_c > window+ldiff-1) {
-        j_b = i_c - (window+ldiff-1);
+    if (i_c > lwindow-1) {
+        j_b = i_c - (lwindow-1);
     } else {
         j_b = 0;
     }
-    if (t_l-1 < i_c+window+rdiff-1) {
+    if (t_l-1 < i_c+rwindow-1) {
         j_e = t_l-1;
     } else {
-        j_e = i_c + (window+rdiff-1);
+        j_e = i_c + (rwindow-1);
     }
+    j_e = j_e + 1;
 
     // Adapt range to offset indices
     if (j_b < t_i0) {
@@ -1685,8 +1693,6 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
         j_e = t_il;
     }
     j_e -= t_i0;
-    
-    j_e = j_e + 1;
     
     return (DDRange){.b=j_b, .e=j_e};
 }
