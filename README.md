@@ -27,6 +27,17 @@ Citing this work:
 > DTAIDistance (Version v2). Zenodo.  
 > http://doi.org/10.5281/zenodo.5901139
 
+    @misc{https://doi.org/10.5281/zenodo.5901139,
+      title     = {wannesm/dtaidistance: v2.3.5},
+      author    = {Wannes Meert and Kilian Hendrickx and 
+                   Toon Van Craenendonck and Pieter Robberechts},
+      publisher = {Zenodo},
+      year      = {2022},
+      copyright = {Open Access},
+      doi       = {10.5281/ZENODO.5901139},
+      url       = {https://zenodo.org/record/5901139},
+    }
+
 **New in v2**:
 
 - Numpy is now an optional dependency, also to compile the C library
