@@ -771,7 +771,7 @@ void benchmark_hirschberg() {
     DDPathEntry entry;
     path = dtw_wph_sqeuc_typei(s1, l1, s2, l2, 1, &settings);
     printf("Version 2:\n[");
-    for (int i=0; i<path.used; i++) {
+    for (int i=0; i<path.length; i++) {
         entry = path.array[i];
         printf("(%zu,%zu), ", entry.i, entry.j);
     }

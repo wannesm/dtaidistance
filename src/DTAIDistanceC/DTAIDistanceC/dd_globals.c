@@ -39,36 +39,48 @@ void print_ch(char* string) {
 
 // MARK: Path
 
-void dd_path_init(DDPath *a, idx_t initial_size) {
-    if (initial_size > 0) {
-        a->array = malloc(initial_size * sizeof(DDPathEntry));
+void dd_path_init(DDPath *a, idx_t initial_capacity) {
+    if (initial_capacity > 0) {
+        a->array = malloc(initial_capacity * sizeof(DDPathEntry));
         if (a->array == NULL) {
             printf("ERROR: cannot allocate memory for storing the path");
             exit(1);
         }
+    } else {
+        a->array = NULL;
     }
-    a->used = 0;
-    a->size = initial_size;
+    a->length = 0;
+    a->capacity = initial_capacity;
     a->distance = 0;
 }
 
 void dd_path_insert(DDPath *a, idx_t i, idx_t j) {
-    DDPathEntry* array_old;
-    if (a->used == a->size) {
-        a->size *= 2;
-        array_old = a->array;
-        a->array = realloc(a->array, a->size * sizeof(DDPathEntry));
+    DDPathEntry* array_new;
+    if (a->length == a->capacity) {
         if (a->array == NULL) {
-            printf("ERROR: cannot allocate memory for storing the path");
-            free(array_old);
-            exit(1);
+            dd_path_init(a, 2);
+        } else {
+            assert(a->capacity > 0);
+            a->capacity *= 2;
+            array_new = realloc(a->array, a->capacity * sizeof(DDPathEntry));
+            if (array_new == NULL) {
+                printf("ERROR: cannot allocate memory for storing the path");
+                if (a->array != NULL ){
+                    free(a->array);
+                    a->array = NULL;
+                }
+                exit(1);
+                return;
+            } else {
+                a->array = array_new;
+            }
         }
     }
-    a->array[a->used++] = (DDPathEntry){.i=i, .j=j};
+    a->array[a->length++] = (DDPathEntry){.i=i, .j=j};
 }
 
 void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j) {
-    if (a->used > 0 && a->array[a->used-1].i == i && a->array[a->used-1].j == j) {
+    if (a->length > 0 && a->array[a->length-1].i == i && a->array[a->length-1].j == j) {
         return;
     }
     dd_path_insert(a, i, j);
@@ -76,51 +88,55 @@ void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j) {
 
 void dd_path_extend(DDPath *a, DDPath *b) {
     DDPathEntry entry;
-    for (int i=0; i<b->used; i++) {
+    for (int i=0; i<b->length; i++) {
         entry = b->array[i];
         dd_path_insert(a, entry.i, entry.j);
     }
 }
 
-void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, int overlap) {
+void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, idx_t overlap) {
     DDPathEntry entry;
-    for (int i=0; i<overlap; i++) {
+    if (overlap > b->length) {
+        overlap = b->length;
+    }
+    for (idx_t i=0; i<overlap; i++) {
         entry = b->array[i];
         dd_path_insert_wo_doubles(a, entry.i, entry.j);
     }
-    for (int i=overlap; i<b->used; i++) {
+    for (idx_t i=overlap; i<b->length; i++) {
         entry = b->array[i];
         dd_path_insert(a, entry.i, entry.j);
     }
 }
 
-void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, int overlap) {
+void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, idx_t overlap) {
     DDPathEntry entry;
-    for (int i=overlap; i<b->used; i++) {
+    for (idx_t i=overlap; i<b->length; i++) {
         entry = b->array[i];
         dd_path_insert(a, entry.i, entry.j);
     }
 }
 
 void dd_path_free(DDPath *a) {
-  free(a->array);
-  a->array = NULL;
-  a->used = a->size = 0;
+    free(a->array);
+    a->array = NULL;
+    a->length = a->capacity = 0;
+    a->distance = 0;
 }
 
 void dd_path_reverse(DDPath *a) {
     DDPathEntry temp;
-    for (int i=0; i<a->used/2; i++) {
+    for (int i=0; i<a->length/2; i++) {
         temp = a->array[i];
-        a->array[i] = a->array[a->used-1-i];
-        a->array[a->used-1-i] = temp;
+        a->array[i] = a->array[a->length-1-i];
+        a->array[a->length-1-i] = temp;
     }
 }
 
 void dd_path_print(DDPath *path) {
     DDPathEntry *entry;
     printf("[");
-    for (int i=0; i<path->used; i++) {
+    for (int i=0; i<path->length; i++) {
         entry = &path->array[i];
         if (i!=0) {
             printf(",");

@@ -2976,7 +2976,7 @@ the implied matrix.
  */
 idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -3093,7 +3093,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
     // TODO: the loops can be skipped and replaced by an addition per section
     idx_t ri, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -3177,7 +3177,7 @@ Get maximal value in matrix
  */
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
     seq_t maxval = 0;
     idx_t maxidx = 0;
@@ -4323,8 +4323,8 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         #ifdef DTWHDEBUG
         printf("== rec call ([%zu,%zu],[%zu,%zu])\n", f_i0, f_il, t_i0, t_il);
         #endif
-        assert(f_il >= f_i0);
-        assert(t_il >= t_i0);
+        assert(f_il > f_i0);
+        assert(t_il > t_i0);
         f_ll = f_il - f_i0;
         t_ll = t_il - t_i0;
 
@@ -4352,7 +4352,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         }
         if (t_ll <= hsettings.switch_to_full || f_ll <= hsettings.switch_to_full) {
             temppath = dtw_wph_wp_sqeuc_typei(f_i0, f_il, t_i0, t_il,
-                                          f_s, f_l, t_s, t_l, &hsettings);
+                                              f_s, f_l, t_s, t_l, &hsettings);
             #ifdef DTWHDEBUG
             printf("t_len == %zu || f_len == %zu\n", t_ll, f_ll);
             dd_path_print(&temppath);
@@ -4393,7 +4393,8 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
         path.distance = t_dm;
         if (t_dm > hsettings.max_cost) {
             path.distance = INFINITY;
-            return path;
+            // Stop searching for path
+            break;
         }
 
         // Recurse based on the best split in the to series
@@ -4429,17 +4430,17 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
 /*!
  Compute lastline for block `[f_i0:f_il. t_i0:t_il]` (excluding the last index.
  
- @param lines
- @param lastline
+ @param lines Memory for storing temporary values, at least inf_rows + 1 lines
+ @param lastline Memory where the values that need to be returned are stored
  @param f_i0 First index on the from series
  @param f_il Last index+1 on the from series
  @param t_i0 First index on the to series
- @param f_il Last index+1 on the to series
+ @param t_il Last index+1 on the to series
  @param f_s From series
  @param f_l From series length
  @param t_s To series
  @param t_l To series length
- @param settings
+ @param settings A DTWHSettings struct
 */
 void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
                              idx_t f_i0, idx_t f_il,
@@ -4482,6 +4483,9 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
         #ifdef DTWHDEBUG
         printf("i=%zu = %zu, j=[%zu,%zu] -> [%zu,%zu]\n", i,i_c,t_i0,t_i0+t_ll,t_i0+j_r.b,t_i0+j_r.e);
         #endif
+        assert(j_r.e > 0);
+        assert(j_r.e <= t_il);
+        assert(j_r.b < t_il);
         
         // Set first columns to infinity + columns outside of window
         for (j=0; j<(inf_cols+j_r.b); j++) {
@@ -4527,17 +4531,17 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
 /*!
  Compute reverse lastline for block `[f_i0:f_il. t_i0:t_il]` (excluding the last index.
  
- @param lines
- @param lastline
+ @param lines Memory for storing temporary values, at least inf_rows + 1 lines
+ @param lastline Memory where the values that need to be returned are stored
  @param f_i0 First index on the from series
  @param f_il Last index+1 on the from series
  @param t_i0 First index on the to series
- @param f_il Last index+1 on the to series
+ @param t_il Last index+1 on the to series
  @param f_s From series
  @param f_l From series length
  @param t_s To series
  @param t_l To series length
- @param settings
+ @param settings A DTWHSettings struct
 */
 void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
                              idx_t f_i0, idx_t f_il,
@@ -4579,12 +4583,12 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
         // Apply window
         j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
         #ifdef DTWHDEBUG
-        printf("i=%zu -> %zu, j=[0,%zu]=[%zu,%zu] -> [%zu,%zu]=[%zu,%zu]",
+        printf("i=%zu -> %zu, j=[0,%zu]=[%zu,%zu] -> [%zu,%zu]=[%zu,%zu]\n",
                i,i_c, t_ll,t_i0,t_i0+t_ll, j_r.b, j_r.e, t_i0+j_r.b,t_i0+j_r.e);
         #endif
 
         // Set last columns to infinity + columns outside of window
-        for (j=inf_cols+t_ll; j>=j_r.e; j--) {
+        for (j=inf_cols+t_ll-1; j>=j_r.e; j--) {
             lines[1][j] = INFINITY;
         }
         // Fill up line with cumulative distance
@@ -4596,8 +4600,10 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
                             t_s[j_c*settings->ndim+d_i]);
             }
             // d = SEDIST(f_s[f_i_b+dir*i], t_s[t_i_b+dir*j]);
-            //printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
-            //       i_c, j_c, f_s[i_c], t_s[j_c], d);
+            #ifdef DTWHDEBUG
+            printf("d = d(f[%zu],t[%zu]) = d(%f,%f) = %f\n",
+                   i_c, j_c, f_s[i_c], t_s[j_c], d);
+            #endif
             minv = lines[0][j+1];
             tempv = lines[0][j] + settings->penalty;
             if (tempv < minv) {minv = tempv;}
@@ -4650,12 +4656,12 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
  @param f_i0 First index on the from series
  @param f_il Last index+1 on the from series
  @param t_i0 First index on the to series
- @param f_il Last index+1 on the to series
+ @param t_il Last index+1 on the to series
  @param f_s From series
  @param f_l From series length
  @param t_s To series
  @param t_l To series length
- @param settings
+ @param settings A DTWHSettings struct
 */
 DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
                               idx_t t_i0, idx_t t_il,
@@ -4697,6 +4703,12 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
     
     for (i=0; i<f_ll; i++) {
         j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
+        #ifdef DTWHDEBUG
+        printf("i=%zu = %zu, j=[%zu,%zu] -> [%zu,%zu] (w=%zu)\n",
+               i,f_i0+i,t_i0,t_i0+t_ll,t_i0+j_r.b,t_i0+j_r.e,settings->window);
+        #endif
+        assert(!(settings->window == 0 || settings->window == MAX(t_l, f_l)) || (j_r.b == 0 && j_r.e == t_ll));
+        assert (!(settings->window > 0 || settings->window < MAX(t_l, f_l)) || (j_r.b < t_ll && j_r.e <= t_ll));
         // printf("[");
         for (j=0; j<j_r.b; j++) {
             rows[inf_rows+i][inf_cols+j] = INFINITY;
@@ -5853,40 +5865,44 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
                                  idx_t f_l, idx_t t_l, idx_t window, int window_type) {
     idx_t lwindow, rwindow;
     idx_t j_b, j_e;
-    idx_t i_c = f_i0+i;
+    idx_t j_m; // Location of the middle of the window
+    assert(t_il <= t_l);
     
     if (window_type == 1) {
-        i_c = round(i_c*(((float)t_l) / f_l));
+        // Window wrt the slanted diagonal
+        j_m = round((f_i0+i)*(((float)t_l) / f_l));
         lwindow = window;
         rwindow = window;
     } else { // window_type == 0
-        // Difference wrt diagonal starting in top left corner
+        // Window wrt the two diagonals, one starting in the
+        // top left corner, one in the lower right corner
+        j_m = f_i0 + i;  // Express wrt diagonal starting in TL corner
         lwindow = window+(f_l > t_l)*(f_l - t_l);
         rwindow = window+(f_l <= t_l)*(t_l - f_l);
     }
     
     // Find range in original indices
-    if (i_c > lwindow-1) {
-        j_b = i_c - (lwindow-1);
+    if (j_m > lwindow-1) {
+        j_b = j_m - (lwindow-1);
     } else {
         j_b = 0;
     }
-    if (t_l-1 < i_c+rwindow-1) {
+    if (t_l-1 < j_m+rwindow-1) {
         j_e = t_l-1;
     } else {
-        j_e = i_c + (rwindow-1);
+        j_e = j_m + (rwindow-1);
     }
-    j_e = j_e + 1;
+    j_e = j_e + 1; // Correct last index to be outside of range
 
     // Adapt range to offset indices
     if (j_b < t_i0) {
         j_b = t_i0;
     }
-    j_b -= t_i0;
+    j_b -= t_i0; // Range relative to t_i0
     if (j_e > t_il) {
         j_e = t_il;
     }
-    j_e -= t_i0;
+    j_e -= t_i0; // Range relative to t_i0
     
     return (DDRange){.b=j_b, .e=j_e};
 }

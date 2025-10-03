@@ -64,4 +64,25 @@ clean:
 	rm -f dd_test
 
 
+.PHONY: dd_benchmark_hirschberg_dmalloc
+dd_benchmark_hirschberg_dmalloc:
+	$(CC) -DDMALLOC -DDMALLOC_FUNC_CHECK -o dd_benchmark_hirschberg \
+		DTAIDistanceC/dd_benchmark_hirschberg.c \
+		DTAIDistanceC/dd_dtw.c \
+		DTAIDistanceC/dd_ed.c \
+		DTAIDistanceC/dd_globals.c \
+		-Wall -g -ldmalloc -I/opt/homebrew/include \
+		-L/opt/homebrew/lib \
+		-I./DTAIDistanceC/
+
+.PHONY: dd_benchmark_hirschberg
+dd_benchmark_hirschberg:
+	$(CC) -DDMALLOC -o dd_benchmark_hirschberg \
+		DTAIDistanceC/dd_benchmark_hirschberg.c \
+		DTAIDistanceC/dd_dtw.c \
+		DTAIDistanceC/dd_ed.c \
+		DTAIDistanceC/dd_globals.c \
+		-Wall -g -I/opt/homebrew/include \
+		-L/opt/homebrew/lib \
+		-I./DTAIDistanceC/
 

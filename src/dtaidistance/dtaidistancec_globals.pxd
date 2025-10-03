@@ -9,8 +9,8 @@ cdef extern from "dd_globals.h":
 
     ctypedef struct DDPath:
         DDPathEntry * array
-        Py_ssize_t used
-        Py_ssize_t size
+        Py_ssize_t length
+        Py_ssize_t capacity
         seq_t distance
 
     void dd_path_free(DDPath *a)

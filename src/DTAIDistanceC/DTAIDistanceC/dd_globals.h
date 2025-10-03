@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+#include <assert.h>
 
 
 /* The sequence type type can be customized by changing the typedef. */
@@ -97,17 +98,17 @@ typedef struct {
 
 typedef struct {
     DDPathEntry *array;
-    idx_t used;
-    idx_t size;
+    idx_t length;
+    idx_t capacity;
     seq_t distance;
 } DDPath;
 
-void dd_path_init(DDPath *a, idx_t initial_size);
+void dd_path_init(DDPath *a, idx_t initial_capacity);
 void dd_path_insert(DDPath *a, idx_t i, idx_t j);
 void dd_path_insert_wo_doubles(DDPath *a, idx_t i, idx_t j);
 void dd_path_extend(DDPath *a, DDPath *b);
-void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, int overlap);
-void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, int overlap);
+void dd_path_extend_wo_doubles(DDPath *a, DDPath *b, idx_t overlap);
+void dd_path_extend_wo_overlap(DDPath *a, DDPath *b, idx_t overlap);
 void dd_path_free(DDPath *a);
 void dd_path_reverse(DDPath *a);
 void dd_path_print(DDPath *path);

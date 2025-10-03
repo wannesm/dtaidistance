@@ -366,7 +366,7 @@ the implied matrix.
  */
 idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -483,7 +483,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
     // TODO: the loops can be skipped and replaced by an addition per section
     idx_t ri, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -567,7 +567,7 @@ Get maximal value in matrix
  */
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
     seq_t maxval = 0;
     idx_t maxidx = 0;
@@ -1659,40 +1659,44 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
                                  idx_t f_l, idx_t t_l, idx_t window, int window_type) {
     idx_t lwindow, rwindow;
     idx_t j_b, j_e;
-    idx_t i_c = f_i0+i;
+    idx_t j_m; // Location of the middle of the window
+    assert(t_il <= t_l);
     
     if (window_type == 1) {
-        i_c = round(i_c*(((float)t_l) / f_l));
+        // Window wrt the slanted diagonal
+        j_m = round((f_i0+i)*(((float)t_l) / f_l));
         lwindow = window;
         rwindow = window;
     } else { // window_type == 0
-        // Difference wrt diagonal starting in top left corner
+        // Window wrt the two diagonals, one starting in the
+        // top left corner, one in the lower right corner
+        j_m = f_i0 + i;  // Express wrt diagonal starting in TL corner
         lwindow = window+(f_l > t_l)*(f_l - t_l);
         rwindow = window+(f_l <= t_l)*(t_l - f_l);
     }
     
     // Find range in original indices
-    if (i_c > lwindow-1) {
-        j_b = i_c - (lwindow-1);
+    if (j_m > lwindow-1) {
+        j_b = j_m - (lwindow-1);
     } else {
         j_b = 0;
     }
-    if (t_l-1 < i_c+rwindow-1) {
+    if (t_l-1 < j_m+rwindow-1) {
         j_e = t_l-1;
     } else {
-        j_e = i_c + (rwindow-1);
+        j_e = j_m + (rwindow-1);
     }
-    j_e = j_e + 1;
+    j_e = j_e + 1; // Correct last index to be outside of range
 
     // Adapt range to offset indices
     if (j_b < t_i0) {
         j_b = t_i0;
     }
-    j_b -= t_i0;
+    j_b -= t_i0; // Range relative to t_i0
     if (j_e > t_il) {
         j_e = t_il;
     }
-    j_e -= t_i0;
+    j_e -= t_i0; // Range relative to t_i0
     
     return (DDRange){.b=j_b, .e=j_e};
 }
