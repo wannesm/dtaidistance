@@ -164,6 +164,9 @@ class CustomInnerDist:
 
 
 def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
+    if np is not None:
+        if np.issubdtype(type(inner_dist), np.integer):
+            inner_dist = int(inner_dist)
     if type(inner_dist) in [str, int]:
         inner_dist = InnerDistType.wrap(inner_dist)
 

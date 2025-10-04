@@ -195,8 +195,9 @@ class DTWSettings:
 
     def set_max_dist(self, s1, s2):
         _, _, ival_fn = innerdistance.inner_dist_fns(self.inner_dist, use_ndim=self.use_ndim)
-        if self.use_pruning:
-            self.adj_max_dist = ival_fn(ub_euclidean(s1, s2, inner_dist=self.inner_dist))
+        if self.use_pruning and (self.max_dist == 0 or self.max_dist is None):
+            self.max_dist = ub_euclidean(s1, s2, inner_dist=self.inner_dist)
+            self.adj_max_dist = ival_fn(self.max_dist)
 
     def kwargs(self):
         return {
