@@ -283,7 +283,7 @@ DDPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, in
     idx_t j = c;
     idx_t f = r*width + c;
     while (i >= inf_rows && j >= inf_cols) {
-        dd_path_insert(&bp, i, j);
+        dd_path_insert(&bp, i-inf_rows, j-inf_cols);
         values[0] = wps[f - d_f[0]]; // diagonal
         values[1] = wps[f - d_f[1]]; // left
         values[2] = wps[f - d_f[2]]; // up
@@ -353,7 +353,7 @@ DDPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, 
     idx_t j = c;
     idx_t f = r*width + c;
     while (i >= inf_rows && j >= inf_cols) {
-        dd_path_insert(&bp, i, j);
+        dd_path_insert(&bp, i-inf_rows, j-inf_cols);
         values[0] = wps[f - d_f[0]]; // diagonal
         values[1] = wps[f - d_f[1]]; // left
         values[2] = wps[f - d_f[2]]; // up
