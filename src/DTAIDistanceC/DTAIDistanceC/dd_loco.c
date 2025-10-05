@@ -251,41 +251,7 @@ seq_t loco_warping_paths_ndim_typeIII(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2
     return 0;
 }
 
-
-// MARK: Best path
-
-void best_path_init(BestPath *a, idx_t initialSize) {
-    a->array = malloc(initialSize * sizeof(idx_t));
-    if (a->array == NULL) {
-        printf("\ERROR: cannot allocate memory for LoCo best path calculation");
-        exit(1);
-    }
-    a->used = 0;
-    a->size = initialSize;
-}
-
-void best_path_insert(BestPath *a, idx_t element) {
-    idx_t* array_old;
-    if (a->used == a->size) {
-        a->size *= 2;
-        array_old = a->array;
-        a->array = realloc(a->array, a->size * sizeof(idx_t));
-        if (a->array == NULL) {
-            printf("\ERROR: cannot allocate memory for LoCo best path calculation");
-            free(array_old);
-            exit(1);
-        }
-    }
-    a->array[a->used++] = element;
-}
-
-void best_path_free(BestPath *a) {
-  free(a->array);
-  a->array = NULL;
-  a->used = a->size = 0;
-}
-
-BestPath loco_best_path(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
+DDPath loco_best_path(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
     switch (settings->step_type) {
         case TypeI:
             return loco_best_path_typeI(wps, l1, l2, r, c, init_size, settings);
@@ -294,11 +260,11 @@ BestPath loco_best_path(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int in
             return loco_best_path_typeIII(wps, l1, l2, r, c, init_size, settings);
             break;
     }
-    return (BestPath){.array = NULL, .used = 0, .size = 0};
+    return (DDPath){.array = NULL, .length = 0, .capacity = 0};
 }
 
 
-BestPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
+DDPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
 
     // Diagonal, left, up
     const idx_t inf_rows = 1;
@@ -308,16 +274,16 @@ BestPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, 
     const idx_t d_c[] = {1, 1, 0};
     const idx_t d_f[] = {width + 1, 1, width};
 
-    BestPath bp;
+    DDPath bp;
     seq_t values[3];
-    best_path_init(&bp, init_size);
+    dd_path_init(&bp, init_size);
     const seq_t penalty = settings->penalty;
     
     idx_t i = r;
     idx_t j = c;
     idx_t f = r*width + c;
     while (i >= inf_rows && j >= inf_cols) {
-        best_path_insert(&bp, f);
+        dd_path_insert(&bp, i, j);
         values[0] = wps[f - d_f[0]]; // diagonal
         values[1] = wps[f - d_f[1]]; // left
         values[2] = wps[f - d_f[2]]; // up
@@ -360,14 +326,15 @@ BestPath loco_best_path_typeI(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, 
         }
     }
     if (i < inf_rows || j < inf_cols) {
-        bp.used -= 1;
+        bp.length -= 1;
     }
+    dd_path_reverse(&bp);
     
     return bp;
 }
 
 
-BestPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
+DDPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c, int init_size, LoCoSettings *settings) {
 
     // Diagonal, left, up
     const idx_t inf_rows = 2;
@@ -377,16 +344,16 @@ BestPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c
     const idx_t d_c[] = {1, 2, 1};
     const idx_t d_f[] = {width + 1, width + 2, 2*width + 1};
 
-    BestPath bp;
+    DDPath bp;
     seq_t values[3];
-    best_path_init(&bp, init_size);
+    dd_path_init(&bp, init_size);
     const seq_t penalty = settings->penalty;
     
     idx_t i = r;
     idx_t j = c;
     idx_t f = r*width + c;
     while (i >= inf_rows && j >= inf_cols) {
-        best_path_insert(&bp, f);
+        dd_path_insert(&bp, i, j);
         values[0] = wps[f - d_f[0]]; // diagonal
         values[1] = wps[f - d_f[1]]; // left
         values[2] = wps[f - d_f[2]]; // up
@@ -429,8 +396,9 @@ BestPath loco_best_path_typeIII(seq_t *wps, idx_t l1, idx_t l2, idx_t r, idx_t c
         }
     }
     if (i < inf_rows || j < inf_cols) {
-        bp.used -= 1;
+        bp.length -= 1;
     }
+    dd_path_reverse(&bp);
     
     return bp;
 }

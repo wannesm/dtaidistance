@@ -56,8 +56,8 @@ static char printFormat[5];
 
 // Step function
 enum StepType_e {
-  TypeI,
-TypeIII
+    TypeI,
+    TypeIII
 };
 typedef enum StepType_e StepType;
 
@@ -67,6 +67,13 @@ enum InnerDist_e {
     Euclidean=1
 };
 typedef enum InnerDist_e InnerDist;
+
+// Window type
+enum WindowType_e {
+    WindowDiagonal=0,
+    WindowSlanted=1
+};
+typedef enum WindowType_e WindowType;
 
 // Min and max macros
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))

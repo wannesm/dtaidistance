@@ -3,6 +3,10 @@
 cdef extern from "dd_globals.h":
     ctypedef double seq_t
 
+    ctypedef enum StepType:
+        TypeI,
+        TypeIII
+
     ctypedef struct DDPathEntry:
         Py_ssize_t i
         Py_ssize_t j

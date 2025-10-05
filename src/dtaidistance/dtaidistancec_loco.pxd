@@ -1,12 +1,8 @@
 
-from dtaidistancec_globals cimport seq_t
+from dtaidistancec_globals cimport seq_t, StepType, DDPath
 from dtaidistancec_dtw cimport DTWSettings
 
 cdef extern from "dd_loco.h":
-    ctypedef enum StepType:
-        TypeI,
-        TypeIII
-
     ctypedef struct LoCoSettings:
         Py_ssize_t window
         seq_t penalty
@@ -18,11 +14,6 @@ cdef extern from "dd_loco.h":
         seq_t delta
         seq_t delta_factor
         StepType step_type
-
-    ctypedef struct BestPath:
-        Py_ssize_t* array
-        size_t used
-        size_t size
 
     LoCoSettings loco_settings_default()
 
@@ -36,9 +27,9 @@ cdef extern from "dd_loco.h":
     void loco_path_negativize(Py_ssize_t *path, Py_ssize_t length, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, int buffer, int inf_rows,
                               int inf_cols)
 
-    void best_path_init(BestPath *a, size_t initialSize)
-    void best_path_insert(BestPath *a, Py_ssize_t element)
-    void best_path_free(BestPath *a)
-    BestPath loco_best_path(seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c, int min_size, LoCoSettings *settings)
+    void best_path_init(DDPath *a, size_t initialSize)
+    void best_path_insert(DDPath *a, Py_ssize_t element)
+    void best_path_free(DDPath *a)
+    DDPath loco_best_path(seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c, int min_size, LoCoSettings *settings)
 
     void loco_wps_argmax(seq_t *wps, Py_ssize_t l, Py_ssize_t *idxs, int n)

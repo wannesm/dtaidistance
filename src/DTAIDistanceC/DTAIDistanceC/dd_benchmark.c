@@ -493,66 +493,6 @@ void benchmark15_subsequence2() {
     dtw_print_wps(wpsb, l1, l2, &settings);
 }
 
-void benchmark_loco() {
-    dtw_printprecision_set(3);
-    double series1[] = {0., -1, -1, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 0, -1, 0};
-    double series2[] = {0.4, -0.9, -1.3, 1, 0.1, 2, 1, 0, 0, 10, 8, 3, 2, 1, 0, 0, 0, -1, 0};
-    idx_t l1 = 19;
-    idx_t l2 = 19;
-    idx_t width = l2 + 2;
-    LoCoSettings settings = loco_settings_default();
-    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * ((l1+2)*(l2+2)));  // 21x21
-    settings.tau = 0.36787944117144233;
-    settings.delta = -0.7357588823428847;
-    settings.delta_factor = 0.1;
-    settings.gamma = 1;
-//    settings.step_type = TypeIII;
-    settings.step_type = TypeI;
-    loco_warping_paths(wps, series1, l1, series2, l2, &settings);
-    loco_print_wps_type(wps, l1, l2, &settings);
-    
-    int n = 11;
-    idx_t maxidx[n];
-    loco_wps_argmax(wps, (l1+2)*(l2+2), maxidx, n);
-    printf("[ ");
-    for (int i=0; i<n; i++) {
-        printf("%zu ", maxidx[i]);
-        printf("(%.3f) ", wps[maxidx[i]]);
-    }
-    printf("]\n");
-    
-    idx_t r = maxidx[0] / width;
-    idx_t c = maxidx[0] % width;
-    
-//    LoCoSettings settings = loco_settings_default();
-//    idx_t l1 = 903-2;
-//    idx_t l2 = 2402-2;
-//    idx_t width = l2 + 2;
-//    idx_t r = 472;
-//    idx_t c = 492;
-//    int N = 903*2402;
-//    
-//    settings.penalty = 0;
-//    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * N);
-//    FILE *ptr_fw;
-//    ptr_fw = fopen("/Users/wannes/Desktop/debug/wps.binarray", "rb");
-//    const size_t ret_code = fread(wps, sizeof(seq_t), N, ptr_fw);
-//    printf("ret_code=%zu\n", ret_code);
-//    fclose(ptr_fw);
-    
-    BestPath bp = loco_best_path(wps, l1, l2, r, c, /*init_size=*/2, &settings);
-    printf("Best path (width=%zi, bp.used=%zi): [", width, bp.used);
-    for (int i=0; i<bp.used; i++) {
-        r = (idx_t)(bp.array[i] / width) - 2;
-        c = (idx_t)(bp.array[i] % width) - 2;
-        printf("%zu [%zu,%zu] ", bp.array[i], r, c);
-    }
-    printf("]\n");
-    
-    free(wps);
-    best_path_free(&bp);
-}
-
 void benchmark_affinity() {
     dtw_printprecision_set(3);
     double s[] = {0, -1, -1, 0, 1, 2, 1};
@@ -746,39 +686,6 @@ void wps_test(void) {
 }
 
 
-void benchmark_hirschberg() {
-    seq_t s1[] = {0, 0, 1, 2, 1, 0, 1, 0, 0, 0, 0};
-    seq_t s2[] = {0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0};
-    idx_t l1 = 11;
-    idx_t l2 = 11;
-
-    DTWSettings settings = dtw_settings_default();
-    idx_t i1[l1+l2];
-    idx_t i2[l1+l2];
-    idx_t length_i;
-    for (idx_t i=0; i<l1+l2; i++) {
-        i1[i] = 0;
-        i2[i] = 0;
-    }
-    dtw_warping_path(s1, l1, s2, l2, i1, i2, &length_i, &settings);
-    printf("Version 1:\n[");
-    for (int i=0; i<length_i; i++) {
-        printf("(%zu,%zu), ", i1[i], i2[i]);
-    }
-    printf("]\n");
-    
-    DDPath path;
-    DDPathEntry entry;
-    path = dtw_wph_sqeuc_typei(s1, l1, s2, l2, 1, &settings);
-    printf("Version 2:\n[");
-    for (int i=0; i<path.length; i++) {
-        entry = path.array[i];
-        printf("(%zu,%zu), ", entry.i, entry.j);
-    }
-    printf("]\n");
-}
-
-
 int main(int argc, const char * argv[]) {
     printf("Benchmarking ...\n");
     time_t start_t, end_t;
@@ -806,7 +713,6 @@ int main(int argc, const char * argv[]) {
 //    benchmark_loco();
 //    benchmark_affinity();
 //    wps_test();
-    benchmark_hirschberg();
     
     time(&end_t);
     clock_gettime(CLOCK_REALTIME, &end);
