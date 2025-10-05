@@ -156,4 +156,3 @@ class test_uses_pandas(ContextDecorator):
                     return
             if issubclass(exc[0], PandasException):
                 return True
-

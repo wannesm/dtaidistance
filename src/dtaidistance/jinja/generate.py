@@ -28,8 +28,8 @@ seq_format = "d"  # https://docs.python.org/3/library/array.html
 seq_tnp = "np.double"  # Numpy type
 
 def change_dd_globals_h():
-    # Also change the type in lib/DTAIDistanceC/DTAIDistanceC/dd_globals.h
-    dd_globals_h = thisdir.parent / "lib" / "DTAIDistanceC" / "DTAIDistanceC" / "dd_globals.h"
+    # Also change the type in src/DTAIDistanceC/DTAIDistanceC/dd_globals.h
+    dd_globals_h = thisdir.parent.parent / "DTAIDistanceC" / "DTAIDistanceC" / "dd_globals.h"
     with FileInput(files=[dd_globals_h], inplace=True) as f:
         for line in f:
             if "typedef" in line and "seq_t" in line:
