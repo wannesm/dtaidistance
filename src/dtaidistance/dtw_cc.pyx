@@ -150,11 +150,6 @@ cdef class DTWSettings:
                 self._settings.use_pruning = False
             else:
                 self._settings.use_pruning = kwargs["use_pruning"]
-        if "only_ub" in kwargs:
-            if kwargs["only_ub"] is None:
-                self._settings.only_ub = False
-            else:
-                self._settings.only_ub = kwargs["only_ub"]
         if "inner_dist" in kwargs:
             inner_dist = kwargs["inner_dist"]
             if inner_dist == "squared euclidean" or inner_dist == 0:
@@ -198,10 +193,6 @@ cdef class DTWSettings:
         return self._settings.use_pruning
 
     @property
-    def only_ub(self):
-        return self._settings.only_ub
-
-    @property
     def inner_dist(self):
         if self._settings.inner_dist == 0:
             return "squared euclidean"
@@ -220,7 +211,6 @@ cdef class DTWSettings:
             f"  penalty = {self.penalty}\n"
             f"  psi = {self.psi}\n"
             f"  use_pruning = {self.use_pruning}\n"
-            f"  only_ub = {self.only_ub}\n"
             f"  inner_dist = {self.inner_dist}\n"
             "}")
 

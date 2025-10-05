@@ -27,7 +27,6 @@ DTWSettings dtw_settings_default(void) {
         .psi_2b = 0,
         .psi_2e = 0,
         .use_pruning = false,
-        .only_ub = false,
         .inner_dist = 0,  // 0: squared euclidean, 1: euclidean
         .window_type = 0
     };
@@ -62,7 +61,6 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  psi = [%zu, %zu, %zu, %zu]\n", settings->psi_1b, settings->psi_1e,
                                              settings->psi_2b, settings->psi_2e);
     printf("  use_pruning = %d\n", settings->use_pruning);
-    printf("  only_ub = %d\n", settings->only_ub);
     printf("  inner_dist = %d\n", settings->inner_dist);
     printf("  window_type = %d\n", settings->window_type);
     printf("}\n");
@@ -1655,7 +1653,7 @@ void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int 
     printf("]]\n");
 }
 
-inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
+inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, idx_t t_i0, idx_t t_il,
                                  idx_t f_l, idx_t t_l, idx_t window, int window_type) {
     idx_t lwindow, rwindow;
     idx_t j_b, j_e;
@@ -1681,10 +1679,16 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
     } else {
         j_b = 0;
     }
+    if (j_b < t_min) {
+        j_b = t_min;
+    }
     if (t_l-1 < j_m+rwindow-1) {
         j_e = t_l-1;
     } else {
         j_e = j_m + (rwindow-1);
+    }
+    if (j_e > t_max) {
+        j_e = t_max;
     }
     j_e = j_e + 1; // Correct last index to be outside of range
 
@@ -1700,4 +1704,3 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
     
     return (DDRange){.b=j_b, .e=j_e};
 }
-

@@ -42,7 +42,7 @@ def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
 
 def distance(s1, s2, window=None, max_dist=None,
              max_step=None, max_length_diff=None, penalty=None, psi=None,
-             use_c=False, use_pruning=False, only_ub=False,
+             use_c=False, use_pruning=False,
              inner_dist=innerdistance.default):
     """(Dependent) Dynamic Time Warping using multidimensional sequences.
 
@@ -90,12 +90,12 @@ def distance(s1, s2, window=None, max_dist=None,
     """
     return dtw.distance(s1, s2, window=window, max_dist=max_dist,
              max_step=max_step, max_length_diff=max_length_diff, penalty=penalty, psi=psi,
-             use_c=use_c, use_pruning=use_pruning, only_ub=only_ub,
+             use_c=use_c, use_pruning=use_pruning,
              inner_dist=inner_dist, use_ndim=True)
 
 
 def distance_fast(s1, s2, window=None, max_dist=None,
-                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False, only_ub=False,
+                  max_step=None, max_length_diff=None, penalty=None, psi=None, use_pruning=False,
                   inner_dist=innerdistance.default):
     """Fast C version of :meth:`distance`.
 
@@ -103,7 +103,7 @@ def distance_fast(s1, s2, window=None, max_dist=None,
     Thus ``numpy.array([[1,1],[2,2],[3,3]], dtype=numpy.double)``    """
     return dtw.distance_fast(s1, s2, window=window, max_dist=max_dist,
                              max_step=max_step, max_length_diff=max_length_diff, penalty=penalty,
-                             psi=psi, use_pruning=use_pruning, only_ub=only_ub,
+                             psi=psi, use_pruning=use_pruning,
                              inner_dist=inner_dist, use_ndim=True)
 
 

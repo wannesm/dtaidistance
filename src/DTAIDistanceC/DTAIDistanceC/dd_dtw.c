@@ -27,7 +27,6 @@ DTWSettings dtw_settings_default(void) {
         .psi_2b = 0,
         .psi_2e = 0,
         .use_pruning = false,
-        .only_ub = false,
         .inner_dist = 0,  // 0: squared euclidean, 1: euclidean
         .window_type = 0
     };
@@ -62,7 +61,6 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  psi = [%zu, %zu, %zu, %zu]\n", settings->psi_1b, settings->psi_1e,
                                              settings->psi_2b, settings->psi_2e);
     printf("  use_pruning = %d\n", settings->use_pruning);
-    printf("  only_ub = %d\n", settings->only_ub);
     printf("  inner_dist = %d\n", settings->inner_dist);
     printf("  window_type = %d\n", settings->window_type);
     printf("}\n");
@@ -106,12 +104,9 @@ seq_t dtw_distance(seq_t *s1, idx_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         max_dist = ub_euclidean(s1, l1, s2, l2);
         max_dist = pow(max_dist, 2);
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
@@ -342,12 +337,9 @@ seq_t dtw_distance_ndim(seq_t *s1, idx_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         max_dist = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
         max_dist = pow(max_dist, 2);
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
@@ -581,11 +573,8 @@ seq_t dtw_distance_euclidean(seq_t *s1, idx_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         max_dist = ub_euclidean_euclidean(s1, l1, s2, l2);
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
@@ -813,11 +802,8 @@ seq_t dtw_distance_ndim_euclidean(seq_t *s1, idx_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         max_dist = ub_euclidean_ndim_euclidean(s1, l1, s2, l2, ndim);
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {
@@ -1069,20 +1055,13 @@ seq_t dtw_warping_paths_ndim(seq_t *wps,
     bool smaller_found;
 
     DTWWps p = dtw_wps_parts(l1, l2, settings);
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         if (ndim == 1) {
             p.max_dist = ub_euclidean(s1, l1, s2, l2);
         } else {
             p.max_dist = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
         }
         p.max_dist = pow(p.max_dist, 2);
-        if (settings->only_ub) {
-            if (keep_int_repr) {
-                return p.max_dist;
-            } else {
-                return sqrt(p.max_dist);
-            }
-        }
     }
 
     idx_t ri, ci, min_ci, max_ci, wpsi, wpsi_start;
@@ -1448,18 +1427,11 @@ seq_t dtw_warping_paths_ndim_euclidean(seq_t *wps,
     bool smaller_found;
 
     DTWWps p = dtw_wps_parts(l1, l2, settings);
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         if (ndim == 1) {
             p.max_dist = ub_euclidean(s1, l1, s2, l2);
         } else {
             p.max_dist = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
-        }
-        if (settings->only_ub) {
-            if (keep_int_repr) {
-                return p.max_dist;
-            } else {
-                return sqrt(p.max_dist);
-            }
         }
     }
 
@@ -4261,24 +4233,37 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     // No support for psi relaxation
     assert(settings->psi_1b == 0 && settings->psi_1e == 0);
     assert(settings->psi_2b == 0 && settings->psi_2e == 0);
-    // No support for pruning, max_dist, max_step, max_length_diff
-    assert(!settings->use_pruning);
     assert(settings->max_step == 0);
     assert(settings->max_length_diff == 0);
     
     const idx_t inf_cols = 1;
     const idx_t inf_rows = 1;
     const idx_t width = t_l + inf_cols;
+    seq_t max_cost = settings->max_dist;
     
     if (switch_to_full < 2) {
         switch_to_full = 2;
+    }
+    // Set max_cost
+    if (settings->use_pruning) {
+        max_cost = ub_euclidean(f_s, f_l, t_s, t_l);
+        if (settings->max_dist != 0 && max_cost >= settings->max_dist) {
+            max_cost = settings->max_dist;
+        }
+        max_cost *= max_cost;
+    } else {
+        if (settings->max_dist == 0) {
+            max_cost = INFINITY;
+        } else {
+            max_cost = settings->max_dist*settings->max_dist;
+        }
     }
     const DTWHSettings hsettings = {
         .ndim = ndim,
         .window =settings->window == 0 ? MAX(f_l, t_l): settings->window,
         .window_type = settings->window_type,
         .penalty = settings->penalty*settings->penalty,
-        .max_cost = settings->max_dist == 0 ? INFINITY : settings->max_dist*settings->max_dist,
+        .max_cost = max_cost,
         .switch_to_full = switch_to_full // 1000 would be 7.6MiB for 64bit
     };
     
@@ -4357,6 +4342,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
             printf("t_len == %zu || f_len == %zu\n", t_ll, f_ll);
             dd_path_print(&temppath);
             #endif
+            path.distance = MAX(path.distance, temppath.distance);
             dd_path_extend_wo_doubles(&path, &temppath, 1);
             dd_path_free(&temppath);
             continue;
@@ -4390,7 +4376,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
             }
         }
         assert(t_dm < INFINITY);
-        path.distance = t_dm;
+        path.distance = MAX(path.distance, t_dm);
         if (t_dm > hsettings.max_cost) {
             path.distance = INFINITY;
             // Stop searching for path
@@ -4424,6 +4410,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     }
     free(lastline_u);
     free(lastline_b);
+    path.distance = sqrt(path.distance);
     return path;
 }
 
@@ -4457,6 +4444,10 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
     seq_t d, tempv, minv;
     seq_t * templine;
     DDRange j_r;
+    idx_t sc = 0;
+    idx_t ec = 0;
+    bool smaller_found;
+    idx_t ec_next;
     
     #ifdef DTWHDEBUG
     printf("compute llf: window=%zu\n", settings->window);
@@ -4479,13 +4470,16 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
         i_c = f_i0+i;
 
         // Apply window
-        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
+        j_r = dtw_get_range_row(i, f_i0, sc, t_l, t_i0, t_il, f_l, t_l,
+                                settings->window, settings->window_type);
         #ifdef DTWHDEBUG
         printf("i=%zu = %zu, j=[%zu,%zu] -> [%zu,%zu]\n", i,i_c,t_i0,t_i0+t_ll,t_i0+j_r.b,t_i0+j_r.e);
         #endif
         assert(j_r.e > 0);
         assert(j_r.e <= t_il);
         assert(j_r.b < t_il);
+        smaller_found = false;
+        ec_next = i_c;
         
         // Set first columns to infinity + columns outside of window
         for (j=0; j<(inf_cols+j_r.b); j++) {
@@ -4507,10 +4501,21 @@ void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
             tempv = lines[1][j-1+inf_cols] + settings->penalty;
             if (tempv < minv) {minv = tempv;}
             lines[1][j+inf_cols] = d + minv;
+            
+            if (lines[1][j+inf_cols] > settings->max_cost) {
+                if (!smaller_found)
+                    sc = j_c + 1;
+                if (j_c >= ec)
+                    break;
+            } else {
+                smaller_found = true;
+                ec_next = j_c + 1;
+            }
         }
         for (j=j_r.e; j<t_ll; j++) {
             lines[1][j+inf_cols] = INFINITY;
         }
+        ec = ec_next;
         #ifdef DTWHDEBUG
         print_nbs(lines[inf_rows], 0, inf_cols + t_ll);
         #endif // DTWHDEBUG
@@ -4558,6 +4563,10 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
     seq_t d, tempv, minv;
     seq_t * templine;
     DDRange j_r;
+    idx_t sc = t_l-1;
+    idx_t ec = t_l-1;
+    bool smaller_found;
+    idx_t ec_next;
     
     #ifdef DTWHDEBUG
     printf("compute llr([%zu,%zu],[%zu,%zu]): window=%zu\n", f_i0, f_il, t_i0, t_il, settings->window);
@@ -4581,11 +4590,14 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
         i_c = f_i0+i;
 
         // Apply window
-        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
+        j_r = dtw_get_range_row(i, f_i0, 0, sc, t_i0, t_il, f_l, t_l,
+                                settings->window, settings->window_type);
         #ifdef DTWHDEBUG
-        printf("i=%zu -> %zu, j=[0,%zu]=[%zu,%zu] -> [%zu,%zu]=[%zu,%zu]\n",
-               i,i_c, t_ll,t_i0,t_i0+t_ll, j_r.b, j_r.e, t_i0+j_r.b,t_i0+j_r.e);
+        printf("i=%zu -> %zu, j=[0,%zu]=[%zu,%zu] (%zu<=j<=%zu) -> [%zu,%zu]=[%zu,%zu]\n",
+               i,i_c, t_ll,t_i0,t_i0+t_ll, 0, sc, j_r.b, j_r.e, t_i0+j_r.b,t_i0+j_r.e);
         #endif
+        smaller_found = false;
+        ec_next = i_c;
 
         // Set last columns to infinity + columns outside of window
         for (j=inf_cols+t_ll-1; j>=j_r.e; j--) {
@@ -4610,12 +4622,23 @@ void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
             tempv = lines[1][j+1] + settings->penalty;
             if (tempv < minv) {minv = tempv;}
             lines[1][j] = d + minv;
+            
+            if (lines[1][j]> settings->max_cost) {
+                if (!smaller_found)
+                    sc = j_c - 1;
+                if (j_c >= ec)
+                    break;
+            } else {
+                smaller_found = true;
+                ec_next = j_c - 1;
+            }
         }
         if (j_r.b > 0) {
             for (j=j_r.b-1; j>=0; j--) {
                 lines[1][j] = INFINITY;
             }
         }
+        ec = ec_next;
         #ifdef DTWHDEBUG
         print_nbs(lines[1], 0, inf_cols + t_ll);
         #endif // DTWHDEBUG
@@ -4674,8 +4697,13 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
     
     DDPath path;
     idx_t i, j;
+    idx_t i_c, j_c;
     seq_t d, tempv, minv;
     DDRange j_r;
+    idx_t sc = 0;
+    idx_t ec = 0;
+    bool smaller_found;
+    idx_t ec_next;
     
     seq_t *ccm = (seq_t*)malloc(sizeof(seq_t) * (inf_cols + t_ll) * (inf_rows + f_ll));
     seq_t** rows = (seq_t**)malloc(sizeof(seq_t *) * (inf_rows + f_ll));
@@ -4702,22 +4730,28 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
     }
     
     for (i=0; i<f_ll; i++) {
-        j_r = dtw_get_range_row(i, f_i0, t_i0, t_il, f_l, t_l, settings->window, settings->window_type);
+        i_c = f_i0+i;
+        j_r = dtw_get_range_row(i, f_i0, sc, t_l, t_i0, t_il, f_l, t_l,
+                                settings->window, settings->window_type);
         #ifdef DTWHDEBUG
         printf("i=%zu = %zu, j=[%zu,%zu] -> [%zu,%zu] (w=%zu)\n",
                i,f_i0+i,t_i0,t_i0+t_ll,t_i0+j_r.b,t_i0+j_r.e,settings->window);
         #endif
-        assert(!(settings->window == 0 || settings->window == MAX(t_l, f_l)) || (j_r.b == 0 && j_r.e == t_ll));
-        assert (!(settings->window > 0 || settings->window < MAX(t_l, f_l)) || (j_r.b < t_ll && j_r.e <= t_ll));
+//        assert(!(settings->window == 0 || settings->window == MAX(t_l, f_l)) || (j_r.b == 0 && j_r.e == t_ll));
+//        assert (!(settings->window > 0 || settings->window < MAX(t_l, f_l)) || (j_r.b < t_ll && j_r.e <= t_ll));
+        smaller_found = false;
+        ec_next = i_c;
+        
         // printf("[");
         for (j=0; j<j_r.b; j++) {
             rows[inf_rows+i][inf_cols+j] = INFINITY;
         }
         for (j=j_r.b; j<j_r.e; j++) {
+            j_c = t_i0+j;
             d = 0;
             for (int d_i=0; d_i<settings->ndim; d_i++) {
-                d += SEDIST(f_s[f_i0*settings->ndim+(i*settings->ndim+d_i)],
-                            t_s[t_i0*settings->ndim+(j*settings->ndim+d_i)]);
+                d += SEDIST(f_s[i_c*settings->ndim+d_i],
+                            t_s[j_c*settings->ndim+d_i]);
             }
             // d = SEDIST(f_s[f_i0+i], t_s[t_i0+j]);
             minv = rows[inf_rows+i-1][inf_cols+j-1];
@@ -4728,16 +4762,28 @@ DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
             rows[inf_rows+i][inf_cols+j] = d + minv;
             // print_nb(rows[inf_rows+i][inf_cols+j]);
             // printf(",");
+            
+            if (rows[inf_rows+i][inf_cols+j] > settings->max_cost) {
+                if (!smaller_found)
+                    sc = j_c + 1;
+                if (j_c >= ec)
+                    break;
+            } else {
+                smaller_found = true;
+                ec_next = j_c + 1;
+            }
         }
         for (j=j_r.e; j<t_ll; j++) {
             rows[inf_rows+i][inf_cols+j] = INFINITY;
         }
         // printf("]\n");
+        ec = ec_next;
     }
     
     dd_path_init(&path, t_ll+f_ll);
     i = inf_rows + f_ll - 1;
     j = inf_cols + t_ll - 1;
+    path.distance = rows[i][j];
     while (i >= inf_rows && j >= inf_cols) {
         dd_path_insert(&path, f_i0+i-inf_rows , t_i0+j-inf_cols);
         if (rows[i-1][j-1] <= rows[i-1][j] + settings->penalty
@@ -5861,7 +5907,7 @@ void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int 
     printf("]]\n");
 }
 
-inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
+inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, idx_t t_i0, idx_t t_il,
                                  idx_t f_l, idx_t t_l, idx_t window, int window_type) {
     idx_t lwindow, rwindow;
     idx_t j_b, j_e;
@@ -5887,10 +5933,16 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
     } else {
         j_b = 0;
     }
+    if (j_b < t_min) {
+        j_b = t_min;
+    }
     if (t_l-1 < j_m+rwindow-1) {
         j_e = t_l-1;
     } else {
         j_e = j_m + (rwindow-1);
+    }
+    if (j_e > t_max) {
+        j_e = t_max;
     }
     j_e = j_e + 1; // Correct last index to be outside of range
 

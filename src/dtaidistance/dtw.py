@@ -6,7 +6,7 @@ dtaidistance.dtw
 Dynamic Time Warping (DTW)
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2024 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2025 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -296,7 +296,7 @@ def ub_euclidean(s1, s2, inner_dist=innerdistance.default):
     return ed.distance(s1, s2, inner_dist=inner_dist)
 
 
-def distance(s1, s2, only_ub=False, **kwargs) -> float:
+def distance(s1, s2, **kwargs) -> float:
     """
     Dynamic Time Warping.
 
@@ -312,7 +312,6 @@ def distance(s1, s2, only_ub=False, **kwargs) -> float:
 
     :param s1: First sequence
     :param s2: Second sequence
-    :param only_ub: Only compute the upper bound (Euclidean).
     :param kwargs: :class:`DTWSettings` arguments
 
     Returns: DTW distance
@@ -327,8 +326,6 @@ def distance(s1, s2, only_ub=False, **kwargs) -> float:
     r, c = len(s1), len(s2)
     if s.adj_max_length_diff is not None and abs(r - c) > s.adj_max_length_diff:
         return inf
-    if only_ub:
-        return ival_fn(ub_euclidean(s1, s2, inner_dist=s.inner_dist))
     window = max(len(s1), len(s2)) if s.window is None else s.window
 
     psi_1b, psi_1e, psi_2b, psi_2e = s.split_psi()
@@ -403,7 +400,7 @@ def distance(s1, s2, only_ub=False, **kwargs) -> float:
     return d
 
 
-def distance_fast(s1, s2, only_ub=False, use_pruning=True, **kwargs):
+def distance_fast(s1, s2, use_pruning=True, **kwargs):
     """Same as :meth:`distance` but with different defaults to choose the fast C-based version of
     the implementation (use_c = True) and use pruning (use_pruning = True).
 
@@ -418,9 +415,9 @@ def distance_fast(s1, s2, only_ub=False, use_pruning=True, **kwargs):
     s = DTWSettings(use_pruning=use_pruning, **kwargs)
     # Move data to C library
     if s.use_ndim is False:
-        d = dtw_cc.distance(s1, s2, only_ub=only_ub, **s.c_kwargs())
+        d = dtw_cc.distance(s1, s2, **s.c_kwargs())
     else:
-        d = dtw_cc.distance_ndim(s1, s2, only_ub=only_ub, **s.c_kwargs())
+        d = dtw_cc.distance_ndim(s1, s2, **s.c_kwargs())
     return d
 
 

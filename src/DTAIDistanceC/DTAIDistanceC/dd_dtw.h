@@ -55,7 +55,6 @@ Settings for DTW operations:
        and/or end of both sequences.
 @field use_pruning : Compute Euclidean distance first to set max_dist (current value in
        max_dist is ignored).
-@field only_ub : Only compute the upper bound (Euclidean) and return that value.
  */
 struct DTWSettings_s {
     idx_t window;
@@ -68,7 +67,6 @@ seq_t max_dist;
     idx_t psi_2b;  // series 2, begin psi
     idx_t psi_2e;  // series 2, end psi
     bool use_pruning;
-    bool only_ub;
     int inner_dist; // 0=squared euclidean, 1=euclidean
     int window_type; // 0=band around two diagonals, 1=band around slanted diagonal
     
@@ -243,7 +241,7 @@ void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t i
 void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings);
 void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int i1, idx_t skip, idx_t skipp, idx_t maxj, idx_t minj);
 
-DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_i0, idx_t t_il,
+DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, idx_t t_i0, idx_t t_il,
                                  idx_t f_l, idx_t t_l, idx_t window, int window_type);
 
 #endif /* dtw_h */

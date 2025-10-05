@@ -59,7 +59,7 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
     DTWWps p = dtw_wps_parts(l1, l2, settings);
 
     {%- if "affinity" not in suffix %}
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         if (ndim == 1) {
             p.max_dist = ub_euclidean(s1, l1, s2, l2);
         } else {
@@ -69,13 +69,6 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
         {%- else %}
         p.max_dist = pow(p.max_dist, 2);
         {%- endif %}
-        if (settings->only_ub) {
-            if (keep_int_repr) {
-                return p.max_dist;
-            } else {
-                return sqrt(p.max_dist);
-            }
-        }
     }
     {%- endif %}
 
