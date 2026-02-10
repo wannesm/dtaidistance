@@ -105,7 +105,7 @@ jobs:
       fail-fast: true
       matrix:
         # os: [macos-14, macos-14-arm64, macos-15, macos-15-arm64]
-        os: [macos-15, macos-26]  # macos-14 and macos-15 generate a wheel with the same name
+        os: [macos-26]  # macos-14 and macos-15 generate a wheel with the same name
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
     - uses: actions/checkout@v4
@@ -113,12 +113,12 @@ jobs:
       run: |
         # OpenMP libraries are not installed by default on macos
         clang --version
-        clang --version | grep "\(13\.\|14\.\|15\.\|16\.\|17\.\)"
+        clang --version | grep "\(17\.\)"
         # hardcoded, not ideal
         # https://mac.r-project.org/openmp/
         # This includes only the dynamic library
-        curl -O https://mac.r-project.org/openmp/openmp-13.0.0-darwin21-Release.tar.gz
-        sudo tar fvxz openmp-13.0.0-darwin21-Release.tar.gz -C /
+        curl -O https://mac.r-project.org/openmp/openmp-19.1.5-darwin20-Release.tar.gz
+        sudo tar fvxz openmp-19.1.5-darwin20-Release.tar.gz -C /
         ls /usr/local/lib
         ls /usr/local/include
     - name: Set up Python ${{ matrix.python-version }}
