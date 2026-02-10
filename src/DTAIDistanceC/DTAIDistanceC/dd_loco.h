@@ -9,6 +9,8 @@
 #ifndef dd_loco_h
 #define dd_loco_h
 
+//#include <math.h>
+
 #include "dd_globals.h"
 #include "dd_dtw.h"
 

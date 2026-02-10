@@ -4288,12 +4288,13 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     seq_t dist, t_dm;
     idx_t f_ll;
     idx_t t_ll;
-    float rico = ((float)t_l) / f_l;
+    float rico = (float)(((float)t_l) / f_l);
     idx_t t_diag;
     DDPath temppath;
     int stack_i = 0;
     int stack_size = round(log2(MAX(f_l,t_l))*2*4);
-    idx_t stack[stack_size];
+//    idx_t stack[stack_size];  // Not supported in MSVC
+    idx_t* stack = malloc(stack_size * sizeof(idx_t));
     dd_path_init(&path, round(f_l*1.2));
     
     stack[stack_i++] = t_l;
@@ -4410,6 +4411,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
     }
     free(lastline_u);
     free(lastline_b);
+    free(stack);
     path.distance = sqrt(path.distance);
     return path;
 }

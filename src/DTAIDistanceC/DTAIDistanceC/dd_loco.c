@@ -435,6 +435,9 @@ void loco_path_negativize(idx_t *path, idx_t length, seq_t *wps, idx_t l1, idx_t
                 if (wps[i_wps] > 0) {
                     wps[i_wps] = -wps[i_wps];
                 }
+                // if (signbit(wps[i_wps]) == 0) {
+                //     wps[i_wps] = copysignf(wps[i_wps], -1.0f);
+                // }
                 i_wps++;
             }
         }

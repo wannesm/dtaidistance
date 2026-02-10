@@ -20,7 +20,6 @@ requires-python = ">=3.8"
 keywords = [ "dtw", "time series", "dynamic time warping", "distance"]
 classifiers = [
 	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: Apache Software License"
 ]
 dependencies = [
     "numpy",
@@ -56,7 +55,6 @@ packages = [
 	"dtaidistance.explain.dsw",
 	"dtaidistance.benchmarks",
 ]
-license-files = []
 
 
 [tool.setuptools.package-data]
