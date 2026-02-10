@@ -17,6 +17,10 @@ import logging
 from array import array
 from pathlib import Path
 import tempfile
+import heapq
+import time
+from bisect import bisect_left, bisect_right
+from enum import Enum
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -367,7 +371,8 @@ def argmax(a):
 
 
 class DetectKnee:
-    def __init__(self, alpha=0.3):
+    def __init__(self, alpha=0.3, invert=False, alpha_onlyvar=0.0,
+                 thr_value=None, verbose=False):
         """Exponential Weighted Moving Average (EWMA) based knee detection.
 
         Useful to detect when values start increasing at an increased rate.
@@ -377,28 +382,165 @@ class DetectKnee:
 
         :param alpha: EWMA parameter, in [0,1]
             Low values prefer old values, high values prefer recent values.
+        :param invert: Find a knee in a curve that decreases.
+            If false, an increasing curve is expected.
+        :param alpha_onlyvar: EWMA parameter, in [0,1]
+            The `dostop` method has an option to not update but only update
+            the variance. The variance is reduced with the value.
+            Low values prefers to keep the variance estimate, high value reduce the variance faster.
         """
         self.cnt = 0  # Number of data points seen
+        self.cnt_onlyvar = 0
         self.min_points = 3  # Minimal number of data points to see before stopping
+        self.thr_value = thr_value if thr_value is not None else 0
         self.arrvar_fraction = 4
         self.alpha = alpha  # EWMA parameter
+        self.alpha_onlyvar = alpha_onlyvar
         self.arr = None
         self.arrvar = None
         self.max_thr = None
+        self.invert = invert
+        self.invert_value = None
 
-    def dostop(self, value):
+        self.verbose = verbose
+        if self.verbose:
+            print(f"Search knee with alpha={alpha}")
+
+    def dostop(self, value, only_var=False):
+        """Check whether a knee has occurred for a new value.
+
+        :param value: New value in the curve
+        :param only_var: Only shrink the expected variance, do not update the average value.
+        :return: Is a knee detected
+        """
         if self.arr is None:
+            if self.invert:
+                self.invert_value = value
+                self.thr_value = value - self.thr_value
+                value = 0
             self.arr = value
             self.arrvar = 0
+            if self.verbose:
+                print(f"Detecting knee: threshold value={self.thr_value:.4f}")
             return False
-
+        elif self.invert:
+            value = self.invert_value - value
         rvalue = False
         self.max_thr = self.arr + self.arrvar_fraction * self.arrvar
         # We need to see at least min_points instances to compute a reasonable arrvar
-        if self.cnt >= self.min_points and value > self.max_thr:
+        if self.cnt >= self.min_points and value > self.thr_value and value > self.max_thr:
             rvalue = True
 
-        self.arrvar = self.alpha * max(0, value - self.arr) + (1.0 - self.alpha) * self.arrvar
-        self.arr = self.alpha * value + (1.0 - self.alpha) * self.arr
-        self.cnt += 1
+        if only_var:
+            self.arrvar = (1.0 - self.alpha_onlyvar) * self.arrvar
+            self.cnt_onlyvar += 1
+        else:
+            self.arrvar = self.alpha * max(0, value - self.arr) + (1.0 - self.alpha) * self.arrvar
+            self.arr = self.alpha * value + (1.0 - self.alpha) * self.arr
+
+        if self.verbose and (not only_var or rvalue is True):
+            if self.invert:
+                pvalue = f"{value:.4f} ({self.invert_value:.4f}-{self.invert_value - value:.4f})"
+            else:
+                pvalue = f"{value:.4f}"
+            if self.cnt < self.min_points:
+                print(f"Detected knee: Not enough points, {self.cnt} < {self.min_points}, "
+                      f"{pvalue} > {self.max_thr:.4f} = {self.arr:.4f} + {self.arrvar_fraction} * {self.arrvar:.4f}")
+            else:
+                print(f"Detected knee: {self.cnt} ({self.cnt_onlyvar}) points, {pvalue} > {self.max_thr:.4f} = "
+                      f"{self.arr:.4f} + {self.arrvar_fraction} * {self.arrvar:.4f} -> {rvalue}")
+
+        if not only_var:
+            self.cnt += 1
         return rvalue
+
+
+class SortedList:
+    def __init__(self, values):
+        self._l = sorted(values)
+
+    def __len__(self):
+        return self._l.__len__()
+
+    def __iter__(self):
+        return self._l.__iter__()
+
+    def __getitem__(self, item):
+        return self._l.__getitem__(item)
+
+    def remove(self, x):
+        """Remove the value equal to x."""
+        try:
+            i = self.index(x)
+            del self._l[i]
+        except ValueError:
+            pass
+
+    def index(self, x):
+        """Locate the leftmost value exactly equal to x."""
+        i = bisect_left(self._l, x)
+        if i != len(self._l) and self._l[i] == x:
+            return i
+        raise ValueError
+
+    def find_lt(self, x):
+        """Find rightmost value less than x."""
+        i = bisect_left(self._l, x)
+        if i:
+            return self._l[i - 1]
+        raise ValueError
+
+    def find_le(self, x):
+        """Find rightmost value less than or equal to x."""
+        i = bisect_right(self._l, x)
+        if i:
+            return self._l[i - 1]
+        raise ValueError
+
+    def find_gt(self, x):
+        """Find leftmost value greater than x."""
+        i = bisect_right(self._l, x)
+        if i != len(self._l):
+            return self._l[i]
+        raise ValueError
+
+    def find_ge(self, x):
+        """Find leftmost item greater than or equal to x."""
+        i = bisect_left(self._l, x)
+        if i != len(self._l):
+            return self._l[i]
+        raise ValueError
+
+    def __str__(self):
+        return str(self._l)
+
+    def __repr__(self):
+        return str(self._l)
+
+
+class DDType(str, Enum):
+
+    def to_int(self):
+        return list(self.__class__).index(self)
+
+    @classmethod
+    def from_int(cls, value):
+        return list(cls)[value]
+
+    @classmethod
+    def wrap(cls, val, default_val=None):
+        if val is None:
+            val = default_val
+        if isinstance(val, cls):
+            return val
+        elif type(val) is str:
+            try:
+                return cls(val)
+            except ValueError as exc:
+                pass
+        elif type(val) is int:
+            try:
+                return cls.from_int(val)
+            except IndexError as exc:
+                pass
+        raise ValueError(f'Value not supported for {cls.__name__}: {val}')

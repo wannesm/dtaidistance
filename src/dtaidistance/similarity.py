@@ -4,6 +4,35 @@ except ImportError:
     np = None
 
 
+def estimate_gaussian_param_from_ts(ts1, ts2=None, sample_size=None, seed=None,
+                                    zeroinflated=0.2, outliers=0.05):
+    """Estimate the r parameter in a Gaussian distance to similarity function.
+    This method fits a zero-inflated exponential distribution to the data
+    to find a good value for r where the Gaussian is e^(-D^2 / r^2).
+
+    :param ts1:
+    :param ts2:
+    :param sample_size: Sample the time series
+    :param seed: Random seed for sampling
+    :param zeroinflated: Estimate of percentage of zeros.
+    :param outliers: Estimate of percentage of possible outliers
+    """
+    assert np is not None
+    if ts2 is None:
+        ts2 = ts1
+    if sample_size is not None:
+        rng = np.random.default_rng(seed=seed)
+        ts1 = rng.choice(ts1, size=sample_size, replace=False)
+        ts2 = rng.choice(ts2, size=sample_size, replace=False)
+    target_lb = zeroinflated
+    target_ub = 1.0 - outliers
+    sdm = np.subtract.outer(ts1, ts2)
+    eps_lb = np.quantile(sdm, target_lb)
+    eps_ub = np.quantile(sdm, target_ub)
+    r = np.mean(sdm[(eps_lb < sdm) & (sdm < eps_ub)]) - eps_lb  # Mean of left-truncated exponential
+    return r
+
+
 def distance_to_similarity(D, r=None, a=None, method='exponential', return_params=False, cover_quantile=False):
     """Transform a distance matrix to a similarity matrix.
 
@@ -35,6 +64,7 @@ def distance_to_similarity(D, r=None, a=None, method='exponential', return_param
         at the quantile the given value is reached (if not given, value is 1-quantile).
     :return: Similarity matrix S
     """
+    assert np is not None
     if cover_quantile is not False:
         if type(cover_quantile) in [tuple, list]:
             cover_quantile, cover_quantile_target = cover_quantile

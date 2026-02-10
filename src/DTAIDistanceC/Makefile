@@ -41,12 +41,21 @@ DTAIDistanceC/%.o: DTAIDistanceC/%.c $(DEPS)
 dd_benchmark: $(OBJ) DTAIDistanceC/dd_benchmark.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
+test: dd_test
+
 dd_test: $(OBJ) DTAIDistanceC/dd_tests_dtw.o  DTAIDistanceC/dd_tests_matrix.o
 	$(CC) -g -o $@ $^ $(LDFLAGS) -lcriterion
 
 jinja:
 	cd DTAIDistanceC/jinja/ && make
 
+example: example.c
+	$(CC) -o example example.c \
+		DTAIDistanceC/dd_dtw.c DTAIDistanceC/dd_dtw_openmp.c \
+		DTAIDistanceC/dd_ed.c DTAIDistanceC/dd_globals.c \
+		-Wall -g -Xpreprocessor -fopenmp -lomp -I/opt/homebrew/include \
+		-L/opt/homebrew/lib \
+		-I./DTAIDistanceC/
 
 clean:
 	rm -f DTAIDistanceC/*.o
@@ -55,4 +64,25 @@ clean:
 	rm -f dd_test
 
 
+.PHONY: dd_benchmark_hirschberg_dmalloc
+dd_benchmark_hirschberg_dmalloc:
+	$(CC) -DDMALLOC -DDMALLOC_FUNC_CHECK -o dd_benchmark_hirschberg \
+		DTAIDistanceC/dd_benchmark_hirschberg.c \
+		DTAIDistanceC/dd_dtw.c \
+		DTAIDistanceC/dd_ed.c \
+		DTAIDistanceC/dd_globals.c \
+		-Wall -g -ldmalloc -I/opt/homebrew/include \
+		-L/opt/homebrew/lib \
+		-I./DTAIDistanceC/
+
+.PHONY: dd_benchmark_hirschberg
+dd_benchmark_hirschberg:
+	$(CC) -DDMALLOC -o dd_benchmark_hirschberg \
+		DTAIDistanceC/dd_benchmark_hirschberg.c \
+		DTAIDistanceC/dd_dtw.c \
+		DTAIDistanceC/dd_ed.c \
+		DTAIDistanceC/dd_globals.c \
+		-Wall -g -I/opt/homebrew/include \
+		-L/opt/homebrew/lib \
+		-I./DTAIDistanceC/
 

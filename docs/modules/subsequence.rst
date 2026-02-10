@@ -1,9 +1,7 @@
-
-subsequence
+Subsequence
 ~~~~~~~~~~~
 
 .. toctree::
-   :caption: Subsequence
 
    subsequence/subsequencesearch
    subsequence/subsequencealignment

@@ -1,3 +1,5 @@
+LocalConcurrences
+-----------------
 
 .. automodule:: dtaidistance.subsequence.localconcurrences
    :members:

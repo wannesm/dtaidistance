@@ -59,7 +59,7 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
     #ifdef DTWDEBUG
     printf("r=%zu, c=%zu\n", l1, l2);
     #endif
-    if (settings->use_pruning || settings->only_ub) {
+    if (settings->use_pruning) {
         {%- if "ndim" in suffix %}
         max_dist = ub_euclidean_ndim{{ suffix2 }}(s1, l1, s2, l2, ndim);
         {%- else %}
@@ -69,9 +69,6 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
         {%- else %}
         max_dist = pow(max_dist, 2);
         {%- endif %}
-        if (settings->only_ub) {
-            return max_dist;
-        }
     } else if (max_dist == 0) {
         max_dist = INFINITY;
     } else {

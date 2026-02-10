@@ -1,3 +1,5 @@
+Medoids
+-------
 
 .. automodule:: dtaidistance.clustering.medoids
    :members:

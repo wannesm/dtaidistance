@@ -10,7 +10,7 @@ from dtaidistance.subsequence.dtw import subsequence_alignment, local_concurrenc
 from dtaidistance import dtw_visualisation as dtwvis
 from dtaidistance.exceptions import MatplotlibException
 from dtaidistance.dtw import lb_keogh
-from dtaidistance import dtw, dtw_ndim
+from dtaidistance import dtw, dtw_ndim, innerdistance
 
 directory = Path(os.environ['TESTDIR']) if 'TESTDIR' in os.environ else None
 numpyonly = pytest.mark.skipif("util_numpy.test_without_numpy()")
@@ -36,7 +36,8 @@ def test_dtw_subseq1():
             if directory:
                 plt.plot(mf)
                 plt.savefig(directory / "subseq_matching.png")
-                dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), match.path,
+                dtwvis.plot_warpingpaths(query, series, sa.warping_paths(),
+                                         path=match.path,
                                          filename=directory / "subseq_warping.png")
                 plt.close()
         best_k = sa.kbest_matches(k=3)
@@ -91,7 +92,8 @@ def test_dtw_subseq_eeg():
 
             fn = directory / "test_dtw_subseq_eeg1.png"
             fig = plt.figure(figsize=(20, 30))
-            dtwvis.plot_warpingpaths(query, series, sa.warping_paths(), match.path, figure=fig)
+            dtwvis.plot_warpingpaths(query, series, sa.warping_paths(),
+                                     path=match.path, figure=fig)
             plt.savefig(fn)
             plt.close(fig)
 
@@ -129,9 +131,9 @@ def test_dtw_subseq_bug1():
         sa = subsequence_alignment(query, s1, use_c=True)
         assert sa.best_match().value == pytest.approx(0.08735692337954708)
         sa = subsequence_alignment(query, s2, use_c=False)
-        assert sa.best_match().value == pytest.approx(0.25535859535443606)
+        assert sa.best_match().value == pytest.approx(0.2758501027798888)
         sa = subsequence_alignment(query, s2, use_c=True)
-        assert sa.best_match().value == pytest.approx(0.25535859535443606)
+        assert sa.best_match().value == pytest.approx(0.2758501027798888)
 
 
 @numpyonly
@@ -236,14 +238,14 @@ def test_dtw_localconcurrences_eeg():
                 raise MatplotlibException("No matplotlib available")
             fn = directory / "test_dtw_localconcurrences.png"
             fig = plt.figure()
-            fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp_slice(), path=-1, figure=fig)
+            fig, ax = dtwvis.plot_warpingpaths(series, series, lc.wp_slice_ts(), path=-1, figure=fig)
             for match in matches:
                 dtwvis.plot_warpingpaths_addpath(ax, match.path)
             plt.savefig(fn)
             plt.close(fig)
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 @numpyonly
 def test_dtw_localconcurrences_short():
     with util_numpy.test_uses_numpy() as np:
@@ -258,24 +260,23 @@ def test_dtw_localconcurrences_short():
         delta_factor = 0.1 #0.5
         tau = np.exp(-gamma * np.percentile(series1, threshold_tau))  # threshold
         # print(f'{tau=}, {delta=}, {delta_factor=}, {gamma=}')
-        buffer = -10
+        buffer = 3
         minlen = 3
         window = None
-        lc = local_concurrences(series1, series2, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=1,
-                                window=window, use_c=False)
+        lc = local_concurrences(series1, series2, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=0,
+                                window=window, use_c=False, steps_type="TypeIII")
         # print(lc.settings(kind="str"))
         # with np.printoptions(precision=2, linewidth=400):
         #     print(lc.wp)
-        lc2 = local_concurrences(series1, series2, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=1,
-                                 window=window, use_c=True, compact=True)
+        lc2 = local_concurrences(series1, series2, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=0,
+                                 window=window, use_c=True, steps_type="TypeIII")
         # with np.printoptions(precision=2, linewidth=400):
         #     # print(lc2.wp)
         #     lc2.wp_c_print()
-        np.testing.assert_allclose(lc.wp, lc2.wp_slice())
+        np.testing.assert_allclose(lc.wp_slice_ts(), lc2.wp_slice_ts())
         p = lc.best_path(len(series1) - 1, len(series2))
         p2 = lc2.best_path(len(series1) - 1, len(series2))
-        # print(p)
-        # print(p2)
+        p2 = [(i, j) for i, j in p2]
         assert str(p) == str(p2)
         # assert str(p) == "[(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (10, 11), "\
         #                  "(11, 12), (12, 13), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18)]", \
@@ -298,9 +299,12 @@ def test_dtw_localconcurrences_short():
             except ImportError:
                 raise MatplotlibException("No matplotlib available")
             fn = directory / "test_dtw_localconcurrences_short.pdf"
+            print(f"Saving to {fn}")
             pdf = matplotlib.backends.backend_pdf.PdfPages(fn)
             fig = plt.figure()
-            fig, ax = dtwvis.plot_warpingpaths(series1, series2, lc.wp, path=-1, figure=fig)
+            fig, ax = dtwvis.plot_warpingpaths(series1, series2,
+                                               lc.wp_slice_ts(steps_type="TypeIII"),
+                                               path=-1, figure=fig)
             for match in matches:
                 dtwvis.plot_warpingpaths_addpath(ax, match.path)
             pdf.savefig(fig)
@@ -313,6 +317,64 @@ def test_dtw_localconcurrences_short():
             fig, ax = matches2.plot(begin=None, end=None, showlegend=False)
             pdf.savefig(fig)
             plt.close(fig)
+            pdf.close()
+
+
+@numpyonly
+def test_dtw_localconcurrences_short2():
+    with util_numpy.test_uses_numpy() as np:
+        series1 = np.array([0., -1, -1, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 0, -1, 0])
+        series2 = np.array([0.4, -0.9, -1.3, 1, 0.1, 2, 1, 0, 0, 10, 8, 3, 2, 1, 0, 0, 0, -1, 0])
+        print(f'{len(series1)=}, {len(series2)=}')
+
+        gamma = 1
+        threshold_tau = 99
+        tau = np.exp(-gamma * np.percentile(series1, threshold_tau))  # threshold
+        delta = -0.0 * tau
+        delta_factor = 0.5  # 0.5
+        k = 1
+        buffer = 3
+        minlen = 3
+        window = None
+        step_type = innerdistance.StepsType.TYPEIII
+
+        lc = local_concurrences(series1, series2, gamma=gamma, tau=tau, delta=delta, delta_factor=delta_factor, penalty=0,
+                                window=window, use_c=False, steps_type=step_type)
+        print(f"\n{gamma=}, {tau=}, {delta=}, {delta_factor=}")
+        # print(lc._wp)
+        # print(lc.settings(kind="str"))
+        # with np.printoptions(precision=2, linewidth=400):
+        #     print(lc.wp)
+
+        matches = lc.kbest_matches_store(k=k, minlen=minlen, buffer=buffer,
+                                         keep=True)
+        # print(matches)
+
+        if directory and not dtwvis.test_without_visualization():
+            try:
+                import matplotlib.pyplot as plt
+                import matplotlib.backends.backend_pdf
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
+            fn = directory / "test_dtw_localconcurrences_short.pdf"
+            print(f"Saving to {fn}")
+            pdf = matplotlib.backends.backend_pdf.PdfPages(fn)
+            fig = plt.figure()
+            wp = lc._wp.copy()
+            wp_neg = wp <= 0
+            wp[wp_neg] = -np.inf
+            fig, ax = dtwvis.plot_warpingpaths(series1, series2, wp,
+                                               path=-1, figure=fig,
+                                               includes_zero=step_type)
+            for match in matches:
+                dtwvis.plot_warpingpaths_addpath(ax, match.path)
+            pdf.savefig(fig)
+            plt.close(fig)
+
+            fig, ax = matches.plot(begin=None, end=None, showlegend=False)
+            pdf.savefig(fig)
+            plt.close(fig)
+
             pdf.close()
 
 
@@ -493,7 +555,7 @@ def test_lc_pat1():
 
             fig = plt.figure(figsize=(10,10))
             fig, ax = dtwvis.plot_warpingpaths(series1, series2,
-                                               lc.wp_slice(),
+                                               lc.wp_slice_ts(),
                                                path=-1, figure=fig, showlegend=True)
             for match in matches:
                 dtwvis.plot_warpingpaths_addpath(ax, match.path)
@@ -501,11 +563,11 @@ def test_lc_pat1():
 
             fig = plt.figure(figsize=(10, 10))
             plt_slice = [180, 260]
-            wp = lc.wp_slice(*plt_slice, *plt_slice)
+            wp = lc.wp_slice_ts(*plt_slice, *plt_slice)
             idx = wp < 0
             wp[idx] = -wp[idx]
             fig, ax = dtwvis.plot_warpingpaths(series1[slice(*plt_slice)], series2[slice(*plt_slice)],
-                                               lc.wp_slice(*plt_slice, *plt_slice),
+                                               lc.wp_slice_ts(*plt_slice, *plt_slice),
                                                path=-1, figure=fig, showlegend=True)
             for match in matches:
                 dtwvis.plot_warpingpaths_addpath(ax, dtwvis.path_slice(match.path, *plt_slice, *plt_slice))
@@ -599,9 +661,9 @@ def test_lc_pat2():
             pdf.savefig(fig)
 
             fig = plt.figure(figsize=(10, 10))
-            print(lc.wp_slice(positivize=True))
+            print(lc.wp_slice_ts(positivize=True))
             fig, ax = dtwvis.plot_warpingpaths(series1, series2,
-                                               lc.wp_slice(positivize=True),
+                                               lc.wp_slice_ts(positivize=True),
                                                path=-1, figure=fig, showlegend=True)
             for match in matches:
                 dtwvis.plot_warpingpaths_addpath(ax, match.path)
@@ -617,6 +679,96 @@ def test_lc_pat2():
             # pdf.savefig(fig)
 
             pdf.close()
+
+
+@numpyonly
+def test_lc_pat3():
+    with util_numpy.test_uses_numpy() as np:
+        pat1 = np.array([4., 4., 4., 4.], dtype=np.double)  # plateau
+        pat2 = np.array([4., 3., 2., 1.], dtype=np.double)  # decrease
+        pat3 = np.array([1., 2., 3., 4.], dtype=np.double)  # increase
+        pat4 = np.array([2., 4., 2.], dtype=np.double)  # peak
+        space = np.array([0., 0., 0.], dtype=np.double)
+
+        series = np.concatenate((pat1, space, pat1, space, pat4, space,
+                                 pat2, space, pat2, space, pat4, space,
+                                 pat3, space, pat3, space, pat4))
+
+        # gamma = 1
+        # threshold_tau = 70
+        # delta = -2 * np.exp(-gamma * np.percentile(series, threshold_tau))  # -len(series)/2  # penalty
+        # delta_factor = 0.5
+        # tau = np.exp(-gamma * np.percentile(series, threshold_tau))  # threshold
+        # # print(f'{tau=}, {delta=}')
+        buffer = 4
+        minlen = 3
+        t1 = time.time()
+        lc = LocalConcurrences(series, series, use_c=False, steps_type="TypeIII")
+        lc.estimate_settings_from_ssm(rho=0.8, set_penalty=False)
+        # lc.delta_factor = 0.5
+        lc.align()
+        t2 = time.time()
+        print(f'Time to align: {t2-t1}')
+
+        print(lc.settings(kind="str"))
+        t1 = time.time()
+        matches = lc.best_matches_store(k=10, detectknee=dict(alpha=0.3),
+                                        minlen=minlen, buffer=buffer, keep=True)
+        t2 = time.time()
+        print(f'Time to find matches: {t2 - t1}')
+
+        sm = lc.similarity_matrix()
+
+        directory = Path(os.environ.get('TESTDIR', None))
+        if directory and not dtwvis.test_without_visualization():
+            try:
+                import matplotlib.pyplot as plt
+                import matplotlib.backends.backend_pdf
+            except ImportError:
+                raise MatplotlibException("No matplotlib available")
+            fn = directory / "test_lc_pat3.pdf"
+            print(f"Writing to {fn}")
+            pdf = matplotlib.backends.backend_pdf.PdfPages(fn)
+            fig = plt.figure(figsize=(10, 10))
+            fig, ax = dtwvis.plot_warpingpaths(series, series, sm,
+                                               path=-1, figure=fig, showlegend=True,
+                                               matshow_kwargs=lc.similarity_matrix_matshow_kwargs(sm))
+            pdf.savefig(fig)
+
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
+            values = sm  # np.array(sm.reshape((1, -1)))
+            # print(np.histogram(values))
+            ax.hist(values, bins=100, histtype='step', range=(-2, 1))
+            ax.vlines([lc.tau, lc.delta], 0, 100, color='red')
+            pdf.savefig(fig)
+
+            fig = plt.figure(figsize=(10,10))
+            fig, ax = dtwvis.plot_warpingpaths(series, series,
+                                               lc.wp_slice_ts(),
+                                               path=-1, figure=fig, showlegend=True)
+            for match in matches:
+                dtwvis.plot_warpingpaths_addpath(ax, match.path)
+            pdf.savefig(fig)
+
+            lc._reset_wp_mask()
+            fig, ax = matches.plot(showlegend=True)
+            pdf.savefig(fig)
+            plt.close(fig)
+
+            # fig = plt.figure(figsize=(10, 10))
+            # plt_slice = [180, 260]
+            # wp = lc.wp_slice(*plt_slice, *plt_slice)
+            # idx = wp < 0
+            # wp[idx] = -wp[idx]
+            # fig, ax = dtwvis.plot_warpingpaths(series[slice(*plt_slice)], series[slice(*plt_slice)],
+            #                                    lc.wp_slice(*plt_slice, *plt_slice),
+            #                                    path=-1, figure=fig, showlegend=True)
+            # for match in matches:
+            #     dtwvis.plot_warpingpaths_addpath(ax, dtwvis.path_slice(match.path, *plt_slice, *plt_slice))
+            # pdf.savefig(fig)
+
+            pdf.close()
+
 
 
 @numpyonly

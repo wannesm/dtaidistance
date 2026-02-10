@@ -3,7 +3,7 @@
 @brief DTAIDistance.dtw : Dynamic Time Warping
 
 @author Wannes Meert
-@copyright Copyright © 2020 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
+@copyright Copyright © 2020-2025 Wannes Meert. Apache License, Version 2.0, see LICENSE for details.
 */
 
 #ifndef dtw_h
@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <time.h>
+#include <string.h>
 
 #include "dd_globals.h"
 #include "dd_ed.h"
@@ -27,17 +28,6 @@
  @abstract Indicator to track if an interrupt occured requiring the algorithm to exit.
  */
 static volatile int keepRunning = 1;
-/**
- @var printPrecision
- @abstract Number of decimals to print when printing (partial) distances.
- */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-static int printPrecision = 3;
-static int printDigits = 7; // 3+4
-static char printBuffer[20];
-static char printFormat[5];
-#pragma GCC diagnostic pop
 
 
 // Inner distance options
@@ -53,9 +43,9 @@ static char printFormat[5];
 Settings for DTW operations:
  
 @field window : Window size; expressed as distance to a single side including the diagonal, thus
-       the total window size will be window*2 - 1 and Euclidean distance is window=1.
+       the total window size will be `window*2 - 1` and Euclidean distance is window=1.
 @field max_dist : Maximal distance, avoid computing cells that have a larger value.
-       Return INFINITY if no path is found with a distance lower or equal to max_dist.
+       Return INFINITY if no path is found with a distance lower or equal to `max_dist`.
 @field max_step : Maximal stepsize, replace value with INFINITY if step is
        larger than max_step.
 @field max_length_diff : Maximal difference in length between two series.
@@ -65,11 +55,10 @@ Settings for DTW operations:
        and/or end of both sequences.
 @field use_pruning : Compute Euclidean distance first to set max_dist (current value in
        max_dist is ignored).
-@field only_ub : Only compute the upper bound (Euclidean) and return that value.
  */
 struct DTWSettings_s {
     idx_t window;
-    seq_t max_dist;
+seq_t max_dist;
     seq_t max_step;
     idx_t max_length_diff;
     seq_t penalty;
@@ -78,7 +67,6 @@ struct DTWSettings_s {
     idx_t psi_2b;  // series 2, begin psi
     idx_t psi_2e;  // series 2, end psi
     bool use_pruning;
-    bool only_ub;
     int inner_dist; // 0=squared euclidean, 1=euclidean
     int window_type; // 0=band around two diagonals, 1=band around slanted diagonal
     
@@ -168,6 +156,42 @@ void dtw_srand(unsigned int seed);
 seq_t dtw_warping_path_prob_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t *length_i, seq_t avg, int ndim, DTWSettings * settings);
 DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings);
 
+// WP Hirschberg
+struct DTWHSettings_s {
+    int ndim;
+    idx_t window;
+    int window_type;
+    seq_t penalty;
+    seq_t max_cost;
+    seq_t switch_to_full;
+};
+typedef struct DTWHSettings_s DTWHSettings;
+
+DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
+                           seq_t* t_s, idx_t t_l,
+                           idx_t switch_to_full,
+                           int ndim, DTWSettings * settings);
+void dtw_wph_llf_sqeuc_typei(seq_t** lines, seq_t* lastline,
+                             idx_t f_i0, idx_t f_il,
+                             idx_t t_i0, idx_t t_il,
+                             seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                             const DTWHSettings * settings);
+void dtw_wph_llr_sqeuc_typei(seq_t** lines, seq_t* lastline,
+                             idx_t f_i0, idx_t f_il,
+                             idx_t t_i0, idx_t t_il,
+                             seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                             const DTWHSettings * settings);
+DDPath dtw_wph_wp_sqeuc_typei(idx_t f_i0, idx_t f_il,
+                              idx_t t_i0, idx_t t_il,
+                              seq_t *f_s, idx_t f_l, seq_t* t_s, idx_t t_l,
+                              const DTWHSettings * settings);
+
+// WPSF
+seq_t dtw_warping_paths_full_ndim_twice(seq_t *wps, seq_t *s1, idx_t l1, seq_t *s2, idx_t l2,
+                                        seq_t *wpsb, seq_t *s1b, seq_t *s2b,
+                                        bool return_dtw, bool keep_int_repr, bool psi_neg,
+                                        int ndim, DTWSettings *settings);
+
 // Bound
 seq_t ub_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2);
 seq_t ub_euclidean_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim);
@@ -216,7 +240,8 @@ void dtw_print_wps_compact(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* setting
 void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t inf_cols, DTWSettings* settings);
 void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings);
 void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int i1, idx_t skip, idx_t skipp, idx_t maxj, idx_t minj);
-void dtw_print_nb(seq_t value);
-void dtw_print_ch(char* string);
+
+DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, idx_t t_i0, idx_t t_il,
+                                 idx_t f_l, idx_t t_l, idx_t window, int window_type);
 
 #endif /* dtw_h */

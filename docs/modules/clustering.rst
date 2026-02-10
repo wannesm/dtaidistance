@@ -1,5 +1,4 @@
-
-clustering
+Clustering
 ~~~~~~~~~~
 
 .. toctree::

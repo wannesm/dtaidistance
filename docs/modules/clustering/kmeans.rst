@@ -1,3 +1,5 @@
+K-means
+-------
 
 .. automodule:: dtaidistance.clustering.kmeans
    :members:

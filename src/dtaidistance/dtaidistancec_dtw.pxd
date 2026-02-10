@@ -1,5 +1,5 @@
 
-from dtaidistancec_globals cimport seq_t
+from dtaidistancec_globals cimport seq_t, DDPath
 
 
 cdef extern from "dd_dtw.h":
@@ -14,7 +14,6 @@ cdef extern from "dd_dtw.h":
         Py_ssize_t psi_2b
         Py_ssize_t psi_2e
         bint use_pruning
-        bint only_ub
         int inner_dist
 
     ctypedef struct DTWBlock:
@@ -67,8 +66,8 @@ cdef extern from "dd_dtw.h":
     void dtw_expand_wps_affinity(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, DTWSettings *settings)
     void dtw_expand_wps_slice_affinity(seq_t *wps, seq_t *full, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb,
                                        Py_ssize_t ce, DTWSettings *settings)
-    void dtw_wps_negativize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
-    void dtw_wps_positivize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
+    bint dtw_wps_negativize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
+    bint dtw_wps_positivize_value(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, Py_ssize_t c)
     void dtw_wps_positivize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection)
     void dtw_wps_negativize(DTWWps *p, seq_t *wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t rb, Py_ssize_t re, Py_ssize_t cb, Py_ssize_t ce, bint intersection)
     Py_ssize_t dtw_wps_loc(DTWWps *p, Py_ssize_t r, Py_ssize_t c, Py_ssize_t l1, Py_ssize_t l2)
@@ -88,6 +87,11 @@ cdef extern from "dd_dtw.h":
     seq_t dtw_warping_path_prob_ndim(seq_t *from_s, Py_ssize_t from_l, seq_t* to_s, Py_ssize_t to_l,
                                      Py_ssize_t *from_i, Py_ssize_t *to_i, Py_ssize_t *length_i, seq_t avg, int ndim, DTWSettings * settings)
     DTWWps dtw_wps_parts(Py_ssize_t l1, Py_ssize_t l2, DTWSettings * settings)
+
+    DDPath dtw_wph_sqeuc_typei(seq_t *f_s, Py_ssize_t f_l,
+                               seq_t* t_s, Py_ssize_t t_l,
+                               Py_ssize_t switch_to_full,
+                               int ndim, DTWSettings * settings)
 
     seq_t ub_euclidean(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2)
     seq_t ub_euclidean_ndim(seq_t *s1, Py_ssize_t l1, seq_t *s2, Py_ssize_t l2, int ndim)

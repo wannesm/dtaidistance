@@ -1,3 +1,5 @@
+Hierarchical
+------------
 
 .. automodule:: dtaidistance.clustering.hierarchical
    :members:

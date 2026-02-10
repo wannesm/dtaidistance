@@ -425,23 +425,72 @@ void benchmark14() {
     printf("d = %f\n", d);
 }
 
-void benchmark_loco() {
-    dtw_printprecision_set(3);
-    double series1[] = {0., -1, -1, 0, 1, 2, 1, 0, 0, 0, 1, 3, 2, 1, 0, 0, 0, -1, 0};
-    double series2[] = {0.4, -0.9, -1.3, 1, 0.1, 2, 1, 0, 0, 10, 8, 3, 2, 1, 0, 0, 0, -1, 0};
-    idx_t l1 = 19;
-    idx_t l2 = 19;
+void benchmark15_subsequence() {
+    seq_t s1[] = {1, 2, 0};  // query
+    seq_t s2[] = {1, 0, 1, 2, 1, 0, 2, 0, 3, 0, 0};
+    idx_t l1 = 3;
+    idx_t l2 = 11;
+    seq_t s1b[] = {1, 2, 0};
+    seq_t s2b[] = {1, 0, 1, 2, 1, 0, 2, 0, 3, 0, 0};
+    
     DTWSettings settings = dtw_settings_default();
-    seq_t * wps = (seq_t *)malloc(sizeof(seq_t) * ((l1+2)*(l2+2)));  // 21x21
-    seq_t tau = 0.36787944117144233;
-    seq_t delta = -0.7357588823428847;
-    seq_t delta_factor = 0.1;
-    seq_t gamma = 1;
-    loco_warping_paths_typeIII(wps, series1, l1, series2, l2,
-                               /*only_triu=*/false,
-                               gamma, tau, delta, delta_factor, &settings);
-    dtw_print_wps_type(wps, l1, l2, 2, 2, &settings);
-    free(wps);
+    settings.window = 0;
+    settings.psi_1b = 0;
+    settings.psi_1e = 0;
+    settings.psi_2b = l2;
+    settings.psi_2e = 0;
+    settings.penalty = 0.1;
+    settings.use_pruning = false;
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    printf("wps_length=%zu\n", wps_length);
+    seq_t wps[wps_length];
+    seq_t wpsb[wps_length];
+//    for (idx_t i=0; i<wps_length; i++) {
+//        wps[i] = i;
+//    }
+    printf("window=%zu\n", settings.window);
+    seq_t d = dtw_warping_paths_full_ndim_twice(wps,  s1,  l1, s2,  l2,
+                                                wpsb, s1b, s2b,
+                                                true, true, false, 1, &settings);
+    printf("d=%f\n", d);
+    printf("window=%zu\n", settings.window);
+    printf("\n\n");
+    dtw_print_wps(wps, l1, l2, &settings);
+}
+
+void benchmark15_subsequence2() {
+    seq_t s1b[] = {1, 2, 0};  // query
+    seq_t s2b[] = {1., 0, 1, 2, 0, 0, 2, 0, 3, 0, 1, 2, 3, 1, 0};
+    idx_t l1 = 3;
+    idx_t l2 = 15;
+    seq_t s1[] = {1., 0.25, -2.};
+    seq_t s2[] = {-1., -0.5, 1., 0.25, -1.5, 0.5, 1., -0.75, 1.5, -2., 1., 1., 0.25, -1.75, -1.};
+    
+    DTWSettings settings = dtw_settings_default();
+    settings.window = 0;
+    settings.psi_1b = 0;
+    settings.psi_1e = 0;
+    settings.psi_2b = l2;
+    settings.psi_2e = 0;
+    settings.penalty = 0.1;
+    settings.use_pruning = false;
+    idx_t wps_length = dtw_settings_wps_length(l1, l2, &settings);
+    printf("wps_length=%zu\n", wps_length);
+    seq_t wps[wps_length];
+    seq_t wpsb[wps_length];
+//    for (idx_t i=0; i<wps_length; i++) {
+//        wps[i] = i;
+//    }
+    printf("window=%zu\n", settings.window);
+    seq_t d = dtw_warping_paths_full_ndim_twice(wps,  s1,  l1, s2,  l2,
+                                                wpsb, s1b, s2b,
+                                                true, true, false, 1, &settings);
+    printf("d=%f\n", d);
+    printf("window=%zu\n", settings.window);
+    printf("\n\n");
+    dtw_print_wps(wps, l1, l2, &settings);
+    printf("\n\n");
+    dtw_print_wps(wpsb, l1, l2, &settings);
 }
 
 void benchmark_affinity() {
@@ -615,7 +664,7 @@ void wps_test(void) {
     for (idx_t r=0; r<(re-rb); r++) {
         printf("[ ");
         for (idx_t c=0; c<(ce-cb); c++) {
-            dtw_print_nb(wps_slice[wpsi]);
+            print_nb(wps_slice[wpsi]);
             wpsi++;
         }
         printf("]\n");
@@ -659,7 +708,9 @@ int main(int argc, const char * argv[]) {
 //    benchmark12_subsequence();
 //    benchmark13();
 //    benchmark14();
-    benchmark_loco();
+//    benchmark15_subsequence();
+//    benchmark15_subsequence2();
+//    benchmark_loco();
 //    benchmark_affinity();
 //    wps_test();
     

@@ -14,6 +14,7 @@ import os
 import logging
 
 from . import util_numpy
+from . import innerdistance
 
 
 try:
@@ -99,7 +100,8 @@ def plot_warp(from_s, to_s, new_s, path, filename=None, fig=None, axs=None):
 
 
 def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
-                 series_line_options=None, warping_line_options=None):
+                 series_line_options=None, warping_line_options=None,
+                 start_on_curve=True, color_misalignment=False, tick_kwargs=None):
     """Plot the optimal warping between two sequences.
 
     :param s1: From sequence.
@@ -113,6 +115,9 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
         None will not pass any options
     :param warping_line_options: Dictionary of options to pass to matplotlib ConnectionPatch
         None will use {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    :param start_on_curve: Start the line on the curve. If false, start on the Y-axis.
+    :param color_misalignment: Color delayed, on-time, or early based on the misalignment
+        function.
     :return: Figure, list[Axes]
     """
     try:
@@ -123,7 +128,10 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
         logger.error("The plot_warp function requires the matplotlib package to be installed.")
         return
     if fig is None and axs is None:
-        fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
+        if color_misalignment:
+            fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all', gridspec_kw = {'hspace': 1.0})
+        else:
+            fig, axs = plt.subplots(nrows=2, ncols=1, sharex='all', sharey='all')
     elif fig is None or axs is None:
         raise TypeError(f'The fig and axs arguments need to be both None or both instantiated.')
     if series_line_options is None:
@@ -131,17 +139,47 @@ def plot_warping(s1, s2, path, filename=None, fig=None, axs=None,
     axs[0].plot(s1, **series_line_options)
     axs[1].plot(s2, **series_line_options)
     plt.tight_layout()
+    s1_min, _ = axs[0].get_ylim()
+    _, s2_max = axs[1].get_ylim()
     lines = []
     if warping_line_options is None:
         warping_line_options = {'linewidth': 0.5, 'color': 'orange', 'alpha': 0.8}
+    if color_misalignment:
+        warping_line_options['color'] = 'yellow'
+        g_np = 0
+    else:
+        g_np = None
     for r_c, c_c in path:
         if r_c < 0 or c_c < 0:
             continue
-        con = ConnectionPatch(xyA=[r_c, s1[r_c]], coordsA=axs[0].transData,
-                              xyB=[c_c, s2[c_c]], coordsB=axs[1].transData, **warping_line_options)
+        if start_on_curve:
+            s1_y = s1[r_c]
+            s2_y = s2[c_c]
+        else:
+            s1_y = s1_min
+            s2_y = s2_max
+        if color_misalignment:
+            # Based on:
+            # D. K. Urribarri, M. L. Larrea, S. M. Castro, and E. Puppo.
+            # Overview+ detail visual comparison of karate motion captures.
+            # In Computer Science–CACIC 2019: 25th Argentine Congress of Computer
+            # Science, CACIC 2019, Springer, 2020.
+            g_n = c_c - r_c  # misalignment function
+            if g_np == g_n:  # on-time
+                warping_line_options['color'] = '#E4D576'  # yellow
+            elif g_np < g_n:  # delayed
+                warping_line_options['color'] = '#F27D7D'  # red
+            else:  # ahead
+                warping_line_options['color'] = '#7DBDF2'  # blue
+            g_np = g_n
+        con = ConnectionPatch(xyA=[r_c, s1_y], coordsA=axs[0].transData,
+                              xyB=[c_c, s2_y], coordsB=axs[1].transData, **warping_line_options)
         lines.append(con)
     for line in lines:
         fig.add_artist(line)
+    if tick_kwargs is not None:
+        for ax in axs:
+            ax.tick_params(**tick_kwargs)
     if filename:
         plt.savefig(filename)
         plt.close()
@@ -205,18 +243,25 @@ def path_slice(path, rb=None, re=None, cb=None, ce=None):
     return path2
 
 
-def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False, showlegend=False,
-                      figure=None, matshow_kwargs=None, includes_zero=True):
+def plot_warpingpaths(s1, s2, paths, cost_matrix = None, path=None, filename=None,
+                      shownumbers=False, showlegend=False, showtotaldist=True,
+                      figure=None, path_kwargs = None, matshow_kwargs=None,
+                      plot_kwargs = None,
+                      includes_zero=True, tick_kwargs=None, show_diagonal=False):
     """Plot the warping paths matrix.
 
     :param s1: Series 1
     :param s2: Series 2
     :param paths: Warping paths matrix
+    :param cost_matrix: Cost matrix, if it is not None, it will be plotted instead of the accummulated cost matrix ('paths').
     :param path: Path to draw (typically this is the best path)
     :param filename: Filename for the image (optional)
     :param shownumbers: Show distances also as numbers
     :param showlegend: Show colormap legend
     :param figure: Matplotlib Figure object
+    :param path_kwargs: kwargs for the path plot
+    :param matshow_kwargs: kwargs for the matshow plot
+
     :return: Figure, Axes
     """
     try:
@@ -229,11 +274,14 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     ratio = max(len(s1), len(s2))
     min_y = min(np.min(s1), np.min(s2))
     max_y = max(np.max(s1), np.max(s2))
+    if plot_kwargs is None:
+        plot_kwargs = {'linestyle': '-'}
 
     if figure is None:
         fig = plt.figure(figsize=(10, 10), frameon=True)
     else:
         fig = figure
+    size = fig.get_size_inches()
     if showlegend:
         grows = 3
         gcols = 3
@@ -242,21 +290,31 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     else:
         grows = 2
         gcols = 2
-        height_ratios = [1, 6]
-        width_ratios = [1, 6]
+        if len(s1) == len(s2):
+            height_ratios = [1, 6]
+            width_ratios = [1, 6]
+        elif len(s1) < len(s2):
+            height_ts = size[1] / 7
+            height_ratios = [height_ts, size[1] - height_ts]
+            width_ratios = [height_ts, size[0] - height_ts]
+        elif len(s1) > len(s2):
+            width_ts = size[0] / 7
+            height_ratios = [width_ts, size[1] - width_ts]
+            width_ratios = [width_ts, size[0] - width_ts]
     gs = gridspec.GridSpec(grows, gcols, wspace=1, hspace=1,
-                           left=0, right=10.0, bottom=0, top=1.0,
+                           left=0, right=1.0, bottom=0, top=1.0,
                            height_ratios=height_ratios,
                            width_ratios=width_ratios)
     max_s2_x = np.max(s2)
-    max_s2_y = len(s2)
-    max_s1_x = np.max(s1)
-    min_s1_x = np.min(s1)
-    max_s1_y = len(s1)
+    max_s2_y = len(s2) - 1
+    max_s1_y = len(s1) - 1
+    y_ratio2 = (np.max(s1) - np.min(s1)) / (np.max(s2) - np.min(s2))
+    y_ratio1 = min(1.0, 1.0 / y_ratio2)
+    y_ratio2 = min(1.0, y_ratio2)
 
     if path is None and includes_zero is True:
         p = dtw.best_path(paths)
-    elif path == -1:
+    elif type(path) is int and path == -1:
         p = None
     else:
         p = path
@@ -267,55 +325,90 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
     def format_fn2_y(tick_val, tick_pos):
         return int(max_s2_y - tick_val)
 
-    ax0 = fig.add_subplot(gs[0, 0])
-    ax0.set_axis_off()
-    if p is not None:
-        ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
-    ax0.xaxis.set_major_locator(plt.NullLocator())
-    ax0.yaxis.set_major_locator(plt.NullLocator())
-
-    ax1 = fig.add_subplot(gs[0, 1])
-    ax1.set_ylim([min_y, max_y])
-    ax1.set_axis_off()
-    ax1.xaxis.tick_top()
-    # ax1.set_aspect(0.454)
-    ax1.plot(range(len(s2)), s2, ".-")
-    ax1.set_xlim([-0.5, len(s2) - 0.5])
-    ax1.xaxis.set_major_locator(plt.NullLocator())
-    ax1.yaxis.set_major_locator(plt.NullLocator())
-
-    ax2 = fig.add_subplot(gs[1, 0])
-    ax2.set_xlim([-max_y, -min_y])
-    ax2.set_axis_off()
-    # ax2.set_aspect(0.8)
-    # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
-    # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
-    ax2.xaxis.set_major_locator(plt.NullLocator())
-    ax2.yaxis.set_major_locator(plt.NullLocator())
-    ax2.plot(-s1, range(max_s1_y, 0, -1), ".-")
-    ax2.set_ylim([0.5, len(s1) + 0.5])
-
+    # Warping path
     ax3 = fig.add_subplot(gs[1, 1])
     # ax3.set_aspect(1)
-    kwargs = {} if matshow_kwargs is None else matshow_kwargs
-    if includes_zero:
-        img = ax3.matshow(paths[1:, 1:], **kwargs)
+    if matshow_kwargs is None:
+        matshow_kwargs = {}
+    if cost_matrix is not None:
+        img = ax3.matshow(cost_matrix[1:, 1:], aspect='equal', **matshow_kwargs)
     else:
-        img = ax3.matshow(paths, **kwargs)
+        if includes_zero:
+            if isinstance(includes_zero, innerdistance.StepsType):
+                print(f'{paths.shape=}')
+                inf_rows, inf_cols = includes_zero.inf_rows_cols()
+            else:
+                inf_rows, inf_cols = 1, 1
+            img = ax3.matshow(paths[inf_rows:, inf_cols:],
+                              aspect='equal', **matshow_kwargs)
+        else:
+            img = ax3.matshow(paths, aspect='equal', **matshow_kwargs)
+    if show_diagonal:
+        ax3.plot([0, len(s2)], [0, len(s1)], '-', color='white', alpha=0.4)
     # ax3.grid(which='major', color='w', linestyle='-', linewidth=0)
     # ax3.set_axis_off()
     if p is not None:
-        py, px = zip(*p)
-        ax3.plot(px, py, ".-", color="red")
+        if type(p) is list:
+           py, px = zip(*p)
+        else:
+            py = p[:, 0]
+            px = p[:, 1]
+
+        path_kwargs = {'color':"red"} if path_kwargs is None else path_kwargs
+        ax3.plot(px, py, ".-", **path_kwargs)
+
     # ax3.xaxis.set_major_locator(plt.NullLocator())
     # ax3.yaxis.set_major_locator(plt.NullLocator())
     if shownumbers:
         for r in range(1, paths.shape[0]):
             for c in range(1, paths.shape[1]):
-                ax3.text(c - 1, r - 1, "{:.2f}".format(paths[r, c]))
+                ax3.text(c - 1, r - 1, "{:.2f}".format(paths[r, c]), ha='center', va='center')
+    ax3.xaxis.set_ticks_position('bottom')
+    ax3.yaxis.set_ticks_position('right')
+
+    # Time series on top axis
+    ax1 = fig.add_subplot(gs[0, 1])
+    ax1.set_ylim([min_y, max_y])
+    ax1.set_axis_off()
+    ax1.xaxis.tick_top()
+    if 'color' in plot_kwargs:
+        ax1.plot(range(len(s2)), s2, **plot_kwargs)
+    else:
+        ax1.plot(range(len(s2)), s2, color='#ff7f0e', **plot_kwargs)
+    ax1.set_xlim([-0.5, len(s2) - 0.5])
+    ax1.xaxis.set_major_locator(plt.NullLocator())
+    ax1.yaxis.set_major_locator(plt.NullLocator())
+
+    # Time series on left axis
+    ax2 = fig.add_subplot(gs[1, 0])
+    ax2.set_xlim([-max_y, -min_y])
+    ax2.set_axis_off()
+    # ax2.xaxis.set_major_formatter(FuncFormatter(format_fn2_x))
+    # ax2.yaxis.set_major_formatter(FuncFormatter(format_fn2_y))
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+    if 'color' in plot_kwargs:
+        ax2.plot(-s1, range(len(s1)), **plot_kwargs)
+    else:
+        ax2.plot(-s1, range(len(s1)), color='#1f77b4', **plot_kwargs)
+    ax2.set_ylim([-0.5, len(s1) - 0.5])
+    ax2.invert_yaxis()
+
+    # for ax in [ax0, ax1, ax2, ax3]:
+    #     for spine in ax.spines.values():
+    #         spine.set_visible(True)
+    #         spine.set_edgecolor('green')  # Set border color
+    #         spine.set_linewidth(2)  # Set border thickness
 
     gs.tight_layout(fig, pad=1.0, h_pad=1.0, w_pad=1.0)
     # fig.subplots_adjust(hspace=0, wspace=0)
+
+    ax0 = fig.add_subplot(gs[0, 0])
+    ax0.set_axis_off()
+    if p is not None and showtotaldist:
+        ax0.text(0, 0, "Dist = {:.4f}".format(paths[p[-1][0] + 1, p[-1][1] + 1]))
+    ax0.xaxis.set_major_locator(plt.NullLocator())
+    ax0.yaxis.set_major_locator(plt.NullLocator())
 
     if showlegend:
         # ax4 = fig.add_subplot(gs[0:, 2])
@@ -323,26 +416,31 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
         fig.colorbar(img, cax=ax4)
 
     # Align the subplots:
-    ax1pos = ax1.get_position().bounds
-    ax2pos = ax2.get_position().bounds
-    ax3pos = ax3.get_position().bounds
-    ax2.set_position((ax2pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax2pos[2], ax3pos[3])) # adjust the time series on the left vertically
-    if len(s1) < len(s2):
-        ax3.set_position((ax3pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax3pos[2], ax3pos[3])) # move the time series on the left and the distance matrix upwards
-        if showlegend:
-            ax4pos = ax4.get_position().bounds
-            ax4.set_position((ax4pos[0], ax2pos[1] + ax2pos[3] - ax3pos[3], ax4pos[2], ax3pos[3])) # move the legend upwards
-    if len(s1) > len(s2):
-        ax3.set_position((ax1pos[0], ax3pos[1], ax3pos[2], ax3pos[3])) # move the time series at the top and the distance matrix to the left
-        ax1.set_position((ax1pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
-        if showlegend:
-            ax4pos = ax4.get_position().bounds
-            ax4.set_position((ax1pos[0] + ax3pos[2] + (ax1pos[0] - (ax2pos[0] + ax2pos[2])), ax4pos[1], ax4pos[2], ax4pos[3])) # move the legend to the left to equalize the horizontal spaces between the subplots
-    if len(s1) == len(s2):
-        ax1.set_position((ax3pos[0], ax1pos[1], ax3pos[2], ax1pos[3])) # adjust the time series at the top horizontally
-        
-    ax = fig.axes
+    if len(s1) != len(s2):
+        # bounds = (xmin, ymin, width, height)
+        ax1pos = ax1.get_position().bounds  # top ts
+        ax2pos = ax2.get_position().bounds  # left ts
+        ax3pos = ax3.get_position().bounds  # warping path
+        left = ax3pos[0]
+        bottom = ax3pos[1]
+        width = ax3pos[2]
+        height = ax3pos[3]
+        tsheight = min(ax1pos[3], ax2pos[2], height / 6)
+        dist_between_y = ax1pos[1] - (ax2pos[1] + ax2pos[3])
+        dist_between_x = ax1pos[0] - ax2pos[0]  # Tts.left - Lts.left
+        # set_position([left, bottom, width, height])
+        ax0.set_position((left - 1.1 * tsheight, bottom+height+dist_between_y, tsheight, tsheight))
+        ax1.set_position((left, bottom+height+dist_between_y, width, tsheight))
+        ax2.set_position((left - 1.1 * tsheight, bottom, tsheight, height))
 
+    ax = fig.axes
+    if tick_kwargs is not None:
+        ax3.tick_params(**tick_kwargs)
+    # ax3.spines['bottom'].set_linewidth(2.0)
+    # ax3.spines['right'].set_linewidth(2.0)
+    for spine in ax3.spines.values():
+        spine.set_linewidth(2)  # Increase axis thickness
+        # spine.set_color('black')  # Ensure it's visible
     if filename:
         if type(filename) != str:
             filename = str(filename)
@@ -354,7 +452,7 @@ def plot_warpingpaths(s1, s2, paths, path=None, filename=None, shownumbers=False
 
 def plot_warpingpaths_addpath(ax, path):
     py, px = zip(*path)
-    ax3 = ax[3]
+    ax3 = ax[0]
     ax3.plot(px, py, ".-", color="red", markersize=2)
 
 

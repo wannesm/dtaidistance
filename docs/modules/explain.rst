@@ -1,0 +1,6 @@
+Explain
+~~~~~~~
+
+.. toctree::
+
+   explain/explainpair

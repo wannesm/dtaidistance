@@ -56,7 +56,7 @@ def test_bug2():
         d2, paths = dtw.warping_paths(s1, s2, window=2)
         best_path = dtw.best_path(paths)
         if not dtwvis.test_without_visualization():
-            dtwvis.plot_warpingpaths(s1, s2, paths, best_path, filename=fn, shownumbers=False)
+            dtwvis.plot_warpingpaths(s1, s2, paths, path=best_path, filename=fn, shownumbers=False)
             print("Figure saved to", fn)
 
         assert d1a == pytest.approx(d2)

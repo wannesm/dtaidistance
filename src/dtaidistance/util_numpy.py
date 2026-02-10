@@ -15,6 +15,16 @@ def test_without_numpy():
     return False
 
 
+try:
+    if test_without_numpy():
+        raise ImportError()
+    import numpy as np
+    seq_t_dtype = np.double
+except ImportError:
+    np = None
+    seq_t_dtype = None
+
+
 def test_without_scipy():
     if test_without_numpy():
         return True

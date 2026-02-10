@@ -9,6 +9,7 @@
 
 
 //#define DTWDEBUG
+//#define DTWHDEBUG
 
 
 // MARK: Settings
@@ -26,7 +27,6 @@ DTWSettings dtw_settings_default(void) {
         .psi_2b = 0,
         .psi_2e = 0,
         .use_pruning = false,
-        .only_ub = false,
         .inner_dist = 0,  // 0: squared euclidean, 1: euclidean
         .window_type = 0
     };
@@ -44,6 +44,7 @@ idx_t dtw_settings_wps_width(idx_t l1, idx_t l2, DTWSettings *settings) {
 }
 
 void dtw_settings_set_psi(idx_t psi, DTWSettings *settings) {
+    // TODO: check settings for max_dist / use_pruning, this is not always compatible with relaxation
     settings->psi_1b = psi;
     settings->psi_1e = psi;
     settings->psi_2b = psi;
@@ -60,7 +61,6 @@ void dtw_settings_print(DTWSettings *settings) {
     printf("  psi = [%zu, %zu, %zu, %zu]\n", settings->psi_1b, settings->psi_1e,
                                              settings->psi_2b, settings->psi_2e);
     printf("  use_pruning = %d\n", settings->use_pruning);
-    printf("  only_ub = %d\n", settings->only_ub);
     printf("  inner_dist = %d\n", settings->inner_dist);
     printf("  window_type = %d\n", settings->window_type);
     printf("}\n");
@@ -364,7 +364,7 @@ the implied matrix.
  */
 idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -481,7 +481,7 @@ idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2) {
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2) {
     // TODO: the loops can be skipped and replaced by an addition per section
     idx_t ri, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
 
     // First row is inf
@@ -565,7 +565,7 @@ Get maximal value in matrix
  */
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2) {
     idx_t ri, ci, wpsi, wpsi_start;
-    idx_t ri_width = p->width;
+    idx_t ri_width;
     idx_t min_ci, max_ci;
     seq_t maxval = 0;
     idx_t maxidx = 0;
@@ -888,6 +888,10 @@ seq_t dtw_warping_path(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx
 seq_t dtw_warping_path_ndim(seq_t *from_s, idx_t from_l, seq_t* to_s, idx_t to_l, idx_t *from_i, idx_t *to_i, idx_t * length_i, int ndim, DTWSettings * settings) {
     idx_t wps_length = dtw_settings_wps_length(from_l, to_l, settings);
     seq_t *wps = (seq_t *)malloc(wps_length * sizeof(seq_t));
+    if (wps == NULL) {
+        printf("ERROR: Cannot allocate memory for storing the cumulative cost matrix (wps)");
+        exit(1);
+    }
     seq_t d;
     if (settings->inner_dist == 1) {
         d = dtw_warping_paths_ndim_euclidean(wps, from_s, from_l, to_s, to_l, true, true, true,                        ndim, settings);
@@ -995,6 +999,162 @@ DTWWps dtw_wps_parts(idx_t l1, idx_t l2, DTWSettings * settings) {
     
     return parts;
 }
+
+// MARK: WPSF
+
+/*!
+ Compute all warping paths and store the cumulative costs in the full matrix.
+ 
+ Compute the cost of the path for a second set of time series.
+ 
+ Note: There are no memory optimizations for windows. No compact representation.
+ 
+ @param wps Warping paths matrix (cumulative cost matrix). Should be of size (l1 + 1)*(l2 + 1)
+ @param wpsb Second warping paths matrix, based on s1b and s2b. Size should be identical to wps
+ @param return_dtw Compute the distance and return this value
+ @param keep_int_repr Apply the inverse cost operation to the cumulative cost matrix
+ */
+seq_t dtw_warping_paths_full_ndim_twice(seq_t *wps,
+                                        seq_t *s1, idx_t l1,
+                                        seq_t *s2, idx_t l2,
+                                        seq_t *wpsb,
+                                        seq_t *s1b, seq_t *s2b,
+                                        bool return_dtw, bool keep_int_repr, bool psi_neg,
+                                        int ndim, DTWSettings *settings) {
+    // TODO: no support for window
+    assert(settings->window == 0 || settings->window == MAX(l1, l2));
+    // TODO: no support for psi-relaxation at end
+    assert(settings->psi_1e == 0 && settings->psi_2e == 0);
+    // TODO: no support for pruning
+    assert(!settings->use_pruning);
+    // TODO: no support for max_step
+    assert(settings->max_step == 0);
+    // TODO: no support for max_dist
+    assert(settings->max_dist == 0);
+    // TODO: no support for psi_neg
+    assert(psi_neg == 0);
+    const idx_t inf_cols = 1;
+    const idx_t inf_rows = 1;
+    idx_t width = l2 + inf_cols;
+    const seq_t penalty = settings->penalty;
+
+    idx_t ri, ci, wpsi;
+    seq_t d;
+    idx_t ri_idx, ci_idx;
+
+    // First rows
+    wpsi = 0;
+    for (ri=0; ri<inf_rows; ri++) {
+        for (ci=0; ci<inf_cols+settings->psi_2b; ci++) {
+            wps[wpsi] = 0;
+            wpsb[wpsi] = 0;
+            wpsi++;
+        }
+        for (; ci<width; ci++) {
+            wps[wpsi] = INFINITY;
+            wpsb[wpsi] = INFINITY;
+            wpsi++;
+        }
+    }
+    // First columns
+    wpsi = inf_rows*width;
+    for (; ri<inf_rows+settings->psi_1b; ri++) {
+        for (ci=0; ci<inf_cols; ci++) {
+            wps[wpsi] = 0;
+            wpsb[wpsi] = 0;
+            wpsi++;
+        }
+        wpsi += width - inf_cols + 1;
+    }
+    for (; ri<inf_rows+l1; ri++) {
+        for (ci=0; ci<inf_cols; ci++) {
+            wps[wpsi] = INFINITY;
+            wpsb[wpsi] = INFINITY;
+            wpsi++;
+        }
+        wpsi += width - inf_cols;
+    }
+
+    // Cumulative costs
+    idx_t ri_widthp = 0;
+    idx_t ri_width = width;
+    int values_idx;
+    seq_t values[3];
+    for (ri=0; ri<l1; ri++) {
+        ri_idx = ri * ndim;
+        wpsi = inf_cols;
+        for (ci=0; ci<l2; ci++) {
+            ci_idx = ci * ndim;
+            
+            // Fill in the first cumulative cost matrix
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                // inner_dist == euclidean or squared euclidean
+                d += SEDIST(s1[ri_idx + d_i], s2[ci_idx + d_i]);
+            }
+            // Steps: typeI (0, 1), (1, 1), (1, 0)
+            values[0] = wps[ri_width  + wpsi - 1] + penalty;  // left
+            values[1] = wps[ri_widthp + wpsi - 1];            // diagonal
+            values[2] = wps[ri_widthp + wpsi]     + penalty;  // up
+            if (values[0] <= values[1] && values[0] <= values[2]) {
+                values_idx = 0;
+            } else if (values[1] <= values[2]) {
+                values_idx = 1;
+            } else {
+                values_idx = 2;
+            }
+            wps[ri_width + wpsi] = d + values[values_idx];
+
+            // Fill in the second cumulative cost matrix
+            d = 0;
+            for (int d_i=0; d_i<ndim; d_i++) {
+                // inner_dist == euclidean or squared euclidean
+                d += SEDIST(s1b[ri_idx + d_i], s2b[ci_idx + d_i]);
+            }
+            if (values_idx == 0) {
+                d += wpsb[ri_width  + wpsi - 1]; // + penalty;
+            } else if (values_idx == 1) {
+                d += wpsb[ri_widthp + wpsi - 1];
+            } else {
+                d += wpsb[ri_widthp + wpsi];    // + penalty;
+            }
+            wpsb[ri_width + wpsi] = d;
+            
+            wpsi++;
+        }
+        ri_widthp = ri_width;
+        ri_width += width;
+    }
+
+    seq_t rvalue = 0;
+    idx_t final_wpsi = ri_widthp + wpsi - 1;
+    // asserted that (settings->psi_1e == 0 && settings->psi_2e == 0)
+    rvalue = wps[final_wpsi];
+    if (!keep_int_repr) {
+        // Apply inverse cost function to all values
+        for (idx_t i=0; i<=final_wpsi ; i++) {
+            if (wps[i] > 0) {
+                // inner_dist == squared euclidean
+                wps[i] = sqrt(wps[i]);
+                wpsb[i] = sqrt(wpsb[i]);
+            }
+        }
+    }
+    if (return_dtw) {
+        // Apply inverse cost function to best path distance (dtw distance)
+        if (rvalue > 0) {
+            // inner_dist == squared euclidean
+            rvalue = sqrt(rvalue);
+        }
+    }
+    return rvalue;
+}
+
+// MARK: WP Hirschberg
+
+{% set inner_dist = 'sqeuc' %}
+{% set steps = 'typei' %}
+{%- include 'dtw_dtwh.jinja.c' %}
 
 
 // MARK: Bounds
@@ -1245,12 +1405,12 @@ void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t i
     wpsi = 0;
     printf(" [[ ");
     for (ci=0; ci<inf_cols; ci++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf("_ ");
         wpsi++;
     }
     for (; ci<width; ci++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf("  ");
         wpsi++;
     }
@@ -1258,12 +1418,12 @@ void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t i
     for (ri=1; ri<height-1; ri++) {
         printf("  [ ");
         for (ci=0; ci<inf_cols; ci++) {
-            dtw_print_nb(wps[wpsi]);
+            print_nb(wps[wpsi]);
             printf("_ ");
             wpsi++;
         }
         for (; ci<width; ci++) {
-            dtw_print_nb(wps[wpsi]);
+            print_nb(wps[wpsi]);
             printf("  ");
             wpsi++;
         }
@@ -1271,12 +1431,12 @@ void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t i
     }
     printf("  [ ");
     for (ci=0; ci<inf_cols; ci++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf("_ ");
         wpsi++;
     }
     for (; ci<width; ci++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf("  ");
         wpsi++;
     }
@@ -1288,12 +1448,12 @@ void dtw_print_wps_type(seq_t * wps, idx_t l1, idx_t l2, idx_t inf_rows, idx_t i
 void dtw_print_wps_compact(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     DTWWps p = dtw_wps_parts(l1, l2, settings);
     for (idx_t wpsi=0; wpsi<p.width; wpsi++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
     }
     printf("\n");
     for (idx_t ri=0; ri<l1; ri++) {
         for (idx_t wpsi=0; wpsi<p.width; wpsi++) {
-            dtw_print_nb(wps[(ri+1)*p.width+wpsi]);
+            print_nb(wps[(ri+1)*p.width+wpsi]);
         }
         if (ri < p.ri1) { printf("  # a %zu", ri); }
         if (p.ri1 <= ri && ri < p.ri2) { printf("  # b %zu", ri); }
@@ -1310,22 +1470,22 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     
     // Top row: ri = -1
     printf(" [[ ");
-    dtw_print_nb(wps[0]);
+    print_nb(wps[0]);
     printf(" ");
     wpsi = 1;
     for (ci=0; ci<MIN(p.window + p.ldiffc, l2); ci++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf(" ");
         wpsi++;
     }
     for (; wpsi<p.width; wpsi++) {
-        dtw_print_nb(wps[wpsi]);
+        print_nb(wps[wpsi]);
         printf("_");
         ci++;
     }
     for (; ci<l2; ci++) {
         printf(" ");
-        dtw_print_ch("inf.");
+        print_ch("inf.");
     }
     printf("]\n");
     
@@ -1334,22 +1494,22 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     max_ci = p.window + p.ldiffc; // ri < overlap_right_i
     for (ri=0; ri<p.ri1; ri++) {
         printf("  [ ");
-        dtw_print_nb(wps[p.width*(ri + 1)]); // wpsi = 0
+        print_nb(wps[p.width*(ri + 1)]); // wpsi = 0
         printf("_");
         wpsi = 1;
         for (ci=min_ci; ci<max_ci; ci++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf(" ");
             //printf("%zux%zu   ", wpsi, ci);
             wpsi++;
         }
         for (; wpsi<p.width; wpsi++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf("_");
             ci++;
         }
         for (; ci<l2 ;ci++) {
-            dtw_print_ch(".inf");
+            print_ch(".inf");
             printf(" ");
         }
         printf("],  # a %zu\n", ri);
@@ -1361,21 +1521,21 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     max_ci = l2; // ri >= overlap_right_i
     for (ri=p.ri1; ri<p.ri2; ri++) {
         printf("  [ ");
-        dtw_print_nb(wps[p.width*(ri + 1)]);
+        print_nb(wps[p.width*(ri + 1)]);
         printf("_");
         wpsi = 1;
         for (ci=min_ci; ci<max_ci; ci++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf(" ");
             wpsi++;
         }
         for (; wpsi<p.width; wpsi++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf("_");
             ci++;
         }
         for (; ci<l2 ;ci++) {
-            dtw_print_ch(".inf");
+            print_ch(".inf");
             printf(" ");
         }
         printf("],  # b %zu\n", ri);
@@ -1387,24 +1547,24 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
     for (ri=p.ri2; ri<p.ri3; ri++) {
         printf("  [ ");
         for (ci=0; ci<min_ci ;ci++) {
-            dtw_print_ch(".inf");
+            print_ch(".inf");
             printf(" ");
         }
-        dtw_print_nb(wps[(ri+1)*p.width + 0]);
+        print_nb(wps[(ri+1)*p.width + 0]);
         printf("_");
         wpsi = 1;
         for (ci=min_ci; ci<max_ci; ci++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf(" ");
             wpsi++;
         }
         for (; wpsi<p.width && ci<l2; wpsi++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf("_");
             ci++;
         }
         for (; ci<l2 ;ci++) {
-            dtw_print_ch(".inf");
+            print_ch(".inf");
             printf(" ");
         }
         printf("],  # c %zu\n", ri);
@@ -1426,19 +1586,19 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
         if (p.ri2 == p.ri3) {
             // C is skipped
             for (wpsi = 0; wpsi<wpsi_start; wpsi++) {
-                dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+                print_nb(wps[(ri+1)*p.width + wpsi]);
                 printf("_");
             }
             ci = wpsi_start - 1;
         } else {
-            dtw_print_ch(".inf");
+            print_ch(".inf");
             printf(" ");
             for (ci=0; ci<(min_ci - wpsi_start) ;ci++) {
-                dtw_print_ch(".inf");
+                print_ch(".inf");
                 printf(" ");
             }
             for (wpsi = 0; wpsi<wpsi_start; wpsi++) {
-                dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+                print_nb(wps[(ri+1)*p.width + wpsi]);
                 printf("_");
                 ci++;
             }
@@ -1447,7 +1607,7 @@ void dtw_print_wps(seq_t * wps, idx_t l1, idx_t l2, DTWSettings* settings) {
         assert(wpsi == wpsi_start);
         wpsi = wpsi_start;
         for (ci=min_ci; ci<l2; ci++) {
-            dtw_print_nb(wps[(ri+1)*p.width + wpsi]);
+            print_nb(wps[(ri+1)*p.width + wpsi]);
             printf(" ");
             wpsi++;
         }
@@ -1493,16 +1653,54 @@ void dtw_print_twoline(seq_t * dtw, idx_t r, idx_t c, idx_t length, int i0, int 
     printf("]]\n");
 }
 
-void dtw_print_nb(seq_t value) {
-    snprintf(printFormat, sizeof(printFormat), "%%.%df", printPrecision);
-    snprintf(printBuffer, sizeof(printBuffer), printFormat, value);
-    printf("%*s", printDigits, printBuffer);
-    // "%-*s" would left align
+inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, idx_t t_i0, idx_t t_il,
+                                 idx_t f_l, idx_t t_l, idx_t window, int window_type) {
+    idx_t lwindow, rwindow;
+    idx_t j_b, j_e;
+    idx_t j_m; // Location of the middle of the window
+    assert(t_il <= t_l);
+    
+    if (window_type == 1) {
+        // Window wrt the slanted diagonal
+        j_m = round((f_i0+i)*(((float)t_l) / f_l));
+        lwindow = window;
+        rwindow = window;
+    } else { // window_type == 0
+        // Window wrt the two diagonals, one starting in the
+        // top left corner, one in the lower right corner
+        j_m = f_i0 + i;  // Express wrt diagonal starting in TL corner
+        lwindow = window+(f_l > t_l)*(f_l - t_l);
+        rwindow = window+(f_l <= t_l)*(t_l - f_l);
+    }
+    
+    // Find range in original indices
+    if (j_m > lwindow-1) {
+        j_b = j_m - (lwindow-1);
+    } else {
+        j_b = 0;
+    }
+    if (j_b < t_min) {
+        j_b = t_min;
+    }
+    if (t_l-1 < j_m+rwindow-1) {
+        j_e = t_l-1;
+    } else {
+        j_e = j_m + (rwindow-1);
+    }
+    if (j_e > t_max) {
+        j_e = t_max;
+    }
+    j_e = j_e + 1; // Correct last index to be outside of range
+
+    // Adapt range to offset indices
+    if (j_b < t_i0) {
+        j_b = t_i0;
+    }
+    j_b -= t_i0; // Range relative to t_i0
+    if (j_e > t_il) {
+        j_e = t_il;
+    }
+    j_e -= t_i0; // Range relative to t_i0
+    
+    return (DDRange){.b=j_b, .e=j_e};
 }
-
-void dtw_print_ch(char* string) {
-    printf("%*s", printDigits, string);
-    // "%-*s" would left align
-}
-
-
