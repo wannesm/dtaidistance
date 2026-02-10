@@ -12,7 +12,7 @@ name = "dtaidistance"
 version = "2.4.0"
 description = "Distance measures for time series (Dynamic Time Warping, fast C implementation)"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [
     {name = "Wannes Meert", email = "wannes.meert@cs.kuleuven.be"},
 ]
