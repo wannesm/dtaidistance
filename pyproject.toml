@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dtaidistance"
-dynamic = ["version"]
+version = "2.4.0"
 description = "Distance measures for time series (Dynamic Time Warping, fast C implementation)"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -57,9 +57,6 @@ packages = [
 	"dtaidistance.benchmarks",
 ]
 license-files = []
-
-[tool.setuptools.dynamic]
-version = {attr = "dtaidistance.__version__"}
 
 
 [tool.setuptools.package-data]
