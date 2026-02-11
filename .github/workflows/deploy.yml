@@ -162,7 +162,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ windows-2022, windows-2025 ]  # windows-2019 (produces same filenames as 2022)
+        os: [ windows-2025 ]  # windows-2019 (produces same filenames as 2022)
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
     - uses: actions/checkout@v4
