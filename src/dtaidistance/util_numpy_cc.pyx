@@ -9,7 +9,7 @@ Dynamic Time Warping (DTW), C implementation, numpy specific extensions.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
-import dtw_cc
+cimport dtw_cc
 from libc.stdint cimport intptr_t
 import numpy as np
 cimport numpy as np

@@ -461,7 +461,8 @@ int comp(const void * elem1, const void * elem2)
 void loco_wps_argmax(seq_t *wps, idx_t l, idx_t *idxs, int n) {
     int i, j, k;
     HeapEntry swap;
-    HeapEntry heap[n];
+    // HeapEntry heap[n]; // Not supported in MSVC
+    HeapEntry* heap = malloc(n * sizeof(HeapEntry));
                              
     for (i=0; i<n; i++) {
         heap[i] = (HeapEntry){.idx=l+1, .val=0};
@@ -489,6 +490,7 @@ void loco_wps_argmax(seq_t *wps, idx_t l, idx_t *idxs, int n) {
     for (i=0; i<n; i++) {
         idxs[i] = heap[i].idx;
     }
+    free(heap);
 }
 
 
