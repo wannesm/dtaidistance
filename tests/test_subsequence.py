@@ -276,6 +276,10 @@ def test_dtw_localconcurrences_short():
         np.testing.assert_allclose(lc.wp_slice_ts(), lc2.wp_slice_ts())
         p = lc.best_path(len(series1) - 1, len(series2))
         p2 = lc2.best_path(len(series1) - 1, len(series2))
+        print(f"{type(p2[0])=}")
+        print(f"{p2[0]=}")
+        print(f"{type(p2[0][0])=}")
+        print(f"{p2[0][0]=}")
         p2 = [(p2i[0], p2i[1]) for p2i in p2]
         assert str(p) == str(p2)
         # assert str(p) == "[(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (10, 11), "\
