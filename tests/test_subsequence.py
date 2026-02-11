@@ -276,7 +276,7 @@ def test_dtw_localconcurrences_short():
         np.testing.assert_allclose(lc.wp_slice_ts(), lc2.wp_slice_ts())
         p = lc.best_path(len(series1) - 1, len(series2))
         p2 = lc2.best_path(len(series1) - 1, len(series2))
-        p2 = [(i, j) for i, j in p2]
+        p2 = [(p2i[0], p2i[1]) for p2i in p2]
         assert str(p) == str(p2)
         # assert str(p) == "[(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10), (10, 11), "\
         #                  "(11, 12), (12, 13), (13, 14), (14, 15), (15, 16), (16, 17), (17, 18)]", \
@@ -719,7 +719,6 @@ def test_lc_pat3():
 
         sm = lc.similarity_matrix()
 
-        directory = Path(os.environ.get('TESTDIR', None))
         if directory and not dtwvis.test_without_visualization():
             try:
                 import matplotlib.pyplot as plt
