@@ -14,6 +14,7 @@ cimport dtaidistancec_loco
 cimport dtaidistancec_globals
 from dtaidistancec_dtw cimport seq_t
 from cython.view cimport array as cvarray
+import array
 from libc.stdio cimport FILE, fopen, fwrite, fscanf, fclose, fprintf, fseek, ftell, SEEK_END, rewind, fread
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -113,7 +114,9 @@ def loco_best_path(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, 
         return None
     try:
         # Use cython.view.array to avoid numpy dependency
-        idxs = cvarray(shape=(bp.length, 2), itemsize=sizeof(Py_ssize_t), format="l")
+        # idxs_a = array.array('q', [0] * (bp.length * 2))
+        # idxs = memoryview(idxs_a).cast('q', shape=(bp.length, 2))
+        idxs = cvarray(shape=(bp.length, 2), itemsize=sizeof(Py_ssize_t), format="q")
     except MemoryError as exc:
         dtaidistancec_globals.dd_path_free(&bp)
         print("Cannot allocate memory for warping paths matrix.")
