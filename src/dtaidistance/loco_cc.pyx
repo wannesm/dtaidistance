@@ -114,8 +114,6 @@ def loco_best_path(seq_t[:, :] wps, Py_ssize_t l1, Py_ssize_t l2, Py_ssize_t r, 
         return None
     try:
         # Use cython.view.array to avoid numpy dependency
-        # idxs_a = array.array('q', [0] * (bp.length * 2))
-        # idxs = memoryview(idxs_a).cast('q', shape=(bp.length, 2))
         idxs = cvarray(shape=(bp.length, 2), itemsize=sizeof(Py_ssize_t), format="q")
     except MemoryError as exc:
         dtaidistancec_globals.dd_path_free(&bp)
