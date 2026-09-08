@@ -270,11 +270,7 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
     if (window - 1 < 0) {
         l2 += window - 1;
     }
-    {%- if "euclidean" == inner_dist %}
     seq_t result = dtw[length * i1 + l2 - skip];
-    {%- else %}
-    seq_t result = sqrt(dtw[length * i1 + l2 - skip]);
-    {%- endif %}
     // Deal with psi-relaxation in the last row
     if (settings->psi_1e != 0 || settings->psi_2e != 0) {
         if (settings->psi_2e != 0) {
@@ -284,11 +280,7 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
                 }
             }
         }
-        {%- if "euclidean" == inner_dist %}
         result = psi_shortest;
-        {%- else %}
-        result = sqrt(psi_shortest);
-        {%- endif %}
     }
     free(dtw);
     // signal(SIGINT, SIG_DFL);  // not compatible with OMP
@@ -296,6 +288,10 @@ seq_t dtw_distance{{ suffix }}{{ suffix2 }}(seq_t *s1, idx_t l1,
         // DTWPruned keeps the last value larger than max_dist. Correct for this.
         result = INFINITY;
     }
+    {%- if "euclidean" == inner_dist %}
+    {%- else %}
+    result = sqrt(result);
+    {%- endif %}
     return result;
 }
 

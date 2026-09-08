@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dtaidistance"
-version = "2.4.0"
+version = "2.5.0"
 description = "Distance measures for time series (Dynamic Time Warping, fast C implementation)"
 readme = "README.md"
 license = "Apache-2.0"

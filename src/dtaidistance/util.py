@@ -14,12 +14,11 @@ import os
 import sys
 import csv
 import logging
+import numbers
 from array import array
 from pathlib import Path
 import tempfile
-import heapq
-import time
-from bisect import bisect_left, bisect_right
+from bisect import bisect_left, bisect_right, insort
 from enum import Enum
 
 
@@ -468,6 +467,23 @@ class SortedList:
     def __getitem__(self, item):
         return self._l.__getitem__(item)
 
+    def to_list(self):
+        return list(self._l)
+
+    def add(self, x):
+        """Add value x to the list."""
+        insort(self._l, x)
+
+    def add_ifunique(self, x):
+        try:
+            self.index(x)
+        except ValueError:
+            self.add(x)
+
+    def add_ifnotinpos(self, x, pos):
+        if self._l[pos] != x:
+            self.add(x)
+
     def remove(self, x):
         """Remove the value equal to x."""
         try:
@@ -536,11 +552,16 @@ class DDType(str, Enum):
         elif type(val) is str:
             try:
                 return cls(val)
-            except ValueError as exc:
+            except ValueError:
                 pass
-        elif type(val) is int:
+        elif type(val) is int or isinstance(val, numbers.Integral):
             try:
                 return cls.from_int(val)
-            except IndexError as exc:
+            except IndexError:
+                pass
+        elif type(val) is bool:
+            try:
+                return cls.from_int(int(val))
+            except IndexError:
                 pass
         raise ValueError(f'Value not supported for {cls.__name__}: {val}')

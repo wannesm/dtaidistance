@@ -6,7 +6,7 @@ dtaidistance.dtw
 Dynamic Time Warping (DTW)
 
 :author: Wannes Meert
-:copyright: Copyright 2017-2025 KU Leuven, DTAI Research Group.
+:copyright: Copyright 2017-2026 KU Leuven, DTAI Research Group.
 :license: Apache License, Version 2.0, see LICENSE for details.
 
 """
@@ -173,15 +173,15 @@ class DTWSettings:
 
     @staticmethod
     def wrap(settings) -> 'DTWSettings':
+        if settings is None:
+            return DTWSettings()
         if (isinstance(settings, DTWSettings) or
                 'DTWSettings' in str(type(settings))):
             return settings
-        if settings is None:
-            return DTWSettings()
         if type(settings) is dict and 'dtw_settings' in settings:
             if len(settings) > 1:
                 raise ValueError('If dtw_settings is passed, no other arguments'
-                                 'can be given.')
+                                 f'can be given. Got {settings}')
             return settings['dtw_settings']
         return DTWSettings(**settings)
 
@@ -198,6 +198,18 @@ class DTWSettings:
         if self.use_pruning and (self.max_dist == 0 or self.max_dist is None):
             self.max_dist = ub_euclidean(s1, s2, inner_dist=self.inner_dist, use_ndim=self.use_ndim)
             self.adj_max_dist = ival_fn(self.max_dist)
+
+    def inner_dist_fns(self):
+        return innerdistance.inner_dist_fns(
+            inner_dist=self.inner_dist,
+            use_ndim=self.use_ndim,
+        )
+
+    def inner_dist_cls(self) -> innerdistance.InnerDistBase:
+        return innerdistance.inner_dist_cls(
+            inner_dist=self.inner_dist,
+            use_ndim=self.use_ndim,
+        )
 
     def kwargs(self):
         return {
@@ -258,9 +270,12 @@ class DTWSettings:
     def from_h5_group(group):
         kwargs = {}
         for attr in ["window", "use_pruning", "max_dist", "max_step",
-                     "max_length_diff", "penalty", "psi", "inner_dist", "use_ndim", "use_c"]:
+                     "max_length_diff", "penalty", "psi", "use_ndim", "use_c"]:
             if attr in group.attrs:
-                kwargs[attr] = group.attrs[attr]
+                val = group.attrs[attr]
+                kwargs[attr] = None if val == 0 else val
+        if "inner_dist" in group.attrs:
+            kwargs["inner_dist"] = group.attrs["inner_dist"]
         return DTWSettings(**kwargs)
 
     def __str__(self):
@@ -268,6 +283,13 @@ class DTWSettings:
         a = self.c_kwargs()
         for k, v in a.items():
             r += '{}: {}\n'.format(k, v)
+        return r
+
+    def __repr__(self):
+        r = "DTWSettings("
+        a = self.kwargs()
+        r += ",".join([f"{k}={v}" for k,v in a.items()])
+        r += ")"
         return r
 
 
@@ -445,7 +467,8 @@ def _distance_c_with_params_ndim(t):
     return dtw_cc.distance_ndim(t[0], t[1], **t[2])
 
 
-def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
+def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False,
+                  second_matrix=None, **kwargs):
     """
     Dynamic Time Warping.
 
@@ -461,7 +484,10 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
     """
     s = DTWSettings.for_dtw(s1, s2, **kwargs)
     if s.use_c:
-        return warping_paths_fast(s1, s2, psi_neg=psi_neg, **s.kwargs())
+        return warping_paths_fast(s1, s2, psi_neg=psi_neg,
+                                  keep_int_repr=keep_int_repr,
+                                  second_matrix=second_matrix,
+                                  **s.kwargs())
     if np is None:
         raise NumpyException("Numpy is required for the warping_paths method")
     cost, result_fn, _ = innerdistance.inner_dist_fns(s.inner_dist, use_ndim=s.use_ndim)
@@ -476,6 +502,14 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
         dtw[0, i] = 0
     for i in range(psi_1b + 1):
         dtw[i, 0] = 0
+    if second_matrix is None:
+        dtw2 = None
+    else:
+        dtw2 = np.full((r + 1, c + 1), inf)
+        for i in range(psi_2b + 1):
+            dtw2[0, i] = 0
+        for i in range(psi_1b + 1):
+            dtw2[i, 0] = 0
     i1 = 0
     sc = 0
     ec = 0
@@ -491,10 +525,30 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
         for j in range(j_start, j_end):
             d = cost(s1[i], s2[j])
             if s.adj_max_step is not None and d > s.adj_max_step:
-                continue
-            dtw[i1, j + 1] = d + min(dtw[i0, j],
-                                     dtw[i0, j + 1] + s.adj_penalty,
-                                     dtw[i1, j] + s.adj_penalty)
+                if s.adj_max_step_clip is None:
+                    continue
+                d = s.adj_max_step_clip
+            # print(i, j + 1 - skip, j - skipp, j + 1 - skipp, j - skip)
+            prev_costs = [
+                dtw[i0, j],
+                dtw[i0, j + 1] + s.adj_penalty,
+                dtw[i1, j] + s.adj_penalty]
+            if prev_costs[0] < prev_costs[1] and prev_costs[0] < prev_costs[2]:
+                prev_costs_i = 0
+            elif prev_costs[1] < prev_costs[2]:
+                prev_costs_i = 1
+            else:
+                prev_costs_i = 2
+            dtw[i1, j + 1] = d + prev_costs[prev_costs_i]
+            if second_matrix is not None:
+                d2 = cost(second_matrix[0][i], second_matrix[1][j])
+                if prev_costs_i == 0:
+                    d2 += dtw2[i0, j]
+                elif prev_costs_i == 1:
+                    d2 += dtw2[i0, j + 1]
+                else:
+                    d2 += dtw2[i1, j]
+                dtw2[i1, j + 1] = d2
             if dtw[i1, j + 1] > s.adj_max_dist:
                 if not smaller_found:
                     sc = j + 1
@@ -507,6 +561,8 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
     # Decide which d to return
     if not keep_int_repr:
         dtw = result_fn(dtw)
+        if second_matrix is not None:
+            dtw2 = result_fn(dtw2)
     if psi_1e == 0 and psi_2e == 0:
         d = dtw[i1, min(c, c + window - 1)]
     else:
@@ -540,10 +596,13 @@ def warping_paths(s1, s2, psi_neg=True, keep_int_repr=False, **kwargs):
     else:
         if s.max_dist and d > s.max_dist:
             d = inf
+    if second_matrix is not None:
+        return d, dtw, dtw2
     return d, dtw
 
 
-def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False, compact=False, **kwargs):
+def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False,
+                       compact=False, second_matrix=None, **kwargs):
     """Fast C version of :meth:`warping_paths`.
 
     The `use_pruning` argument is still False by default in case one needs the
@@ -557,6 +616,9 @@ def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False, compact=False,
         This option is meant for internal use. For more details, see the C code.
     :param kwargs: See :meth:`warping_paths`
     """
+    if second_matrix is not None:
+        if compact:
+            raise ValueError("Compact can not be true when second matrix is given")
     if np is None:
         raise util_numpy.NumpyException("Numpy needed for warping_paths_fast")
     s1 = util_numpy.verify_np_array(s1)
@@ -575,6 +637,18 @@ def warping_paths_fast(s1, s2, psi_neg=True, keep_int_repr=False, compact=False,
         return d, wps_compact
 
     dtw = np.full((r + 1, c + 1), inf)
+    if second_matrix is not None:
+        s1b, s2b = second_matrix
+        s1b = util_numpy.verify_np_array(s1b)
+        s2b = util_numpy.verify_np_array(s2b)
+        dtwb = np.full((r + 1, c + 1), inf)
+        if settings.use_ndim:
+            raise ValueError("ndim not yet supported")
+        else:
+            d = dtw_cc.warping_paths_full_twice(dtw, s1, s2,
+                                                dtwb, s1b, s2b,
+                                                psi_neg, keep_int_repr, **settings.c_kwargs())
+        return d, dtw, dtwb
     if settings.use_ndim:
         d = dtw_cc.warping_paths_ndim(dtw, s1, s2, psi_neg, keep_int_repr, **settings.c_kwargs())
     else:
@@ -747,7 +821,7 @@ def distance_matrix(s, block=None, compact=False, parallel=False,
     :param kwargs: See arguments for :class:`DTWSettings`
     :returns: The distance matrix or the condensed distance matrix if the compact argument is true
     """
-    settings = DTWSettings(**kwargs)
+    settings = DTWSettings.wrap(kwargs)
     # Check whether multiprocessing is available
     if settings.use_c:
         requires_omp = parallel and not use_mp
@@ -955,10 +1029,9 @@ def _distance_matrix_length(block, nb_series):
     return length
 
 
-def distance_matrix_fast(s, max_dist=None, use_pruning=True, max_length_diff=None,
-                         window=None, max_step=None, penalty=None, psi=None,
-                         block=None, compact=False, parallel=True, use_mp=False,
-                         only_triu=False, inner_dist=innerdistance.default, use_c=True):
+def distance_matrix_fast(
+    s, block=None, compact=False, parallel=True, use_mp=False, only_triu=False, **kwargs
+):
     """Same as :meth:`distance_matrix` but with different defaults to choose the
     fast parallized C version (use_c = True, parallel = True, use_pruning = True).
 
@@ -966,21 +1039,20 @@ def distance_matrix_fast(s, max_dist=None, use_pruning=True, max_length_diff=Non
     By default, this is the OMP C parallelization. If the OMP functionality is not available
     the parallelization is changed to use Python's multiprocessing library.
     """
+    dtw_settings = DTWSettings.wrap(kwargs)
+    dtw_settings.use_c = True
     _check_library(raise_exception=True, include_omp=False)
     if not use_mp and parallel:
         try:
             _check_library(raise_exception=True, include_omp=True)
         except CythonException:
             use_mp = True
-    return distance_matrix(s, max_dist=max_dist, use_pruning=use_pruning,
-                           max_length_diff=max_length_diff, window=window,
-                           max_step=max_step, penalty=penalty, psi=psi,
-                           block=block, compact=compact, parallel=parallel,
-                           use_c=True, use_mp=use_mp, show_progress=False,
-                           only_triu=only_triu, inner_dist=inner_dist)
+    return distance_matrix(s, block=block, compact=compact, parallel=parallel,
+                           use_mp=use_mp, show_progress=False,
+                           only_triu=only_triu, dtw_settings=dtw_settings)
 
 
-def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs):
+def warping_path(from_s, to_s, include_distance=False, **kwargs):
     """Compute the warping path between two sequences.
 
     :param from_s: First time series
@@ -988,11 +1060,16 @@ def warping_path(from_s, to_s, include_distance=False, use_ndim=False, **kwargs)
     :param include_distance: Change the return values to a tuple with
         (list of coordinates, distance value)
     :param use_ndim: The data is multi-dimensional (or multi-variate)
-    :param \\**kwargs: Additional options that are passed to :class:`DTWSettings`
+    :param kwargs: Additional options that are passed to :class:`DTWSettings`
     :return: List of 2d path coordinates
     """
-    dist, paths = warping_paths(from_s, to_s, use_ndim=use_ndim, **kwargs)
-    path = best_path(paths)
+    dtw_settings = DTWSettings.wrap(kwargs)
+    if dtw_settings.use_c:
+        return warping_path_fast(
+            from_s, to_s, include_distance=include_distance, **kwargs
+        )
+    dist, paths = warping_paths(from_s, to_s, dtw_settings=dtw_settings)
+    path = best_path(paths, dtw_settings=dtw_settings)
     if include_distance:
         return path, dist
     return path
@@ -1126,7 +1203,7 @@ def warp(from_s, to_s, path=None, **kwargs):
     return from_s2, path
 
 
-def best_path(paths, row=None, col=None, use_max=False, penalty=0):
+def best_path(paths, row=None, col=None, use_max=False, penalty=0, dtw_settings=None):
     """Compute the optimal path from the nxm warping paths matrix.
 
     :param paths: Warping paths matrix
@@ -1163,7 +1240,14 @@ def best_path(paths, row=None, col=None, use_max=False, penalty=0):
             while paths[i, j] == -1 and j > 0:
                 j -= 1
         else:
-            i -= 1
+            if dtw_settings is not None:
+                _, psi_1e, _, _ = dtw_settings.split_psi()
+                if psi_1e == 0:
+                    j -= 1
+                else:
+                    i -= 1
+            else:
+                i -= 1
         p.append((i - 1, j - 1))
     while i > 0 and j > 0:
         c = argm([paths[i - 1, j - 1],
