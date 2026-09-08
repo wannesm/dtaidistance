@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
 # encoding: utf-8
 """
 generate.py
 
 Created by Wannes Meert on 19-08-2022.
-Copyright (c) 2022 KU Leuven. All rights reserved.
+Copyright (c) 2022-2026 KU Leuven. All rights reserved.
 """
 
 import sys

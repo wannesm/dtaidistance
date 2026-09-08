@@ -21,8 +21,11 @@ We make the distinction between three operations:
 
 """
 import math
+import numbers
 import logging
 from enum import Enum
+from abc import ABC
+from typing import Union
 
 from . import util
 from . import util_numpy
@@ -40,12 +43,14 @@ try:
     argmax = np.argmax
     array_min = np.min
     array_max = np.max
+    from numpy.typing import NDArray
 except ImportError:
     np = None
     argmin = util.argmin
     argmax = util.argmax
     array_min = min
     array_max = max
+    NDArray = None
 
 
 logger = logging.getLogger("be.kuleuven.dtai.distance")
@@ -57,7 +62,38 @@ class InnerDistType(util.DDType):
     EUCLIDEAN = "euclidean"  # 1
 
 
-class SquaredEuclidean:
+class InnerDistBase(ABC):
+    @staticmethod
+    def inner_dist(x, y) -> float:
+        ...
+
+    @staticmethod
+    def inner_dists(xs, ys) -> list[float]:
+        ...
+
+    @staticmethod
+    def result(x) -> Union[float,list[float],NDArray]:
+        ...
+
+    @staticmethod
+    def inner_val(x) -> float:
+        ...
+
+class InnerDistBaseObject(ABC):
+    def inner_dist(self, x, y) -> float:
+        ...
+
+    def inner_dists(self, xs, ys) -> list[float]:
+        ...
+
+    def result(self, x) -> Union[float,list[float],NDArray]:
+        ...
+
+    def inner_val(self, x) -> float:
+        ...
+
+
+class SquaredEuclidean(InnerDistBase):
     """Squared Euclidean inner distance for univariate series.
     This is identical to squared difference.
     """
@@ -65,6 +101,10 @@ class SquaredEuclidean:
     @staticmethod
     def inner_dist(x, y):
         return (x - y) ** 2
+
+    @staticmethod
+    def inner_dists(xs, ys):
+        return (xs - ys) ** 2
 
     @staticmethod
     def result(x):
@@ -77,12 +117,17 @@ class SquaredEuclidean:
         return x*x
 
 
-class SquaredEuclideanNdim:
+class SquaredEuclideanNdim(InnerDistBase):
     """Squared Euclidean inner distance for multivariate series."""
 
     @staticmethod
     def inner_dist(x, y):
         return np.sum((x - y) ** 2)
+
+    @staticmethod
+    def inner_dists(x, y):
+        """Inner dists for two lists of multivariate values."""
+        return np.sum((x - y) ** 2, axis=1)
 
     @staticmethod
     def result(x):
@@ -93,7 +138,7 @@ class SquaredEuclideanNdim:
         return x * x
 
 
-class Euclidean:
+class Euclidean(InnerDistBase):
     """Euclidean inner distance for univariate series.
     This is identical to absoluate difference.
     """
@@ -103,6 +148,10 @@ class Euclidean:
         return abs(x - y)
 
     @staticmethod
+    def inner_dists(xs, ys):
+        return abs(xs - ys)
+
+    @staticmethod
     def result(x):
         return x
 
@@ -111,7 +160,7 @@ class Euclidean:
         return x
 
 
-class EuclideanNdim:
+class EuclideanNdim(InnerDistBase):
     """Squared Euclidean inner distance for multivariate series."""
 
     @staticmethod
@@ -119,6 +168,10 @@ class EuclideanNdim:
         return np.sqrt(np.sum(np.power(x - y, 2)))
 
     @staticmethod
+    def inner_dists(xs, ys):
+        return np.sqrt(np.sum(np.power(xs - ys, 2), axis=1))
+
+    @staticmethod
     def result(x):
         return x
 
@@ -127,7 +180,7 @@ class EuclideanNdim:
         return x
 
 
-class CustomInnerDist:
+class CustomInnerDist(InnerDistBase):
     """API to create your own custom inner (local)distance."""
 
     @staticmethod
@@ -140,6 +193,10 @@ class CustomInnerDist:
         For example, for default DTW this would be the Squared Euclidean
         distance: (a-b)**2.
         """
+        raise Exception("Function not defined")
+
+    @staticmethod
+    def inner_dists(xs, ys):
         raise Exception("Function not defined")
 
     @staticmethod
@@ -163,11 +220,11 @@ class CustomInnerDist:
         raise Exception("Function not defined")
 
 
-def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
+def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False) -> InnerDistBase:
     if np is not None:
         if np.issubdtype(type(inner_dist), np.integer):
             inner_dist = int(inner_dist)
-    if type(inner_dist) in [str, int]:
+    if isinstance(inner_dist, (str, numbers.Integral)):
         inner_dist = InnerDistType.wrap(inner_dist)
 
     if inner_dist == InnerDistType.SQEUCLIDEAN:
@@ -180,7 +237,9 @@ def inner_dist_cls(inner_dist="squared euclidean", use_ndim=False):
             use_cls = EuclideanNdim
         else:
             use_cls = Euclidean
-    elif hasattr(inner_dist, 'inner_dist') and hasattr(inner_dist, 'result'):
+    elif isinstance(inner_dist, InnerDistBaseObject):
+        use_cls = inner_dist
+    elif issubclass(inner_dist, InnerDistBase):
         use_cls = inner_dist
     else:
         raise AttributeError(f"Unknown value for argument inner_dist: {inner_dist}")

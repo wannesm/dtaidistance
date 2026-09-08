@@ -204,3 +204,150 @@ def znormal(series):
     series = np.array(series)
     series = (series - series.mean(axis=1)[:, None]) / series.std(axis=1)[:, None]
     return series
+
+
+def _least_squares(x, y):
+    """a*x + b
+
+    :returns: [b, a]
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise NumpyException("Z normalization requires Numpy")
+    if np is None:
+        raise NumpyException("Least squares requires Numpy")
+    if len(x.shape) > 1 and x.shape[1] == 1:
+        x = x.reshape(-1)
+    X_mean = np.mean(x)
+    y_mean = np.mean(y)
+    numerator = np.sum((np.multiply(x - X_mean, y - y_mean)))
+    denominator = np.sum(np.power(x - X_mean, 2))
+    a = numerator / denominator
+    b = y_mean - a * X_mean
+    return [b, a]
+
+
+def _total_least_squares(X,y):
+    """
+    Total Least Squares.
+
+    Use SVD to solve min ||[X|y] - [X'|y']||_F subject to y' = X'b.
+
+    :param X: array-like, shape (n_samples, n_features)
+        Input data matrix.
+    :param y: array-like, shape (n_samples,)
+        Target vector.
+    :returns: [b, a, ...] where y= b + a*x + ...
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise NumpyException("Z normalization requires Numpy")
+    if np is None:
+        raise NumpyException("Total least squares requires Numpy")
+    X = np.asarray(X)
+    y = np.asarray(y).reshape(-1, 1)
+    # we also want the intercept, add a column of ones
+    X = np.hstack([np.ones((X.shape[0], 1)), X])
+    Z = np.hstack((X, y))
+    _, _, Vt = np.linalg.svd(Z, full_matrices=False)
+    V = Vt.T
+    v = V[:, -1]
+    v_x = v[:-1]
+    v_y = v[-1]
+    b_tls = -v_x / v_y
+    return b_tls
+
+
+def scale_linearly(src_ts, tgt_ts, quantile=0.05, nb_steps=10,
+                   use_totalleastsquares=True, use_znormalization=True):
+    """Scale the amplitude of src_ts timeseries linearly to match the
+    tgt_ts timeries. An affine transformation is applied to the src_ts.
+    
+    If the time series are multivariate, the scaling is applied independently
+    to each variate.
+
+    :param src_ts: array-like, shape (n_samples, n_variates) or (n_samples,)
+        Source time series.
+    :param tgt_ts: array-like, shape (n_samples, n_variates) or (n_samples,)
+        Target time series.
+    :param quantile: Which quantile of the points in the time series
+        should be used.
+    :param nb_steps: How many steps to use to reduce the number of points
+        in the time series to reach the amount specified by the quantile.
+    :param use_totalleastsquares:
+    :param use_znormalization: First perform z-normalization. If the values
+        of one series are larger, this gets more weight in the least squares.
+    :returns: A scaled src_ts
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise NumpyException("Z normalization requires Numpy")
+    if np is None:
+        raise NumpyException("Total least squares requires Numpy")
+    if len(src_ts.shape) == 1:
+        return_1d = True
+        src_ts = src_ts.reshape(-1,1)
+    else:
+        return_1d = False
+    if use_totalleastsquares:
+        ls = _total_least_squares
+    else:
+        ls = _least_squares
+    if len(src_ts.shape) == 1:
+        src_ts2 = src_ts.reshape(-1,1).copy()
+    else:
+        src_ts2 = src_ts.copy()
+    if len(tgt_ts.shape) == 1:
+        tgt_ts2 = tgt_ts.reshape(-1,1)
+    else:
+        tgt_ts2 = tgt_ts
+    nb_inst_rm = int(len(src_ts2)*(1-quantile)/(nb_steps-1))
+    if src_ts2.shape[1] != tgt_ts2.shape[1]:
+        raise ValueError(
+            f"Source and target time series have different "
+            f"dimensions: {src_ts2.shape} != {tgt_ts2.shape}")
+    for i_var in range(src_ts2.shape[1]):
+        nb_inst = len(src_ts2)
+        src_ts3 = src_ts2[:,i_var].reshape(-1,1)
+        tgt_ts3 = tgt_ts2[:,i_var]
+        if use_znormalization:
+            src_mean, src_std = np.mean(src_ts3), np.std(src_ts3)
+            tgt_mean, tgt_std = np.mean(tgt_ts3), np.std(tgt_ts3)
+            src_ts3 = (src_ts3 - src_mean) / src_std
+            tgt_ts3 = (tgt_ts3 - tgt_mean) / tgt_std
+        else:
+            src_mean, src_std = None, None
+            tgt_mean, tgt_std = None, None
+        src_ts4 = src_ts3
+        tgt_ts4 = tgt_ts3
+        b, a = 0, 1
+        dss = np.sum(np.abs(tgt_ts4 - src_ts4))
+        for i_step in range(nb_steps):
+            b2, a2 = ls(src_ts4, tgt_ts4)
+            if a2 < -0.01:
+                # If the signal switches, stop
+                break
+            yp = a2*src_ts4.reshape(-1)+b2
+            ds = np.abs(tgt_ts4 - yp)
+            dss2 = np.sum(ds)
+            if dss2 > 1.001*dss:
+                # If dist goes up, stop
+                break
+            a, b, dss = a2, b2, dss2
+            if i_step == nb_steps - 1:
+                break
+            nb_inst -= nb_inst_rm
+            idx2 = np.argpartition(ds, nb_inst)[:nb_inst]
+            src_ts4 = src_ts4[idx2]
+            tgt_ts4 = tgt_ts4[idx2]
+        if use_znormalization:
+            a = a*tgt_std/src_std
+            b = tgt_std*b + tgt_mean - a*src_mean
+        src_ts2[:,i_var] = a * src_ts2[:,i_var] + b
+    if return_1d:
+        src_ts2 = src_ts2.reshape(-1)
+    return src_ts2
+

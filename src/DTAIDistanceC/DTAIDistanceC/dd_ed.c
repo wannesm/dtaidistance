@@ -100,8 +100,8 @@ seq_t euclidean_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim
     for (idx_t i=0; i<n; i++) {
         idx = i*ndim;
         d = 0;
-        for (int d=0; d<ndim; d++) {
-            d += SEDIST(s1[idx + d], s2[idx + d]);
+        for (int dim=0; dim<ndim; dim++) {
+            d += SEDIST(s1[idx + dim], s2[idx + dim]);
         }
         ub += d;
     }
@@ -111,8 +111,8 @@ seq_t euclidean_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim
         for (idx_t i=n; i<l1; i++) {
             idx = i*ndim;
             d = 0;
-            for (int d=0; d<ndim; d++) {
-                d += SEDIST(s1[idx + d], s2[(n-1)*ndim]);
+            for (int dim=0; dim<ndim; dim++) {
+                d += SEDIST(s1[idx + dim], s2[(n-1)*ndim]);
             }
             ub += d;
         }
@@ -120,8 +120,8 @@ seq_t euclidean_distance_ndim(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2, int ndim
         for (idx_t i=n; i<l2; i++) {
             idx = i*ndim;
             d = 0;
-            for (int d=0; d<ndim; d++) {
-                d += SEDIST(s1[(n-1)*ndim], s2[idx + d]);
+            for (int dim=0; dim<ndim; dim++) {
+                d += SEDIST(s1[(n-1)*ndim], s2[idx + dim]);
             }
             ub += d;
         }
@@ -154,8 +154,8 @@ seq_t euclidean_distance_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2
     for (idx_t i=0; i<n; i++) {
         idx = i*ndim;
         d = 0;
-        for (int d=0; d<ndim; d++) {
-            d += SEDIST(s1[idx + d], s2[idx + d]);
+        for (int dim=0; dim<ndim; dim++) {
+            d += SEDIST(s1[idx + dim], s2[idx + dim]);
         }
         d = sqrt(d);
         ub += d;
@@ -166,8 +166,8 @@ seq_t euclidean_distance_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2
         for (idx_t i=n; i<l1; i++) {
             idx = i*ndim;
             d = 0;
-            for (int d=0; d<ndim; d++) {
-                d += SEDIST(s1[idx + d], s2[(n-1)*ndim]);
+            for (int dim=0; dim<ndim; dim++) {
+                d += SEDIST(s1[idx + dim], s2[(n-1)*ndim]);
             }
             d = sqrt(d);
             ub += d;
@@ -176,8 +176,8 @@ seq_t euclidean_distance_ndim_euclidean(seq_t *s1, idx_t l1, seq_t *s2, idx_t l2
         for (idx_t i=n; i<l2; i++) {
             idx = i*ndim;
             d = 0;
-            for (int d=0; d<ndim; d++) {
-                d += SEDIST(s1[(n-1)*ndim], s2[idx + d]);
+            for (int dim=0; dim<ndim; dim++) {
+                d += SEDIST(s1[(n-1)*ndim], s2[idx + dim]);
             }
             d = sqrt(d);
             ub += d;

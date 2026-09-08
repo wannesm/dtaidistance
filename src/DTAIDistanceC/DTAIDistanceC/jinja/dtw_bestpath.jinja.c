@@ -75,6 +75,15 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
         min_ci = 1 + p.ri3 - p.ri2;
     }
     wpsi = wpsi_start + (l2 - min_ci) - 1;
+    
+    if (wps[ri_width + wpsi] == -1) {
+        // Last value is -1 (psi-relax) go to last nonnegative value
+        dtw_best_path_neghor(wps, &rip, &cip, l1, l2, settings);
+        if (rip == l1 && cip >= l2-1) {
+            dtw_best_path_negver(wps, &rip, &cip, l1, l2, settings);
+        }
+        wpsi = dtw_wps_loc(&p, rip, cip, l1, l2) - ri_width;
+    }
     {%- endif %}
     while (rip > p.ri3 && cip > 0) {
         {%- if "affinity" in suffix %}
@@ -87,11 +96,11 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- else %}
-        if (wps[ri_width + wpsi] != -1) {
-            i1[i] = rip - 1;
-            i2[i] = cip - 1;
-            i++;
-        }
+        if (wps[ri_width + wpsi] == -1)
+            return i;
+        i1[i] = rip - 1;
+        i2[i] = cip - 1;
+        i++;
         {%- endif %}
         if ({{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_width  + wpsi - 1] + p.penalty")}} &&
             {{cmpfn("wps[ri_widthp + wpsi - 1]", "wps[ri_widthp + wpsi] + p.penalty")}}) {
@@ -125,11 +134,11 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- else %}
-        if (wps[ri_width + wpsi] != -1) {
-            i1[i] = rip - 1;
-            i2[i] = cip - 1;
-            i++;
-        }
+        if (wps[ri_width + wpsi] == -1)
+            return i;
+        i1[i] = rip - 1;
+        i2[i] = cip - 1;
+        i++;
         {%- endif %}
         if ({{cmpfn("wps[ri_widthp + wpsi]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
             {{cmpfn("wps[ri_widthp + wpsi]","wps[ri_widthp + wpsi + 1] + p.penalty")}}) {
@@ -163,11 +172,11 @@ idx_t dtw_best_path{{suffix}}{{suffix2}}(seq_t *wps, idx_t *i1, idx_t *i2, idx_t
             i++;
         }
         {%- else %}
-        if (wps[ri_width + wpsi] != -1) {
-            i1[i] = rip - 1;
-            i2[i] = cip - 1;
-            i++;
-        }
+        if (wps[ri_width + wpsi] == -1)
+            return i;
+        i1[i] = rip - 1;
+        i2[i] = cip - 1;
+        i++;
         {%- endif %}
         if ({{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_width  + wpsi - 1] + p.penalty")}} &&
             {{cmpfn("wps[ri_widthp + wpsi - 1]","wps[ri_widthp + wpsi] + p.penalty")}}) {

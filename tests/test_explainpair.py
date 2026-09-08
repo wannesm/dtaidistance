@@ -160,8 +160,8 @@ def test_ssm():
             axs[3].text(0, 0.2, f"Dist_a = {dist_approx3:.4f} < {dist_approx3_max:.4f}")
             # axs[3].text(0, 0.4, f"Dist(i) = {dist_approx2:.4f}")
 
-            rdist, rdists = ep.distance(per_segment=True)
-            adist, adists = ep.distance_approx(per_segment=True)
+            rdist, rdists = ep.distance_per_segment()
+            adist, adists = ep.distance_approx_per_segment()
             for segment, srdist, sadist in zip(ep.segments, rdists, adists):
                 axs[0].text(segment.s_idx_y + 4, segment.s_idx,
                             f"{segment.s_idx_p} - {srdist:.4f}/{sadist:.4f} - "
@@ -212,8 +212,8 @@ def test_ssm2():
             axs[3].text(0, 0.4, f"Dist(d) = {dist_approx3:.4f}")
             axs[3].text(0, 0.2, f"Dist(i) = {dist_approx2:.4f}")
 
-            rdist, rdists = ep3.distance(per_segment=True)
-            adist, adists = ep3.distance_approx(per_segment=True)
+            rdist, rdists = ep3.distance_per_segment()
+            adist, adists = ep3.distance_approx_per_segment()
             for segment, srdist, sadist in zip(ep3.segments, rdists, adists):
                 axs[0].text(segment.s_idx_y + 4, segment.s_idx,
                             f"{srdist:.4f} / {sadist:.4f} - "
@@ -268,7 +268,7 @@ def test_explain_pair():
         ya = ys[0]
         yb = ys[3]
 
-        ep = ExplainPair(ya, yb, delta_rel=2, delta_abs=0.1, approx_prune=True, onlychanges=2)
+        ep = ExplainPair(ya, yb, delta_rel=2, delta_abs=0.1, approx_prune=True)
 
         if directory and not dtwvis.test_without_visualization():
             try:
@@ -332,7 +332,6 @@ def test_approx_global_at_pruning():
     ep = ExplainPair(ya, yb,
                      delta_rel=1,
                      delta_abs=0.1,
-                     approx_local=False,
                      approx_prune=True,
                      split_strategy=SplitStrategy.SPATIAL_DIST,
                      )

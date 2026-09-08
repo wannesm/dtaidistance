@@ -664,6 +664,123 @@ idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2)
     return maxidx;
 }
 
+void dtw_best_path_neghor(seq_t *wps, idx_t *rri, idx_t *rci, idx_t l1, idx_t l2,
+                          DTWSettings *settings) {
+    DTWWps p = dtw_wps_parts(l1, l2, settings);
+
+    idx_t i = 0;
+    idx_t rip = l1;
+    idx_t cip = l2;
+    idx_t min_ci;
+    idx_t wpsi_start, wpsi;
+    idx_t ri_widthp = p.width * (rip - 1);
+    idx_t ri_width = p.width * rip;
+
+    // D. ri3 <= ri < l1
+    min_ci = p.ri3 + 1 - p.window - p.ldiff;
+    wpsi_start = 2;
+    if (p.ri2 == p.ri3) {
+        wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
+    }
+    wpsi = wpsi_start + (l2 - min_ci) - 1;
+    while (rip > p.ri3 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go left
+        cip--;
+        wpsi--;
+    }
+
+    // C. ri2 <= ri < ri3
+    while (rip > p.ri2 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go left
+        cip--;
+        wpsi--;
+    }
+
+    // A-B. 0 <= ri < ri2
+    while (rip > 0 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go left
+        cip--;
+        wpsi--;
+    }
+}
+
+void dtw_best_path_negver(seq_t *wps, idx_t *rri, idx_t *rci, idx_t l1, idx_t l2,
+                          DTWSettings *settings) {
+    DTWWps p = dtw_wps_parts(l1, l2, settings);
+
+    idx_t i = 0;
+    idx_t rip = l1;
+    idx_t cip = l2;
+    idx_t min_ci;
+    idx_t wpsi_start, wpsi;
+    idx_t ri_widthp = p.width * (rip - 1);
+    idx_t ri_width = p.width * rip;
+
+    // D. ri3 <= ri < l1
+    min_ci = p.ri3 + 1 - p.window - p.ldiff;
+    wpsi_start = 2;
+    if (p.ri2 == p.ri3) {
+        wpsi_start = min_ci + 1;
+    } else {
+        min_ci = 1 + p.ri3 - p.ri2;
+    }
+    wpsi = wpsi_start + (l2 - min_ci) - 1;
+    while (rip > p.ri3 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go up
+        rip--;
+        ri_width = ri_widthp;
+        ri_widthp -= p.width;
+    }
+
+    // C. ri2 <= ri < ri3
+    while (rip > p.ri2 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go up
+        rip--;
+        wpsi++;
+        ri_width = ri_widthp;
+        ri_widthp -= p.width;
+    }
+
+    // A-B. 0 <= ri < ri2
+    while (rip > 0 && cip > 0) {
+        if (wps[ri_width + wpsi] != -1) {
+            *rri = rip;
+            *rci = cip;
+            return;
+        }
+        // Go up
+        rip--;
+        ri_width = ri_widthp;
+        ri_widthp -= p.width;
+    }
+}
 
 {% set suffix = '' %}
 {% set use_isclose = 0 %}
@@ -1704,3 +1821,4 @@ inline DDRange dtw_get_range_row(idx_t i, idx_t f_i0, idx_t t_min, idx_t t_max, 
     
     return (DDRange){.b=j_b, .e=j_e};
 }
+

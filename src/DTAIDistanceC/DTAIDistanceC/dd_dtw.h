@@ -145,6 +145,10 @@ void dtw_wps_negativize(DTWWps* p, seq_t *wps, idx_t l1, idx_t l2, idx_t rb, idx
 idx_t dtw_wps_loc(DTWWps* p, idx_t r, idx_t c, idx_t l1, idx_t l2);
 idx_t dtw_wps_loc_columns(DTWWps* p, idx_t r, idx_t *cb, idx_t *ce, idx_t l1, idx_t l2);
 idx_t dtw_wps_max(DTWWps* p, seq_t *wps, idx_t *r, idx_t *c, idx_t l1, idx_t l2);
+void dtw_best_path_neghor(seq_t *wps, idx_t *rri, idx_t *rci, idx_t l1, idx_t l2,
+                           DTWSettings *settings);
+void dtw_best_path_negver(seq_t *wps, idx_t *rri, idx_t *rci, idx_t l1, idx_t l2,
+                           DTWSettings *settings);
 idx_t dtw_best_path(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, DTWSettings *settings);
 idx_t dtw_best_path_customstart(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, idx_t rs, idx_t cs, DTWSettings *settings);
 idx_t dtw_best_path_isclose(seq_t *wps, idx_t *i1, idx_t *i2, idx_t l1, idx_t l2, seq_t rtol, seq_t atol, DTWSettings *settings);

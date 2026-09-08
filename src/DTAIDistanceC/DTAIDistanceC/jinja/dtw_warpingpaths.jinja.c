@@ -57,18 +57,20 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
     {%- endif %}
 
     DTWWps p = dtw_wps_parts(l1, l2, settings);
+    seq_t max_dist2 = INFINITY;
 
     {%- if "affinity" not in suffix %}
     if (settings->use_pruning) {
         if (ndim == 1) {
-            p.max_dist = ub_euclidean(s1, l1, s2, l2);
+            max_dist2 = ub_euclidean(s1, l1, s2, l2);
         } else {
-            p.max_dist = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
+            max_dist2 = ub_euclidean_ndim(s1, l1, s2, l2, ndim);
         }
         {%- if "euclidean" == inner_dist %}
         {%- else %}
-        p.max_dist = pow(p.max_dist, 2);
+        max_dist2 = pow(max_dist2, 2);
         {%- endif %}
+        p.max_dist = MIN(max_dist2, p.max_dist);
     }
     {%- endif %}
 
@@ -468,7 +470,7 @@ seq_t dtw_warping_paths{{ suffix }}{{ suffix2 }}(seq_t *wps,
         rvalue = -1;
     }
 
-    if (settings->max_dist > 0 && rvalue > settings->max_dist) {
+    if (p.max_dist > 0 && rvalue > p.max_dist) {
         // DTWPruned keeps the last value larger than max_dist. Correct for this.
         rvalue = {{infinity}};
     }

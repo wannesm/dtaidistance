@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dtaidistance"
-version = "2.4.0"
+version = "2.5.0"
 description = "Distance measures for time series (Dynamic Time Warping, fast C implementation)"
 readme = "README.md"
 license = "Apache-2.0"
@@ -36,8 +36,9 @@ tests = ["pytest", "pytest-benchmark"]
 viz = ["matplotlib>=3.0.0"]
 dev = [
 	"pytest", "pytest-benchmark", "pytest-env",
-	"matplotlib>=3.0.0", "numpy", "scipy",
-	"sphinx", "sphinx_rtd_theme"
+	"matplotlib>=3.0.0", "numpy", "scipy", "pandas",
+	"sphinx", "sphinx_rtd_theme",
+	"setuptools", "wheel", "Cython", "wurlitzer",
 ]
 numpy = ["numpy", "scipy", "pandas"]
 all = ["numpy", "scipy", "pandas"]
