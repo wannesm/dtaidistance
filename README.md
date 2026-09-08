@@ -29,15 +29,11 @@ Example:
 - DTW Barycenter Averaging for clustering (v2.2).
 - Numpy is now an optional dependency, also to compile the C library
   (only Cython is required).
-- Small optimizations throughout the C code to improve speed.
 - The consistent use of `ssize_t` instead of `int` allows for larger data structures on 64 bit 
   machines and be more compatible with Numpy.
 - The parallelization is now implemented directly in C (included if OpenMP is installed).
 - The `max_dist` argument turned out to be similar to Silva and Batista's work 
-  on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
-  since it prunes more partial distances. Additionally, a `use_pruning` argument
-  is added to automatically set `max_dist` to the Euclidean distance, as suggested
-  by Silva and Batista, to speed up the computation (a new method `ub_euclidean` is available).
+  on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW.
 
 
 ## Citing this work
@@ -45,6 +41,7 @@ Example:
 > Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
 > DTAIDistance (Version v2). Zenodo.  
 > http://doi.org/10.5281/zenodo.5901139
+
 
 ## Installation
 
@@ -55,7 +52,8 @@ or
     $ conda install -c conda-forge dtaidistance
 
 The pip installation requires Numpy as a dependency to compile Numpy-compatible
-C code (using Cython). However, this dependency is optional and can be removed.
+C code (using Cython). However, this dependency is optional and can be removed
+by compiling from source.
 
 The source code is available at
 [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
