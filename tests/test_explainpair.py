@@ -338,10 +338,22 @@ def test_approx_global_at_pruning():
     if directory is not None:
         ep.plot_warping(filename=str(directory / "test_sine_global_bound.png"))
 
+@numpyonly
+def test_readme_example():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 0, 1, 2, 1, 0, 0, 1, 0, 0, 0, 2, 1, 0, 0])
+        s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0])
+        path = warping_path(s1, s2)
+        pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.25)
+        if directory is not None:
+            dtwvis.plot_warping(s1, s2, path, filename=str(directory / "warp.png"))
+            pair.plot_warping(filename=str(directory / "dsw_intro.png"))
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print("Saving files to {}".format(directory))
-    test_ssm()
+    test_readme_example()
+

@@ -124,6 +124,15 @@ the distance measure computation:
 - `use_pruning`: Prune computations based on the Euclidean upper bound.
 
 
+#### Dynamic Subsequence Warping to explain (dis)similarities
+
+    from dtaidistance.explain.dsw import ExplainPair
+    pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.5)
+    pair.plot_warping(filename="/path/to/file.png")
+
+![Dynamic Subsequence Warping (DSW) Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dsw_intro.png?v=1)
+
+
 #### DTW Distance Measure all warping paths
 
 If, next to the distance, you also want the full matrix to see all possible warping paths:
