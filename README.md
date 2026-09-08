@@ -21,14 +21,12 @@ Example:
     s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
     d = dtw.distance_fast(s1, s2)
 
-Citing this work:
-
-> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
-> DTAIDistance (Version v2). Zenodo.  
-> http://doi.org/10.5281/zenodo.5901139
-
 **New in v2**:
 
+- Dynamic Subsequence Warping (DSW) to explain (dis)similarities (v2.5)
+- Subsequence search and local concurrences (v2.3).
+- Support for multivariate time series (v2.3).
+- DTW Barycenter Averaging for clustering (v2.2).
 - Numpy is now an optional dependency, also to compile the C library
   (only Cython is required).
 - Small optimizations throughout the C code to improve speed.
@@ -40,12 +38,13 @@ Citing this work:
   since it prunes more partial distances. Additionally, a `use_pruning` argument
   is added to automatically set `max_dist` to the Euclidean distance, as suggested
   by Silva and Batista, to speed up the computation (a new method `ub_euclidean` is available).
-- Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
-  package.
-- DTW Barycenter Averaging for clustering (v2.2).
-- Subsequence search and local concurrences (v2.3).
-- Support for N-dimensional time series (v2.3.7).
 
+
+## Citing this work
+
+> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
+> DTAIDistance (Version v2). Zenodo.  
+> http://doi.org/10.5281/zenodo.5901139
 
 ## Installation
 
@@ -310,7 +309,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2022 KU Leuven, DTAI Research Group
+    Copyright 2016-2026 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
