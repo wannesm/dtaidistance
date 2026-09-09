@@ -177,12 +177,26 @@ def read_substitution_matrix(file):
 
 
 def detect_ndim(s):
+    ndim, _ = detect_use_ndim(s)
+    return ndim
+
+
+def detect_use_ndim(s):
     if np is not None and isinstance(s, np.ndarray):
-        return s.ndim
+        if len(s.shape) > 1:
+            return s.shape[1], True
+        return 1, False
     if type(s) is list and len(s) > 0:
-        return detect_ndim(s[0]) + 1
-    if type(s) in [int, float]:
-        return 0
+        si = s[0]
+        if type(si) in [int, float]:
+            return 1, False
+        if np is not None and isinstance(si, np.floating):
+            return 1, False
+        if np is not None and isinstance(s, np.ndarray):
+            if len(si.shape) > 1:
+                raise ValueError(f"Unsupported type: list({type(si)})")
+            return si.shape[0], True
+        return 
     return None
 
 

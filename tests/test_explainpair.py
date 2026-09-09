@@ -349,11 +349,21 @@ def test_readme_example():
             dtwvis.plot_warping(s1, s2, path, filename=str(directory / "warp.png"))
             pair.plot_warping(filename=str(directory / "dsw_intro.png"))
 
+@numpyonly
+def test_readme_shape():
+    with util_numpy.test_uses_numpy() as np:
+        s1 = np.array([0., 0, 0, 1, 2, 1, 0, 0, 1, 0, 0, 0, 2, 1, 0, 0])
+        s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0])
+        # Should also work with 1d arrays in a 2d shape
+        s1 = s1.reshape(-1, 1)
+        s2 = s2.reshape(-1, 1)
+        pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.25)
+        print(pair.distance_approx())
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print("Saving files to {}".format(directory))
-    test_readme_example()
+    test_readme_shape()
 

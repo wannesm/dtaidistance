@@ -598,7 +598,9 @@ class ExplainPair:
                 self.ndim = dndim
             else:
                 assert self.ndim == dndim
-        assert self.ndim is not None and self.dtw_settings.use_ndim == (self.ndim > 1)
+            if dndim == 1:
+                self.dtw_settings.use_ndim = True
+        assert self.ndim is not None and (not (self.ndim > 1) or self.dtw_settings.use_ndim is True)
 
         self.series_from, self.series_to = self._transform_series(
             settings.focus_on_shape, series_from, series_to, self.dtw_settings
@@ -1658,7 +1660,7 @@ class ExplainPair:
         dists.append(cost_seg)
         dist += cost_seg
         dist = inner_res(dist)
-        assert type(dist) is float
+        assert type(dist) is float or isinstance(dist, np.floating), f"{type(dist)=}"
         return dist, dists
 
     def from_indices(self):
