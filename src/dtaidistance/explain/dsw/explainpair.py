@@ -339,6 +339,15 @@ class ApproxSettings:
         factor=1.0,
         dtw_settings=None,
     ):
+        """Set delta_abs based on a known level of noise on the time series.
+
+        :param noise_ampl: The amplitude of typical noise on the signal
+        :param pathlen: The (expected) length of the warping path. Use the
+            length of the series if not known
+        :param factor: The tolerance you want to allow (default=1)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
+        """
         dtw_settings = DTWSettings.wrap(dtw_settings)
         idcls = dtw_settings.inner_dist_cls()
         delta_abs = idcls.result(factor * pathlen * idcls.inner_val(noise_ampl))
@@ -346,20 +355,24 @@ class ApproxSettings:
 
     @staticmethod
     def estimate_deltaabs_from_noise(
-        *tss,
+        tss,
         pathlen=None,
         factor=1.0,
         window_length=5,
         dtw_settings=None,
     ) -> tuple[float, float]:
-        """Estimate delta_abs as the noise on the signal.
+        """Estimate delta_abs from the noise on the signal.
+        A good estimate for delta_abs is to see it as the noise the is
+        expected to be on the signal and that can be ignored. Thus the variation
+        the the warping can ignore and still be a good matching.
 
         :param tss: List of time series
-        :param pathlen: Length of the path, if not given, the length of the
-            time series is used
-        :param factor: How much noise amplitude to use, number between 0 and 1
-        :param window_length: Window length to use for the smoothing
-        :param dtw_settings: A DTWSettings (compatible) object
+        :param pathlen: Length of the path (default=lenght of first series)
+        :param factor: How much noise amplitude to use (default=1)
+        :param window_length: Window length to use for the filter that is
+            used to estimate the noise versus the actual signal (default=5)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
         """
         assert len(tss) > 0
         from scipy.signal import savgol_filter
@@ -386,6 +399,16 @@ class ApproxSettings:
         quantile: float = 0.95,
         dtw_settings: Optional[DTWSettings] = None
     ):
+        """Estimate delta_abs from the typical pointwise value difference in
+        the path.
+
+        :param s1: First series 
+        :param s1: Second series 
+        :param factor: Tolerance (default=1)
+        :param quantile: Quantile to use (default=0.95)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
+        """
         dtw_settings = DTWSettings.wrap(dtw_settings)
         if path is None:
             path = dtw.warping_path(s1, s2, dtw_settings=dtw_settings)
@@ -406,10 +429,13 @@ class ApproxSettings:
         distmatrix=None,
     ):
         """
-        Set delta_abs to a quantile of the cluster
+        Set delta_abs to a quantile of the pairwise distances in a group of
+        series that represent the same behavior.
         This is similar to the relaxation that is allowed with respect to the
         time series that is the median distance away from the
         medoid of the list of time series.
+        Put differently, the tolerance that is needed to consider the time series
+        in the group to represent the same behavior.
 
         :param tss: List (or iterable) of time series
         :param delta_abs_quantile: Use as distance the quantile of all
@@ -1913,10 +1939,10 @@ class ExplainPair:
         :param on_segments: Compute the variations based on the linear segments
             instead of the original optimal path
         :param amplitude_on_series_from: Whether the amplitude variations are computed with respect to
-        the reference series ('series_from').
-        When it is set to be False, the amplitude variations are computed with respect to
-        the target series ('series_to'). It is useful for the plotting between a pair of time series,
-        when we have more interest in how the target series differs from the reference series.
+            the reference series ('series_from').
+            When it is set to be False, the amplitude variations are computed with respect to
+            the target series ('series_to'). It is useful for the plotting between a pair of time series,
+            when we have more interest in how the target series differs from the reference series.
         :return:
         """
         if on_segments:
@@ -2500,12 +2526,10 @@ def path_to_segments_with_sp_predefined(path, sps):
     return segments, line2
 
 def find_simplified_path_with_sps_on_series_from_predefined(path, sps):
-    """
-     Find the simplified path with the splitting points on the series from are predefined/fixed.
+    """Find the simplified path with the splitting points on the series from are predefined/fixed.
     :param path: Warping path
     :param sps: Splitting points on series from
     :return: the simplified path (in which the criterion check is not guaranteed)
-
     """
     line = np.asarray(path)
     line2 = [(0, 0)]

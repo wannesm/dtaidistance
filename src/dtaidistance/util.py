@@ -197,7 +197,7 @@ def detect_use_ndim(s):
                 raise ValueError(f"Unsupported type: list({type(si)})")
             return si.shape[0], True
         return 
-    return None
+    return None, False
 
 
 class SeriesContainer:

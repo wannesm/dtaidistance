@@ -69,6 +69,28 @@ visualization:
           :width: 100%
 
 
+Setting delta_abs
+"""""""""""""""""
+
+The value of ``delta_abs`` can be seen as an estimation of the cumulative random
+noise on the signal. This might be unclear to set if there is no domain knowledge
+available. There are a few methods that can be used to estimate the value
+for delta_abs based on knowledge and/or available series:
+
+::
+
+    from dtaidistance.explain.explainpair import estimate_deltaabs_from_noise, \
+      estimate_deltaabs_from_quantiledist, estimate_deltaabs_from_distmatrix, \
+      estimate_deltaabs_from_noiseamplitude
+    delta_abs = estimate_deltaabs_from_noiseamplitude(noise_ampl)
+    delta_abs = estimate_deltaabs_from_noise(list_of_timerseries)
+    delta_abs = estimate_deltaabs_from_quantiledist(ts1, ts2)
+    delta_abs = estimate_deltaabs_from_distmatrix(list_of_timeseries)
+
+
+Intuition about how the method works
+""""""""""""""""""""""""""""""""""""
+
 From the perspective of the cost space, DSW approximates the original warping path (left, red) with a piecewise linear path (right, green).
 
 .. list-table::
@@ -86,7 +108,8 @@ From the perspective of the cost space, DSW approximates the original warping pa
           :width: 100%
 
 
-
+Examples
+""""""""
 
 The advantage is even more clear if there is overfitting on the noise present
 in the time series. In the following example one can see how the
