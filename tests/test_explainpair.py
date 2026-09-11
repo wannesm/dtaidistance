@@ -344,7 +344,7 @@ def test_readme_example():
         s1 = np.array([0., 0, 0, 1, 2, 1, 0, 0, 1, 0, 0, 0, 2, 1, 0, 0])
         s2 = np.array([0., 1, 2, 3, 1, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0])
         path = warping_path(s1, s2)
-        pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.25)
+        pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.5)
         if directory is not None:
             dtwvis.plot_warping(s1, s2, path, filename=str(directory / "warp.png"))
             pair.plot_warping(filename=str(directory / "dsw_intro.png"))
@@ -365,5 +365,5 @@ if __name__ == "__main__":
     logger.addHandler(logging.StreamHandler(sys.stdout))
     directory = Path(os.environ.get('TESTDIR', Path(__file__).parent))
     print("Saving files to {}".format(directory))
-    test_readme_shape()
+    test_readme_example()
 

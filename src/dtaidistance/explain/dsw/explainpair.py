@@ -204,12 +204,12 @@ class ApproxSettings:
     def __init__(
         self,
         approx_type=ApproxType.MAX_FACTOR_AND_DIFF,
-        delta_rel=2,
-        delta_abs=0.1,
-        delta_quantile=None,
-        delta_abs_maxlen=None,
+        delta_rel: float = 1,
+        delta_abs: Optional[float] = None,
+        delta_quantile: Optional[float] = None,
+        delta_abs_maxlen: Optional[int] = None,
         approx_prune=True,
-        split_strategy=SplitStrategy.SPATIAL_DIST,
+        split_strategy=SplitStrategy.TS_DIFF,
         warp_penalty: Optional[float] = 0.0,
         focus_on_shape=FocusOnShape.NONE,
         init_split_points=None,
@@ -493,7 +493,7 @@ class ExplainPair:
         delta_quantile: Optional[float] = None,
         approx_prune: bool = True,
         warp_penalty: Optional[float] = None,
-        split_strategy=SplitStrategy.SPATIAL_DIST,
+        split_strategy=SplitStrategy.TS_DIFF,
         focus_on_shape=FocusOnShape.NONE,
         init_split_points=None,
         do_remove_singularities=True,
@@ -506,20 +506,25 @@ class ExplainPair:
         auto_run=True,
     ):
         """Compute segments and variations that explain the warping path
-        between two series by using Dynamic Subsequence Warping.
+        between two series by using Dynamic Subsequence Warping. Algorithmic
+        details are available in the following publication:
 
             Lin, S., Meert, W. Robberechts, P., Blockeel H.,
-            "Warping and Matching Subsequences Between Time Series"
-            arXiv:2506.15452v1 [cs.LG] 2025
+            "Dynamic Subsequence Warping",
+            Proceedings of the European Conference on Machine Learning and 
+            Principles and Practice of Knowledge Discovery in Databases 
+            (ECML/PKDD), 2026.
 
         :param series_from: Series from
         :param series_to: Series to
         :param approx_type: Type of approximation to use.
 
             Ensures that the new DTW distance after the approximation is within
-            a bound. Let d' be the DTW distance of the new path, and d be the
-            DTW distance of the original path. The possible choices are:
+            a bound. Let d' be the distance of the new path, and d be the
+            distance of the original DTW path. The possible choices are:
 
+            * ``max_factor_and_diff`` (Default value): Combined distance based.
+                :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs}`
             * ``max_index``: Absolute position based.
                 Allow to deviate from the original path by at most delta_abs
                 positions.
@@ -533,12 +538,9 @@ class ExplainPair:
                 low distance. Thus, a good match with a distance close to zero
                 and where the simplification would lead to a distance a bit
                 higher than zero.
-
                 :math:`d' \\leq d * (1 + 1.1*\\delta_{rel})`
             * ``max_diff``: Absolute distance based:
                 :math:`d' \\leq d + \\delta_{abs}`
-            * ``max_factor_and_diff``: Combined distance based.
-                :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs}`
             * ``max_factor_and_diff_hands_on``: Combined distance based, but the input for delta_{abs} is a ratio instead of an absolute value.
                 :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs} * d`
             * ``max_dist``: Absolute distance based
@@ -553,8 +555,7 @@ class ExplainPair:
             path.
         :param delta_abs: User-defined absolute tolerance parameter.
             It sets a fixed allowance for deviation.
-            It allows flexibility regardless of the distance of the original
-            path.
+            It allows flexibility regardless of the distance of the original path.
             It has different meanings depending on the approx_type.
         :para delta_abs_maxlen: When applying delta_abs, assume the current
             segment is at most the given length. This reduces trade-off
@@ -563,8 +564,9 @@ class ExplainPair:
             but the distance is different at various places. To avoid that
             a too large distance in one part is compensated by many small
             distances in other parts.
-        :param approx_prune: Whether to add a last round that merges segments
-            bottom-up.
+        :param approx_prune: Whether to add a second phase that merges segments
+            bottom-up and prunes split points found by the first phase but are
+            not necessary to achieve the tolerance criterion.
         :param warp_penalty: Penalty to add when pruning for linear segments
             that are not diagonal. The penalty is added per step that is not
             a diagonal movement. Similar to how a penalty works for DTW. This
@@ -574,6 +576,9 @@ class ExplainPair:
         :param split_strategy: The strategy to use for deciding the splitting
             points:
 
+            * ``tsdiff``: Split on the point that has the highest difference
+                in time series values compared to the closest point on the 
+                straight path (default choice)
             * ``spatialdist``: Split on the point on the path the furthest
                 away from the straight path.
             * ``deriv``: Split on the point on the path that has the highest
@@ -591,11 +596,15 @@ class ExplainPair:
         :param init_split_points: Start with these split points and then split
             further. They might be removed by the pruning step.
         :param focus_on_shape: Focus on the shape instead of shape and amplitude.
-            One of 'None', 'affine' (scale from series),
+            One of 'None' (default value), 'affine' (scale from series),
             'affine2' (scale to series), 'affinedtw', 'affinedtw2', or
             'derivative'.
-        :param variations_on_segments: Compute the variations based on the linear segments instead of the original optimal path
-        :param get_total_variations: Whether compute the total variations over all time points on series from. It is useful when we want to know the area regarding the variations on the plotting, but is by default set to be False to save computation.
+        :param variations_on_segments: Compute the variations based on the linear
+            segments instead of the original optimal path
+        :param get_total_variations: Whether compute the total variations over 
+            all time points on series from. It is useful when we want to know
+            the area regarding the variations on the plotting, but is by default
+            set to be False to save computation.
         """
         self.dtw_settings = DTWSettings.wrap(dtw_settings)
         self.approx_settings = ApproxSettings.wrap(
