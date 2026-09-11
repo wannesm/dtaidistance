@@ -21,30 +21,26 @@ Example:
     s2 = np.array([0.0, 1, 2, 0, 0, 0, 0, 0, 0])
     d = dtw.distance_fast(s1, s2)
 
-Citing this work:
-
-> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
-> DTAIDistance (Version v2). Zenodo.  
-> http://doi.org/10.5281/zenodo.5901139
-
 **New in v2**:
 
+- Dynamic Subsequence Warping (DSW) to explain (dis)similarities (v2.5)
+- Subsequence search and local concurrences (v2.3).
+- Support for multivariate time series (v2.3).
+- DTW Barycenter Averaging for clustering (v2.2).
 - Numpy is now an optional dependency, also to compile the C library
   (only Cython is required).
-- Small optimizations throughout the C code to improve speed.
 - The consistent use of `ssize_t` instead of `int` allows for larger data structures on 64 bit 
   machines and be more compatible with Numpy.
 - The parallelization is now implemented directly in C (included if OpenMP is installed).
 - The `max_dist` argument turned out to be similar to Silva and Batista's work 
-  on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW
-  since it prunes more partial distances. Additionally, a `use_pruning` argument
-  is added to automatically set `max_dist` to the Euclidean distance, as suggested
-  by Silva and Batista, to speed up the computation (a new method `ub_euclidean` is available).
-- Support in the C library for multi-dimensional sequences in the `dtaidistance.dtw_ndim`
-  package.
-- DTW Barycenter Averaging for clustering (v2.2).
-- Subsequence search and local concurrences (v2.3).
-- Support for N-dimensional time series (v2.3.7).
+  on PrunedDTW [7]. The toolbox now implements a version that is equal to PrunedDTW.
+
+
+## Citing this work
+
+> Wannes Meert, Kilian Hendrickx, Toon Van Craenendonck, Pieter Robberechts, Hendrik Blockeel & Jesse Davis.  
+> DTAIDistance (Version v2). Zenodo.  
+> http://doi.org/10.5281/zenodo.5901139
 
 
 ## Installation
@@ -56,7 +52,8 @@ or
     $ conda install -c conda-forge dtaidistance
 
 The pip installation requires Numpy as a dependency to compile Numpy-compatible
-C code (using Cython). However, this dependency is optional and can be removed.
+C code (using Cython). However, this dependency is optional and can be removed
+by compiling from source.
 
 The source code is available at
 [github.com/wannesm/dtaidistance](https://github.com/wannesm/dtaidistance).
@@ -123,6 +120,15 @@ the distance measure computation:
 - `penalty`: Penalty to add if compression or expansion is applied (on top of the distance).
 - `psi`: Psi relaxation to ignore begin and/or end of sequences (for cylical sequences) [2].
 - `use_pruning`: Prune computations based on the Euclidean upper bound.
+
+
+#### Dynamic Subsequence Warping to explain (dis)similarities
+
+    from dtaidistance.explain.dsw import ExplainPair
+    pair = ExplainPair(s1, s2, delta_rel=1, delta_abs=0.5)
+    pair.plot_warping(filename="/path/to/file.png")
+
+![Dynamic Subsequence Warping (DSW) Example](https://people.cs.kuleuven.be/wannes.meert/dtw/dsw_intro.png?v=1)
 
 
 #### DTW Distance Measure all warping paths
@@ -310,7 +316,7 @@ Development:
 
     DTAI distance code.
 
-    Copyright 2016-2022 KU Leuven, DTAI Research Group
+    Copyright 2016-2026 KU Leuven, DTAI Research Group
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

@@ -33,6 +33,7 @@ To plot the dynamic subsequence warping (DSW) explanation between time series
 
 ::
 
+    from dtaidistance.explain.dsw.explainpair import ExplainPair
     pair = ExplainPair(ya, yb, delta_rel=2, delta_abs=0.5)
     pair.plot_warping(filename="/path/to/figure.png")
 
@@ -45,6 +46,8 @@ visualization:
 
 ::
 
+    from dtaidistance.dtw import warping_paths, best_path
+    from dtaidistance.dtw_visualisation import plot_warping
     dist, paths = warping_paths(ya, yb)
     path = best_path(paths)
     plot_warping(ya, yb, path, filename="/path/to/figure1.png")
@@ -66,6 +69,28 @@ visualization:
           :width: 100%
 
 
+Setting delta_abs
+"""""""""""""""""
+
+The value of ``delta_abs`` can be seen as an estimation of the cumulative random
+noise on the signal. This might be unclear to set if there is no domain knowledge
+available. There are a few methods that can be used to estimate the value
+for delta_abs based on knowledge and/or available series:
+
+::
+
+    from dtaidistance.explain.explainpair import estimate_deltaabs_from_noise, \
+      estimate_deltaabs_from_quantiledist, estimate_deltaabs_from_distmatrix, \
+      estimate_deltaabs_from_noiseamplitude
+    delta_abs = estimate_deltaabs_from_noiseamplitude(noise_ampl)
+    delta_abs = estimate_deltaabs_from_noise(list_of_timerseries)
+    delta_abs = estimate_deltaabs_from_quantiledist(ts1, ts2)
+    delta_abs = estimate_deltaabs_from_distmatrix(list_of_timeseries)
+
+
+Intuition about how the method works
+""""""""""""""""""""""""""""""""""""
+
 From the perspective of the cost space, DSW approximates the original warping path (left, red) with a piecewise linear path (right, green).
 
 .. list-table::
@@ -83,7 +108,8 @@ From the perspective of the cost space, DSW approximates the original warping pa
           :width: 100%
 
 
-
+Examples
+""""""""
 
 The advantage is even more clear if there is overfitting on the noise present
 in the time series. In the following example one can see how the
@@ -105,16 +131,16 @@ representive of the actual differences.
 This can also be seen in the cost space, where the zoomed-in regions show that the unnecessary warping (in red) is approximated by a linear path (in green).
 
 .. figure:: _static/explain/refit_both_with_zoom_in.png
-    :alt: DSW path (in green) vs DTW path (in red)
-     :width: 50%
-     :align: center
+   :alt: DSW path (in green) vs DTW path (in red)
+   :width: 50%
+   :align: center
 
 When there is a pause in the second time series (e.g., due to a temporary machine shutdown), such extreme warping is typically not allowed by window-constrained or Amerced DTW. In contrast, DSW can successfully capture and align the pause.
 
 .. figure:: _static/explain/pause_dsw.png
-    :alt:  DSW successfully captures and aligns the pause in the second time series.
-    :width: 50%
-    :align: center
+   :alt: DSW successfully captures and aligns the pause in the second time series.
+   :width: 50%
+   :align: center
 
 DSW can also be applied on multivariate time series.
 

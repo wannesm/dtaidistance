@@ -204,12 +204,12 @@ class ApproxSettings:
     def __init__(
         self,
         approx_type=ApproxType.MAX_FACTOR_AND_DIFF,
-        delta_rel=2,
-        delta_abs=0.1,
-        delta_quantile=None,
-        delta_abs_maxlen=None,
+        delta_rel: float = 1,
+        delta_abs: Optional[float] = None,
+        delta_quantile: Optional[float] = None,
+        delta_abs_maxlen: Optional[int] = None,
         approx_prune=True,
-        split_strategy=SplitStrategy.SPATIAL_DIST,
+        split_strategy=SplitStrategy.TS_DIFF,
         warp_penalty: Optional[float] = 0.0,
         focus_on_shape=FocusOnShape.NONE,
         init_split_points=None,
@@ -339,6 +339,15 @@ class ApproxSettings:
         factor=1.0,
         dtw_settings=None,
     ):
+        """Set delta_abs based on a known level of noise on the time series.
+
+        :param noise_ampl: The amplitude of typical noise on the signal
+        :param pathlen: The (expected) length of the warping path. Use the
+            length of the series if not known
+        :param factor: The tolerance you want to allow (default=1)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
+        """
         dtw_settings = DTWSettings.wrap(dtw_settings)
         idcls = dtw_settings.inner_dist_cls()
         delta_abs = idcls.result(factor * pathlen * idcls.inner_val(noise_ampl))
@@ -346,20 +355,24 @@ class ApproxSettings:
 
     @staticmethod
     def estimate_deltaabs_from_noise(
-        *tss,
+        tss,
         pathlen=None,
         factor=1.0,
         window_length=5,
         dtw_settings=None,
     ) -> tuple[float, float]:
-        """Estimate delta_abs as the noise on the signal.
+        """Estimate delta_abs from the noise on the signal.
+        A good estimate for delta_abs is to see it as the noise the is
+        expected to be on the signal and that can be ignored. Thus the variation
+        the the warping can ignore and still be a good matching.
 
         :param tss: List of time series
-        :param pathlen: Length of the path, if not given, the length of the
-            time series is used
-        :param factor: How much noise amplitude to use, number between 0 and 1
-        :param window_length: Window length to use for the smoothing
-        :param dtw_settings: A DTWSettings (compatible) object
+        :param pathlen: Length of the path (default=lenght of first series)
+        :param factor: How much noise amplitude to use (default=1)
+        :param window_length: Window length to use for the filter that is
+            used to estimate the noise versus the actual signal (default=5)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
         """
         assert len(tss) > 0
         from scipy.signal import savgol_filter
@@ -386,6 +399,16 @@ class ApproxSettings:
         quantile: float = 0.95,
         dtw_settings: Optional[DTWSettings] = None
     ):
+        """Estimate delta_abs from the typical pointwise value difference in
+        the path.
+
+        :param s1: First series 
+        :param s1: Second series 
+        :param factor: Tolerance (default=1)
+        :param quantile: Quantile to use (default=0.95)
+        :param dtw_settings: A DTWSettings (compatible) object with the settings
+            used to compute the path
+        """
         dtw_settings = DTWSettings.wrap(dtw_settings)
         if path is None:
             path = dtw.warping_path(s1, s2, dtw_settings=dtw_settings)
@@ -406,10 +429,13 @@ class ApproxSettings:
         distmatrix=None,
     ):
         """
-        Set delta_abs to a quantile of the cluster
+        Set delta_abs to a quantile of the pairwise distances in a group of
+        series that represent the same behavior.
         This is similar to the relaxation that is allowed with respect to the
         time series that is the median distance away from the
         medoid of the list of time series.
+        Put differently, the tolerance that is needed to consider the time series
+        in the group to represent the same behavior.
 
         :param tss: List (or iterable) of time series
         :param delta_abs_quantile: Use as distance the quantile of all
@@ -467,7 +493,7 @@ class ExplainPair:
         delta_quantile: Optional[float] = None,
         approx_prune: bool = True,
         warp_penalty: Optional[float] = None,
-        split_strategy=SplitStrategy.SPATIAL_DIST,
+        split_strategy=SplitStrategy.TS_DIFF,
         focus_on_shape=FocusOnShape.NONE,
         init_split_points=None,
         do_remove_singularities=True,
@@ -480,20 +506,25 @@ class ExplainPair:
         auto_run=True,
     ):
         """Compute segments and variations that explain the warping path
-        between two series by using Dynamic Subsequence Warping.
+        between two series by using Dynamic Subsequence Warping. Algorithmic
+        details are available in the following publication:
 
             Lin, S., Meert, W. Robberechts, P., Blockeel H.,
-            "Warping and Matching Subsequences Between Time Series"
-            arXiv:2506.15452v1 [cs.LG] 2025
+            "Dynamic Subsequence Warping",
+            Proceedings of the European Conference on Machine Learning and 
+            Principles and Practice of Knowledge Discovery in Databases 
+            (ECML/PKDD), 2026.
 
         :param series_from: Series from
         :param series_to: Series to
         :param approx_type: Type of approximation to use.
 
             Ensures that the new DTW distance after the approximation is within
-            a bound. Let d' be the DTW distance of the new path, and d be the
-            DTW distance of the original path. The possible choices are:
+            a bound. Let d' be the distance of the new path, and d be the
+            distance of the original DTW path. The possible choices are:
 
+            * ``max_factor_and_diff`` (Default value): Combined distance based.
+                :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs}`
             * ``max_index``: Absolute position based.
                 Allow to deviate from the original path by at most delta_abs
                 positions.
@@ -507,12 +538,9 @@ class ExplainPair:
                 low distance. Thus, a good match with a distance close to zero
                 and where the simplification would lead to a distance a bit
                 higher than zero.
-
                 :math:`d' \\leq d * (1 + 1.1*\\delta_{rel})`
             * ``max_diff``: Absolute distance based:
                 :math:`d' \\leq d + \\delta_{abs}`
-            * ``max_factor_and_diff``: Combined distance based.
-                :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs}`
             * ``max_factor_and_diff_hands_on``: Combined distance based, but the input for delta_{abs} is a ratio instead of an absolute value.
                 :math:`d' \\leq d * (1 + \\delta_{rel}) + \\delta_{abs} * d`
             * ``max_dist``: Absolute distance based
@@ -527,8 +555,7 @@ class ExplainPair:
             path.
         :param delta_abs: User-defined absolute tolerance parameter.
             It sets a fixed allowance for deviation.
-            It allows flexibility regardless of the distance of the original
-            path.
+            It allows flexibility regardless of the distance of the original path.
             It has different meanings depending on the approx_type.
         :para delta_abs_maxlen: When applying delta_abs, assume the current
             segment is at most the given length. This reduces trade-off
@@ -537,8 +564,9 @@ class ExplainPair:
             but the distance is different at various places. To avoid that
             a too large distance in one part is compensated by many small
             distances in other parts.
-        :param approx_prune: Whether to add a last round that merges segments
-            bottom-up.
+        :param approx_prune: Whether to add a second phase that merges segments
+            bottom-up and prunes split points found by the first phase but are
+            not necessary to achieve the tolerance criterion.
         :param warp_penalty: Penalty to add when pruning for linear segments
             that are not diagonal. The penalty is added per step that is not
             a diagonal movement. Similar to how a penalty works for DTW. This
@@ -548,6 +576,9 @@ class ExplainPair:
         :param split_strategy: The strategy to use for deciding the splitting
             points:
 
+            * ``tsdiff``: Split on the point that has the highest difference
+                in time series values compared to the closest point on the 
+                straight path (default choice)
             * ``spatialdist``: Split on the point on the path the furthest
                 away from the straight path.
             * ``deriv``: Split on the point on the path that has the highest
@@ -565,11 +596,15 @@ class ExplainPair:
         :param init_split_points: Start with these split points and then split
             further. They might be removed by the pruning step.
         :param focus_on_shape: Focus on the shape instead of shape and amplitude.
-            One of 'None', 'affine' (scale from series),
+            One of 'None' (default value), 'affine' (scale from series),
             'affine2' (scale to series), 'affinedtw', 'affinedtw2', or
             'derivative'.
-        :param variations_on_segments: Compute the variations based on the linear segments instead of the original optimal path
-        :param get_total_variations: Whether compute the total variations over all time points on series from. It is useful when we want to know the area regarding the variations on the plotting, but is by default set to be False to save computation.
+        :param variations_on_segments: Compute the variations based on the linear
+            segments instead of the original optimal path
+        :param get_total_variations: Whether compute the total variations over 
+            all time points on series from. It is useful when we want to know
+            the area regarding the variations on the plotting, but is by default
+            set to be False to save computation.
         """
         self.dtw_settings = DTWSettings.wrap(dtw_settings)
         self.approx_settings = ApproxSettings.wrap(
@@ -598,7 +633,9 @@ class ExplainPair:
                 self.ndim = dndim
             else:
                 assert self.ndim == dndim
-        assert self.ndim is not None and self.dtw_settings.use_ndim == (self.ndim > 1)
+            if dndim == 1:
+                self.dtw_settings.use_ndim = True
+        assert self.ndim is not None and (not (self.ndim > 1) or self.dtw_settings.use_ndim is True)
 
         self.series_from, self.series_to = self._transform_series(
             settings.focus_on_shape, series_from, series_to, self.dtw_settings
@@ -1658,7 +1695,7 @@ class ExplainPair:
         dists.append(cost_seg)
         dist += cost_seg
         dist = inner_res(dist)
-        assert type(dist) is float
+        assert type(dist) is float or isinstance(dist, np.floating), f"{type(dist)=}"
         return dist, dists
 
     def from_indices(self):
@@ -1911,10 +1948,10 @@ class ExplainPair:
         :param on_segments: Compute the variations based on the linear segments
             instead of the original optimal path
         :param amplitude_on_series_from: Whether the amplitude variations are computed with respect to
-        the reference series ('series_from').
-        When it is set to be False, the amplitude variations are computed with respect to
-        the target series ('series_to'). It is useful for the plotting between a pair of time series,
-        when we have more interest in how the target series differs from the reference series.
+            the reference series ('series_from').
+            When it is set to be False, the amplitude variations are computed with respect to
+            the target series ('series_to'). It is useful for the plotting between a pair of time series,
+            when we have more interest in how the target series differs from the reference series.
         :return:
         """
         if on_segments:
@@ -2498,12 +2535,10 @@ def path_to_segments_with_sp_predefined(path, sps):
     return segments, line2
 
 def find_simplified_path_with_sps_on_series_from_predefined(path, sps):
-    """
-     Find the simplified path with the splitting points on the series from are predefined/fixed.
+    """Find the simplified path with the splitting points on the series from are predefined/fixed.
     :param path: Warping path
     :param sps: Splitting points on series from
     :return: the simplified path (in which the criterion check is not guaranteed)
-
     """
     line = np.asarray(path)
     line2 = [(0, 0)]

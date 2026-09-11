@@ -191,6 +191,7 @@ class DTWSettings:
         if settings.window is None:
             settings.window = max(len(s1), len(s2))
         settings.set_max_dist(s1, s2)
+        ndim, settings.use_ndim = util.detect_use_ndim(s1)
         return settings
 
     def set_max_dist(self, s1, s2):
