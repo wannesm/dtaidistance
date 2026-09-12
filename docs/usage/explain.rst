@@ -34,7 +34,12 @@ To plot the dynamic subsequence warping (DSW) explanation between time series
 ::
 
     from dtaidistance.explain.dsw.explainpair import ExplainPair
-    pair = ExplainPair(ya, yb, delta_rel=2, delta_abs=0.5)
+    pair = ExplainPair(
+      ya, yb,
+      delta_rel=2,
+      delta_abs=0.5,
+      delta_abs_maxlen=int(0.1*len(ya)),
+    )
     pair.plot_warping(filename="/path/to/figure.png")
 
 

@@ -557,7 +557,7 @@ class ExplainPair:
             It sets a fixed allowance for deviation.
             It allows flexibility regardless of the distance of the original path.
             It has different meanings depending on the approx_type.
-        :para delta_abs_maxlen: When applying delta_abs, assume the current
+        :param delta_abs_maxlen: When applying delta_abs, assume the current
             segment is at most the given length. This reduces trade-off
             effects for long segments between small costs and large costs.
             This is useful if there are long linear segments

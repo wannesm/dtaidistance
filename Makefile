@@ -151,5 +151,6 @@ upload_from_local_machine:
 
 .PHONY: docs
 docs:
-	export PYTHONPATH=..; cd docs; make html
+	#export PYTHONPATH=..; cd docs; make html
+	cd docs; make html
 

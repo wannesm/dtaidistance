@@ -338,18 +338,18 @@ class LocalConcurrences:
 
         Different from the original formulation, D_tau is introduced based on the given delta factor.
         This makes the penalty less sensitive to the cumulative effect of the paths in the
-        self-similarity matrix S:
+        self-similarity matrix S::
 
-        S_tau(n,m) = S(n,m)  if  S(n,m) >= tau  (with tau >= 0)
-                     delta   if  S(n,m) < tau   (with tau >= 0 & delta <= 0)
+            S_tau(n,m) = S(n,m)  if  S(n,m) >= tau  (with tau >= 0)
+                         delta   if  S(n,m) < tau   (with tau >= 0 & delta <= 0)
 
-        And for the accumulated score matrix D:
+        And for the accumulated score matrix D::
 
-        D_tau(n,m) = max(0,
-                         df * D_tau(n−1,m−1) + S_tau(n,m),
-                         df * D_tau(n−1,m)   + S_tau(n,m),
-                         df * D_tau(n,m−1)   + S_tau(n,m))
-        where df = 1 if S(n,m) >= tau and df=delta_factor (<=1) otherwise,
+            D_tau(n,m) = max(0,
+                             df * D_tau(n−1,m−1) + S_tau(n,m),
+                             df * D_tau(n−1,m)   + S_tau(n,m),
+                             df * D_tau(n,m−1)   + S_tau(n,m))
+            where df = 1 if S(n,m) >= tau and df=delta_factor (<=1) otherwise,
 
         For finding paths the delta_factor has no influence. For the visualisation,
         it helps as patterns exhibit more similar values in the D matrix.
