@@ -92,6 +92,16 @@ for delta_abs based on knowledge and/or available series:
     delta_abs = estimate_deltaabs_from_quantiledist(ts1, ts2)
     delta_abs = estimate_deltaabs_from_distmatrix(list_of_timeseries)
 
+If the series are very similar, there might be long sequences that can be 
+simplified by one linear segment (thus with the same compression ratio). For
+such long segments, it can happen that a sequence of costs near zero allows for
+a trade-off where large point-wise costs are compensated by these small costs.
+To avoid this, you can set ``delta_abs_maxlen``. This is the longest sequence
+of small costs that are allowed for compensating large costs.
+A good estimate is 10% of the sequence::
+
+  delta_abs_maxlen = int(0.1*len(ya))
+
 
 Intuition about how the method works
 """"""""""""""""""""""""""""""""""""
