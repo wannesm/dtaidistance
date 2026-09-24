@@ -273,7 +273,7 @@ class MyBuildExtCommand(BuildExtCommand):
         if numpy is None:
             self.extensions = [arg for arg in self.extensions if "numpy" not in str(arg)]
         print2(f'All extensions:')
-        print2(self.extensions)
+        print2([e.name for e in self.extensions])
         if fp is not None:
             try:
                 fp.close()
