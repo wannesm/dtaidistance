@@ -4481,7 +4481,7 @@ DDPath dtw_wph_sqeuc_typei(seq_t *f_s, idx_t f_l,
             continue;
         }
         if (t_ll == 1) {
-            dd_path_insert_wo_doubles(&path, f_i0, f_i0);
+            dd_path_insert_wo_doubles(&path, f_i0, t_i0);
             for (idx_t f_i=f_i0+1; f_i<f_il; f_i++) {
                 dd_path_insert(&path, f_i, t_i0);
             }
