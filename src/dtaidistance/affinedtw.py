@@ -50,13 +50,20 @@ def warping_path_and_coeff_fast(s1, s2, nb_steps=10, znormalization=True,
 
 def warping_path_and_coeff(s1, s2, nb_steps=10, znormalization=True,
                            **kwargs):
-    """
+    """Return the optimal warping path and the affine coefficients a and b 
+    (s1 = a*s1 + b) that are computed to have an optimal matching between s1 and s2.
+
+    It is recommended to use a window to speed up DTW if the two series have
+    limited shift.
+
     :param s1: From series
     :param s2: To series
     :param nb_steps:
     :param znormalization: First perform z-normalization. This is a cheap
-        operation that brings values already closer together and makes
-        the affine transformation more stable.
+        operation that brings values already closer together if the amplitudes
+        differ a lot and makes the affine transformation more stable.
+    :param kwargs: Settings for a DTWSettings object
+    :return: path, distance, (b, a)
     """
     if np is None:
         raise NumpyException("warping_path_and_coeff needs numpy")
@@ -65,6 +72,9 @@ def warping_path_and_coeff(s1, s2, nb_steps=10, znormalization=True,
         t_mean, t_std = np.mean(s2), np.std(s2)
         s1 = (s1 - f_mean) / f_std
         s2 = (s2 - t_mean) / t_std
+    else:
+        t_mean, t_std = 0, 1
+        f_mean, f_std = 0, 1
     path, d = dtw.warping_path(s1, s2, include_distance=True, **kwargs)
     s1a = s1
     d_prev = np.inf
@@ -103,10 +113,15 @@ def scale_fast(s1, s2, **kwargs):
     return scale(s1, s2, **kwargs)
 
 def scale(s1, s2, **kwargs):
-    """
+    """Scale s1 to s2 to optimally match the two series.
+
+    It is recommended to use a window to speed up the DTW that is used internally
+    if the two series have limited shift.
+    
     :param s1: From series
     :param s2: To series
     :param kwargs: Arguments passed on to warping_path_and coeff
+    :return: s1 after the affine transformation
     """
     _, _, (b, a) = warping_path_and_coeff(s1, s2, **kwargs)
     s1 = a*s1 + b

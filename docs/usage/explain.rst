@@ -160,3 +160,4 @@ When there is a pause in the second time series (e.g., due to a temporary machin
 DSW can also be applied on multivariate time series.
 
 .. figure:: _static/explain/dsw_warp_2d.png
+

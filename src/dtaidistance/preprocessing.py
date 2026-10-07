@@ -268,6 +268,9 @@ def scale_linearly(src_ts, tgt_ts, quantile=0.05, nb_steps=10,
     If the time series are multivariate, the scaling is applied independently
     to each variate.
 
+    A more advanced (but more expensive) affine transformation is available
+    in the :py:func:`affinedtw.scale` method.
+
     :param src_ts: array-like, shape (n_samples, n_variates) or (n_samples,)
         Source time series.
     :param tgt_ts: array-like, shape (n_samples, n_variates) or (n_samples,)
