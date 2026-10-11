@@ -98,9 +98,7 @@ def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
         nb_prob_samples = 0
     if c is None:
         if nb_initial_samples is None:
-            curi = 0
-            while mask[curi] is False:
-                curi += 1
+            curi = np.argmax(mask)
             c = s[curi]
         else:
             c = get_good_c(s, mask, nb_initial_samples, use_c=use_c, **kwargs)
@@ -199,9 +197,7 @@ def dba(s, c, mask=None, samples=None, use_c=False, nb_initial_samples=None, **k
         mask = np.full((len(s),), True, dtype=bool)
     if c is None:
         if nb_initial_samples is None:
-            curi = 0
-            while mask[curi] is False:
-                curi += 1
+            curi = np.argmax(mask)
             c = s[curi]
         else:
             c = get_good_c(s, mask, nb_initial_samples, use_c=use_c, **kwargs)

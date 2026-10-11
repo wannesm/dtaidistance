@@ -349,6 +349,35 @@ def test_nparray_kmeans():
 
 
 @numpyonly
+@pytest.mark.parametrize("use_c", [False, True])
+@pytest.mark.parametrize("ndim", [1, 2])
+@pytest.mark.parametrize("loop", [False, True])
+def test_barycenter_initialization_mask(use_c, ndim, loop):
+    with util_numpy.test_uses_numpy() as np:
+        series = [np.array(values, dtype=np.double) for values in
+                  ([10, 10], [0, 1, 2], [0, 1, 2, 3])]
+        expected = np.array([0., 1., 7. / 3.])
+        if ndim == 2:
+            series = [np.column_stack((seq, 2 * seq)) for seq in series]
+            expected = np.column_stack((expected, 2 * expected))
+        mask = np.array([False, True, True])
+        if loop:
+            result = dba_loop(series, mask=mask, max_it=1, use_c=use_c)
+        else:
+            result = dba(series, c=None, mask=mask, use_c=use_c)
+        np.testing.assert_allclose(result, expected)
+
+
+@numpyonly
+@pytest.mark.parametrize("use_c", [False, True])
+def test_barycenter_initialization_empty_mask(use_c):
+    with util_numpy.test_uses_numpy() as np:
+        series = [np.array([1., 2., 3.]), np.array([4., 5.])]
+        result = dba_loop(series, mask=np.zeros(2, dtype=bool), use_c=use_c)
+        np.testing.assert_array_equal(result, np.zeros(3))
+
+
+@numpyonly
 def test_barycenter():
     with util_numpy.test_uses_numpy() as np:
         series = np.array(
