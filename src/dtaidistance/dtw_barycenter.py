@@ -44,23 +44,25 @@ except ImportError:
 
 
 def get_good_c(s, mask, nb_initial_samples, use_c=False, **kwargs):
-    if nb_initial_samples > len(s):
-        nb_initial_samples = len(s)
     mask_size = np.sum(mask)
+    if nb_initial_samples > mask_size:
+        nb_initial_samples = mask_size
     cs = []
     randthr = nb_initial_samples / mask_size
     for i in range(len(s)):
-        if mask[i]:
-            if random.random() <= randthr:
-                cs.append(s[i])
+        if not mask[i]:
+            continue
+        if random.random() <= randthr:
+            cs.append(s[i])
         if len(cs) == nb_initial_samples:
             break
         else:
-            randthr = (nb_initial_samples - len(cs)) / (mask_size - i - 1)
+            mask_size -= 1
+            randthr = (nb_initial_samples - len(cs)) / mask_size
     d = distance_matrix(cs, use_c=use_c,  **kwargs)
     d = d.sum(axis=1)
     best_i = np.argmin(d)
-    return s[best_i]
+    return cs[best_i]
 
 
 def dba_loop(s, c=None, max_it=10, thr=0.001, mask=None,
