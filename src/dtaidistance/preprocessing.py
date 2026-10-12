@@ -111,6 +111,7 @@ def derivative(series, smooth=None):
         import numpy as np
     except ImportError:
         raise NumpyException("Differencing requires Numpy")
+    series = np.asarray(series)
     axis = 0
     if isinstance(series, np.ndarray):
         if len(series.shape) == 1:
