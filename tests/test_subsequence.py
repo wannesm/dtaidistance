@@ -405,6 +405,49 @@ def create_data_subseqsearch_eeg(np, dtype=None, longer=False):
 
 
 @numpyonly
+def test_dtw_subseqsearch_cached_matches():
+    with util_numpy.test_uses_numpy() as np:
+        query, s, _, _, _ = create_data_subseqsearch_eeg(np)
+        sa = subsequence_search(query, s)
+        cached = sa.align(k=5)
+        assert len(cached) == 5
+
+        best = sa.kbest_matches(k=2)
+        assert sa.kbest_distances is cached
+        assert [match.idx for match in best] == [15, 7]
+        assert len(best) == 2
+        assert [match.idx for match in best[:]] == [15, 7]
+        assert best[-1].idx == 7
+        for idx in (2, -3):
+            with pytest.raises(IndexError):
+                best[idx]
+
+
+@numpyonly
+def test_dtw_subseqsearch_match_slices():
+    with util_numpy.test_uses_numpy() as np:
+        query, s, _, _, _ = create_data_subseqsearch_eeg(np)
+        best = subsequence_search(query, s).kbest_matches(k=5)
+        expected = [(match.idx, match.distance) for match in best]
+        for key in (slice(None), slice(None, None, -1), slice(1, None, 2),
+                    slice(-99, 3), slice(3, 0, -1), slice(99, None)):
+            assert [(match.idx, match.distance) for match in best[key]] == expected[key]
+
+
+@numpyonly
+@pytest.mark.parametrize("max_value, expected", [(0.0805, [15]), (0.08, [])])
+def test_dtw_subseqsearch_fewer_matches(max_value, expected):
+    with util_numpy.test_uses_numpy() as np:
+        query, s, _, _, _ = create_data_subseqsearch_eeg(np)
+        best = subsequence_search(query, s, max_value=max_value).kbest_matches(k=3)
+        assert [match.idx for match in best] == expected
+        assert len(best) == len(expected)
+        assert bool(best) == bool(expected)
+        with pytest.raises(IndexError):
+            best[len(expected)]
+
+
+@numpyonly
 def test_dtw_subseqsearch_eeg2():
     with util_numpy.test_uses_numpy() as np:
         query, s, k, series, s_idx = create_data_subseqsearch_eeg(np)
