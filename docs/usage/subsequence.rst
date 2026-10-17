@@ -79,6 +79,11 @@ to search for the best match, or best k matches (k-Nearest Neighbors):
 When setting k, the search is pruned to early abandon comparisons
 that will not improve on the top k best matches.
 
+The returned sequence supports indexing and slicing. A later call with a smaller
+``k`` reuses the cached distances but returns only the requested number of matches.
+There may be fewer than ``k`` matches if too few candidates satisfy ``max_dist``
+or ``max_value``; ``len(best)`` gives the number of matches actually returned.
+
 In the result one can observe that the choice of windows has an impact
 on where the best matches are found. Whereas the previous alignment method
 does not require a window size  or a shift, here matches are limited to the windows
@@ -119,4 +124,3 @@ a few heartbeats is similar to another sequence of heartbeats.
 
 .. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/localconcurrences.png?v=1
    :alt: Local concurrences
-

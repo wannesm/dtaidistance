@@ -101,30 +101,27 @@ class SSMatch:
 
 class SSMatches:
     def __init__(self, ss, k=None):
-        """Iterator over matches.
+        """Sequence of matches.
 
         :param ss: The SubsequenceSearch object
-        :param k: Optional a k. This overrules the ss.k value.
-            Useful if a smaller k is asked to iterate over than has been stored.
+        :param k: Maximum number of cached matches to return.
+            If None, return all cached matches.
         """
         self.ss = ss
-        self.k = k
         if self.ss.kbest_distances is None:
             self.k = 0
-        elif self.k is None or self.k > self.ss.k:
-            self.k = self.ss.k
-        if self.k is None:
+        elif k is None:
             self.k = len(self.ss.kbest_distances)
+        else:
+            self.k = min(k, len(self.ss.kbest_distances))
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            start = 0 if key.start is None else key.start
-            return [SSMatch(kip+start, self.ss) for kip, (_v, _i) in
-                    enumerate(self.ss.kbest_distances[key])]
-        return SSMatch(key, self.ss)
+            return [SSMatch(ki, self.ss) for ki in range(self.k)[key]]
+        return SSMatch(range(self.k)[key], self.ss)
 
     def __iter__(self):
-        for ki, (_v, _i) in enumerate(self.ss.kbest_distances[:self.k]):
+        for ki in range(self.k):
             yield SSMatch(ki, self.ss)
 
     def __len__(self):
@@ -281,14 +278,14 @@ class SubsequenceSearch:
         return result
 
     def kbest_matches(self, k=1):
-        """Return the k best matches.
+        """Return up to k best matches.
 
         It is recommended to set k to a value, and not None.
         If k is set to None, all comparisons are kept and returned. Also, no early
         stopping is applied in case k is None.
 
-        :param k: Number of best matches to return (default is 1)
-        :return: List of SSMatch objects
+        :param k: Maximum number of best matches to return (default is 1)
+        :return: Sequence of SSMatch objects
         """
         self.align(k=k)
         # if k is None:
@@ -298,4 +295,4 @@ class SubsequenceSearch:
         #     return [SSMatch(best_idx, self) for best_idx in best_idxs[:k]]
         # distances = reversed(sorted(self.h))
         # return [SSMatch(best_idx, self) for dist, best_idx in distances]
-        return SSMatches(self)
+        return SSMatches(self, k=k)
