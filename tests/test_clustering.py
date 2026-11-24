@@ -289,6 +289,36 @@ def test_clustering_centroid():
             print("Figure saved to", png_fn)
 
 
+@numpyonly
+def test_kmedoids_predict():
+    pytest.importorskip("pyclustering.cluster.kmedoids")
+    with util_numpy.test_uses_numpy() as np:
+        model = clustering.KMedoids(dtw.distance_matrix, {"window": 1}, initial_medoids=[3, 1])
+        with pytest.raises(ValueError, match="fit"):
+            model.predict([])
+
+        train = np.array([[0., 0.], [1., 1.], [2., 2.], [10., 10.], [11., 11.], [9., 9.]])
+        clusters = model.fit(train)
+        high, low = clusters
+        assert clusters[high] == {3, 4, 5}
+        assert clusters[low] == {0, 1, 2}
+        assert model.predict([np.array([9., 10., 10.]), np.array([0., 1.])]) == [high, low]
+        assert model.predict([(train[high] + train[low]) / 2]) == [high]
+        assert model.predict([]) == []
+        assert model.predict(train) == [low, low, low, high, high, high]
+        assert model.dists_options == {"window": 1, "compact": False}
+
+
+@numpyonly
+def test_kmedoids_predict_unreachable():
+    pytest.importorskip("pyclustering.cluster.kmedoids")
+    with util_numpy.test_uses_numpy() as np:
+        model = clustering.KMedoids(dtw.distance_matrix, {"max_dist": 2}, initial_medoids=[0])
+        model.fit(np.array([[1., 1.], [1., 1.]]))
+        with pytest.raises(ValueError, match="finite distance"):
+            model.predict([[20., 20.]])
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
