@@ -134,6 +134,9 @@ class.
     cluster_idx = model.fit(s)
     model.plot("kmedoids.png")
 
+    # Assign new series to the medoid indices used as keys in cluster_idx.
+    medoid_ids = model.predict(np.array([[0., 1, 2, 0, 0], [1., 2, 0, 0, 1]]))
+
 
 .. figure:: https://people.cs.kuleuven.be/wannes.meert/dtw/kmedoids.png?v=1
    :alt: KMedoids clustering

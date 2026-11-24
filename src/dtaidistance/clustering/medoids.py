@@ -143,11 +143,11 @@ class KMedoids(Medoids):
             raise PyClusteringException("The fit function requires the PyClustering package to be installed.")
         if np is None:
             raise NumpyException("The fit function requires Numpy to be installed.")
-        self.series = SeriesContainer.wrap(series)
-        logger.debug(f'KMedoid: Compute distances between {len(self.series)} series')
-        dists = self.dists_fun(self.series, **self.dists_options)
+        series = SeriesContainer.wrap(series)
+        logger.debug(f'KMedoid: Compute distances between {len(series)} series')
+        dists = self.dists_fun(series, **self.dists_options)
         # Make the matrix symmetric
-        i_lower = np.tril_indices(len(self.series), -1)
+        i_lower = np.tril_indices(len(series), -1)
         dists[i_lower] = dists.T[i_lower]
         dists[np.isinf(dists)] = 0
         if self.initial_medoids is None:
@@ -156,5 +156,28 @@ class KMedoids(Medoids):
         kmedoids_instance.process()
         clusters = kmedoids_instance.get_clusters()
         medoids = kmedoids_instance.get_medoids()
+        self.series = series
         self.cluster_idx = {medoid: {inst for inst in instances} for medoid, instances in zip(medoids, clusters)}
         return self.cluster_idx
+
+    def predict(self, series):
+        """Assign new series to the nearest fitted medoid.
+
+        Returns one training index per series, using the same keys as fit().
+        Ties are resolved in the order of these keys. The distance matrix
+        function must support the block and compact options.
+        """
+        if self.cluster_idx is None:
+            raise ValueError("Call fit before predict")
+        if len(series) == 0:
+            return []
+
+        medoids = list(self.cluster_idx)
+        queries = list(SeriesContainer.wrap(series))
+        n = len(queries)
+        options = dict(self.dists_options, block=((0, n), (n, n + len(medoids))), compact=True)
+        distances = self.dists_fun(queries + [self.series[i] for i in medoids], **options)
+        distances = np.asarray(distances).reshape(n, len(medoids))
+        if not np.isfinite(distances.min(axis=1)).all():
+            raise ValueError("No finite distance to a medoid for at least one series")
+        return [medoids[i] for i in distances.argmin(axis=1)]
